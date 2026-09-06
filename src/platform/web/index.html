@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Operating Platform | Control Plane</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo-icon">▲</div>
+        <div class="brand-text">
+          <h2>AI Operating Platform</h2>
+          <span class="version-badge">v0.7 Control Plane</span>
+        </div>
+      </div>
+
+      <nav class="nav-menu">
+        <button class="nav-item active" data-tab="overview">
+          <span class="nav-icon">📊</span>
+          <span>Overview</span>
+        </button>
+        <button class="nav-item" data-tab="executions">
+          <span class="nav-icon">⚡</span>
+          <span>Execution Explorer</span>
+        </button>
+        <button class="nav-item" data-tab="governance">
+          <span class="nav-icon">🛡️</span>
+          <span>Policy & Governance</span>
+        </button>
+        <button class="nav-item" data-tab="playground">
+          <span class="nav-icon">🧪</span>
+          <span>Playground</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="status-indicator">
+          <span class="pulse-dot"></span>
+          <span id="engine-status">Engine: Connecting...</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Header -->
+      <header class="top-header">
+        <div class="header-title">
+          <h1 id="view-title">Platform Overview</h1>
+          <p id="view-subtitle">Real-time status, execution telemetry, and governance</p>
+        </div>
+        <div class="header-actions">
+          <button id="refresh-btn" class="btn btn-secondary">
+            <span>🔄</span> Refresh
+          </button>
+          <div class="uptime-badge" id="uptime-display">Uptime: 0s</div>
+        </div>
+      </header>
+
+      <!-- View: Overview -->
+      <section id="tab-overview" class="tab-view active">
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-label">TOTAL EXECUTIONS</div>
+            <div class="metric-value" id="metric-executions">0</div>
+            <div class="metric-sub">Across all agents</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">TASKS REGISTERED</div>
+            <div class="metric-value" id="metric-tasks">0</div>
+            <div class="metric-sub">Durable domain aggregates</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">AVAILABLE TOOLS</div>
+            <div class="metric-value" id="metric-tools">1</div>
+            <div class="metric-sub">Registered capabilities</div>
+          </div>
+          <div class="metric-card highlight">
+            <div class="metric-label">POLICIES EVALUATED</div>
+            <div class="metric-value" id="metric-policy-evals">0</div>
+            <div class="metric-sub">Fail-closed governance</div>
+          </div>
+        </div>
+
+        <div class="two-col-grid">
+          <div class="card">
+            <div class="card-header">
+              <h3>System Counters</h3>
+            </div>
+            <div class="card-body">
+              <div id="counters-table-wrapper">
+                <table class="data-table">
+                  <thead>
+                    <tr><th>Metric Key</th><th>Value</th></tr>
+                  </thead>
+                  <tbody id="counters-tbody">
+                    <tr><td colspan="2" class="empty-state">No metrics recorded yet</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3>Registered Tools & Capabilities</h3>
+            </div>
+            <div class="card-body">
+              <div id="tools-list" class="tool-cards">
+                <!-- Injected via JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- View: Execution Explorer -->
+      <section id="tab-executions" class="tab-view">
+        <div class="card full-width">
+          <div class="card-header">
+            <h3>Recent Executions</h3>
+            <span class="badge" id="executions-count-badge">0</span>
+          </div>
+          <div class="card-body">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Execution ID</th>
+                  <th>Task ID</th>
+                  <th>Trace ID</th>
+                  <th>Status</th>
+                  <th>Started At</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="executions-tbody">
+                <tr><td colspan="6" class="empty-state">No executions found</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Execution Timeline Drawer/Panel -->
+        <div class="card full-width" id="timeline-panel" style="display: none; margin-top: 1.5rem;">
+          <div class="card-header">
+            <h3>Execution Timeline: <span id="timeline-exec-id" class="code-text"></span></h3>
+            <button class="btn btn-sm btn-secondary" id="close-timeline-btn">Close</button>
+          </div>
+          <div class="card-body">
+            <div class="timeline" id="timeline-container">
+              <!-- Timeline nodes injected via JS -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- View: Governance & Policy -->
+      <section id="tab-governance" class="tab-view">
+        <div class="card full-width">
+          <div class="card-header">
+            <h3>Audit Observations & Governance Events</h3>
+            <span class="badge badge-info" id="audit-count-badge">0 events</span>
+          </div>
+          <div class="card-body">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Event Type</th>
+                  <th>Trace ID</th>
+                  <th>Operation / Aggregate</th>
+                  <th>Payload Details</th>
+                </tr>
+              </thead>
+              <tbody id="audit-tbody">
+                <tr><td colspan="5" class="empty-state">No audit observations logged</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- View: Playground -->
+      <section id="tab-playground" class="tab-view">
+        <div class="two-col-grid">
+          <!-- Form: Direct Task Execution -->
+          <div class="card">
+            <div class="card-header">
+              <h3>Submit Task (CoreRuntime)</h3>
+            </div>
+            <div class="card-body">
+              <form id="task-form">
+                <div class="form-group">
+                  <label for="task-agent-id">Agent Identifier</label>
+                  <input type="text" id="task-agent-id" class="form-control" value="foundation-agent" required>
+                </div>
+                <div class="form-group">
+                  <label for="task-input">Input (JSON)</label>
+                  <textarea id="task-input" class="form-control code-editor" rows="6" required>{"prompt": "Calculate 40 + 2 and analyze result", "left": 40, "right": 2}</textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Execute Task</button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Form: Orchestrated Sequence -->
+          <div class="card">
+            <div class="card-header">
+              <h3>Sequential Orchestrator (Model + Tool)</h3>
+            </div>
+            <div class="card-body">
+              <form id="orchestrate-form">
+                <div class="form-group">
+                  <label for="orchestrate-scenario">Preset Scenarios</label>
+                  <select id="orchestrate-scenario" class="form-control">
+                    <option value="calculator_then_model">1. Tool (Calculator) → Model (Summarize)</option>
+                    <option value="model_then_tool">2. Model → Tool</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="orchestrate-payload">Operations Definition (JSON)</label>
+                  <textarea id="orchestrate-payload" class="form-control code-editor" rows="8"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Run Orchestration</button>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- Playground Output Card -->
+        <div class="card full-width" id="playground-result-card" style="display: none; margin-top: 1.5rem;">
+          <div class="card-header">
+            <h3>Execution Output Result</h3>
+            <span id="playground-status-badge" class="badge"></span>
+          </div>
+          <div class="card-body">
+            <pre id="playground-result-json" class="json-display"></pre>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

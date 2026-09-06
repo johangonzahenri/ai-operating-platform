@@ -1,6 +1,6 @@
 import { EventPublisher, event } from "../../domain/events/events.js";
 import { ModelGateway } from "../../domain/model/model-gateway.js";
-import { Operation, OperationExecutionError, OperationResult, OrchestrationRequest, OrchestrationResult, Orchestrator } from "../../domain/orchestration/orchestration.js";
+import { Operation, OperationExecutionError, OperationResult, OrchestrationRequest, OrchestrationResult, OrchestrationValidationError, Orchestrator } from "../../domain/orchestration/orchestration.js";
 import { ToolGateway } from "../../domain/tools/tool-registry.js";
 import { PolicyDeniedError, PolicyEvaluationError, PolicyGateway } from "../../domain/policy/policy.js";
 

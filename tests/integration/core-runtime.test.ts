@@ -19,7 +19,7 @@ test("runtime completes task and execution through the model strategy with corre
   const result = await runtime.execute(task, agent);
   assert.equal(result.task.status, "COMPLETED"); assert.equal(result.execution.status, "COMPLETED"); assert.equal(result.context.executionId, "execution-1");
   assert.deepEqual(tasks.findById(task.id)?.result?.output, { echoedInput: { value: 1 }, model: "stub-model" }); assert.equal(executions.findById("execution-1")?.status, "COMPLETED");
-  assert.deepEqual(events.events.map((item) => item.type), ["execution.created", "task.created", "execution.started", "task.started", "agent.started", "model.requested", "model.completed", "execution.completed", "task.completed", "agent.completed"]);
+  assert.deepEqual(events.events.map((item) => item.type), ["context.created", "execution.created", "task.created", "execution.started", "task.started", "agent.started", "model.requested", "model.completed", "execution.completed", "task.completed", "agent.completed"]);
   assert.ok(events.events.every((item) => item.traceId === "trace-1")); assert.ok(events.events.filter((item) => item.executionId !== undefined).every((item) => item.executionId === "execution-1"));
 });
 
@@ -30,7 +30,7 @@ test("provider failure fails and persists task and execution with correlated err
   const task = Task.create("task-2", "trace-2", { agentId: agent.id, input: { value: 2 } }); const result = await runtime.execute(task, agent);
   assert.equal(result.task.status, "FAILED"); assert.equal(result.execution.status, "FAILED"); assert.equal(result.task.error?.code, "EXECUTION_FAILURE");
   assert.equal(tasks.findById(task.id)?.status, "FAILED"); assert.equal(executions.findById("execution-1")?.status, "FAILED");
-  assert.deepEqual(events.events.map((item) => item.type), ["execution.created", "task.created", "execution.started", "task.started", "agent.started", "model.requested", "model.failed", "execution.failed", "task.failed", "agent.failed"]);
+  assert.deepEqual(events.events.map((item) => item.type), ["context.created", "execution.created", "task.created", "execution.started", "task.started", "agent.started", "model.requested", "model.failed", "execution.failed", "task.failed", "agent.failed"]);
   assert.ok(events.events.every((item) => item.traceId === "trace-2"));
 });
 
