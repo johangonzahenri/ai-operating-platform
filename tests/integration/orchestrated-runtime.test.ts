@@ -1,0 +1,20 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { OrchestratedExecutionStrategy } from "../../src/application/orchestration/orchestrated-execution-strategy.js";
+import { SequentialOrchestrator } from "../../src/application/orchestration/sequential-orchestrator.js";
+import { CoreRuntime } from "../../src/application/runtime/core-runtime.js";
+import { AgentDefinition } from "../../src/domain/agent/agent.js";
+import { Task } from "../../src/domain/task/task.js";
+import { InMemoryEventPublisher } from "../../src/infrastructure/events/in-memory-event-publisher.js";
+import { StubModelGateway } from "../../src/infrastructure/model/stub-model-gateway.js";
+import { InMemoryExecutionRepository } from "../../src/infrastructure/persistence/in-memory-execution-repository.js";
+import { InMemoryTaskRepository } from "../../src/infrastructure/persistence/in-memory-task-repository.js";
+import { CalculatorTool } from "../../src/infrastructure/tools/calculator-tool.js";
+import { InMemoryToolRegistry } from "../../src/infrastructure/tools/in-memory-tool-registry.js";
+import { RegistryToolGateway } from "../../src/application/tools/tool-gateway.js";
+test("CoreRuntime can complete a declared orchestrated execution", async () => {
+  const events = new InMemoryEventPublisher(); const registry = new InMemoryToolRegistry(); registry.register(new CalculatorTool()); const orchestrator = new SequentialOrchestrator(new StubModelGateway(), new RegistryToolGateway(registry, events), events);
+  const strategy = new OrchestratedExecutionStrategy(orchestrator, (execution) => ({ execution, operations: [{ kind: "TOOL", id: "sum", toolId: "calculator", input: { left: 4, right: 5 } }] }));
+  const runtime = new CoreRuntime(new InMemoryTaskRepository(), new InMemoryExecutionRepository(), strategy, events, { next: () => "execution-1" }); const agent: AgentDefinition = { id: "agent", name: "agent", capabilities: [], model: "stub" };
+  const result = await runtime.execute(Task.create("task", "trace", { agentId: "agent", input: { request: "sum" } }), agent); assert.equal(result.execution.status, "COMPLETED"); assert.deepEqual(result.task.result?.output, { value: 9 });
+});

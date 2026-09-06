@@ -1,0 +1,4 @@
+export interface Observation { readonly eventId: string; readonly occurredAt: Date; readonly type: string; readonly traceId: string; readonly aggregateId: string; readonly taskId?: string; readonly executionId?: string; readonly operationId?: string; readonly payload: Readonly<Record<string, unknown>>; }
+export interface AuditLog { record(observation: Observation): void; findByTraceId(traceId: string): readonly Observation[]; findByExecutionId(executionId: string): readonly Observation[]; findByOperationId(operationId: string): readonly Observation[]; }
+export interface MetricDimensions { readonly [key: string]: string; }
+export interface MetricsCollector { increment(name: string, dimensions?: MetricDimensions): void; record(name: string, value: number, dimensions?: MetricDimensions): void; }
