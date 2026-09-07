@@ -5,14 +5,17 @@
   "description": "Operational infrastructure foundation for AI systems.",
   "type": "module",
   "scripts": {
-    "build": "tsc --noEmit",
-    "test": "tsx --test tests/**/*.test.ts",
-    "check": "npm run build && npm test"
+    "build": "tsc",
+    "test": "node scripts/test.js",
+    "check": "npm run build && npm test",
+    "start": "npm run build && node dist/src/platform/server.js"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   },
-  "engines": { "node": ">=18" }
+  "engines": {
+    "node": ">=18"
+  }
 }

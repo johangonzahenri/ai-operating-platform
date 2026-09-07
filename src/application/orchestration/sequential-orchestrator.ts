@@ -6,7 +6,12 @@ import { PolicyDeniedError, PolicyEvaluationError, PolicyGateway } from "../../d
 
 /** Coordinates a finite declared sequence; it performs no planning, retries, or parallel work. */
 export class SequentialOrchestrator implements Orchestrator {
-  constructor(private readonly models: ModelGateway, private readonly tools: ToolGateway, private readonly events: EventPublisher, private readonly policy?: PolicyGateway) {}
+  constructor(
+    private readonly models: ModelGateway,
+    private readonly tools: ToolGateway,
+    private readonly events: EventPublisher,
+    private readonly policy: PolicyGateway
+  ) {}
   async execute(request: OrchestrationRequest): Promise<OrchestrationResult> {
     this.validate(request);
     const refs = { taskId: request.execution.taskId, executionId: request.execution.executionId };
@@ -19,7 +24,7 @@ export class SequentialOrchestrator implements Orchestrator {
         this.events.publish(event("operation.started", request.execution.traceId, operation.id, { operationId: operation.id, kind: operation.kind }, undefined, undefined, refs));
         const output = await this.run(operation, request, results);
         const result: OperationResult = { operationId: operation.id, status: "COMPLETED", output, ...(operation.metadata ? { metadata: operation.metadata } : {}) }; results.push(result);
-        this.events.publish(event("operation.completed", request.execution.traceId, operation.id, { operationId: operation.id, kind: operation.kind }, undefined, undefined, refs));
+        this.events.publish(event("operation.completed", request.execution.traceId, operation.id, { operationId: operation.id, kind: operation.kind, output }, undefined, undefined, refs));
       } catch (cause) {
         const error = cause instanceof Error ? cause : new Error("Unknown operation failure"); const result: OperationResult = { operationId: operation.id, status: "FAILED", error }; results.push(result);
         this.events.publish(event("operation.failed", request.execution.traceId, operation.id, { operationId: operation.id, message: error.message }, undefined, undefined, refs));
@@ -38,7 +43,9 @@ export class SequentialOrchestrator implements Orchestrator {
     } catch (cause) { const error = cause instanceof Error ? cause : new Error("Unknown operation failure"); throw new OperationExecutionError(operation.id, error.message, error); }
   }
   private async authorize(operation: Operation, request: OrchestrationRequest): Promise<void> {
-    if (!this.policy) return;
+    if (!this.policy || typeof this.policy.evaluate !== "function") {
+      throw new PolicyEvaluationError("PolicyGateway is mandatory and must provide evaluate()");
+    }
     const resourceId = operation.kind === "MODEL" ? operation.model : operation.toolId;
     try {
       const decision = await this.policy.evaluate({ traceId: request.execution.traceId, executionId: request.execution.executionId, taskId: request.execution.taskId, operationId: operation.id, operationType: operation.kind, resourceId, metadata: operation.metadata ?? {} });

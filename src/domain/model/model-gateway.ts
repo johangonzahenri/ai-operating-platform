@@ -2,7 +2,7 @@ export interface ModelRequest {
   readonly traceId: string;
   readonly model: string;
   readonly input: Readonly<Record<string, unknown>>;
-  readonly metadata?: Readonly<Record<string, unknown>>;
+  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
 }
 
 export class ModelValidationError extends Error { constructor(message: string) { super(message); this.name = "ModelValidationError"; } }
@@ -14,7 +14,7 @@ export const validateModelRequest = (request: ModelRequest): void => {
   if (request.input === null || typeof request.input !== "object" || Object.keys(request.input).length === 0) throw new ModelValidationError("Model request requires non-empty input");
 };
 
-export interface ModelUsage { readonly inputTokens?: number; readonly outputTokens?: number; }
+export interface ModelUsage { readonly inputTokens?: number | undefined; readonly outputTokens?: number | undefined; }
 export class ModelProviderError extends ModelExecutionError {
   constructor(provider: string, message: string) { super(provider, message); this.name = "ModelProviderError"; }
 }
@@ -23,10 +23,10 @@ export interface ModelResponse {
   readonly output: Readonly<Record<string, unknown>>;
   readonly provider: string;
   readonly model: string;
-  readonly content?: string;
-  readonly usage?: ModelUsage;
-  readonly metadata?: Readonly<Record<string, unknown>>;
-  readonly finishReason?: string;
+  readonly content?: string | undefined;
+  readonly usage?: ModelUsage | undefined;
+  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+  readonly finishReason?: string | undefined;
 }
 
 export interface ModelGateway {

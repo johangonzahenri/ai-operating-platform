@@ -3,6 +3,7 @@ export class InMemoryToolRegistry implements ToolRegistry {
   private readonly tools = new Map<string, Tool>();
   register(tool: Tool): void { this.validateDefinition(tool.definition); if (this.tools.has(tool.definition.id)) throw new ToolDefinitionError(`Duplicate tool: ${tool.definition.id}`); this.tools.set(tool.definition.id, tool); }
   find(id: string): Tool | undefined { return this.tools.get(id); }
+  findById(id: string): ToolDefinition | undefined { return this.tools.get(id)?.definition; }
   list() { return [...this.tools.values()].map((tool) => tool.definition); }
   private validateDefinition(definition: ToolDefinition): void {
     if (typeof definition?.id !== "string" || definition.id.trim() === "") throw new ToolDefinitionError("Tool definition requires an id");

@@ -14,26 +14,50 @@
         <div class="logo-icon">▲</div>
         <div class="brand-text">
           <h2>AI Operating Platform</h2>
-          <span class="version-badge">v0.7 Control Plane</span>
+          <span class="version-badge">v0.8 Control Plane</span>
         </div>
       </div>
 
       <nav class="nav-menu">
-        <button class="nav-item active" data-tab="overview">
+        <button class="nav-item active" data-tab="dashboard">
           <span class="nav-icon">📊</span>
-          <span>Overview</span>
+          <span>Dashboard</span>
+        </button>
+        <button class="nav-item" data-tab="agents">
+          <span class="nav-icon">🤖</span>
+          <span>Agents</span>
+        </button>
+        <button class="nav-item" data-tab="models">
+          <span class="nav-icon">🧠</span>
+          <span>Models</span>
+        </button>
+        <button class="nav-item" data-tab="tools">
+          <span class="nav-icon">🔧</span>
+          <span>Tools</span>
         </button>
         <button class="nav-item" data-tab="executions">
           <span class="nav-icon">⚡</span>
-          <span>Execution Explorer</span>
+          <span>Executions</span>
         </button>
-        <button class="nav-item" data-tab="governance">
-          <span class="nav-icon">🛡️</span>
-          <span>Policy & Governance</span>
+        <button class="nav-item" data-tab="execution-detail">
+          <span class="nav-icon">🔍</span>
+          <span>Execution Detail</span>
         </button>
         <button class="nav-item" data-tab="playground">
           <span class="nav-icon">🧪</span>
           <span>Playground</span>
+        </button>
+        <button class="nav-item" data-tab="applications">
+          <span class="nav-icon">🛒</span>
+          <span>Applications</span>
+        </button>
+        <button class="nav-item" data-tab="settings">
+          <span class="nav-icon">⚙️</span>
+          <span>Settings</span>
+        </button>
+        <button class="nav-item" data-tab="governance">
+          <span class="nav-icon">🛡️</span>
+          <span>Governance</span>
         </button>
       </nav>
 
@@ -50,8 +74,8 @@
       <!-- Header -->
       <header class="top-header">
         <div class="header-title">
-          <h1 id="view-title">Platform Overview</h1>
-          <p id="view-subtitle">Real-time status, execution telemetry, and governance</p>
+          <h1 id="view-title">Platform Dashboard</h1>
+          <p id="view-subtitle">Real-time telemetry, operational status, and capability registry</p>
         </div>
         <div class="header-actions">
           <button id="refresh-btn" class="btn btn-secondary">
@@ -61,8 +85,8 @@
         </div>
       </header>
 
-      <!-- View: Overview -->
-      <section id="tab-overview" class="tab-view active">
+      <!-- 1. View: Dashboard -->
+      <section id="tab-dashboard" class="tab-view active">
         <div class="metrics-grid">
           <div class="metric-card">
             <div class="metric-label">TOTAL EXECUTIONS</div>
@@ -70,9 +94,9 @@
             <div class="metric-sub">Across all agents</div>
           </div>
           <div class="metric-card">
-            <div class="metric-label">TASKS REGISTERED</div>
-            <div class="metric-value" id="metric-tasks">0</div>
-            <div class="metric-sub">Durable domain aggregates</div>
+            <div class="metric-label">REGISTERED AGENTS</div>
+            <div class="metric-value" id="metric-agents">1</div>
+            <div class="metric-sub">Configured capabilities</div>
           </div>
           <div class="metric-card">
             <div class="metric-label">AVAILABLE TOOLS</div>
@@ -80,9 +104,9 @@
             <div class="metric-sub">Registered capabilities</div>
           </div>
           <div class="metric-card highlight">
-            <div class="metric-label">POLICIES EVALUATED</div>
-            <div class="metric-value" id="metric-policy-evals">0</div>
-            <div class="metric-sub">Fail-closed governance</div>
+            <div class="metric-label">CONNECTED MODELS</div>
+            <div class="metric-value" id="metric-models">1</div>
+            <div class="metric-sub">Provider gateways</div>
           </div>
         </div>
 
@@ -107,22 +131,184 @@
 
           <div class="card">
             <div class="card-header">
-              <h3>Registered Tools & Capabilities</h3>
+              <h3>Platform Health &amp; Architecture</h3>
             </div>
             <div class="card-body">
-              <div id="tools-list" class="tool-cards">
-                <!-- Injected via JS -->
+              <div class="health-summary" style="display:flex; flex-direction:column; gap:0.75rem;">
+                <p><strong>Core Engine:</strong> <span class="badge badge-success">HEALTHY</span></p>
+                <p><strong>Platform Version:</strong> <span class="badge badge-info">v0.8.0</span></p>
+                <p><strong>Agents Capability:</strong> <span class="badge badge-success">FIRST-CLASS</span></p>
+                <p><strong>Policy Governance:</strong> <span class="badge badge-warning">FAIL-CLOSED</span></p>
+                <p><strong>Runtime Dependencies:</strong> Zero external runtime npm packages</p>
+                <p><strong>Architecture Pattern:</strong> Hexagonal / Clean Architecture (Domain Ports &amp; Adapters)</p>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- View: Execution Explorer -->
+      <!-- 2. View: Agents (Full Management in v0.8) -->
+      <section id="tab-agents" class="tab-view">
+        <div class="card full-width">
+          <div class="card-header">
+            <h3>Registered AI Agents</h3>
+            <div style="display:flex; gap:0.75rem; align-items:center;">
+              <span class="badge badge-info" id="agents-count-badge">0 agents</span>
+              <button id="open-create-agent-btn" class="btn btn-sm btn-primary">+ New Agent</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Agent Name &amp; ID</th>
+                  <th>Status</th>
+                  <th>Version</th>
+                  <th>Model</th>
+                  <th>Tools</th>
+                  <th>Memory Scope</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="agents-tbody">
+                <tr><td colspan="7" class="empty-state">Loading registered agents...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Create Agent Panel -->
+        <div class="card full-width" id="create-agent-panel" style="display:none; margin-top:1.5rem;">
+          <div class="card-header">
+            <h3>Create New AI Agent</h3>
+            <button id="close-create-agent-btn" class="btn btn-sm btn-secondary">Cancel</button>
+          </div>
+          <div class="card-body">
+            <form id="create-agent-form">
+              <div class="two-col-grid" style="margin-bottom:1rem;">
+                <div class="form-group">
+                  <label for="agent-id-input">Agent Identifier (Unique, alphanumeric/kebab-case)</label>
+                  <input type="text" id="agent-id-input" class="form-control" placeholder="e.g. sales-assistant" required>
+                </div>
+                <div class="form-group">
+                  <label for="agent-name-input">Agent Display Name</label>
+                  <input type="text" id="agent-name-input" class="form-control" placeholder="e.g. Sales Assistant Agent" required>
+                </div>
+              </div>
+
+              <div class="two-col-grid" style="margin-bottom:1rem;">
+                <div class="form-group">
+                  <label for="agent-model-select">Model Gateway</label>
+                  <select id="agent-model-select" class="form-control" required>
+                    <option value="stub-model">stub-model (Stub Deterministic Model)</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="agent-memory-input">Memory Scope (Optional)</label>
+                  <input type="text" id="agent-memory-input" class="form-control" placeholder="e.g. sales-memory">
+                </div>
+              </div>
+
+              <div class="form-group" style="margin-bottom:1rem;">
+                <label for="agent-desc-input">Description</label>
+                <input type="text" id="agent-desc-input" class="form-control" placeholder="Assists with operational sales inquiries and calculations">
+              </div>
+
+              <div class="form-group" style="margin-bottom:1rem;">
+                <label for="agent-instructions-input">Declarative Instructions (System Prompt)</label>
+                <textarea id="agent-instructions-input" class="form-control code-editor" rows="4" placeholder="You are an enterprise assistant. Help users analyze operations."></textarea>
+              </div>
+
+              <div class="form-group" style="margin-bottom:1.5rem;">
+                <label>Permitted Tools &amp; Capabilities</label>
+                <div id="agent-tools-container" style="display:flex; flex-wrap:wrap; gap:1rem; margin-top:0.5rem; padding:0.5rem; background:var(--bg-tertiary); border-radius:var(--radius-sm);">
+                  <!-- Dynamically populated checkboxes -->
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-primary">Create Agent</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Agent Detail & Runner Panel -->
+        <div class="card full-width" id="agent-detail-panel" style="display:none; margin-top:1.5rem;">
+          <div class="card-header">
+            <h3>Agent Detail: <span id="agent-detail-title" class="code-text"></span></h3>
+            <button id="close-agent-detail-btn" class="btn btn-sm btn-secondary">Close</button>
+          </div>
+          <div class="card-body">
+            <div id="agent-detail-summary" style="margin-bottom:1.5rem;"></div>
+
+            <div class="card" style="background:var(--bg-tertiary);">
+              <div class="card-header">
+                <h4>Dispatch Agent Execution (/api/v1/agents/:id/executions)</h4>
+              </div>
+              <div class="card-body">
+                <form id="agent-detail-exec-form">
+                  <div class="form-group">
+                    <label for="agent-detail-exec-input">Input (JSON)</label>
+                    <textarea id="agent-detail-exec-input" class="form-control code-editor" rows="4" required>{"prompt": "Perform analysis and compute result"}</textarea>
+                  </div>
+                  <button type="submit" class="btn btn-primary">Run Agent</button>
+                </form>
+
+                <div id="agent-detail-exec-result" style="display:none; margin-top:1rem;">
+                  <span id="agent-detail-exec-badge" class="badge"></span>
+                  <pre id="agent-detail-exec-json" class="json-display" style="margin-top:0.5rem; max-height:200px;"></pre>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. View: Models -->
+      <section id="tab-models" class="tab-view">
+        <div class="card full-width">
+          <div class="card-header">
+            <h3>Registered AI Models</h3>
+            <span class="badge badge-info" id="models-count-badge">0</span>
+          </div>
+          <div class="card-body">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Model ID</th>
+                  <th>Name</th>
+                  <th>Provider</th>
+                  <th>Status</th>
+                  <th>Capabilities</th>
+                </tr>
+              </thead>
+              <tbody id="models-tbody">
+                <tr><td colspan="5" class="empty-state">Loading models...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. View: Tools -->
+      <section id="tab-tools" class="tab-view">
+        <div class="card full-width">
+          <div class="card-header">
+            <h3>Registered Tools &amp; Capabilities</h3>
+            <span class="badge badge-info" id="tools-count-badge">0</span>
+          </div>
+          <div class="card-body">
+            <div id="tools-list" class="tool-cards">
+              <!-- Injected via JS -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. View: Executions -->
       <section id="tab-executions" class="tab-view">
         <div class="card full-width">
           <div class="card-header">
-            <h3>Recent Executions</h3>
+            <h3>Execution Explorer</h3>
             <span class="badge" id="executions-count-badge">0</span>
           </div>
           <div class="card-body">
@@ -143,60 +329,47 @@
             </table>
           </div>
         </div>
+      </section>
 
-        <!-- Execution Timeline Drawer/Panel -->
-        <div class="card full-width" id="timeline-panel" style="display: none; margin-top: 1.5rem;">
+      <!-- 6. View: Execution Detail -->
+      <section id="tab-execution-detail" class="tab-view">
+        <div class="card full-width">
           <div class="card-header">
-            <h3>Execution Timeline: <span id="timeline-exec-id" class="code-text"></span></h3>
-            <button class="btn btn-sm btn-secondary" id="close-timeline-btn">Close</button>
+            <h3>Execution Detail &amp; Timeline Reconstruction</h3>
+            <div style="display:flex; gap:0.5rem; align-items:center;">
+              <input type="text" id="detail-exec-input" placeholder="Enter Execution ID..." class="form-control" style="width:260px; padding:4px 8px; font-size:0.85rem;">
+              <button id="lookup-exec-btn" class="btn btn-sm btn-primary">Lookup</button>
+            </div>
           </div>
           <div class="card-body">
-            <div class="timeline" id="timeline-container">
+            <div id="execution-detail-content">
+              <p class="empty-state">Select an execution from the Executions tab or enter an ID above to view its operational audit timeline.</p>
+            </div>
+            <div class="timeline" id="detail-timeline-container" style="display:none; margin-top:1.5rem;">
               <!-- Timeline nodes injected via JS -->
             </div>
           </div>
         </div>
       </section>
 
-      <!-- View: Governance & Policy -->
-      <section id="tab-governance" class="tab-view">
-        <div class="card full-width">
-          <div class="card-header">
-            <h3>Audit Observations & Governance Events</h3>
-            <span class="badge badge-info" id="audit-count-badge">0 events</span>
-          </div>
-          <div class="card-body">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Time</th>
-                  <th>Event Type</th>
-                  <th>Trace ID</th>
-                  <th>Operation / Aggregate</th>
-                  <th>Payload Details</th>
-                </tr>
-              </thead>
-              <tbody id="audit-tbody">
-                <tr><td colspan="5" class="empty-state">No audit observations logged</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <!-- View: Playground -->
+      <!-- 7. View: Playground -->
       <section id="tab-playground" class="tab-view">
         <div class="two-col-grid">
           <!-- Form: Direct Task Execution -->
           <div class="card">
             <div class="card-header">
-              <h3>Submit Task (CoreRuntime)</h3>
+              <h3>Submit Execution (/api/v1/executions)</h3>
             </div>
             <div class="card-body">
               <form id="task-form">
                 <div class="form-group">
-                  <label for="task-agent-id">Agent Identifier</label>
-                  <input type="text" id="task-agent-id" class="form-control" value="foundation-agent" required>
+                  <label for="task-agent-select">Select Agent</label>
+                  <select id="task-agent-select" class="form-control">
+                    <option value="foundation-agent">foundation-agent (Default)</option>
+                  </select>
+                </div>
+                <div class="form-group" style="display:none;">
+                  <input type="text" id="task-agent-id" class="form-control" value="foundation-agent">
                 </div>
                 <div class="form-group">
                   <label for="task-input">Input (JSON)</label>
@@ -210,7 +383,7 @@
           <!-- Form: Orchestrated Sequence -->
           <div class="card">
             <div class="card-header">
-              <h3>Sequential Orchestrator (Model + Tool)</h3>
+              <h3>Sequential Orchestrator (/api/v1/orchestrate)</h3>
             </div>
             <div class="card-body">
               <form id="orchestrate-form">
@@ -239,6 +412,141 @@
           </div>
           <div class="card-body">
             <pre id="playground-result-json" class="json-display"></pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- 8. View: Applications (AI Commerce) -->
+      <section id="tab-applications" class="tab-view">
+        <div class="card full-width">
+          <div class="card-header">
+            <h3>External Applications &amp; Consumers</h3>
+            <span class="badge badge-success">API Consumer</span>
+          </div>
+          <div class="card-body">
+            <p style="color:var(--text-secondary); margin-bottom:1.5rem;">
+              External applications (such as <strong>AI Commerce</strong>) integrate strictly through the <strong>Platform API contracts</strong> (<code>/api/v1</code>). They never import domain entities, application use cases, or infrastructure adapters directly.
+            </p>
+
+            <div class="two-col-grid">
+              <div class="card" style="background:var(--bg-tertiary);">
+                <div class="card-header">
+                  <h4>AI Commerce Integration Spec</h4>
+                </div>
+                <div class="card-body">
+                  <p style="font-size:0.875rem; color:var(--text-secondary); margin-bottom:0.75rem;">
+                    Demonstrates an external enterprise e-commerce platform consuming AI Operating Platform to evaluate purchase discount rules and calculate taxes.
+                  </p>
+                  <ul style="font-size:0.85rem; color:var(--text-secondary); padding-left:1.2rem; line-height:1.7;">
+                    <li><strong>Caller:</strong> <code>commerce-order-service</code></li>
+                    <li><strong>Target Endpoint:</strong> <code>POST /api/v1/orchestrate</code></li>
+                    <li><strong>Contract Boundary:</strong> Zero Core Engine imports</li>
+                    <li><strong>Trace Correlation:</strong> End-to-end trace ID propagated</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="card" style="background:var(--bg-tertiary);">
+                <div class="card-header">
+                  <h4>Run AI Commerce Simulation</h4>
+                </div>
+                <div class="card-body">
+                  <p style="font-size:0.875rem; color:var(--text-secondary); margin-bottom:1rem;">
+                    Execute an automated order calculation workflow using the Calculator tool and deterministic Model synthesis.
+                  </p>
+                  <button id="run-commerce-simulation-btn" class="btn btn-primary">Dispatch Order Calculation</button>
+                  <div id="commerce-sim-output" style="display:none; margin-top:1rem;">
+                    <span id="commerce-sim-badge" class="badge"></span>
+                    <pre id="commerce-sim-json" class="json-display" style="margin-top:0.5rem; max-height:200px;"></pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 9. View: Settings -->
+      <section id="tab-settings" class="tab-view">
+        <div class="card full-width">
+          <div class="card-header">
+            <h3>Platform Settings &amp; Metadata</h3>
+            <span class="badge badge-info">v0.8.0</span>
+          </div>
+          <div class="card-body">
+            <table class="data-table">
+              <thead>
+                <tr><th>Configuration Property</th><th>Configured Value</th><th>Description</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Platform Version</strong></td>
+                  <td><code>0.8.0</code></td>
+                  <td>Milestone v0.8: Agents Capability + Platform API + Web Control Plane</td>
+                </tr>
+                <tr>
+                  <td><strong>Engine Status</strong></td>
+                  <td><span class="badge badge-success">HEALTHY</span></td>
+                  <td>Operational runtime health verified</td>
+                </tr>
+                <tr>
+                  <td><strong>Agents Subsystem</strong></td>
+                  <td><span class="badge badge-success">ENABLED</span></td>
+                  <td>First-class configurable agent capability registry</td>
+                </tr>
+                <tr>
+                  <td><strong>Policy Governance</strong></td>
+                  <td><span class="badge badge-warning">FAIL-CLOSED</span></td>
+                  <td>Strict evaluation enforced on all execution paths</td>
+                </tr>
+                <tr>
+                  <td><strong>API Protocols</strong></td>
+                  <td><code>/api/v1/*</code> (Primary), <code>/api/*</code> (Compat)</td>
+                  <td>REST JSON contracts over HTTP loopback</td>
+                </tr>
+                <tr>
+                  <td><strong>Host Binding</strong></td>
+                  <td><code>127.0.0.1 (Loopback strictly)</code></td>
+                  <td>Zero external network exposure</td>
+                </tr>
+                <tr>
+                  <td><strong>External Dependencies</strong></td>
+                  <td><code>0 npm packages</code></td>
+                  <td>Pure Node.js standard library runtime</td>
+                </tr>
+                <tr>
+                  <td><strong>Frontend Security</strong></td>
+                  <td><code>DOM APIs only (0 innerHTML)</code></td>
+                  <td>Guaranteed XSS prevention via textContent and createElement</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 10. View: Governance -->
+      <section id="tab-governance" class="tab-view">
+        <div class="card full-width">
+          <div class="card-header">
+            <h3>Audit Observations &amp; Governance Events</h3>
+            <span class="badge badge-info" id="audit-count-badge">0 events</span>
+          </div>
+          <div class="card-body">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Event Type</th>
+                  <th>Trace ID</th>
+                  <th>Operation / Aggregate</th>
+                  <th>Payload Details</th>
+                </tr>
+              </thead>
+              <tbody id="audit-tbody">
+                <tr><td colspan="5" class="empty-state">No audit observations logged</td></tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </section>

@@ -17,8 +17,8 @@ const allowedTransitions: Readonly<Record<ExecutionStatus, readonly ExecutionSta
 export class Execution {
   private constructor(
     readonly id: string, readonly taskId: string, readonly traceId: string, readonly status: ExecutionStatus,
-    readonly createdAt: Date, readonly startedAt?: Date, readonly completedAt?: Date,
-    readonly resultMetadata?: Readonly<Record<string, unknown>>, readonly error?: TaskError,
+    readonly createdAt: Date, readonly startedAt?: Date | undefined, readonly completedAt?: Date | undefined,
+    readonly resultMetadata?: Readonly<Record<string, unknown>> | undefined, readonly error?: TaskError | undefined,
   ) {}
 
   static create(id: string, taskId: string, traceId: string, createdAt: Date = new Date()): Execution {

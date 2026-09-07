@@ -13,6 +13,17 @@ export class OrchestratedExecutionStrategy implements ExecutionStrategy {
     const result = await this.orchestrator.execute(this.plan(context, task, agent));
     if (result.status === "CANCELLED") throw new ExecutionCancelledError();
     if (result.status === "FAILED") throw result.operations.at(-1)?.error ?? new Error("Orchestration failed");
-    return { output: result.output ?? {}, metadata: { operationCount: result.operations.length } };
+    return {
+      output: {
+        ...(result.output ?? {}),
+        __operations: result.operations.map((op) => ({
+          operationId: op.operationId,
+          status: op.status,
+          ...(op.output !== undefined ? { output: op.output } : {}),
+          ...(op.error !== undefined ? { error: op.error.message } : {}),
+        })),
+      },
+      metadata: { operationCount: result.operations.length },
+    };
   }
 }

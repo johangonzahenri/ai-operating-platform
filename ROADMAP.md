@@ -9,7 +9,7 @@
 | v0.5 Memory + Context | Immutable execution context and scoped memory gateway | Explicit, correlated in-memory memory operations | ✅ Completed |
 | v0.6 Observability + Governance | Correlated audit/metrics and enforced operation policy | Governed, inspectable execution | ✅ Completed |
 | v0.7 Platform API/UI | Platform API and web product boundary | Web Platform consumes stable API contracts | ✅ Completed |
-| v0.8 Multi-Agent | Agent coordination and delegation | Governed multi-agent execution | 📋 Next |
-| v0.9 Autonomous Operations | Bounded autonomous operations | Explicit operational limits and auditability | ⏳ Planned |
+| v0.8 Agents | First-class Agent capability, runtime strategy & Control Plane | Governed Agent execution through CoreRuntime | ✅ Release Candidate / Closed |
+| v0.9 Autonomous Operations | Bounded autonomous operations, budget limits, planner & policy | Architecture Baseline (Implementation: Not Started) | 📋 Architecture Baseline |
 | v1.0 AI Operating Platform | Integrated engine, platform and applications | Governed enterprise AI platform | ⏳ Planned |
 

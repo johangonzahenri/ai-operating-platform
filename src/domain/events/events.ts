@@ -1,3 +1,5 @@
+import crypto from "node:crypto";
+
 export type EventType =
   | "task.created" | "task.started" | "task.completed" | "task.failed" | "task.cancelled"
   | "execution.created" | "execution.started" | "execution.completed" | "execution.failed" | "execution.cancelled"

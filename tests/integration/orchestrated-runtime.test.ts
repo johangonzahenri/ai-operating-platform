@@ -11,10 +11,13 @@ import { InMemoryExecutionRepository } from "../../src/infrastructure/persistenc
 import { InMemoryTaskRepository } from "../../src/infrastructure/persistence/in-memory-task-repository.js";
 import { CalculatorTool } from "../../src/infrastructure/tools/calculator-tool.js";
 import { InMemoryToolRegistry } from "../../src/infrastructure/tools/in-memory-tool-registry.js";
+import { InMemoryPolicyGateway } from "../../src/infrastructure/policy/in-memory-policy-gateway.js";
 import { RegistryToolGateway } from "../../src/application/tools/tool-gateway.js";
 test("CoreRuntime can complete a declared orchestrated execution", async () => {
-  const events = new InMemoryEventPublisher(); const registry = new InMemoryToolRegistry(); registry.register(new CalculatorTool()); const orchestrator = new SequentialOrchestrator(new StubModelGateway(), new RegistryToolGateway(registry, events), events);
+  const events = new InMemoryEventPublisher(); const registry = new InMemoryToolRegistry(); registry.register(new CalculatorTool());
+  const policy = new InMemoryPolicyGateway();
+  const orchestrator = new SequentialOrchestrator(new StubModelGateway(), new RegistryToolGateway(registry, events), events, policy);
   const strategy = new OrchestratedExecutionStrategy(orchestrator, (execution) => ({ execution, operations: [{ kind: "TOOL", id: "sum", toolId: "calculator", input: { left: 4, right: 5 } }] }));
   const runtime = new CoreRuntime(new InMemoryTaskRepository(), new InMemoryExecutionRepository(), strategy, events, { next: () => "execution-1" }); const agent: AgentDefinition = { id: "agent", name: "agent", capabilities: [], model: "stub" };
-  const result = await runtime.execute(Task.create("task", "trace", { agentId: "agent", input: { request: "sum" } }), agent); assert.equal(result.execution.status, "COMPLETED"); assert.deepEqual(result.task.result?.output, { value: 9 });
+  const result = await runtime.execute(Task.create("task", "trace", { agentId: "agent", input: { request: "sum" } }), agent); assert.equal(result.execution.status, "COMPLETED"); assert.equal(result.task.result?.output?.value, 9);
 });

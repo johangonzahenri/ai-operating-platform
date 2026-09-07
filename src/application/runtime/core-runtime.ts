@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { EventPublisher, event } from "../../domain/events/events.js";
 import { ExecutionRepository, Execution, ExecutionCancelledError } from "../../domain/execution/execution.js";
 import { ExecutionContext } from "../../domain/execution/execution-context.js";

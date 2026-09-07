@@ -37,8 +37,8 @@ const allowedTransitions: Readonly<Record<TaskStatus, readonly TaskStatus[]>> = 
 export class Task {
   private constructor(
     readonly id: string, readonly traceId: string, readonly request: TaskRequest,
-    readonly status: TaskStatus, readonly createdAt: Date, readonly result?: TaskResult,
-    readonly error?: TaskError,
+    readonly status: TaskStatus, readonly createdAt: Date, readonly result?: TaskResult | undefined,
+    readonly error?: TaskError | undefined,
   ) {}
 
   static create(id: string, traceId: string, request: TaskRequest, createdAt: Date = new Date()): Task {
