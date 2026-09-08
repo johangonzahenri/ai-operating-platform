@@ -43,6 +43,10 @@
           <span class="nav-icon">🔍</span>
           <span>Execution Detail</span>
         </button>
+        <button class="nav-item" data-tab="operations">
+          <span class="nav-icon">🚀</span>
+          <span>Operations</span>
+        </button>
         <button class="nav-item" data-tab="playground">
           <span class="nav-icon">🧪</span>
           <span>Playground</span>
@@ -107,6 +111,11 @@
             <div class="metric-label">CONNECTED MODELS</div>
             <div class="metric-value" id="metric-models">1</div>
             <div class="metric-sub">Provider gateways</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">BOUNDED OPERATIONS</div>
+            <div class="metric-value" id="metric-operations">0</div>
+            <div class="metric-sub">Autonomous loops</div>
           </div>
         </div>
 
@@ -347,6 +356,117 @@
             </div>
             <div class="timeline" id="detail-timeline-container" style="display:none; margin-top:1.5rem;">
               <!-- Timeline nodes injected via JS -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Autonomous Operations (v0.9) -->
+      <section id="tab-operations" class="tab-view">
+        <div class="card full-width">
+          <div class="card-header">
+            <div>
+              <h3>Autonomous Operations Explorer</h3>
+              <p style="font-size:0.875rem; color:var(--text-secondary); margin-top:0.25rem;">
+                Bounded autonomous execution loops governed by AutonomyBudget, PolicyGateway, and CoreRuntime
+              </p>
+            </div>
+            <div style="display:flex; gap:0.5rem; align-items:center;">
+              <span class="badge badge-info" id="operations-count-badge">0 operations</span>
+              <button id="open-create-operation-btn" class="btn btn-primary btn-sm">+ New Operation</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <!-- Create Operation Panel (hidden by default) -->
+            <div id="create-operation-panel" class="card" style="display:none; margin-bottom:1.5rem; border:1px solid var(--accent-blue);">
+              <div class="card-header">
+                <h4>Dispatch Bounded Autonomous Operation</h4>
+                <button id="close-create-operation-btn" class="btn btn-secondary btn-sm">Cancel</button>
+              </div>
+              <div class="card-body">
+                <form id="create-operation-form">
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label for="op-agent-select">Assigned Agent *</label>
+                      <select id="op-agent-select" class="form-control" required></select>
+                    </div>
+                    <div class="form-group">
+                      <label for="op-objective-input">Objective *</label>
+                      <input type="text" id="op-objective-input" class="form-control" placeholder="e.g. Analyze computational results and formulate summary" required>
+                    </div>
+                  </div>
+                  <div class="form-row" style="margin-top:0.75rem;">
+                    <div class="form-group">
+                      <label for="op-max-steps">Max Steps (1-100)</label>
+                      <input type="number" id="op-max-steps" class="form-control" value="5" min="1" max="100">
+                    </div>
+                    <div class="form-group">
+                      <label for="op-max-duration">Max Duration (ms)</label>
+                      <input type="number" id="op-max-duration" class="form-control" value="30000" min="100" max="600000">
+                    </div>
+                    <div class="form-group">
+                      <label for="op-max-tools">Max Tool Calls</label>
+                      <input type="number" id="op-max-tools" class="form-control" value="10" min="0" max="1000">
+                    </div>
+                    <div class="form-group">
+                      <label for="op-max-tokens">Max Tokens</label>
+                      <input type="number" id="op-max-tokens" class="form-control" value="5000" min="0" max="100000">
+                    </div>
+                  </div>
+                  <div style="margin-top:1rem; display:flex; justify-content:flex-end;">
+                    <button type="submit" id="submit-operation-btn" class="btn btn-primary">Launch Synchronous Operation</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            <!-- Operations Table -->
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Operation ID</th>
+                  <th>Agent</th>
+                  <th>Objective</th>
+                  <th>Status</th>
+                  <th>Budget (Steps / Dur / Tools)</th>
+                  <th>Consumption</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="operations-tbody">
+                <tr><td colspan="7" class="empty-state">No autonomous operations dispatched yet</td></tr>
+              </tbody>
+            </table>
+
+            <!-- Operation Detail View Panel (hidden by default) -->
+            <div id="operation-detail-panel" class="card" style="display:none; margin-top:1.5rem; border:1px solid var(--border-color);">
+              <div class="card-header">
+                <h4>Operation Detail: <span id="op-detail-id"></span></h4>
+                <button id="close-operation-detail-btn" class="btn btn-secondary btn-sm">Close</button>
+              </div>
+              <div class="card-body">
+                <div class="two-col-grid">
+                  <div>
+                    <p><strong>Status:</strong> <span id="op-detail-status" class="badge"></span></p>
+                    <p><strong>Agent ID:</strong> <span id="op-detail-agent"></span></p>
+                    <p><strong>Objective:</strong> <span id="op-detail-objective"></span></p>
+                    <p><strong>Created:</strong> <span id="op-detail-created"></span></p>
+                    <p><strong>Updated:</strong> <span id="op-detail-updated"></span></p>
+                    <p id="op-detail-error-wrapper" style="display:none;"><strong>Error:</strong> <span id="op-detail-error" style="color:var(--accent-red);"></span></p>
+                  </div>
+                  <div>
+                    <p><strong>Budget Allocated:</strong></p>
+                    <pre id="op-detail-budget" class="json-display" style="max-height:120px;"></pre>
+                    <p style="margin-top:0.5rem;"><strong>Budget Consumed:</strong></p>
+                    <pre id="op-detail-consumption" class="json-display" style="max-height:120px;"></pre>
+                  </div>
+                </div>
+
+                <div style="margin-top:1.5rem;">
+                  <h5>Observations &amp; Decisions</h5>
+                  <div id="op-detail-steps" style="margin-top:0.5rem; display:flex; flex-direction:column; gap:0.5rem;"></div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

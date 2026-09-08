@@ -21,6 +21,8 @@ async function bootstrap() {
     agentService: platform.agentService,
     submitTask: platform.submitTask,
     executeOrchestration: platform.executeOrchestration,
+    operations: platform.operations,
+    operationService: platform.operationService,
   });
 
   const server = createHttpServer(service);

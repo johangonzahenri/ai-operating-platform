@@ -1,6 +1,7 @@
 import { ExecuteOrchestration } from "../../application/orchestration/execute-orchestration.js";
 import { SubmitTask } from "../../application/submit-task.js";
 import { AgentService } from "../../application/agent/agent-service.js";
+import { AutonomousOperationService } from "../../application/autonomy/autonomous-operation-service.js";
 import {
   AgentProjection,
   AgentQueryPort,
@@ -12,6 +13,9 @@ import {
   MetricsQueryPort,
   ModelProjection,
   ModelQueryPort,
+  OperationDetailProjection,
+  OperationProjection,
+  OperationQueryPort,
   TaskProjection,
   TaskQueryPort,
   ToolProjection,
@@ -21,7 +25,10 @@ import { InMemoryModelRegistry } from "../../infrastructure/model/in-memory-mode
 import {
   AgentDTO,
   AuditObservationDTO,
+  AutonomousOperationDetailDTO,
+  AutonomousOperationDTO,
   CreateAgentRequestDTO,
+  CreateAutonomousOperationRequestDTO,
   ExecutionDTO,
   MetricSummaryDTO,
   ModelDTO,
@@ -44,6 +51,8 @@ export interface PlatformDependencies {
   readonly agentService?: AgentService | undefined;
   readonly submitTask: SubmitTask;
   readonly executeOrchestration: ExecuteOrchestration;
+  readonly operations?: OperationQueryPort | undefined;
+  readonly operationService?: AutonomousOperationService | undefined;
 }
 
 export class PlatformService {
@@ -51,6 +60,8 @@ export class PlatformService {
   private readonly models: ModelQueryPort;
   private readonly agents?: AgentQueryPort | undefined;
   private readonly agentService?: AgentService | undefined;
+  private readonly operations?: OperationQueryPort | undefined;
+  private readonly operationService?: AutonomousOperationService | undefined;
   private readonly startTime: Date;
 
   constructor(deps: PlatformDependencies) {
@@ -66,6 +77,8 @@ export class PlatformService {
     ]);
     this.agents = deps.agents;
     this.agentService = deps.agentService;
+    this.operations = deps.operations;
+    this.operationService = deps.operationService;
     this.startTime = new Date();
   }
 
@@ -76,6 +89,7 @@ export class PlatformService {
     const tools = this.deps.tools.list();
     const models = this.models.list();
     const agents = this.listAgents();
+    const operations = this.listOperations();
     const metrics = this.getMetrics();
 
     return {
@@ -87,6 +101,7 @@ export class PlatformService {
       toolsCount: tools.length,
       modelsCount: models.length,
       agentsCount: agents.length,
+      operationsCount: operations.length,
       metrics,
     };
   }
@@ -523,6 +538,248 @@ export class PlatformService {
         : "COMPLETED",
       operations: opResults,
       output: cleanOutput,
+    };
+  }
+
+  // --- Autonomous Operations (v0.9) ---
+
+  listOperations(): readonly AutonomousOperationDTO[] {
+    if (this.operations) {
+      return this.operations.listProjections().map((op: OperationProjection) => ({
+        id: op.id,
+        objective: op.objective,
+        agentId: op.agentId,
+        status: op.status,
+        budget: { ...op.budget },
+        consumption: { ...op.consumption },
+        createdAt: op.createdAt.toISOString(),
+        startedAt: op.startedAt?.toISOString(),
+        completedAt: op.completedAt?.toISOString(),
+        terminationReason: op.terminationReason,
+        failureError: op.failureError ? { ...op.failureError } : undefined,
+        resultOutput: op.resultOutput ? { ...op.resultOutput } : undefined,
+      }));
+    }
+    if (this.operationService) {
+      return this.operationService.listOperations().map((op) => {
+        const snap = op.snapshot();
+        return {
+          id: snap.id,
+          objective: snap.objective,
+          agentId: snap.agentId,
+          status: snap.status,
+          budget: { ...snap.budget },
+          consumption: { ...snap.consumption },
+          createdAt: snap.createdAt.toISOString(),
+          startedAt: snap.startedAt?.toISOString(),
+          completedAt: snap.completedAt?.toISOString(),
+          terminationReason: snap.terminationReason,
+          failureError: snap.failureError ? { ...snap.failureError } : undefined,
+          resultOutput: snap.resultOutput ? { ...snap.resultOutput } : undefined,
+        };
+      });
+    }
+    return [];
+  }
+
+  getOperation(id: string): AutonomousOperationDTO | undefined {
+    if (this.operations) {
+      const detail = this.operations.findDetailById(id);
+      if (detail) {
+        return {
+          id: detail.id,
+          objective: detail.objective,
+          agentId: detail.agentId,
+          status: detail.status,
+          budget: { ...detail.budget },
+          consumption: { ...detail.consumption },
+          createdAt: detail.createdAt.toISOString(),
+          startedAt: detail.startedAt?.toISOString(),
+          completedAt: detail.completedAt?.toISOString(),
+          terminationReason: detail.terminationReason,
+          failureError: detail.failureError ? { ...detail.failureError } : undefined,
+          resultOutput: detail.resultOutput ? { ...detail.resultOutput } : undefined,
+        };
+      }
+    }
+    if (this.operationService) {
+      const op = this.operationService.getOperation(id);
+      if (!op) return undefined;
+      const snap = op.snapshot();
+      return {
+        id: snap.id,
+        objective: snap.objective,
+        agentId: snap.agentId,
+        status: snap.status,
+        budget: { ...snap.budget },
+        consumption: { ...snap.consumption },
+        createdAt: snap.createdAt.toISOString(),
+        startedAt: snap.startedAt?.toISOString(),
+        completedAt: snap.completedAt?.toISOString(),
+        terminationReason: snap.terminationReason,
+        failureError: snap.failureError ? { ...snap.failureError } : undefined,
+        resultOutput: snap.resultOutput ? { ...snap.resultOutput } : undefined,
+      };
+    }
+    return undefined;
+  }
+
+  getOperationDetail(id: string): AutonomousOperationDetailDTO | undefined {
+    if (this.operations) {
+      const detail = this.operations.findDetailById(id);
+      if (!detail) return undefined;
+      return {
+        operation: {
+          id: detail.id,
+          objective: detail.objective,
+          agentId: detail.agentId,
+          status: detail.status,
+          budget: { ...detail.budget },
+          consumption: { ...detail.consumption },
+          createdAt: detail.createdAt.toISOString(),
+          startedAt: detail.startedAt?.toISOString(),
+          completedAt: detail.completedAt?.toISOString(),
+          terminationReason: detail.terminationReason,
+          failureError: detail.failureError ? { ...detail.failureError } : undefined,
+          resultOutput: detail.resultOutput ? { ...detail.resultOutput } : undefined,
+        },
+        plan: detail.plan
+          ? {
+              id: detail.plan.id,
+              operationId: detail.plan.operationId,
+              totalSteps: detail.plan.totalSteps,
+              steps: detail.plan.steps.map((s) => ({
+                id: s.id,
+                order: s.order,
+                action: s.action,
+                input: { ...s.input },
+                metadata: s.metadata ? { ...s.metadata } : undefined,
+              })),
+              createdAt: detail.plan.createdAt.toISOString(),
+            }
+          : undefined,
+        observations: detail.observations.map((obs) => ({
+          observationId: obs.observationId,
+          operationId: obs.operationId,
+          stepId: obs.stepId,
+          status: obs.status as "SUCCESS" | "FAILED" | "CANCELLED",
+          durationMs: obs.durationMs,
+          toolCalls: obs.toolCalls,
+          output: obs.output ? { ...obs.output } : undefined,
+          error: obs.error ? { ...obs.error } : undefined,
+        })),
+        decisions: detail.decisions.map((dec) => ({
+          type: dec.type as "EXECUTE_STEP" | "COMPLETE" | "STOP" | "FAIL",
+          operationId: dec.operationId,
+          stepId: dec.stepId,
+          action: dec.action,
+          input: dec.input ? { ...dec.input } : undefined,
+          output: dec.output ? { ...dec.output } : undefined,
+          reason: dec.reason,
+          failureError: dec.failureError ? { ...dec.failureError } : undefined,
+          decidedAt: dec.decidedAt.toISOString(),
+        })),
+      };
+    }
+    if (this.operationService) {
+      const record = this.operationService.getOperationRecord(id);
+      if (!record) return undefined;
+      const snap = record.operation.snapshot();
+      return {
+        operation: {
+          id: snap.id,
+          objective: snap.objective,
+          agentId: snap.agentId,
+          status: snap.status,
+          budget: { ...snap.budget },
+          consumption: { ...snap.consumption },
+          createdAt: snap.createdAt.toISOString(),
+          startedAt: snap.startedAt?.toISOString(),
+          completedAt: snap.completedAt?.toISOString(),
+          terminationReason: snap.terminationReason,
+          failureError: snap.failureError ? { ...snap.failureError } : undefined,
+          resultOutput: snap.resultOutput ? { ...snap.resultOutput } : undefined,
+        },
+        plan: record.plan
+          ? {
+              id: record.plan.id,
+              operationId: record.plan.operationId,
+              totalSteps: record.plan.totalSteps,
+              steps: record.plan.steps.map((s) => ({
+                id: s.id,
+                order: s.order,
+                action: s.action,
+                input: { ...s.input },
+                metadata: s.metadata ? { ...s.metadata } : undefined,
+              })),
+              createdAt: record.plan.createdAt.toISOString(),
+            }
+          : undefined,
+        observations: record.observations.map((obs) => ({
+          observationId: obs.observationId,
+          operationId: obs.operationId,
+          stepId: obs.stepId,
+          status: obs.status,
+          durationMs: obs.durationMs,
+          toolCalls: obs.toolCalls ?? 0,
+          output: obs.output ? { ...obs.output } : undefined,
+          error: obs.error ? { ...obs.error } : undefined,
+        })),
+        decisions: record.decisions.map((dec) => ({
+          type: dec.type,
+          operationId: dec.operationId,
+          stepId: dec.stepId,
+          action: dec.action,
+          input: dec.input ? { ...dec.input } : undefined,
+          output: dec.output ? { ...dec.output } : undefined,
+          reason: dec.reason,
+          failureError: dec.failureError ? { ...dec.failureError } : undefined,
+          decidedAt: dec.decidedAt.toISOString(),
+        })),
+      };
+    }
+    return undefined;
+  }
+
+  async createOperation(
+    req: CreateAutonomousOperationRequestDTO
+  ): Promise<AutonomousOperationDetailDTO> {
+    if (!this.operationService) {
+      throw new Error("AutonomousOperationService not configured in PlatformService");
+    }
+    const result = await this.operationService.executeOperation({
+      id: req.id,
+      agentId: req.agentId,
+      objective: req.objective,
+      budget: req.budget,
+      metadata: req.metadata,
+    });
+    const detail = this.getOperationDetail(result.operation.id);
+    if (!detail) {
+      throw new Error(`Failed to retrieve operation detail for '${result.operation.id}'`);
+    }
+    return detail;
+  }
+
+  cancelOperation(id: string, reason?: string): AutonomousOperationDTO {
+    if (!this.operationService) {
+      throw new Error("AutonomousOperationService not configured in PlatformService");
+    }
+    const cancelled = this.operationService.cancelOperation(id, reason);
+    const snap = cancelled.snapshot();
+    return {
+      id: snap.id,
+      objective: snap.objective,
+      agentId: snap.agentId,
+      status: snap.status,
+      budget: { ...snap.budget },
+      consumption: { ...snap.consumption },
+      createdAt: snap.createdAt.toISOString(),
+      startedAt: snap.startedAt?.toISOString(),
+      completedAt: snap.completedAt?.toISOString(),
+      terminationReason: snap.terminationReason,
+      failureError: snap.failureError ? { ...snap.failureError } : undefined,
+      resultOutput: snap.resultOutput ? { ...snap.resultOutput } : undefined,
     };
   }
 }

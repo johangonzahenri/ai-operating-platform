@@ -111,3 +111,70 @@ export interface AgentQueryPort {
   list(): readonly AgentProjection[];
   findById(id: string): AgentProjection | undefined;
 }
+
+export interface OperationProjection {
+  readonly id: string;
+  readonly objective: string;
+  readonly agentId: string;
+  readonly status: string;
+  readonly budget: {
+    readonly maxSteps: number;
+    readonly maxDurationMs: number;
+    readonly maxToolCalls: number;
+    readonly maxTokens?: number | undefined;
+  };
+  readonly consumption: {
+    readonly stepsUsed: number;
+    readonly elapsedMs: number;
+    readonly toolCallsUsed: number;
+    readonly tokensUsed?: number | undefined;
+  };
+  readonly createdAt: Date;
+  readonly startedAt?: Date | undefined;
+  readonly completedAt?: Date | undefined;
+  readonly terminationReason?: string | undefined;
+  readonly failureError?: { readonly code: string; readonly message: string } | undefined;
+  readonly resultOutput?: Readonly<Record<string, unknown>> | undefined;
+}
+
+export interface OperationDetailProjection extends OperationProjection {
+  readonly plan?: {
+    readonly id: string;
+    readonly operationId: string;
+    readonly totalSteps: number;
+    readonly steps: readonly {
+      readonly id: string;
+      readonly order: number;
+      readonly action: string;
+      readonly input: Readonly<Record<string, unknown>>;
+      readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+    }[];
+    readonly createdAt: Date;
+  } | undefined;
+  readonly observations: readonly {
+    readonly observationId: string;
+    readonly operationId: string;
+    readonly stepId: string;
+    readonly status: string;
+    readonly durationMs: number;
+    readonly toolCalls: number;
+    readonly output?: Readonly<Record<string, unknown>> | undefined;
+    readonly error?: { readonly code: string; readonly message: string } | undefined;
+  }[];
+  readonly decisions: readonly {
+    readonly type: string;
+    readonly operationId: string;
+    readonly stepId?: string | undefined;
+    readonly action?: string | undefined;
+    readonly input?: Readonly<Record<string, unknown>> | undefined;
+    readonly output?: Readonly<Record<string, unknown>> | undefined;
+    readonly reason?: string | undefined;
+    readonly failureError?: { readonly code: string; readonly message: string } | undefined;
+    readonly decidedAt: Date;
+  }[];
+}
+
+export interface OperationQueryPort {
+  listProjections(): readonly OperationProjection[];
+  findDetailById(id: string): OperationDetailProjection | undefined;
+}

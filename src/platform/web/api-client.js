@@ -127,3 +127,27 @@ export async function submitOrchestration(operations, traceId) {
     body: JSON.stringify({ operations, traceId }),
   });
 }
+
+export async function getOperations() {
+  return request("/operations");
+}
+
+export async function getOperation(id) {
+  return request(`/operations/${encodeURIComponent(id)}`);
+}
+
+export async function createOperation(data) {
+  return request("/operations", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function cancelOperation(id, reason) {
+  return request(`/operations/${encodeURIComponent(id)}/cancel`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ reason }),
+  });
+}

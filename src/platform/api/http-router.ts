@@ -10,6 +10,13 @@ import {
   AgentNotFoundError,
   AgentValidationError,
 } from "../../domain/agent/agent.js";
+import {
+  OperationConflictError,
+  OperationNotFoundError,
+  OperationValidationError,
+} from "../../application/autonomy/autonomous-operation-service.js";
+import { AutonomyBudgetValidationError } from "../../domain/autonomy/autonomy-budget.js";
+import { AutonomousOperationValidationError } from "../../domain/autonomy/autonomous-operation.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -619,6 +626,160 @@ export function createHttpServer(service: PlatformService): http.Server {
 
           const result = await service.executeOrchestration({ operations: normalizedOps, traceId });
           sendJson(200, result);
+          return;
+        }
+
+        // GET /operations
+        if (subPath === "/operations" && req.method === "GET") {
+          sendJson(200, service.listOperations());
+          return;
+        }
+
+        // POST /operations
+        if (subPath === "/operations" && req.method === "POST") {
+          const bodyResult = await readJsonBody();
+          if (!bodyResult.ok) {
+            sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+            return;
+          }
+          const { id: rawId, agentId: rawAgentId, objective: rawObjective, budget: rawBudget, metadata } = bodyResult.body;
+
+          let id: string | undefined = undefined;
+          if (rawId !== undefined) {
+            id = normalizeId(rawId);
+            if (!id) {
+              sendError(400, "Bad Request: 'id' if provided must be alphanumeric (1-128 chars)", "INVALID_ID");
+              return;
+            }
+          }
+
+          const agentId = normalizeId(rawAgentId);
+          if (!agentId) {
+            sendError(400, "Bad Request: 'agentId' is required and must be alphanumeric (1-128 chars)", "INVALID_AGENT_ID");
+            return;
+          }
+
+          if (typeof rawObjective !== "string" || !rawObjective.trim()) {
+            sendError(400, "Bad Request: 'objective' is required and must be a non-empty string", "INVALID_OBJECTIVE");
+            return;
+          }
+          if (rawObjective.length > 4096) {
+            sendError(400, "Bad Request: 'objective' cannot exceed 4096 characters", "INVALID_OBJECTIVE");
+            return;
+          }
+
+          if (!rawBudget || typeof rawBudget !== "object" || Array.isArray(rawBudget)) {
+            sendError(400, "Bad Request: 'budget' is required and must be an object", "INVALID_BUDGET");
+            return;
+          }
+
+          const b = rawBudget as Record<string, unknown>;
+          if (typeof b.maxSteps !== "number" || !Number.isInteger(b.maxSteps) || b.maxSteps <= 0) {
+            sendError(400, "Bad Request: 'budget.maxSteps' must be a positive integer", "INVALID_BUDGET");
+            return;
+          }
+          if (typeof b.maxDurationMs !== "number" || !Number.isInteger(b.maxDurationMs) || b.maxDurationMs <= 0) {
+            sendError(400, "Bad Request: 'budget.maxDurationMs' must be a positive integer", "INVALID_BUDGET");
+            return;
+          }
+          if (typeof b.maxToolCalls !== "number" || !Number.isInteger(b.maxToolCalls) || b.maxToolCalls < 0) {
+            sendError(400, "Bad Request: 'budget.maxToolCalls' must be a non-negative integer", "INVALID_BUDGET");
+            return;
+          }
+          if (b.maxTokens !== undefined && (typeof b.maxTokens !== "number" || !Number.isInteger(b.maxTokens) || b.maxTokens < 0)) {
+            sendError(400, "Bad Request: 'budget.maxTokens' if provided must be a non-negative integer", "INVALID_BUDGET");
+            return;
+          }
+
+          const budgetDto = {
+            maxSteps: b.maxSteps,
+            maxDurationMs: b.maxDurationMs,
+            maxToolCalls: b.maxToolCalls,
+            maxTokens: typeof b.maxTokens === "number" ? b.maxTokens : undefined,
+          };
+
+          try {
+            const detail = await service.createOperation({
+              id,
+              agentId,
+              objective: rawObjective.trim(),
+              budget: budgetDto,
+              metadata: (metadata && typeof metadata === "object" && !Array.isArray(metadata)) ? metadata as Record<string, unknown> : undefined,
+            });
+            sendJson(201, detail);
+            return;
+          } catch (err) {
+            if (err instanceof AgentNotFoundError) {
+              sendError(404, err.message, "AGENT_NOT_FOUND");
+              return;
+            }
+            if (err instanceof AgentInactiveError) {
+              sendError(400, err.message, "AGENT_INACTIVE");
+              return;
+            }
+            if (err instanceof OperationConflictError) {
+              sendError(409, err.message, "OPERATION_EXISTS");
+              return;
+            }
+            if (
+              err instanceof OperationValidationError ||
+              err instanceof AutonomyBudgetValidationError ||
+              err instanceof AutonomousOperationValidationError
+            ) {
+              sendError(400, err.message, "VALIDATION_ERROR");
+              return;
+            }
+            throw err;
+          }
+        }
+
+        // POST /operations/:id/cancel
+        const operationCancelMatch = subPath.match(/^\/operations\/([^/]+)\/cancel$/);
+        if (operationCancelMatch && req.method === "POST") {
+          const id = normalizeId(operationCancelMatch[1]);
+          if (!id) {
+            sendError(400, "Bad Request: Invalid operation ID format", "INVALID_ID");
+            return;
+          }
+          let reason: string | undefined = undefined;
+          const contentType = req.headers["content-type"];
+          if (contentType) {
+            const bodyResult = await readJsonBody();
+            if (bodyResult.ok && typeof bodyResult.body.reason === "string") {
+              reason = bodyResult.body.reason.trim();
+            }
+          }
+          try {
+            const updated = service.cancelOperation(id, reason);
+            sendJson(200, updated);
+            return;
+          } catch (err) {
+            if (err instanceof OperationNotFoundError) {
+              sendError(404, err.message, "OPERATION_NOT_FOUND");
+              return;
+            }
+            if (err instanceof OperationConflictError) {
+              sendError(409, err.message, "OPERATION_CONFLICT");
+              return;
+            }
+            throw err;
+          }
+        }
+
+        // GET /operations/:id
+        const operationDetailMatch = subPath.match(/^\/operations\/([^/]+)$/);
+        if (operationDetailMatch && req.method === "GET") {
+          const id = normalizeId(operationDetailMatch[1]);
+          if (!id) {
+            sendError(400, "Bad Request: Invalid operation ID format", "INVALID_ID");
+            return;
+          }
+          const detail = service.getOperationDetail(id);
+          if (!detail) {
+            sendError(404, "Operation not found", "NOT_FOUND");
+            return;
+          }
+          sendJson(200, detail);
           return;
         }
 

@@ -132,6 +132,7 @@ export interface PlatformStatusDTO {
   readonly toolsCount: number;
   readonly modelsCount?: number | undefined;
   readonly agentsCount?: number | undefined;
+  readonly operationsCount?: number | undefined;
   readonly metrics: MetricSummaryDTO;
 }
 
@@ -140,4 +141,93 @@ export interface ApiErrorResponseDTO {
   readonly status: number;
   readonly code?: string | undefined;
   readonly traceId?: string | undefined;
+}
+
+// --- Autonomous Operation DTOs (v0.9) ---
+
+export interface AutonomyBudgetDTO {
+  readonly maxSteps: number;
+  readonly maxDurationMs: number;
+  readonly maxToolCalls: number;
+  readonly maxTokens?: number | undefined;
+}
+
+export interface AutonomyConsumptionDTO {
+  readonly stepsUsed: number;
+  readonly elapsedMs: number;
+  readonly toolCallsUsed: number;
+  readonly tokensUsed?: number | undefined;
+}
+
+export interface AutonomousOperationDTO {
+  readonly id: string;
+  readonly objective: string;
+  readonly agentId: string;
+  readonly status: string;
+  readonly budget: AutonomyBudgetDTO;
+  readonly consumption: AutonomyConsumptionDTO;
+  readonly createdAt: string;
+  readonly startedAt?: string | undefined;
+  readonly completedAt?: string | undefined;
+  readonly terminationReason?: string | undefined;
+  readonly failureError?: { readonly code: string; readonly message: string } | undefined;
+  readonly resultOutput?: Readonly<Record<string, unknown>> | undefined;
+}
+
+export interface PlanStepDTO {
+  readonly id: string;
+  readonly order: number;
+  readonly action: string;
+  readonly input: Readonly<Record<string, unknown>>;
+  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+}
+
+export interface PlanDTO {
+  readonly id: string;
+  readonly operationId: string;
+  readonly totalSteps: number;
+  readonly steps: readonly PlanStepDTO[];
+  readonly createdAt: string;
+}
+
+export interface ObservationDTO {
+  readonly observationId: string;
+  readonly operationId: string;
+  readonly stepId: string;
+  readonly status: "SUCCESS" | "FAILED" | "CANCELLED";
+  readonly durationMs: number;
+  readonly toolCalls: number;
+  readonly output?: Readonly<Record<string, unknown>> | undefined;
+  readonly error?: { readonly code: string; readonly message: string } | undefined;
+}
+
+export interface DecisionDTO {
+  readonly type: "EXECUTE_STEP" | "COMPLETE" | "STOP" | "FAIL";
+  readonly operationId: string;
+  readonly stepId?: string | undefined;
+  readonly action?: string | undefined;
+  readonly input?: Readonly<Record<string, unknown>> | undefined;
+  readonly output?: Readonly<Record<string, unknown>> | undefined;
+  readonly reason?: string | undefined;
+  readonly failureError?: { readonly code: string; readonly message: string } | undefined;
+  readonly decidedAt: string;
+}
+
+export interface AutonomousOperationDetailDTO {
+  readonly operation: AutonomousOperationDTO;
+  readonly plan?: PlanDTO | undefined;
+  readonly observations: readonly ObservationDTO[];
+  readonly decisions: readonly DecisionDTO[];
+}
+
+export interface CreateAutonomousOperationRequestDTO {
+  readonly id?: string | undefined;
+  readonly objective: string;
+  readonly agentId: string;
+  readonly budget: AutonomyBudgetDTO;
+  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+}
+
+export interface CancelAutonomousOperationRequestDTO {
+  readonly reason?: string | undefined;
 }

@@ -4,7 +4,7 @@ export type EventType =
   | "task.created" | "task.started" | "task.completed" | "task.failed" | "task.cancelled"
   | "execution.created" | "execution.started" | "execution.completed" | "execution.failed" | "execution.cancelled"
   | "orchestration.started" | "orchestration.completed" | "orchestration.failed" | "orchestration.cancelled"
-  | "operation.started" | "operation.completed" | "operation.failed" | "operation.cancelled"
+  | "operation.started" | "operation.step_completed" | "operation.completed" | "operation.failed" | "operation.cancelled" | "operation.budget_exhausted"
   | "context.created" | "context.updated" | "memory.stored" | "memory.retrieved" | "memory.deleted" | "memory.failed"
   | "policy.evaluated" | "policy.allowed" | "policy.denied"
   | "agent.started" | "agent.completed" | "agent.failed"

@@ -2,16 +2,15 @@
 
 An enterprise operational infrastructure foundation for AI systems. It provides reusable operational primitives—tasks, executions, models, tools, sequential orchestration, correlated events, context, memory, and policy governance—from which multiple products and autonomous applications can be built.
 
-## v0.8 Status — Agents Capability
+## v0.9 Status — Bounded Autonomous Operations (Release Candidate)
 
-Milestone **v0.8** promotes **Agent** to a first-class architectural capability across the entire platform:
-- **Domain Entity & Port:** Explicit `Agent` aggregate with model binding, behavioral instructions, tool authorization whitelists, memory scopes, and lifecycle status (`ACTIVE`/`INACTIVE`).
-- **Core Invariant — Agent Does NOT Replace Execution:** An Agent executes through the existing, singular execution lifecycle (`SubmitTask` -> `CoreRuntime` -> `AgentExecutionStrategy`).
-- **Fail-Closed Policy Governance:** Centralized `PolicyGateway` evaluation before any agent execution.
-- **Tool Permission Whitelisting:** Strict enforcement of authorized tools (`agent.tools`). Any unauthorized tool call fails immediately.
-- **Memory Scope Partitioning:** Memory reads/writes are strictly isolated within the agent's configured `memoryScope`.
-- **Full Web Control Plane:** Operational management of Agents in the SPA (list, view, create, activate, deactivate, execute) replacing the previous v0.7 preview tab.
-- **Zero Runtime Dependencies:** Native Node.js execution (`node:http`, `node:fs`, `node:path`, `node:url`, `node:crypto`). Clean build under official `tsc`.
+Milestone **v0.9** delivers **Bounded Autonomous Operations** across the platform:
+- **AutonomousOperation & AutonomyBudget:** Pure domain aggregate enforcing immutable bounds (`maxSteps`, `maxDurationMs`, `maxToolCalls`, `maxTokens`) with copy-on-write consumption tracking.
+- **Planner & Decision Contracts:** Declarative planning decomposition (`PlannerPort`, `Plan`, `PlanStep`) and discrete bounded determinations (`Decision`).
+- **Observation & Decision Evaluation Engine:** Pure, side-effect-free evaluation (`DeterministicDecisionEvaluator`) separating step execution from objective achievement.
+- **AutonomousOrchestrator:** Coordinates multi-step cycles strictly through `CoreRuntime` with mandatory per-step fail-closed `PolicyGateway` governance.
+- **Platform REST API & Web Control Plane:** Full HTTP endpoints (`/api/v1/operations*`) and dedicated SPA dashboard view with pure DOM construction (zero `innerHTML`).
+- **Zero Runtime Dependencies:** Native Node.js standard library only (`node:http`, `node:fs`, `node:path`, `node:url`, `node:crypto`). Clean build under official `tsc`.
 
 ## Quick Start
 
@@ -40,7 +39,11 @@ By default, the server listens at `http://127.0.0.1:3000`.
 | Method | Path | Description |
 |---|---|---|
 | `GET` | `/` | Web Platform Control Plane (SPA) |
-| `GET` | `/api/v1/status` | System health, version, uptime, counts (including agents) |
+| `GET` | `/api/v1/status` | System health, version, uptime, counts (agents, operations, tasks) |
+| `GET` | `/api/v1/operations` | List bounded autonomous operations |
+| `POST` | `/api/v1/operations` | Create and execute bounded autonomous operation synchronously |
+| `GET` | `/api/v1/operations/:id` | Get operation detail snapshot (budget, consumption, plan, observations, decisions) |
+| `POST` | `/api/v1/operations/:id/cancel` | Cancel an active or pending autonomous operation |
 | `GET` | `/api/v1/agents` | List registered agents |
 | `POST` | `/api/v1/agents` | Register a new agent |
 | `GET` | `/api/v1/agents/:id` | Get agent details |
@@ -66,12 +69,13 @@ By default, the server listens at `http://127.0.0.1:3000`.
 
 ## Documentation Reference
 - Comprehensive Project Manual: [docs/manual/README.md](docs/manual/README.md)
+- Bounded Autonomous Operations Manual (Chapter 15): [docs/manual/15_autonomous_operations.md](docs/manual/15_autonomous_operations.md)
 - Agent Architecture Manual (Chapter 14): [docs/manual/14_agents.md](docs/manual/14_agents.md)
 - Architecture Overview: [ARCHITECTURE.md](ARCHITECTURE.md)
-- Agents Architecture: [docs/architecture/agents.md](docs/architecture/agents.md)
-- Platform API Architecture: [docs/architecture/platform-api.md](docs/architecture/platform-api.md)
-- Web Platform Architecture: [docs/architecture/web-platform.md](docs/architecture/web-platform.md)
-- Product Control Plane: [docs/product/platform-control-plane.md](docs/product/platform-control-plane.md)
-- Product Model: [docs/product/PRODUCT_MODEL.md](docs/product/PRODUCT_MODEL.md)
-- Architectural Decisions: [docs/decisions/0011-agent-architecture.md](docs/decisions/0011-agent-architecture.md)
+- Official Architecture Book: [LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md](LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md)
+- Architectural Decisions:
+  - ADR 0013: [docs/decisions/0013-bounded-autonomous-operations.md](docs/decisions/0013-bounded-autonomous-operations.md)
+  - ADR 0014: [docs/decisions/0014-autonomous-operations-api-integration.md](docs/decisions/0014-autonomous-operations-api-integration.md)
+  - ADR 0011: [docs/decisions/0011-agent-architecture.md](docs/decisions/0011-agent-architecture.md)
 - Roadmap: [ROADMAP.md](ROADMAP.md)
+- Release Notes: [docs/releases/v0.9-release.md](docs/releases/v0.9-release.md)

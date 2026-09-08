@@ -27,13 +27,23 @@ import { InMemoryMetricsCollector } from "../infrastructure/observability/in-mem
 import { EventObservabilitySubscriber } from "../infrastructure/observability/event-observability-subscriber.js";
 import { InMemoryToolRegistry } from "../infrastructure/tools/in-memory-tool-registry.js";
 import { CalculatorTool } from "../infrastructure/tools/calculator-tool.js";
-import { ModelQueryPort } from "../application/ports/query-ports.js";
+import { ModelQueryPort, OperationQueryPort } from "../application/ports/query-ports.js";
+import { AutonomousOrchestrator } from "../application/autonomy/autonomous-orchestrator.js";
+import { AutonomousOperationService } from "../application/autonomy/autonomous-operation-service.js";
+import { PlannerPort } from "../domain/autonomy/planner-port.js";
+import { DecisionEvaluatorPort, DeterministicDecisionEvaluator } from "../domain/autonomy/decision-evaluator.js";
+import { OperationRepositoryPort } from "../domain/autonomy/operation-repository.js";
+import { InMemoryOperationRepository } from "../infrastructure/persistence/in-memory-operation-repository.js";
+import { StubPlanner } from "../infrastructure/autonomy/stub-planner.js";
 
 export interface CreatePlatformOptions {
   readonly logger?: StructuredLogger | undefined;
   readonly policy?: PolicyGateway | undefined;
   readonly modelRegistry?: ModelQueryPort | undefined;
   readonly agentRegistry?: AgentRegistry | undefined;
+  readonly planner?: PlannerPort | undefined;
+  readonly evaluator?: DecisionEvaluatorPort | undefined;
+  readonly operationRepository?: OperationRepositoryPort | undefined;
 }
 
 /** Composition root: wires domain ports to infrastructure adapters and exposes use cases. */
@@ -118,6 +128,34 @@ export const createPlatform = (
   const orchestratedRuntime = new CoreRuntime(tasks, executions, orchestratedStrategy, events);
   const executeOrchestration = new ExecuteOrchestration(orchestratedRuntime);
 
+  // Autonomous operations runtime & application service (v0.9)
+  const operationRepository: InMemoryOperationRepository =
+    (!isLogger && (optionsOrLogger as CreatePlatformOptions).operationRepository instanceof InMemoryOperationRepository)
+      ? ((optionsOrLogger as CreatePlatformOptions).operationRepository as InMemoryOperationRepository)
+      : new InMemoryOperationRepository();
+
+  const planner: PlannerPort = (!isLogger && (optionsOrLogger as CreatePlatformOptions).planner)
+    ? (optionsOrLogger as CreatePlatformOptions).planner!
+    : new StubPlanner();
+
+  const evaluator: DecisionEvaluatorPort = (!isLogger && (optionsOrLogger as CreatePlatformOptions).evaluator)
+    ? (optionsOrLogger as CreatePlatformOptions).evaluator!
+    : new DeterministicDecisionEvaluator();
+
+  const autonomousOrchestrator = new AutonomousOrchestrator(
+    agentRuntime,
+    planner,
+    evaluator,
+    policy,
+    events
+  );
+
+  const operationService = new AutonomousOperationService(
+    autonomousOrchestrator,
+    operationRepository,
+    agents
+  );
+
   return {
     tasks,
     executions,
@@ -142,5 +180,11 @@ export const createPlatform = (
     executeTask,
     submitTask,
     executeOrchestration,
+    operations: operationRepository,
+    operationRepository,
+    operationService,
+    autonomousOrchestrator,
+    planner,
+    evaluator,
   };
 };
