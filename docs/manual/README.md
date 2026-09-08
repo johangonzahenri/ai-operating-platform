@@ -46,3 +46,17 @@ This repository is not a simple chatbot or an ad-hoc LLM wrapper. It is a founda
    - Model binding, tool whitelisting, and memory scoping
    - Governance & Observability applied to Agents
    - Non-autonomous boundary in v0.8
+
+8. [Chapter 15: Bounded Autonomous Operations](./15_autonomous_operations.md)
+   - The Autonomous Operation concept vs Agent
+   - AutonomyBudget and AutonomyConsumption boundaries
+   - Multi-step planning, observation, and decision cycle
+   - Deterministic decision evaluation and fail-closed governance
+   - Platform API and Web Control Plane integration in v0.9
+
+9. [Chapter 16: Durable Persistence Architecture](./16_durable_persistence.md)
+   - Durable persistence boundary and hexagonal architecture
+   - AutonomousOperation as Aggregate Root
+   - Hybrid state snapshot and structured historical log
+   - Schema versioning, optimistic concurrency, and crash recovery
+   - Reusable contract test suite and roadmap toward v0.10 database adapters
