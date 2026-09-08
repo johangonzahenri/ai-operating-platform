@@ -34,6 +34,7 @@ import { PlannerPort } from "../domain/autonomy/planner-port.js";
 import { DecisionEvaluatorPort, DeterministicDecisionEvaluator } from "../domain/autonomy/decision-evaluator.js";
 import { OperationRepositoryPort } from "../domain/autonomy/operation-repository.js";
 import { InMemoryOperationRepository } from "../infrastructure/persistence/in-memory-operation-repository.js";
+import { SqliteOperationRepository } from "../infrastructure/persistence/sqlite/sqlite-operation-repository.js";
 import { StubPlanner } from "../infrastructure/autonomy/stub-planner.js";
 
 export interface CreatePlatformOptions {
@@ -43,7 +44,9 @@ export interface CreatePlatformOptions {
   readonly agentRegistry?: AgentRegistry | undefined;
   readonly planner?: PlannerPort | undefined;
   readonly evaluator?: DecisionEvaluatorPort | undefined;
-  readonly operationRepository?: OperationRepositoryPort | undefined;
+  readonly operationRepository?: (OperationRepositoryPort & OperationQueryPort) | undefined;
+  readonly useDurablePersistence?: boolean | undefined;
+  readonly dbPath?: string | undefined;
 }
 
 /** Composition root: wires domain ports to infrastructure adapters and exposes use cases. */
@@ -128,11 +131,13 @@ export const createPlatform = (
   const orchestratedRuntime = new CoreRuntime(tasks, executions, orchestratedStrategy, events);
   const executeOrchestration = new ExecuteOrchestration(orchestratedRuntime);
 
-  // Autonomous operations runtime & application service (v0.9)
-  const operationRepository: InMemoryOperationRepository =
-    (!isLogger && (optionsOrLogger as CreatePlatformOptions).operationRepository instanceof InMemoryOperationRepository)
-      ? ((optionsOrLogger as CreatePlatformOptions).operationRepository as InMemoryOperationRepository)
-      : new InMemoryOperationRepository();
+  // Autonomous operations persistence (InMemory default for isolation/testing, Sqlite for durable)
+  const operationRepository: OperationRepositoryPort & OperationQueryPort =
+    (!isLogger && (optionsOrLogger as CreatePlatformOptions).operationRepository)
+      ? (optionsOrLogger as CreatePlatformOptions).operationRepository!
+      : (!isLogger && ((optionsOrLogger as CreatePlatformOptions).useDurablePersistence || (optionsOrLogger as CreatePlatformOptions).dbPath))
+        ? new SqliteOperationRepository({ dbPath: (optionsOrLogger as CreatePlatformOptions).dbPath ?? "data/app.db" })
+        : new InMemoryOperationRepository();
 
   const planner: PlannerPort = (!isLogger && (optionsOrLogger as CreatePlatformOptions).planner)
     ? (optionsOrLogger as CreatePlatformOptions).planner!

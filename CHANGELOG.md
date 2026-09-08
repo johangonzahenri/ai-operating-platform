@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.10.0] - 2026-09-08 (v0.10 Increment #2 — SQLite Durable Adapter & Storage Engine)
+
+### Added
+- **Native SQLite Storage Engine**: Implementation of `SqliteDatabase` utilizing Node.js 22 native `node:sqlite` (`DatabaseSync`) with WAL journal mode, busy timeout, and foreign key enforcement.
+- **Relational Schema (Version 1)**: Bootstrap for tables `schema_metadata`, `operations`, `plans`, `plan_steps`, `observations`, and `decisions` with relational integrity, cascading deletes, and optimized query indexes.
+- **Durable Operation Repository**: `SqliteOperationRepository` implementing both `OperationRepositoryPort` and `OperationQueryPort` with parameterized queries and prepared statements.
+- **Transactional Atomicity**: Atomic mutation boundary ensuring operation aggregates, deliberate plans, observations, and decisions commit together or roll back cleanly on failure.
+- **Optimistic Concurrency Control (OCC)**: Monotonic `version` tracking rejecting stale concurrent writes with `OptimisticConcurrencyError`.
+- **Idempotency & Rehydration**: Child record idempotency preventing duplicate history on re-save, and aggregate rehydration preserving class invariants, frozen snapshots, and CQRS projections.
+- **Composition Root Integration**: Configured `createPlatform` and production server bootstrap to support durable SQLite storage (`data/app.db`) while retaining `InMemoryOperationRepository` for fast, isolated unit testing.
+- **Contract & Integration Test Suites**: Parity contract verification across both in-memory and SQLite repositories, unit test coverage of durability, transactions, OCC, and schema versioning, and end-to-end HTTP REST API integration tests.
+
+### Architecture
+- **Strict Domain Purity**: Zero SQLite or SQL imports in `src/domain` and `src/application`.
+- **Zero Runtime Dependencies**: Engine operates exclusively on Node.js standard library APIs (`npm ls --omit=dev` empty).
+
+---
+
 ## [0.9.0] - 2026-09-07 (Release Candidate)
 
 ### Added

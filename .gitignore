@@ -10,3 +10,8 @@ coverage/
 LIBRO_OFICIAL_AI_OPERATING_PLATFORM.pdf
 docs/AI_Operating_Platform_Mapa_Conceptual_y_Flujos.pdf
 docs/libro_imprimible.html
+
+# SQLite runtime storage
+data/app.db
+data/app.db-wal
+data/app.db-shm

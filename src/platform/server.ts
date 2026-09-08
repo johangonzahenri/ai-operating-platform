@@ -6,8 +6,13 @@ const PORT = parseInt(process.env.PORT ?? "3000", 10);
 const HOST = "127.0.0.1"; // Security: strictly bound to localhost loopback
 
 async function bootstrap() {
-  // Composition root wires infrastructure to application use cases
-  const platform = createPlatform();
+  // Composition root wires infrastructure to application use cases (defaults to SQLite durable storage in production)
+  const useDurablePersistence = process.env.PERSISTENCE_DRIVER !== "memory";
+  const dbPath = process.env.SQLITE_DB_PATH ?? "data/app.db";
+  const platform = createPlatform({
+    useDurablePersistence,
+    dbPath: useDurablePersistence ? dbPath : undefined,
+  });
 
   // PlatformService receives its dependencies explicitly through ports/use cases
   const service = new PlatformService({
@@ -36,10 +41,17 @@ async function bootstrap() {
     console.info(`========================================================`);
   });
 
-  process.on("SIGINT", () => {
+  const shutdown = () => {
     console.info("\nShutting down Platform server...");
+    const repoWithClose = platform.operationRepository as unknown as { close?: () => void };
+    if (typeof repoWithClose?.close === "function") {
+      repoWithClose.close();
+    }
     server.close(() => process.exit(0));
-  });
+  };
+
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
 }
 
 bootstrap().catch((err) => {

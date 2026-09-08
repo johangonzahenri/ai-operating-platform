@@ -15,6 +15,7 @@ import {
   OperationQueryPort,
 } from "../../src/application/ports/query-ports.js";
 import { InMemoryOperationRepository } from "../../src/infrastructure/persistence/in-memory-operation-repository.js";
+import { SqliteOperationRepository } from "../../src/infrastructure/persistence/sqlite/sqlite-operation-repository.js";
 
 /**
  * Reusable contract test suite for any implementation of OperationRepositoryPort & OperationQueryPort.
@@ -260,4 +261,10 @@ export function runOperationRepositoryContractTests(
 runOperationRepositoryContractTests(
   "InMemoryOperationRepository",
   () => new InMemoryOperationRepository()
+);
+
+// Execute contract test suite against SqliteOperationRepository
+runOperationRepositoryContractTests(
+  "SqliteOperationRepository",
+  () => new SqliteOperationRepository({ dbPath: ":memory:" })
 );
