@@ -496,3 +496,302 @@ test("AutonomousOperation Entity Suite", async (t) => {
     );
   });
 });
+
+test("AutonomousOperation Rehydration Suite", async (t) => {
+  const validBudget = AutonomyBudget.create({
+    maxSteps: 10,
+    maxDurationMs: 60000,
+    maxToolCalls: 5,
+    maxTokens: 2000,
+  });
+
+  const validConsumption = AutonomyConsumption.create({
+    stepsUsed: 2,
+    toolCallsUsed: 1,
+    elapsedMs: 2500,
+    tokensUsed: 450,
+  });
+
+  await t.test("rehydrates valid operation with complete properties and preserves prototype", () => {
+    const createdAt = new Date("2026-09-08T10:00:00.000Z");
+    const startedAt = new Date("2026-09-08T10:00:01.000Z");
+    const completedAt = new Date("2026-09-08T10:00:05.000Z");
+
+    const rehydrated = AutonomousOperation.rehydrate({
+      id: "op-rehydrate-1",
+      objective: "Rehydrate test",
+      agentId: "agent-007",
+      budget: validBudget,
+      consumption: validConsumption,
+      status: "COMPLETED",
+      createdAt,
+      startedAt,
+      completedAt,
+      terminationReason: "Objective satisfied",
+      resultOutput: { status: "success", count: 42 },
+    });
+
+    // Prototype and instance integrity
+    assert.ok(rehydrated instanceof AutonomousOperation);
+    assert.equal(rehydrated.id, "op-rehydrate-1");
+    assert.equal(rehydrated.objective, "Rehydrate test");
+    assert.equal(rehydrated.agentId, "agent-007");
+    assert.equal(rehydrated.status, "COMPLETED");
+    assert.deepEqual(rehydrated.createdAt, createdAt);
+    assert.deepEqual(rehydrated.startedAt, startedAt);
+    assert.deepEqual(rehydrated.completedAt, completedAt);
+    assert.equal(rehydrated.terminationReason, "Objective satisfied");
+    assert.deepEqual(rehydrated.resultOutput, { status: "success", count: 42 });
+
+    // Value objects integrity
+    assert.ok(rehydrated.budget instanceof AutonomyBudget);
+    assert.equal(rehydrated.budget.maxSteps, 10);
+    assert.ok(rehydrated.consumption instanceof AutonomyConsumption);
+    assert.equal(rehydrated.consumption.stepsUsed, 2);
+
+    // Immutability & malicious mutation protection
+    assert.ok(Object.isFrozen(rehydrated));
+    assert.ok(Object.isFrozen(rehydrated.resultOutput));
+    assert.throws(
+      () => {
+        (rehydrated as unknown as Record<string, unknown>).id = "hijacked-id";
+      },
+      (err: unknown) => err instanceof TypeError
+    );
+    assert.throws(
+      () => {
+        (rehydrated.resultOutput as unknown as Record<string, unknown>).count = 999;
+      },
+      (err: unknown) => err instanceof TypeError
+    );
+
+    // Methods work on rehydrated instance
+    const snap = rehydrated.snapshot();
+    assert.equal(snap.id, "op-rehydrate-1");
+    assert.equal(snap.status, "COMPLETED");
+    assert.throws(
+      () => {
+        (snap as unknown as Record<string, unknown>).status = "RUNNING";
+      },
+      (err: unknown) => err instanceof TypeError
+    );
+  });
+
+  await t.test("rehydrates FAILED operation with failureError and defensive immutability", () => {
+    const rehydrated = AutonomousOperation.rehydrate({
+      id: "op-failed-1",
+      objective: "Failed operation",
+      agentId: "agent-1",
+      budget: validBudget,
+      consumption: validConsumption,
+      status: "FAILED",
+      createdAt: new Date(),
+      failureError: { code: "FATAL_ERROR", message: "Out of memory" },
+    });
+
+    assert.ok(rehydrated instanceof AutonomousOperation);
+    assert.equal(rehydrated.status, "FAILED");
+    assert.deepEqual(rehydrated.failureError, { code: "FATAL_ERROR", message: "Out of memory" });
+    assert.ok(Object.isFrozen(rehydrated.failureError));
+    assert.throws(
+      () => {
+        (rehydrated.failureError as unknown as Record<string, unknown>).code = "MUTATED";
+      },
+      (err: unknown) => err instanceof TypeError
+    );
+  });
+
+  await t.test("rehydrates operational methods allowing state continuation for RUNNING operation", () => {
+    const runningOp = AutonomousOperation.rehydrate({
+      id: "op-running-cont",
+      objective: "Continuation",
+      agentId: "agent-1",
+      budget: validBudget,
+      consumption: validConsumption,
+      status: "RUNNING",
+      createdAt: new Date(),
+      startedAt: new Date(),
+    });
+
+    assert.equal(runningOp.hasBudgetRemaining(), true);
+    const stepped = runningOp.recordStep({ toolCalls: 1, elapsedMs: 100 });
+    assert.equal(stepped.consumption.stepsUsed, 3);
+    const completed = stepped.complete({ result: "done" });
+    assert.equal(completed.status, "COMPLETED");
+  });
+
+  await t.test("rejects invalid rehydration props fail-closed", () => {
+    // Null / non-object
+    assert.throws(
+      () => AutonomousOperation.rehydrate(null as unknown as any),
+      (err: unknown) => err instanceof AutonomousOperationValidationError
+    );
+
+    // Invalid id
+    assert.throws(
+      () =>
+        AutonomousOperation.rehydrate({
+          id: "",
+          objective: "Test",
+          agentId: "agent-1",
+          budget: validBudget,
+          consumption: validConsumption,
+          status: "RUNNING",
+          createdAt: new Date(),
+        }),
+      (err: unknown) => err instanceof AutonomousOperationValidationError
+    );
+
+    // Invalid agentId
+    assert.throws(
+      () =>
+        AutonomousOperation.rehydrate({
+          id: "op-1",
+          objective: "Test",
+          agentId: "bad agent id with spaces!",
+          budget: validBudget,
+          consumption: validConsumption,
+          status: "RUNNING",
+          createdAt: new Date(),
+        }),
+      (err: unknown) => err instanceof AutonomousOperationValidationError
+    );
+
+    // Empty objective
+    assert.throws(
+      () =>
+        AutonomousOperation.rehydrate({
+          id: "op-1",
+          objective: "   ",
+          agentId: "agent-1",
+          budget: validBudget,
+          consumption: validConsumption,
+          status: "RUNNING",
+          createdAt: new Date(),
+        }),
+      (err: unknown) => err instanceof AutonomousOperationValidationError
+    );
+
+    // Objective too long
+    assert.throws(
+      () =>
+        AutonomousOperation.rehydrate({
+          id: "op-1",
+          objective: "a".repeat(4097),
+          agentId: "agent-1",
+          budget: validBudget,
+          consumption: validConsumption,
+          status: "RUNNING",
+          createdAt: new Date(),
+        }),
+      (err: unknown) => err instanceof AutonomousOperationValidationError
+    );
+
+    // Invalid budget (not instance)
+    assert.throws(
+      () =>
+        AutonomousOperation.rehydrate({
+          id: "op-1",
+          objective: "Test",
+          agentId: "agent-1",
+          budget: { maxSteps: 5 } as any,
+          consumption: validConsumption,
+          status: "RUNNING",
+          createdAt: new Date(),
+        }),
+      (err: unknown) => err instanceof AutonomousOperationValidationError
+    );
+
+    // Invalid consumption (not instance)
+    assert.throws(
+      () =>
+        AutonomousOperation.rehydrate({
+          id: "op-1",
+          objective: "Test",
+          agentId: "agent-1",
+          budget: validBudget,
+          consumption: { stepsUsed: 0 } as any,
+          status: "RUNNING",
+          createdAt: new Date(),
+        }),
+      (err: unknown) => err instanceof AutonomousOperationValidationError
+    );
+
+    // Invalid status
+    assert.throws(
+      () =>
+        AutonomousOperation.rehydrate({
+          id: "op-1",
+          objective: "Test",
+          agentId: "agent-1",
+          budget: validBudget,
+          consumption: validConsumption,
+          status: "INVALID_STATUS" as any,
+          createdAt: new Date(),
+        }),
+      (err: unknown) => err instanceof AutonomousOperationValidationError
+    );
+
+    // Invalid createdAt date
+    assert.throws(
+      () =>
+        AutonomousOperation.rehydrate({
+          id: "op-1",
+          objective: "Test",
+          agentId: "agent-1",
+          budget: validBudget,
+          consumption: validConsumption,
+          status: "RUNNING",
+          createdAt: new Date("invalid date"),
+        }),
+      (err: unknown) => err instanceof AutonomousOperationValidationError
+    );
+
+    // FAILED status without failureError
+    assert.throws(
+      () =>
+        AutonomousOperation.rehydrate({
+          id: "op-1",
+          objective: "Test",
+          agentId: "agent-1",
+          budget: validBudget,
+          consumption: validConsumption,
+          status: "FAILED",
+          createdAt: new Date(),
+        }),
+      (err: unknown) => err instanceof AutonomousOperationValidationError
+    );
+
+    // failureError with empty code
+    assert.throws(
+      () =>
+        AutonomousOperation.rehydrate({
+          id: "op-1",
+          objective: "Test",
+          agentId: "agent-1",
+          budget: validBudget,
+          consumption: validConsumption,
+          status: "FAILED",
+          createdAt: new Date(),
+          failureError: { code: "", message: "msg" },
+        }),
+      (err: unknown) => err instanceof AutonomousOperationValidationError
+    );
+
+    // resultOutput containing functions
+    assert.throws(
+      () =>
+        AutonomousOperation.rehydrate({
+          id: "op-1",
+          objective: "Test",
+          agentId: "agent-1",
+          budget: validBudget,
+          consumption: validConsumption,
+          status: "COMPLETED",
+          createdAt: new Date(),
+          resultOutput: { callback: () => {} } as any,
+        }),
+      (err: unknown) => err instanceof AutonomousOperationValidationError
+    );
+  });
+});

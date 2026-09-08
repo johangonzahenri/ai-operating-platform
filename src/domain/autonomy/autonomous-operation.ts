@@ -82,6 +82,21 @@ export interface AutonomousOperationSnapshot {
   readonly resultOutput?: Readonly<Record<string, unknown>> | undefined;
 }
 
+export interface AutonomousOperationRehydrateProps {
+  readonly id: string;
+  readonly objective: string;
+  readonly agentId: string;
+  readonly budget: AutonomyBudget;
+  readonly consumption: AutonomyConsumption;
+  readonly status: AutonomousOperationStatus;
+  readonly createdAt: Date;
+  readonly startedAt?: Date | undefined;
+  readonly completedAt?: Date | undefined;
+  readonly terminationReason?: string | undefined;
+  readonly failureError?: { readonly code: string; readonly message: string } | undefined;
+  readonly resultOutput?: Readonly<Record<string, unknown>> | undefined;
+}
+
 /**
  * AutonomousOperation represents a bounded, goal-oriented operational supervisor
  * governing an Agent across discrete, measured steps toward an objective.
@@ -162,6 +177,129 @@ export class AutonomousOperation {
       AutonomyConsumption.zero(),
       "SUBMITTED",
       createdAt
+    );
+  }
+
+  /**
+   * Rehydrates an AutonomousOperation from persistent storage or snapshot data,
+   * enforcing domain invariants and value object boundaries without reflection.
+   */
+  static rehydrate(props: AutonomousOperationRehydrateProps): AutonomousOperation {
+    if (props === null || typeof props !== "object" || Array.isArray(props)) {
+      throw new AutonomousOperationValidationError("AutonomousOperation rehydrate props must be a valid non-null object");
+    }
+
+    const id = validateIdentifier(props.id, "Operation id");
+    const agentId = validateIdentifier(props.agentId, "Agent id");
+
+    if (typeof props.objective !== "string") {
+      throw new AutonomousOperationValidationError("Objective must be a string");
+    }
+    const trimmedObjective = props.objective.trim();
+    if (!trimmedObjective) {
+      throw new AutonomousOperationValidationError("Objective must be a non-empty string");
+    }
+    if (trimmedObjective.length > 4096) {
+      throw new AutonomousOperationValidationError("Objective exceeds maximum length of 4096 characters");
+    }
+
+    if (!(props.budget instanceof AutonomyBudget)) {
+      throw new AutonomousOperationValidationError("Budget must be a valid AutonomyBudget instance");
+    }
+
+    if (!(props.consumption instanceof AutonomyConsumption)) {
+      throw new AutonomousOperationValidationError("Consumption must be a valid AutonomyConsumption instance");
+    }
+
+    const validStatuses: readonly AutonomousOperationStatus[] = [
+      "SUBMITTED",
+      "RUNNING",
+      "COMPLETED",
+      "FAILED",
+      "CANCELLED",
+      "BUDGET_EXHAUSTED",
+    ];
+    if (!validStatuses.includes(props.status)) {
+      throw new AutonomousOperationValidationError(`Invalid autonomous operation status: '${String(props.status)}'`);
+    }
+
+    if (!(props.createdAt instanceof Date) || Number.isNaN(props.createdAt.getTime())) {
+      throw new AutonomousOperationValidationError("createdAt must be a valid Date");
+    }
+
+    let startedAt: Date | undefined;
+    if (props.startedAt !== undefined) {
+      if (!(props.startedAt instanceof Date) || Number.isNaN(props.startedAt.getTime())) {
+        throw new AutonomousOperationValidationError("startedAt must be a valid Date when provided");
+      }
+      startedAt = new Date(props.startedAt.getTime());
+    }
+
+    let completedAt: Date | undefined;
+    if (props.completedAt !== undefined) {
+      if (!(props.completedAt instanceof Date) || Number.isNaN(props.completedAt.getTime())) {
+        throw new AutonomousOperationValidationError("completedAt must be a valid Date when provided");
+      }
+      completedAt = new Date(props.completedAt.getTime());
+    }
+
+    let failureError: { readonly code: string; readonly message: string } | undefined;
+    if (props.failureError !== undefined) {
+      if (
+        props.failureError === null ||
+        typeof props.failureError !== "object" ||
+        typeof props.failureError.code !== "string" ||
+        !props.failureError.code.trim() ||
+        typeof props.failureError.message !== "string" ||
+        !props.failureError.message.trim()
+      ) {
+        throw new AutonomousOperationValidationError("failureError must contain non-empty code and message strings");
+      }
+      failureError = Object.freeze({
+        code: props.failureError.code.trim(),
+        message: props.failureError.message.trim(),
+      });
+    }
+
+    if (props.status === "FAILED" && !failureError) {
+      throw new AutonomousOperationValidationError("AutonomousOperation in FAILED status requires a valid failureError");
+    }
+
+    let resultOutput: Readonly<Record<string, unknown>> | undefined;
+    if (props.resultOutput !== undefined) {
+      if (
+        props.resultOutput === null ||
+        typeof props.resultOutput !== "object" ||
+        Array.isArray(props.resultOutput)
+      ) {
+        throw new AutonomousOperationValidationError("resultOutput must be a valid plain object when provided");
+      }
+      for (const [k, v] of Object.entries(props.resultOutput)) {
+        if (typeof v === "function") {
+          throw new AutonomousOperationValidationError(`resultOutput cannot contain functions (key: ${k})`);
+        }
+      }
+      resultOutput = Object.freeze({ ...props.resultOutput });
+    }
+
+    const terminationReason =
+      props.terminationReason !== undefined && typeof props.terminationReason === "string"
+        ? props.terminationReason.trim() || undefined
+        : undefined;
+
+    return new AutonomousOperation(
+      id,
+      trimmedObjective,
+      agentId,
+      props.budget,
+      props.consumption,
+      props.status,
+      new Date(props.createdAt.getTime()),
+      startedAt,
+      completedAt,
+      terminationReason,
+      failureError,
+      resultOutput
     );
   }
 

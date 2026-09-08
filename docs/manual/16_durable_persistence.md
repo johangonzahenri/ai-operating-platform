@@ -94,11 +94,11 @@ The storage engine uses non-destructive schema initialization (`src/infrastructu
 
 ## 5. Domain Mapping & Rehydration
 
-Domain aggregates and SQLite records are mapped bidirectionally by `sqlite-mapper.ts`:
+Domain aggregates and SQLite records are mapped bidirectionally by `sqlite-mapper.ts` through a formal domain boundary (see ADR 0016):
 
 - **Domain -> SQLite**: Deconstructs `AutonomousOperation`, `Plan`, `Observation`, and `Decision` into strongly typed flat SQL column rows with JSON serialization for complex payloads (e.g. step inputs, tool results, metadata).
-- **SQLite -> Domain**: Rehydrates domain objects preserving class constructors, internal validations, and `Object.freeze()` immutability.
-- **Aggregate Integrity**: `AutonomousOperation` is reconstructed with its original `id`, `traceId`, `agentId`, `objective`, validated `AutonomyBudget`, accumulated `AutonomyConsumption`, terminal timestamps, and status.
+- **SQLite -> Domain**: Rehydrates domain objects through the explicit `AutonomousOperation.rehydrate()` factory method, completely eliminating reflection (`Reflect.construct`). Rehydration validates all domain invariants, restores value objects (`AutonomyBudget`, `AutonomyConsumption`), and enforces `Object.freeze()` immutability.
+- **Aggregate Integrity**: `AutonomousOperation` is reconstructed with its original `id`, `agentId`, `objective`, validated `AutonomyBudget`, accumulated `AutonomyConsumption`, terminal timestamps, and status.
 - **CQRS Projections**: Maps rows directly to `OperationProjection` and `OperationDetailProjection` for high-performance read queries without aggregate instantiation overhead.
 
 ---

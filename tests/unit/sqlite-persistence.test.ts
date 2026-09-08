@@ -181,6 +181,12 @@ test("SQLite Durable Persistence Infrastructure Suite", async (t) => {
       const repoB = new SqliteOperationRepository({ dbPath });
       const loadedOp = repoB.findById("op-durable-1");
       assert.ok(loadedOp);
+      assert.ok(loadedOp instanceof AutonomousOperation);
+      assert.ok(loadedOp.budget instanceof AutonomyBudget);
+      assert.ok(loadedOp.consumption instanceof AutonomyConsumption);
+      assert.ok(Object.isFrozen(loadedOp));
+      assert.ok(Object.isFrozen(loadedOp.resultOutput));
+      assert.equal(loadedOp.hasBudgetRemaining(), true);
       assert.equal(loadedOp.id, "op-durable-1");
       assert.equal(loadedOp.status, "COMPLETED");
       assert.equal(loadedOp.consumption.stepsUsed, 1);

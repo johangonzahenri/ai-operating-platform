@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.11.0] - 2026-09-08 (v0.11 Increment #1 — Formal Domain Rehydration Boundary)
+
+### Added
+- **Formal Rehydration Boundary (`AutonomousOperation.rehydrate`)**: Static factory method on `AutonomousOperation` and `AutonomousOperationRehydrateProps` interface enabling persistence adapters to reconstruct aggregates while strictly enforcing domain invariants.
+- **Dedicated Rehydration Unit Tests**: Comprehensive test suite verifying aggregate rehydration across all statuses, value object prototype validation, defensive immutability checks, and fail-closed validation on invalid input.
+- **Architectural Decision Record (ADR 0016)**: Documented rationale for formal domain rehydration boundary and elimination of reflection in infrastructure adapters.
+
+### Changed
+- **Eliminated `Reflect.construct` in Persistence**: `sqlite-mapper.ts` now delegates rehydration directly to `AutonomousOperation.rehydrate()`, removing technical debt and reflection across all infrastructure persistence mappers.
+
+---
+
 ## [0.10.0] - 2026-09-08 (v0.10 Increment #2 — SQLite Durable Adapter & Storage Engine)
 
 ### Added

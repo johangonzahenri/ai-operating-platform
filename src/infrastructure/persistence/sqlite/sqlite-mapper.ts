@@ -11,6 +11,7 @@ import { AutonomyConsumption } from "../../../domain/autonomy/autonomy-consumpti
 import { Decision, DecisionType } from "../../../domain/autonomy/decision.js";
 import { Observation, ObservationStatus } from "../../../domain/autonomy/observation.js";
 import { Plan, PlanStep } from "../../../domain/autonomy/plan.js";
+import { SqlitePersistenceError } from "./sqlite-errors.js";
 
 export interface OperationRow {
   readonly id: string;
@@ -127,23 +128,23 @@ export function mapRowToAutonomousOperation(row: OperationRow): AutonomousOperat
       : undefined;
 
   const resultOutput = row.result_output
-    ? Object.freeze(JSON.parse(row.result_output))
+    ? JSON.parse(row.result_output)
     : undefined;
 
-  return Reflect.construct(AutonomousOperation, [
-    row.id,
-    row.objective,
-    row.agent_id,
+  return AutonomousOperation.rehydrate({
+    id: row.id,
+    objective: row.objective,
+    agentId: row.agent_id,
     budget,
     consumption,
-    row.status as AutonomousOperationStatus,
-    new Date(row.created_at),
-    row.started_at ? new Date(row.started_at) : undefined,
-    row.completed_at ? new Date(row.completed_at) : undefined,
-    row.termination_reason ?? undefined,
+    status: row.status as AutonomousOperationStatus,
+    createdAt: new Date(row.created_at),
+    startedAt: row.started_at ? new Date(row.started_at) : undefined,
+    completedAt: row.completed_at ? new Date(row.completed_at) : undefined,
+    terminationReason: row.termination_reason ?? undefined,
     failureError,
     resultOutput,
-  ]);
+  });
 }
 
 /**
