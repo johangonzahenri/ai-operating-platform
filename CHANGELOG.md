@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.11.0] - 2026-09-08 (v0.11 Increment #2 — Core Execution Domain Rehydration Boundary)
+
+### Added
+- **Core Execution Rehydration Boundaries (`Task.rehydrate`, `Execution.rehydrate`)**: Static factory methods on `Task` and `Execution` accompanied by `TaskRehydrateProps` and `ExecutionRehydrateProps` boundary interfaces, allowing persistent storage adapters to reconstitute core execution entities across all lifecycle states without reflection.
+- **Fail-Closed State Invariant Validation**: Comprehensive domain validation enforcing status-specific constraints, result and error mutual exclusivity, and chronological timestamp ordering (`createdAt <= startedAt <= completedAt`).
+- **Runtime Immutability & Defensive Copying**: Constructor-level `Object.freeze(this)` on `Task`, `Execution`, and `TaskError`, with deep defensive copying of payload dictionaries (`request.input`, `result.output`, `resultMetadata`).
+- **Dedicated Rehydration Test Suites**: Extended `tests/unit/task.test.ts` and `tests/unit/execution.test.ts` with 21 new targeted assertions covering valid rehydrations, fail-closed invalid inputs, prototype preservation (`instanceof`), and runtime mutation resistance.
+- **Architectural Decision Record (ADR 0017)**: Formal decision document defining Core Execution domain rehydration boundaries, encapsulation principles, and persistence adapter integration rules.
+
+---
+
 ## [0.11.0] - 2026-09-08 (v0.11 Increment #1 — Formal Domain Rehydration Boundary)
 
 ### Added
