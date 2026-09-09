@@ -12,7 +12,7 @@
 | v0.8 Agents | First-class Agent capability, runtime strategy & Control Plane | Governed Agent execution through CoreRuntime | ✅ Release Candidate / Closed |
 | v0.9 Autonomous Operations | Bounded autonomous operations, budget limits, planner & policy, Platform API & Web Control Plane | Bounded autonomous cycles governed via CoreRuntime and PolicyGateway | ✅ Release Candidate (Hardened & Frozen) |
 | v0.10 Durable Persistence | Pluggable durable persistence for operations, tasks, executions, and agents | Decoupled durable repository adapters without domain pollution | ✅ Completed |
-| v0.11 Domain Rehydration Boundary | Formal aggregate rehydration boundary, eliminating reflection in infrastructure | Clean domain encapsulation across persistence adapters | ⏳ In Progress (Increments #1 & #2 Completed; Increment #3 Agent Rehydration Planned) |
+| v0.11 Domain Rehydration Boundary | Formal aggregate rehydration boundary, eliminating reflection in infrastructure | Clean domain encapsulation across persistence adapters | ✅ Completed (Increments #1, #2 & #3 Completed) |
 | v0.12 Durable Execution Persistence | SQLite durable adapters for tasks, executions, and agents | Complete persistent platform execution without memory loss | ⏳ Planned |
 | v0.13 Crash Recovery & Reconciliation | Startup reconciliation of stranded active operations | At-most-once operational recovery across process crashes | ⏳ Planned |
 | v1.0 AI Operating Platform | Integrated engine, platform, distributed execution and applications | Governed enterprise AI platform | ⏳ Planned |

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.11.0] - 2026-09-08 (v0.11 Increment #3 — Agent Domain Rehydration Boundary)
+
+### Added
+- **Agent Domain Rehydration Boundary (`Agent.rehydrate`)**: Static factory method on `Agent` accompanied by `AgentRehydrateProps` boundary interface, enabling persistent storage adapters to restore Agent aggregates across all lifecycle states without reflection.
+- **Fail-Closed State Invariant Validation**: Comprehensive domain validation enforcing status constraints (`ACTIVE` / `INACTIVE`), OCC version integrity (`version >= 1`), identifier validation via canonical `validateAgentId()`, non-empty name and model, and chronological timestamp consistency (`createdAt <= updatedAt`).
+- **Runtime Immutability & Defensive Copying**: Constructor-level `Object.freeze(this)` on `Agent`, tool capability deduplication and freezing (`Object.freeze([...new Set(...)])`), and timestamp defensive cloning.
+- **Dedicated Agent Rehydration Unit Suite**: Added 11 new targeted assertions to `tests/unit/agent.test.ts` verifying full configuration rehydration, minimal configuration rehydration, prototype preservation (`instanceof Agent`), mutation resistance, fail-closed validation, and lifecycle continuation (`update`, `activate`, `deactivate`, `toDefinition`).
+- **Architectural Decision Record (ADR 0018)**: Formal decision document defining Agent domain rehydration boundaries, encapsulation principles, and persistence adapter integration rules.
+
+---
+
 ## [0.11.0] - 2026-09-08 (v0.11 Increment #2 — Core Execution Domain Rehydration Boundary)
 
 ### Added
