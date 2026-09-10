@@ -1,7 +1,11 @@
 import {
+  AgentProjection,
+  ExecutionProjection,
   OperationDetailProjection,
   OperationProjection,
+  TaskProjection,
 } from "../../../application/ports/query-ports.js";
+import { Agent, AgentStatus } from "../../../domain/agent/agent.js";
 import {
   AutonomousOperation,
   AutonomousOperationStatus,
@@ -11,7 +15,10 @@ import { AutonomyConsumption } from "../../../domain/autonomy/autonomy-consumpti
 import { Decision, DecisionType } from "../../../domain/autonomy/decision.js";
 import { Observation, ObservationStatus } from "../../../domain/autonomy/observation.js";
 import { Plan, PlanStep } from "../../../domain/autonomy/plan.js";
+import { Execution, ExecutionStatus } from "../../../domain/execution/execution.js";
+import { Task, TaskError, TaskStatus } from "../../../domain/task/task.js";
 import { SqlitePersistenceError } from "./sqlite-errors.js";
+
 
 export interface OperationRow {
   readonly id: string;
@@ -80,6 +87,90 @@ export interface DecisionRow {
   readonly failure_error_message: string | null;
   readonly decided_at: string;
 }
+
+export interface TaskRow {
+  readonly id: string;
+  readonly trace_id: string;
+  readonly agent_id: string;
+  readonly input: string;
+  readonly status: string;
+  readonly created_at: string;
+  readonly completed_at: string | null;
+  readonly output: string | null;
+  readonly error_code: string | null;
+  readonly error_message: string | null;
+}
+
+export interface ExecutionRow {
+  readonly id: string;
+  readonly task_id: string;
+  readonly trace_id: string;
+  readonly status: string;
+  readonly created_at: string;
+  readonly started_at: string | null;
+  readonly completed_at: string | null;
+  readonly result_metadata: string | null;
+  readonly error_code: string | null;
+  readonly error_message: string | null;
+}
+
+export interface AgentRow {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+  readonly model: string;
+  readonly instructions: string;
+  readonly tools: string;
+  readonly memory_scope: string;
+  readonly status: string;
+  readonly version: number;
+  readonly created_at: string;
+  readonly updated_at: string;
+}
+
+export function parseIsoDate(value: unknown, fieldName: string): Date {
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new SqlitePersistenceError(`Invalid date string for ${fieldName}: '${String(value)}'`);
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    throw new SqlitePersistenceError(`Invalid date parsing for ${fieldName}: '${value}'`);
+  }
+  return date;
+}
+
+export function parseJsonObject<T = Record<string, unknown>>(json: string, fieldName: string): T {
+  try {
+    const parsed = JSON.parse(json);
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new SqlitePersistenceError(`Field ${fieldName} must be a JSON object, received ${typeof parsed}`);
+    }
+    return parsed as T;
+  } catch (err) {
+    if (err instanceof SqlitePersistenceError) throw err;
+    throw new SqlitePersistenceError(
+      `Malformed JSON in field ${fieldName}: ${err instanceof Error ? err.message : String(err)}`,
+      err
+    );
+  }
+}
+
+export function parseJsonArray<T = unknown>(json: string, fieldName: string): readonly T[] {
+  try {
+    const parsed = JSON.parse(json);
+    if (!Array.isArray(parsed)) {
+      throw new SqlitePersistenceError(`Field ${fieldName} must be a JSON array`);
+    }
+    return parsed as readonly T[];
+  } catch (err) {
+    if (err instanceof SqlitePersistenceError) throw err;
+    throw new SqlitePersistenceError(
+      `Malformed JSON array in field ${fieldName}: ${err instanceof Error ? err.message : String(err)}`,
+      err
+    );
+  }
+}
+
 
 const VALID_STATUSES: readonly AutonomousOperationStatus[] = [
   "SUBMITTED",
@@ -306,3 +397,262 @@ export function mapRowsToDetailProjection(
     decisions,
   };
 }
+
+const VALID_TASK_STATUSES: readonly TaskStatus[] = [
+  "CREATED",
+  "QUEUED",
+  "RUNNING",
+  "WAITING",
+  "COMPLETED",
+  "FAILED",
+  "CANCELLED",
+];
+
+const VALID_EXECUTION_STATUSES: readonly ExecutionStatus[] = [
+  "CREATED",
+  "RUNNING",
+  "COMPLETED",
+  "FAILED",
+  "CANCELLED",
+];
+
+const VALID_AGENT_STATUSES: readonly AgentStatus[] = ["ACTIVE", "INACTIVE"];
+
+/**
+ * Rehydrates a Task domain aggregate from a relational database row.
+ */
+export function mapRowToTask(row: TaskRow): Task {
+  if (!VALID_TASK_STATUSES.includes(row.status as TaskStatus)) {
+    throw new SqlitePersistenceError(`Corrupted task status in database: '${row.status}'`);
+  }
+  if (!row.id || typeof row.id !== "string" || row.id.trim() === "") {
+    throw new SqlitePersistenceError(`Corrupted task id in database: '${row.id}'`);
+  }
+  if (!row.trace_id || typeof row.trace_id !== "string" || row.trace_id.trim() === "") {
+    throw new SqlitePersistenceError(`Corrupted task trace_id in database: '${row.trace_id}'`);
+  }
+  if (!row.agent_id || typeof row.agent_id !== "string" || row.agent_id.trim() === "") {
+    throw new SqlitePersistenceError(`Corrupted task agent_id in database: '${row.agent_id}'`);
+  }
+
+  const createdAt = parseIsoDate(row.created_at, "tasks.created_at");
+  const input = parseJsonObject<Record<string, unknown>>(row.input, "tasks.input");
+
+  let result: { output: Record<string, unknown>; completedAt: Date } | undefined;
+  if (row.output !== null && row.output !== undefined) {
+    if (!row.completed_at) {
+      throw new SqlitePersistenceError("Task in database has output but missing completed_at timestamp");
+    }
+    result = {
+      output: parseJsonObject<Record<string, unknown>>(row.output, "tasks.output"),
+      completedAt: parseIsoDate(row.completed_at, "tasks.completed_at"),
+    };
+  } else if (row.completed_at) {
+    throw new SqlitePersistenceError("Task in database has completed_at timestamp but missing output");
+  }
+
+  let error: TaskError | undefined;
+  if (row.error_code && row.error_message) {
+    error = new TaskError(row.error_code, row.error_message);
+  } else if (row.error_code || row.error_message) {
+    throw new SqlitePersistenceError("Task in database has incomplete error fields");
+  }
+
+  try {
+    return Task.rehydrate({
+      id: row.id,
+      traceId: row.trace_id,
+      request: {
+        agentId: row.agent_id,
+        input,
+      },
+      status: row.status as TaskStatus,
+      createdAt,
+      result,
+      error,
+    });
+  } catch (domainErr) {
+    throw new SqlitePersistenceError(
+      `Failed to rehydrate Task aggregate: ${domainErr instanceof Error ? domainErr.message : String(domainErr)}`,
+      domainErr
+    );
+  }
+}
+
+/**
+ * Maps a TaskRow to lightweight TaskProjection (CQRS Read Model).
+ */
+export function mapRowToTaskProjection(row: TaskRow): TaskProjection {
+  const createdAt = parseIsoDate(row.created_at, "tasks.created_at");
+  const input = parseJsonObject<Record<string, unknown>>(row.input, "tasks.input");
+
+  let result: { readonly output: Readonly<Record<string, unknown>> } | undefined;
+  if (row.output) {
+    result = { output: parseJsonObject<Record<string, unknown>>(row.output, "tasks.output") };
+  }
+
+  let error: { readonly code: string; readonly message: string } | undefined;
+  if (row.error_code && row.error_message) {
+    error = { code: row.error_code, message: row.error_message };
+  }
+
+  return {
+    id: row.id,
+    traceId: row.trace_id,
+    request: {
+      agentId: row.agent_id,
+      input,
+    },
+    status: row.status,
+    createdAt,
+    result,
+    error,
+  };
+}
+
+/**
+ * Rehydrates an Execution domain aggregate from a relational database row.
+ */
+export function mapRowToExecution(row: ExecutionRow): Execution {
+  if (!VALID_EXECUTION_STATUSES.includes(row.status as ExecutionStatus)) {
+    throw new SqlitePersistenceError(`Corrupted execution status in database: '${row.status}'`);
+  }
+  if (!row.id || typeof row.id !== "string" || row.id.trim() === "") {
+    throw new SqlitePersistenceError(`Corrupted execution id in database: '${row.id}'`);
+  }
+  if (!row.task_id || typeof row.task_id !== "string" || row.task_id.trim() === "") {
+    throw new SqlitePersistenceError(`Corrupted execution task_id in database: '${row.task_id}'`);
+  }
+  if (!row.trace_id || typeof row.trace_id !== "string" || row.trace_id.trim() === "") {
+    throw new SqlitePersistenceError(`Corrupted execution trace_id in database: '${row.trace_id}'`);
+  }
+
+  const createdAt = parseIsoDate(row.created_at, "executions.created_at");
+  const startedAt = row.started_at ? parseIsoDate(row.started_at, "executions.started_at") : undefined;
+  const completedAt = row.completed_at ? parseIsoDate(row.completed_at, "executions.completed_at") : undefined;
+  const resultMetadata = row.result_metadata
+    ? parseJsonObject<Record<string, unknown>>(row.result_metadata, "executions.result_metadata")
+    : undefined;
+
+  let error: TaskError | undefined;
+  if (row.error_code && row.error_message) {
+    error = new TaskError(row.error_code, row.error_message);
+  } else if (row.error_code || row.error_message) {
+    throw new SqlitePersistenceError("Execution in database has incomplete error fields");
+  }
+
+  try {
+    return Execution.rehydrate({
+      id: row.id,
+      taskId: row.task_id,
+      traceId: row.trace_id,
+      status: row.status as ExecutionStatus,
+      createdAt,
+      startedAt,
+      completedAt,
+      resultMetadata,
+      error,
+    });
+  } catch (domainErr) {
+    throw new SqlitePersistenceError(
+      `Failed to rehydrate Execution aggregate: ${domainErr instanceof Error ? domainErr.message : String(domainErr)}`,
+      domainErr
+    );
+  }
+}
+
+/**
+ * Maps an ExecutionRow to lightweight ExecutionProjection (CQRS Read Model).
+ */
+export function mapRowToExecutionProjection(row: ExecutionRow): ExecutionProjection {
+  const startedAt = row.started_at ? parseIsoDate(row.started_at, "executions.started_at") : undefined;
+  const completedAt = row.completed_at ? parseIsoDate(row.completed_at, "executions.completed_at") : undefined;
+  const resultMetadata = row.result_metadata
+    ? parseJsonObject<Record<string, unknown>>(row.result_metadata, "executions.result_metadata")
+    : undefined;
+
+  let error: { readonly code: string; readonly message: string } | undefined;
+  if (row.error_code && row.error_message) {
+    error = { code: row.error_code, message: row.error_message };
+  }
+
+  return {
+    id: row.id,
+    taskId: row.task_id,
+    traceId: row.trace_id,
+    status: row.status,
+    startedAt,
+    completedAt,
+    resultMetadata,
+    error,
+  };
+}
+
+/**
+ * Rehydrates an Agent domain aggregate from a relational database row.
+ */
+export function mapRowToAgent(row: AgentRow): Agent {
+  if (!VALID_AGENT_STATUSES.includes(row.status as AgentStatus)) {
+    throw new SqlitePersistenceError(`Corrupted agent status in database: '${row.status}'`);
+  }
+  if (!row.id || typeof row.id !== "string" || row.id.trim() === "") {
+    throw new SqlitePersistenceError(`Corrupted agent id in database: '${row.id}'`);
+  }
+  if (typeof row.version !== "number" || !Number.isInteger(row.version) || row.version < 1) {
+    throw new SqlitePersistenceError(`Corrupted agent version in database: '${row.version}'`);
+  }
+
+  const createdAt = parseIsoDate(row.created_at, "agents.created_at");
+  const updatedAt = parseIsoDate(row.updated_at, "agents.updated_at");
+  const rawTools = parseJsonArray<string>(row.tools, "agents.tools");
+  for (const t of rawTools) {
+    if (typeof t !== "string" || t.trim() === "") {
+      throw new SqlitePersistenceError(`Corrupted tool entry in agent tools array: '${String(t)}'`);
+    }
+  }
+
+  try {
+    return Agent.rehydrate({
+      id: row.id,
+      name: row.name,
+      description: row.description,
+      model: row.model,
+      instructions: row.instructions,
+      tools: rawTools,
+      memoryScope: row.memory_scope,
+      status: row.status as AgentStatus,
+      version: row.version,
+      createdAt,
+      updatedAt,
+    });
+  } catch (domainErr) {
+    throw new SqlitePersistenceError(
+      `Failed to rehydrate Agent aggregate: ${domainErr instanceof Error ? domainErr.message : String(domainErr)}`,
+      domainErr
+    );
+  }
+}
+
+/**
+ * Maps an AgentRow to lightweight AgentProjection (CQRS Read Model).
+ */
+export function mapRowToAgentProjection(row: AgentRow): AgentProjection {
+  const createdAt = parseIsoDate(row.created_at, "agents.created_at");
+  const updatedAt = parseIsoDate(row.updated_at, "agents.updated_at");
+  const tools = parseJsonArray<string>(row.tools, "agents.tools");
+
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    version: row.version,
+    status: row.status as "ACTIVE" | "INACTIVE",
+    model: row.model,
+    instructions: row.instructions,
+    tools,
+    memoryScope: row.memory_scope,
+    createdAt,
+    updatedAt,
+  };
+}
+

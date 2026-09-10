@@ -1,3 +1,4 @@
+import { PLATFORM_VERSION } from "./version.js";
 import { createPlatform } from "../interfaces/composition.js";
 import { PlatformService } from "./api/platform-service.js";
 import { createHttpServer } from "./api/http-router.js";
@@ -28,13 +29,17 @@ async function bootstrap() {
     executeOrchestration: platform.executeOrchestration,
     operations: platform.operations,
     operationService: platform.operationService,
+    eventStore: platform.eventStore,
+    db: platform.db,
+    diagnostics: platform.diagnostics,
   });
+
 
   const server = createHttpServer(service);
 
   server.listen(PORT, HOST, () => {
     console.info(`========================================================`);
-    console.info(`  AI OPERATING PLATFORM - CONTROL PLANE v0.7`);
+    console.info(`  AI OPERATING PLATFORM - CONTROL PLANE v${PLATFORM_VERSION}`);
     console.info(`  Server running at: http://${HOST}:${PORT}`);
     console.info(`  REST API available at: http://${HOST}:${PORT}/api/status`);
     console.info(`  Bound strictly to loopback interface (localhost only)`);

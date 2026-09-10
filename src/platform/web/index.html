@@ -11,7 +11,7 @@
     <!-- Sidebar Navigation -->
     <aside class="sidebar">
       <div class="brand">
-        <div class="logo-icon">▲</div>
+        <div class="logo-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 22 22 22 12 2"/></svg></div>
         <div class="brand-text">
           <h2>AI Operating Platform</h2>
           <span class="version-badge">v0.8 Control Plane</span>
@@ -19,49 +19,64 @@
       </div>
 
       <nav class="nav-menu">
-        <button class="nav-item active" data-tab="dashboard">
-          <span class="nav-icon">📊</span>
+        <div class="nav-section-label">Control &amp; Observability</div>
+        <button class="nav-item active" data-tab="platform-operations">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
+          <span>Platform Operations</span>
+        </button>
+        <button class="nav-item" data-tab="dashboard">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
           <span>Dashboard</span>
         </button>
+
+        <div class="nav-section-label">Autonomous Engine</div>
         <button class="nav-item" data-tab="agents">
-          <span class="nav-icon">🤖</span>
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8.01" y2="16"/><line x1="16" y1="16" x2="16.01" y2="16"/></svg></span>
           <span>Agents</span>
         </button>
-        <button class="nav-item" data-tab="models">
-          <span class="nav-icon">🧠</span>
-          <span>Models</span>
-        </button>
-        <button class="nav-item" data-tab="tools">
-          <span class="nav-icon">🔧</span>
-          <span>Tools</span>
+        <button class="nav-item" data-tab="operations">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-2.05 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12l2 2"/></svg></span>
+          <span>Operations</span>
         </button>
         <button class="nav-item" data-tab="executions">
-          <span class="nav-icon">⚡</span>
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span>
           <span>Executions</span>
         </button>
         <button class="nav-item" data-tab="execution-detail">
-          <span class="nav-icon">🔍</span>
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
           <span>Execution Detail</span>
         </button>
-        <button class="nav-item" data-tab="operations">
-          <span class="nav-icon">🚀</span>
-          <span>Operations</span>
+
+        <div class="nav-section-label">Runtime &amp; Capabilities</div>
+        <button class="nav-item" data-tab="models">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-2.04z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-2.04z"/></svg></span>
+          <span>Models</span>
+        </button>
+        <button class="nav-item" data-tab="tools">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span>
+          <span>Tools</span>
         </button>
         <button class="nav-item" data-tab="playground">
-          <span class="nav-icon">🧪</span>
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.31M14 2v7.31M8.5 2h7M14 9.3a6.5 6.5 0 1 1-4 0"/></svg></span>
           <span>Playground</span>
         </button>
+
+        <div class="nav-section-label">Governance &amp; Arch</div>
+        <button class="nav-item" data-tab="blueprints">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/><line x1="12" y1="22" x2="12" y2="12"/><polyline points="2 8.5 12 12 22 8.5"/></svg></span>
+          <span>Blueprints &amp; Arquitectura</span>
+        </button>
+        <button class="nav-item" data-tab="governance">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+          <span>Governance</span>
+        </button>
         <button class="nav-item" data-tab="applications">
-          <span class="nav-icon">🛒</span>
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span>
           <span>Applications</span>
         </button>
         <button class="nav-item" data-tab="settings">
-          <span class="nav-icon">⚙️</span>
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
           <span>Settings</span>
-        </button>
-        <button class="nav-item" data-tab="governance">
-          <span class="nav-icon">🛡️</span>
-          <span>Governance</span>
         </button>
       </nav>
 
@@ -83,14 +98,376 @@
         </div>
         <div class="header-actions">
           <button id="refresh-btn" class="btn btn-secondary">
-            <span>🔄</span> Refresh
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Refresh
           </button>
           <div class="uptime-badge" id="uptime-display">Uptime: 0s</div>
         </div>
       </header>
 
+      <!-- 0. View: Platform Operations (Primary Observability Hub) -->
+      <section id="tab-platform-operations" class="tab-view active">
+
+        <!-- Autonomous AI Infrastructure Lifecycle Pipeline -->
+        <div class="system-pipeline-container">
+          <div class="pipeline-header">
+            <div class="pipeline-title-group">
+              <h3>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+                Autonomous AI Execution Lifecycle
+              </h3>
+              <p>Deterministic transition path: Agent declaration to immutable event persistence and guaranteed crash recovery</p>
+            </div>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <span class="badge badge-success"><span class="pulse-dot" style="display:inline-block; margin-right:4px;"></span> Engine Active</span>
+              <span class="badge badge-info">SQLite WAL v3</span>
+            </div>
+          </div>
+
+          <div class="pipeline-track">
+            <div class="pipeline-step">
+              <div class="pipeline-step-header">
+                <span class="step-num">STAGE 01</span>
+                <span class="badge badge-agent">AUTONOMY</span>
+              </div>
+              <div class="step-name">1. Agent Dispatch</div>
+              <div class="step-desc">Deterministic system prompt, tool authorization whitelists, memory partition allocation.</div>
+            </div>
+
+            <div class="pipeline-step">
+              <div class="pipeline-step-header">
+                <span class="step-num">STAGE 02</span>
+                <span class="badge badge-warning">POLICY GATEWAY</span>
+              </div>
+              <div class="step-name">2. Bounded Task &amp; Budget</div>
+              <div class="step-desc">AutonomyBudget bounds maxSteps, durationMs, and tool calls under fail-closed security.</div>
+            </div>
+
+            <div class="pipeline-step">
+              <div class="pipeline-step-header">
+                <span class="step-num">STAGE 03</span>
+                <span class="badge badge-info">CORE RUNTIME</span>
+              </div>
+              <div class="step-name">3. Hexagonal Execution</div>
+              <div class="step-desc">Ports &amp; adapters boundary prevents leakage. Zero direct coupling to inference libraries.</div>
+            </div>
+
+            <div class="pipeline-step">
+              <div class="pipeline-step-header">
+                <span class="step-num">STAGE 04</span>
+                <span class="badge badge-event">DURABLE WAL</span>
+              </div>
+              <div class="step-name">4. Event Ledger Store</div>
+              <div class="step-desc">Monotonic sequence numbering in SQLite WAL ledger. Causation &amp; trace correlation trees.</div>
+            </div>
+
+            <div class="pipeline-step">
+              <div class="pipeline-step-header">
+                <span class="step-num">STAGE 05</span>
+                <span class="badge badge-success">TERMINAL STATE</span>
+              </div>
+              <div class="step-name">5. Deterministic Result</div>
+              <div class="step-desc">Verified state mutation or explicit typed error dispatched to external API consumers.</div>
+            </div>
+          </div>
+
+          <!-- Resilient Recovery Flow -->
+          <div class="recovery-chain-banner">
+            <div class="recovery-chain-title">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+              Fail-Safe Recovery Guarantee
+            </div>
+            <div class="recovery-chain-nodes">
+              <span class="recovery-node-pill">System Interruption</span>
+              <span class="recovery-arrow">&rarr;</span>
+              <span class="recovery-node-pill active">State Persisted (WAL)</span>
+              <span class="recovery-arrow">&rarr;</span>
+              <span class="recovery-node-pill">Recovery Detected</span>
+              <span class="recovery-arrow">&rarr;</span>
+              <span class="recovery-node-pill active">Execution Resumed</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- System Status Cards -->
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-label">SYSTEM HEALTH</div>
+            <div class="metric-value" id="health-overall-status">HEALTHY</div>
+            <div class="metric-sub" id="health-overall-sub">Platform Core Operational</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">SQLITE PERSISTENCE</div>
+            <div class="metric-value" id="health-sqlite-status">ONLINE</div>
+            <div class="metric-sub" id="health-sqlite-mode">Durable WAL Engine</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">EVENT STORE</div>
+            <div class="metric-value" id="health-eventstore-status">ONLINE</div>
+            <div class="metric-sub" id="health-eventstore-sub">Ledger Available</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">PERSISTED EVENTS</div>
+            <div class="metric-value" id="health-persisted-count">0</div>
+            <div class="metric-sub">Durable SQLite Records</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">QUERYABLE EVENTS</div>
+            <div class="metric-value" id="health-queryable-count">0</div>
+            <div class="metric-sub">Via DurableEventQueryPort</div>
+          </div>
+          <div class="metric-card highlight">
+            <div class="metric-label">LAST EVENT TIMESTAMP</div>
+            <div class="metric-value" id="health-last-event-time" style="font-size:0.95rem;">Never</div>
+            <div class="metric-sub" id="health-platform-version">Platform v0.8.0</div>
+          </div>
+        </div>
+
+        <!-- Durable Events Section -->
+        <div class="card full-width" style="margin-top:1.5rem;">
+          <div class="card-header">
+            <div>
+              <h3>Durable Event Ledger</h3>
+              <p style="font-size:0.85rem; color:var(--text-secondary); margin-top:0.25rem;">
+                Immutable append-only domain event stream persisted in SQLite with strictly monotonic sequence numbers
+              </p>
+            </div>
+            <div style="display:flex; gap:0.75rem; align-items:center;">
+              <span class="badge badge-info" id="events-count-badge">0 events</span>
+              <button id="refresh-events-btn" class="btn btn-sm btn-secondary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Refresh Events
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <!-- Filter Bar -->
+            <div class="filter-bar">
+              <div class="filter-group">
+                <label for="filter-event-type">Event Type:</label>
+                <input type="text" id="filter-event-type" placeholder="e.g. task.completed" aria-label="Filter by event type">
+              </div>
+              <div class="filter-group">
+                <label for="filter-aggregate-type">Aggregate:</label>
+                <select id="filter-aggregate-type" aria-label="Filter by aggregate type">
+                  <option value="">All Aggregates</option>
+                  <option value="task">Task</option>
+                  <option value="execution">Execution</option>
+                  <option value="agent">Agent</option>
+                  <option value="operation">Operation</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label for="filter-trace-id">Trace ID:</label>
+                <input type="text" id="filter-trace-id" placeholder="Search trace..." aria-label="Filter by trace ID">
+              </div>
+              <div class="filter-group">
+                <label for="filter-limit">Limit:</label>
+                <select id="filter-limit" aria-label="Page size limit">
+                  <option value="25">25</option>
+                  <option value="50" selected>50</option>
+                  <option value="100">100</option>
+                  <option value="250">250</option>
+                </select>
+              </div>
+              <button id="apply-events-filter-btn" class="btn btn-sm btn-primary" aria-label="Apply event filters">Apply Filters</button>
+              <button id="reset-events-filter-btn" class="btn btn-sm btn-secondary" aria-label="Clear all filters">Clear Filters</button>
+            </div>
+
+            <!-- Mandatory States: Loading, Empty, Error, Populated -->
+            <div id="events-loading" class="state-container state-loading">
+              <div class="spinner"></div>
+              <span>Loading durable events from ledger...</span>
+            </div>
+
+            <div id="events-empty" class="state-container state-empty" style="display:none;">
+              <span>No durable events found matching criteria. Events appear here as tasks and operations execute.</span>
+            </div>
+
+            <div id="events-error" class="state-container state-error" style="display:none;">
+              <span id="events-error-msg">Failed to query durable events.</span>
+              <button id="retry-events-btn" class="btn btn-sm btn-secondary">Retry</button>
+            </div>
+
+            <div id="events-table-wrapper" style="display:none; overflow-x:auto;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Seq #</th>
+                    <th>Event Type</th>
+                    <th>Aggregate</th>
+                    <th>Timestamp</th>
+                    <th>Trace ID</th>
+                    <th>Payload Summary</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="events-tbody">
+                  <!-- Populated via DOM -->
+                </tbody>
+              </table>
+
+              <!-- Real Backend Pagination Controls -->
+              <div class="pagination-bar" id="events-pagination-bar">
+                <div class="page-info" id="events-page-info">Showing 0–0 of 0 events</div>
+                <div class="pagination-actions">
+                  <button id="events-prev-btn" class="btn btn-sm btn-secondary" disabled aria-label="Previous page">← Previous</button>
+                  <button id="events-next-btn" class="btn btn-sm btn-secondary" disabled aria-label="Next page">Next →</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Audit Log Section -->
+        <div class="card full-width" style="margin-top:1.5rem;">
+          <div class="card-header">
+            <div>
+              <h3>Governance Audit Log</h3>
+              <p style="font-size:0.85rem; color:var(--text-secondary); margin-top:0.25rem;">
+                Cross-cutting operational audit trail and policy evaluations captured across runtimes
+              </p>
+            </div>
+            <div style="display:flex; gap:0.75rem; align-items:center;">
+              <span class="badge badge-info" id="audit-count-badge-ops">0 observations</span>
+              <button id="refresh-audit-btn" class="btn btn-sm btn-secondary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Refresh Audit
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <!-- Mandatory States -->
+            <div id="audit-loading" class="state-container state-loading">
+              <div class="spinner"></div>
+              <span>Loading audit log observations...</span>
+            </div>
+
+            <div id="audit-empty" class="state-container state-empty" style="display:none;">
+              <span>No audit records available.</span>
+            </div>
+
+            <div id="audit-error" class="state-container state-error" style="display:none;">
+              <span id="audit-error-msg">Failed to query audit log observations.</span>
+              <button id="retry-audit-btn" class="btn btn-sm btn-secondary">Retry</button>
+            </div>
+
+            <div id="audit-table-wrapper" style="display:none; overflow-x:auto;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>Action</th>
+                    <th>Actor</th>
+                    <th>Resource</th>
+                    <th>Result</th>
+                    <th>Metadata</th>
+                  </tr>
+                </thead>
+                <tbody id="audit-ops-tbody">
+                  <!-- Populated via DOM -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Crash Recovery & Persistence Rehydration Hub -->
+        <div class="card full-width" style="margin-top:1.5rem;">
+          <div class="card-header">
+            <div>
+              <h3>Crash Recovery &amp; Rehydration Hub</h3>
+              <p style="font-size:0.85rem; color:var(--text-secondary); margin-top:0.25rem;">
+                Automatic reconciliation of interrupted operations upon platform reboot via RestartRecoveryService
+              </p>
+            </div>
+            <div style="display:flex; gap:0.75rem; align-items:center;">
+              <span class="badge badge-success" id="recovery-status-badge">RECOVERY SERVICE ONLINE</span>
+              <button id="refresh-recovery-btn" class="btn btn-sm btn-secondary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Refresh Recovery
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div id="recovery-table-wrapper" style="overflow-x:auto;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Seq #</th>
+                    <th>Aggregate Type &amp; ID</th>
+                    <th>Reconciliation Reason</th>
+                    <th>Terminal Status</th>
+                    <th>Trace ID</th>
+                    <th>Reconciled At</th>
+                  </tr>
+                </thead>
+                <tbody id="recovery-history-tbody">
+                  <!-- Populated via DOM -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Event Detail Modal Dialog -->
+      <div id="event-detail-modal" class="modal-backdrop" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="modal-event-id-title">
+        <div class="modal-dialog">
+          <div class="modal-header">
+            <h3 id="modal-event-id-title">Event Detail</h3>
+            <button id="close-event-modal-btn" class="modal-close-btn" aria-label="Close modal">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div class="detail-grid">
+              <div class="detail-item">
+                <span class="detail-label">Event ID</span>
+                <span class="detail-value code-text" id="modal-event-id">-</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Sequence #</span>
+                <span class="detail-value" id="modal-event-seq">-</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Event Type</span>
+                <span class="detail-value" id="modal-event-type">-</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Aggregate Type / ID</span>
+                <span class="detail-value" id="modal-event-aggregate">-</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Occurred At (UTC)</span>
+                <span class="detail-value" id="modal-event-occurred">-</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Schema Version</span>
+                <span class="detail-value" id="modal-event-version">-</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Trace ID</span>
+                <span class="detail-value code-text" id="modal-event-trace">-</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Correlation ID</span>
+                <span class="detail-value code-text" id="modal-event-corr">-</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Causation ID</span>
+                <span class="detail-value code-text" id="modal-event-cause">None</span>
+              </div>
+            </div>
+
+            <div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+                <h4 style="font-size:0.9rem; font-weight:600;">Formatted Event Payload (JSON)</h4>
+                <button id="copy-payload-btn" class="btn btn-sm btn-secondary">Copy JSON</button>
+              </div>
+              <pre id="modal-event-payload" class="json-display"><code>{}</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- 1. View: Dashboard -->
-      <section id="tab-dashboard" class="tab-view active">
+      <section id="tab-dashboard" class="tab-view">
+
         <div class="metrics-grid">
           <div class="metric-card">
             <div class="metric-label">TOTAL EXECUTIONS</div>
@@ -667,6 +1044,99 @@
                 <tr><td colspan="5" class="empty-state">No audit observations logged</td></tr>
               </tbody>
             </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 11. View: Blueprints & Arquitectura Oficial (Infografías y Libro) -->
+      <section id="tab-blueprints" class="tab-view">
+        <div class="card full-width">
+          <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <h3>Infografías Maestras de Arquitectura &amp; Ecosistema (Español)</h3>
+              <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 4px;">
+                Visualización interactiva de las garantías operacionales, topología hexagonal y habilitación multiplataforma.
+              </p>
+            </div>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <a href="LIBRO_OFICIAL_AI_OPERATING_PLATFORM.pdf" download class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Descargar Libro Oficial en PDF (20 págs)
+              </a>
+            </div>
+          </div>
+          <div class="card-body">
+            <!-- Segmented Switcher for Blueprints -->
+            <div class="blueprint-nav" style="display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.75rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border-color);">
+              <button type="button" class="btn btn-secondary active blueprint-tab-btn" data-bp="bp-ecosistema" style="display:inline-flex;align-items:center;gap:0.4rem;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> Ecosistema Multiplataforma</button>
+              <button type="button" class="btn btn-secondary blueprint-tab-btn" data-bp="bp-hexagonal" style="display:inline-flex;align-items:center;gap:0.4rem;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/><line x1="12" y1="22" x2="12" y2="12"/><polyline points="2 8.5 12 12 22 8.5"/></svg> Arquitectura Hexagonal</button>
+              <button type="button" class="btn btn-secondary blueprint-tab-btn" data-bp="bp-flujo" style="display:inline-flex;align-items:center;gap:0.4rem;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Flujo &amp; Bucle Acotado</button>
+              <button type="button" class="btn btn-secondary blueprint-tab-btn" data-bp="bp-agentes" style="display:inline-flex;align-items:center;gap:0.4rem;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/></svg> Agentes de Primera Clase</button>
+              <button type="button" class="btn btn-secondary blueprint-tab-btn" data-bp="bp-gobernanza" style="display:inline-flex;align-items:center;gap:0.4rem;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg> Gobernanza Fail-Closed</button>
+            </div>
+
+            <!-- Blueprint 0: Ecosistema -->
+            <div id="bp-ecosistema" class="blueprint-view active">
+              <div class="blueprint-container" style="background: rgba(0,0,0,0.4); border-radius: var(--radius-md); padding: 1rem; border: 1px solid var(--border-color); text-align: center;">
+                <img src="images/00_mapa_completo_sistema.jpg" alt="Mapa Completo del Ecosistema" style="max-width: 100%; height: auto; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 20px rgba(0,0,0,0.5);" />
+                <p style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.75rem;">
+                  <span style="display:inline-flex;align-items:center;gap:0.35rem;color:var(--text-secondary);font-size:0.8rem;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> <em>Haz clic en la imagen para abrirla en resolución completa en una nueva pestaña.</em></span>
+                </p>
+              </div>
+              <div style="margin-top: 1rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
+                <div class="card" style="margin: 0; background: var(--bg-tertiary);">
+                  <h4>Plataforma Venta de Ropa (E-Commerce)</h4>
+                  <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem;">
+                    Se conecta mediante <code>POST /api/v1/operations</code> para clasificar prendas, generar recomendaciones y resolver carritos, sin acoplamiento a librerías de inferencia.
+                  </p>
+                </div>
+                <div class="card" style="margin: 0; background: var(--bg-tertiary);">
+                  <h4>Protocolo HTTP Loopback Seguro</h4>
+                  <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem;">
+                    Enlace exclusivo a <code>127.0.0.1:3000</code> con validación tipada de esquemas DTO y límite de 1MB por payload.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Blueprint 1: Hexagonal -->
+            <div id="bp-hexagonal" class="blueprint-view" style="display: none;">
+              <div class="blueprint-container" style="background: rgba(0,0,0,0.4); border-radius: var(--radius-md); padding: 1rem; border: 1px solid var(--border-color); text-align: center;">
+                <img src="images/01_mapa_arquitectura_hexagonal.jpg" alt="Arquitectura Hexagonal en Español" style="max-width: 100%; height: auto; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 20px rgba(0,0,0,0.5);" />
+                <p style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.75rem;">
+                  <span style="display:inline-flex;align-items:center;gap:0.35rem;color:var(--text-secondary);font-size:0.8rem;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> <em>Haz clic en la imagen para abrirla en resolución completa en una nueva pestaña.</em></span>
+                </p>
+              </div>
+            </div>
+
+            <!-- Blueprint 2: Flujo -->
+            <div id="bp-flujo" class="blueprint-view" style="display: none;">
+              <div class="blueprint-container" style="background: rgba(0,0,0,0.4); border-radius: var(--radius-md); padding: 1rem; border: 1px solid var(--border-color); text-align: center;">
+                <img src="images/02_mapa_flujo_ejecucion.jpg" alt="Flujo de Ejecución en Español" style="max-width: 100%; height: auto; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 20px rgba(0,0,0,0.5);" />
+                <p style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.75rem;">
+                  <span style="display:inline-flex;align-items:center;gap:0.35rem;color:var(--text-secondary);font-size:0.8rem;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> <em>Haz clic en la imagen para abrirla en resolución completa en una nueva pestaña.</em></span>
+                </p>
+              </div>
+            </div>
+
+            <!-- Blueprint 3: Agentes -->
+            <div id="bp-agentes" class="blueprint-view" style="display: none;">
+              <div class="blueprint-container" style="background: rgba(0,0,0,0.4); border-radius: var(--radius-md); padding: 1rem; border: 1px solid var(--border-color); text-align: center;">
+                <img src="images/03_mapa_arquitectura_agentes.jpg" alt="Arquitectura de Agentes en Español" style="max-width: 100%; height: auto; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 20px rgba(0,0,0,0.5);" />
+                <p style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.75rem;">
+                  <span style="display:inline-flex;align-items:center;gap:0.35rem;color:var(--text-secondary);font-size:0.8rem;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> <em>Haz clic en la imagen para abrirla en resolución completa en una nueva pestaña.</em></span>
+                </p>
+              </div>
+            </div>
+
+            <!-- Blueprint 4: Gobernanza -->
+            <div id="bp-gobernanza" class="blueprint-view" style="display: none;">
+              <div class="blueprint-container" style="background: rgba(0,0,0,0.4); border-radius: var(--radius-md); padding: 1rem; border: 1px solid var(--border-color); text-align: center;">
+                <img src="images/04_mapa_gobernanza_observabilidad.jpg" alt="Gobernanza Fail-Closed en Español" style="max-width: 100%; height: auto; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 20px rgba(0,0,0,0.5);" />
+                <p style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.75rem;">
+                  <span style="display:inline-flex;align-items:center;gap:0.35rem;color:var(--text-secondary);font-size:0.8rem;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> <em>Haz clic en la imagen para abrirla en resolución completa en una nueva pestaña.</em></span>
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>

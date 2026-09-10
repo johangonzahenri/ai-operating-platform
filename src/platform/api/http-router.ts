@@ -20,7 +20,9 @@ import { AutonomousOperationValidationError } from "../../domain/autonomy/autono
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const WEB_DIR = path.resolve(__dirname, "../web");
+const WEB_DIR = fs.existsSync(path.resolve(process.cwd(), "src/platform/web"))
+  ? path.resolve(process.cwd(), "src/platform/web")
+  : path.resolve(__dirname, "../web");
 
 const ID_REGEX = /^[a-zA-Z0-9_-]{1,128}$/;
 
@@ -160,6 +162,115 @@ export function createHttpServer(service: PlatformService): http.Server {
           sendJson(200, service.getStatus());
           return;
         }
+
+        // GET /health
+        if (subPath === "/health" && req.method === "GET") {
+          sendJson(200, service.getHealth());
+          return;
+        }
+
+        // GET /events
+        if (subPath === "/events" && req.method === "GET") {
+          const limitParam = url.searchParams.get("limit");
+          const afterSeqParam = url.searchParams.get("afterSequence");
+          const beforeSeqParam = url.searchParams.get("beforeSequence");
+          const taskIdParam = url.searchParams.get("taskId");
+          const executionIdParam = url.searchParams.get("executionId");
+          const agentIdParam = url.searchParams.get("agentId");
+          const traceIdParam = url.searchParams.get("traceId");
+          const correlationIdParam = url.searchParams.get("correlationId");
+          const eventTypeParam = url.searchParams.get("eventType");
+          const aggregateTypeParam = url.searchParams.get("aggregateType");
+          const fromParam = url.searchParams.get("from");
+          const toParam = url.searchParams.get("to");
+
+          let limit: number | undefined = undefined;
+          if (limitParam !== null) {
+            const parsed = parseInt(limitParam, 10);
+            if (Number.isNaN(parsed) || parsed < 1 || parsed > 500) {
+              sendError(400, "Bad Request: 'limit' must be an integer between 1 and 500", "INVALID_LIMIT");
+              return;
+            }
+            limit = parsed;
+          }
+
+          let afterSequence: number | undefined = undefined;
+          if (afterSeqParam !== null) {
+            const parsed = parseInt(afterSeqParam, 10);
+            if (Number.isNaN(parsed) || parsed < 0) {
+              sendError(400, "Bad Request: 'afterSequence' must be a non-negative integer", "INVALID_SEQUENCE");
+              return;
+            }
+            afterSequence = parsed;
+          }
+
+          let beforeSequence: number | undefined = undefined;
+          if (beforeSeqParam !== null) {
+            const parsed = parseInt(beforeSeqParam, 10);
+            if (Number.isNaN(parsed) || parsed < 0) {
+              sendError(400, "Bad Request: 'beforeSequence' must be a non-negative integer", "INVALID_SEQUENCE");
+              return;
+            }
+            beforeSequence = parsed;
+          }
+
+          let from: Date | undefined = undefined;
+          if (fromParam !== null) {
+            from = new Date(fromParam);
+            if (Number.isNaN(from.getTime())) {
+              sendError(400, "Bad Request: 'from' must be a valid ISO-8601 date string", "INVALID_DATE");
+              return;
+            }
+          }
+
+          let to: Date | undefined = undefined;
+          if (toParam !== null) {
+            to = new Date(toParam);
+            if (Number.isNaN(to.getTime())) {
+              sendError(400, "Bad Request: 'to' must be a valid ISO-8601 date string", "INVALID_DATE");
+              return;
+            }
+          }
+
+          const options = {
+            limit,
+            afterSequence,
+            beforeSequence,
+            taskId: taskIdParam ? taskIdParam.trim() : undefined,
+            executionId: executionIdParam ? executionIdParam.trim() : undefined,
+            agentId: agentIdParam ? agentIdParam.trim() : undefined,
+            traceId: traceIdParam ? traceIdParam.trim() : undefined,
+            correlationId: correlationIdParam ? correlationIdParam.trim() : undefined,
+            eventType: eventTypeParam ? eventTypeParam.trim() : undefined,
+            aggregateType: aggregateTypeParam ? aggregateTypeParam.trim() : undefined,
+            from,
+            to,
+          };
+
+          const response = service.getEvents(options);
+          sendJson(200, response);
+          return;
+        }
+
+        // GET /events/:id
+        const eventDetailMatch = subPath.match(/^\/events\/([^/]+)$/);
+        if (eventDetailMatch && req.method === "GET") {
+          const rawId = eventDetailMatch[1] ?? "";
+          const id = normalizeId(rawId);
+          if (!id && !/^\d+$/.test(rawId)) {
+            sendError(400, "Bad Request: Invalid event ID format", "INVALID_ID");
+            return;
+          }
+          const event = service.getEvent(id ?? rawId);
+
+          if (!event) {
+            sendError(404, "Event not found", "NOT_FOUND");
+            return;
+          }
+          sendJson(200, event);
+          return;
+        }
+
 
         // GET /tools
         if (subPath === "/tools" && req.method === "GET") {
@@ -425,9 +536,11 @@ export function createHttpServer(service: PlatformService): http.Server {
 
         // GET /audit
         if (subPath === "/audit" && req.method === "GET") {
-          sendJson(200, service.getAuditLogs());
+          const executionId = url.searchParams.get("executionId")?.trim() || undefined;
+          sendJson(200, service.getAuditLogs(executionId));
           return;
         }
+
 
         // GET /tasks
         if (subPath === "/tasks" && req.method === "GET") {
@@ -783,6 +896,139 @@ export function createHttpServer(service: PlatformService): http.Server {
           return;
         }
 
+        // --- Diagnostics Endpoints (v0.9.2) ---
+
+        // GET /diagnostics/traces/:traceId
+        const traceMatch = subPath.match(/^\/diagnostics\/traces\/([^/]+)$/);
+        if (traceMatch && req.method === "GET") {
+          const traceId = normalizeId(traceMatch[1]);
+          if (!traceId) {
+            sendError(400, "Bad Request: Invalid trace ID format", "INVALID_ID");
+            return;
+          }
+          const diagnostic = service.getTraceDiagnostics(traceId);
+          if (!diagnostic) {
+            sendError(404, "Trace not found", "NOT_FOUND");
+            return;
+          }
+          sendJson(200, diagnostic);
+          return;
+        }
+
+        // GET /diagnostics/recovery/history
+        if (subPath === "/diagnostics/recovery/history" && req.method === "GET") {
+          const history = service.getCrashRecoveryHistory();
+          sendJson(200, { data: history, meta: { count: history.length } });
+          return;
+        }
+
+        // GET /diagnostics/tasks/:taskId/timeline
+        const taskDiagMatch = subPath.match(/^\/diagnostics\/tasks\/([^/]+)\/timeline$/);
+        if (taskDiagMatch && req.method === "GET") {
+          const taskId = normalizeId(taskDiagMatch[1]);
+          if (!taskId) {
+            sendError(400, "Bad Request: Invalid task ID format", "INVALID_ID");
+            return;
+          }
+          const timeline = service.getTaskDiagnostics(taskId);
+          sendJson(200, { data: timeline, meta: { count: timeline.length } });
+          return;
+        }
+
+        // GET /diagnostics/executions/:id/forensics
+        const execForensicsMatch = subPath.match(/^\/diagnostics\/executions\/([^/]+)\/forensics$/);
+        if (execForensicsMatch && req.method === "GET") {
+          const execId = normalizeId(execForensicsMatch[1]);
+          if (!execId) {
+            sendError(400, "Bad Request: Invalid execution ID format", "INVALID_ID");
+            return;
+          }
+          // Use trace lookup via execution's events
+          const diagnostic = service.getTraceDiagnostics(execId);
+          if (!diagnostic) {
+            sendError(404, "Execution forensics not found", "NOT_FOUND");
+            return;
+          }
+          sendJson(200, diagnostic);
+          return;
+        }
+
+        // --- Paginated Listing Endpoints (v0.9.2) ---
+
+        // GET /paginated/tasks
+        if (subPath === "/paginated/tasks" && req.method === "GET") {
+          const limitParam = url.searchParams.get("limit");
+          const offsetParam = url.searchParams.get("offset");
+          const limit = limitParam !== null ? parseInt(limitParam, 10) : undefined;
+          const offset = offsetParam !== null ? parseInt(offsetParam, 10) : undefined;
+          if (limit !== undefined && (Number.isNaN(limit) || limit < 1 || limit > 500)) {
+            sendError(400, "Bad Request: 'limit' must be 1-500", "INVALID_LIMIT");
+            return;
+          }
+          if (offset !== undefined && (Number.isNaN(offset) || offset < 0)) {
+            sendError(400, "Bad Request: 'offset' must be non-negative", "INVALID_OFFSET");
+            return;
+          }
+          sendJson(200, service.getTasksPaginated({ limit, offset }));
+          return;
+        }
+
+        // GET /paginated/executions
+        if (subPath === "/paginated/executions" && req.method === "GET") {
+          const limitParam = url.searchParams.get("limit");
+          const offsetParam = url.searchParams.get("offset");
+          const limit = limitParam !== null ? parseInt(limitParam, 10) : undefined;
+          const offset = offsetParam !== null ? parseInt(offsetParam, 10) : undefined;
+          if (limit !== undefined && (Number.isNaN(limit) || limit < 1 || limit > 500)) {
+            sendError(400, "Bad Request: 'limit' must be 1-500", "INVALID_LIMIT");
+            return;
+          }
+          if (offset !== undefined && (Number.isNaN(offset) || offset < 0)) {
+            sendError(400, "Bad Request: 'offset' must be non-negative", "INVALID_OFFSET");
+            return;
+          }
+          sendJson(200, service.getExecutionsPaginated({ limit, offset }));
+          return;
+        }
+
+        // GET /paginated/operations
+        if (subPath === "/paginated/operations" && req.method === "GET") {
+          const limitParam = url.searchParams.get("limit");
+          const offsetParam = url.searchParams.get("offset");
+          const statusParam = url.searchParams.get("status");
+          const limit = limitParam !== null ? parseInt(limitParam, 10) : undefined;
+          const offset = offsetParam !== null ? parseInt(offsetParam, 10) : undefined;
+          if (limit !== undefined && (Number.isNaN(limit) || limit < 1 || limit > 500)) {
+            sendError(400, "Bad Request: 'limit' must be 1-500", "INVALID_LIMIT");
+            return;
+          }
+          if (offset !== undefined && (Number.isNaN(offset) || offset < 0)) {
+            sendError(400, "Bad Request: 'offset' must be non-negative", "INVALID_OFFSET");
+            return;
+          }
+          sendJson(200, service.listOperationsPaginated({ limit, offset, status: statusParam?.trim() || undefined }));
+          return;
+        }
+
+        // GET /paginated/agents
+        if (subPath === "/paginated/agents" && req.method === "GET") {
+          const limitParam = url.searchParams.get("limit");
+          const offsetParam = url.searchParams.get("offset");
+          const statusParam = url.searchParams.get("status");
+          const limit = limitParam !== null ? parseInt(limitParam, 10) : undefined;
+          const offset = offsetParam !== null ? parseInt(offsetParam, 10) : undefined;
+          if (limit !== undefined && (Number.isNaN(limit) || limit < 1 || limit > 500)) {
+            sendError(400, "Bad Request: 'limit' must be 1-500", "INVALID_LIMIT");
+            return;
+          }
+          if (offset !== undefined && (Number.isNaN(offset) || offset < 0)) {
+            sendError(400, "Bad Request: 'offset' must be non-negative", "INVALID_OFFSET");
+            return;
+          }
+          sendJson(200, service.listAgentsPaginated({ limit, offset, status: statusParam?.trim() || undefined }));
+          return;
+        }
+
         sendError(404, `Endpoint not found: ${req.method} ${pathname}`, "ENDPOINT_NOT_FOUND");
         return;
       }
@@ -813,6 +1059,11 @@ export function createHttpServer(service: PlatformService): http.Server {
           ".js": "application/javascript; charset=utf-8",
           ".json": "application/json; charset=utf-8",
           ".svg": "image/svg+xml",
+          ".jpg": "image/jpeg",
+          ".jpeg": "image/jpeg",
+          ".png": "image/png",
+          ".webp": "image/webp",
+          ".pdf": "application/pdf",
         };
         const contentType = contentTypes[ext] ?? "application/octet-stream";
         res.writeHead(200, { "Content-Type": contentType });

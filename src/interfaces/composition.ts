@@ -35,7 +35,22 @@ import { DecisionEvaluatorPort, DeterministicDecisionEvaluator } from "../domain
 import { OperationRepositoryPort } from "../domain/autonomy/operation-repository.js";
 import { InMemoryOperationRepository } from "../infrastructure/persistence/in-memory-operation-repository.js";
 import { SqliteOperationRepository } from "../infrastructure/persistence/sqlite/sqlite-operation-repository.js";
+import { SqliteTaskRepository } from "../infrastructure/persistence/sqlite/sqlite-task-repository.js";
+import { SqliteExecutionRepository } from "../infrastructure/persistence/sqlite/sqlite-execution-repository.js";
+import { SqliteAgentRepository } from "../infrastructure/persistence/sqlite/sqlite-agent-repository.js";
+import { SqliteDatabase } from "../infrastructure/persistence/sqlite/sqlite-database.js";
+import { initializeSchema } from "../infrastructure/persistence/sqlite/sqlite-schema.js";
+import { TaskRepository } from "../domain/task/task.js";
+import { ExecutionRepository } from "../domain/execution/execution.js";
+import { TaskQueryPort, ExecutionQueryPort, AgentQueryPort } from "../application/ports/query-ports.js";
 import { StubPlanner } from "../infrastructure/autonomy/stub-planner.js";
+import { RestartRecoveryService } from "../application/recovery/restart-recovery-service.js";
+import { RecoveryPort, RecoveryResult, TransactionRunner } from "../application/ports/recovery-port.js";
+import { SqliteTransactionRunner } from "../infrastructure/persistence/sqlite/sqlite-transaction-runner.js";
+import { DurableEventStore, DurableEventQueryPort } from "../application/ports/durable-event-port.js";
+import { InMemoryEventStore } from "../infrastructure/persistence/in-memory-event-store.js";
+import { SqliteEventStore } from "../infrastructure/persistence/sqlite/sqlite-event-store.js";
+import { RuntimeDiagnosticsService } from "../application/diagnostics/runtime-diagnostics.js";
 
 export interface CreatePlatformOptions {
   readonly logger?: StructuredLogger | undefined;
@@ -47,6 +62,8 @@ export interface CreatePlatformOptions {
   readonly operationRepository?: (OperationRepositoryPort & OperationQueryPort) | undefined;
   readonly useDurablePersistence?: boolean | undefined;
   readonly dbPath?: string | undefined;
+  readonly skipRecovery?: boolean | undefined;
+  readonly eventStore?: (DurableEventStore & DurableEventQueryPort) | undefined;
 }
 
 /** Composition root: wires domain ports to infrastructure adapters and exposes use cases. */
@@ -70,8 +87,60 @@ export const createPlatform = (
   const observability = new EventObservabilitySubscriber(audit, metrics);
   events.subscribe(observability.handle.bind(observability));
 
-  const tasks = new InMemoryTaskRepository();
-  const executions = new InMemoryExecutionRepository();
+  const isDurable = !isLogger && Boolean(
+    (optionsOrLogger as CreatePlatformOptions).useDurablePersistence ||
+    (optionsOrLogger as CreatePlatformOptions).dbPath
+  );
+  const dbPath = (!isLogger && (optionsOrLogger as CreatePlatformOptions).dbPath)
+    ? (optionsOrLogger as CreatePlatformOptions).dbPath!
+    : "data/app.db";
+
+  let dbManager: SqliteDatabase | undefined;
+  if (isDurable) {
+    dbManager = new SqliteDatabase({ dbPath });
+    initializeSchema(dbManager.open());
+  }
+
+  const tasks = dbManager
+    ? new SqliteTaskRepository(dbManager)
+    : new InMemoryTaskRepository();
+  const executions = dbManager
+    ? new SqliteExecutionRepository(dbManager)
+    : new InMemoryExecutionRepository();
+
+  const eventStore: DurableEventStore & DurableEventQueryPort = (!isLogger && (optionsOrLogger as CreatePlatformOptions).eventStore)
+    ? (optionsOrLogger as CreatePlatformOptions).eventStore!
+    : dbManager
+      ? new SqliteEventStore(dbManager)
+      : new InMemoryEventStore();
+
+  // Autonomous operations persistence (InMemory default for isolation/testing, Sqlite for durable)
+  const operationRepository: OperationRepositoryPort & OperationQueryPort =
+    (!isLogger && (optionsOrLogger as CreatePlatformOptions).operationRepository)
+      ? (optionsOrLogger as CreatePlatformOptions).operationRepository!
+      : dbManager
+        ? new SqliteOperationRepository(dbManager)
+        : new InMemoryOperationRepository();
+
+  const skipRecovery = !isLogger && Boolean((optionsOrLogger as CreatePlatformOptions).skipRecovery);
+  const transactionRunner: TransactionRunner = dbManager
+    ? new SqliteTransactionRunner(dbManager)
+    : { run: <T>(fn: () => T): T => fn() };
+
+  const recoveryService = new RestartRecoveryService({
+    tasks,
+    executions,
+    operations: operationRepository,
+    events,
+    eventStore,
+    transactionRunner,
+  });
+
+  let recoveryResult: RecoveryResult | undefined;
+  if (!skipRecovery) {
+    recoveryResult = recoveryService.reconcile();
+  }
+
   const memory = new InMemoryMemoryGateway();
   const memoryService = new MemoryService(memory, events);
 
@@ -93,9 +162,11 @@ export const createPlatform = (
       ]);
 
   // Agent capability runtime & registry
-  const agents: InMemoryAgentRegistry = (!isLogger && (optionsOrLogger as CreatePlatformOptions).agentRegistry instanceof InMemoryAgentRegistry)
-    ? (optionsOrLogger as CreatePlatformOptions).agentRegistry as InMemoryAgentRegistry
-    : new InMemoryAgentRegistry();
+  const agents: AgentRegistry & AgentQueryPort = (!isLogger && (optionsOrLogger as CreatePlatformOptions).agentRegistry)
+    ? ((optionsOrLogger as CreatePlatformOptions).agentRegistry as AgentRegistry & AgentQueryPort)
+    : dbManager
+      ? new SqliteAgentRepository(dbManager)
+      : new InMemoryAgentRegistry();
 
   if (!agents.findById("foundation-agent")) {
     agents.register(
@@ -113,13 +184,13 @@ export const createPlatform = (
 
   // Task execution runtime & use cases
   const modelStrategy = new ModelExecutionStrategy(models, events, policy);
-  const runtime = new CoreRuntime(tasks, executions, modelStrategy, events);
+  const runtime = new CoreRuntime(tasks, executions, modelStrategy, events, undefined, undefined, eventStore, transactionRunner);
   const executeTask = new ExecuteTask(runtime);
   const submitTask = new SubmitTask(runtime);
 
   // Dedicated Agent execution strategy & runtime
   const agentStrategy = new AgentExecutionStrategy(models, toolGateway, memory, events, policy);
-  const agentRuntime = new CoreRuntime(tasks, executions, agentStrategy, events);
+  const agentRuntime = new CoreRuntime(tasks, executions, agentStrategy, events, undefined, undefined, eventStore, transactionRunner);
   const agentService = new AgentService(agents, agentRuntime, modelRegistry, tools);
 
   // Orchestrated execution runtime & use case
@@ -128,16 +199,8 @@ export const createPlatform = (
     execution: context,
     operations: (task.request.input.operations as unknown as Operation[]) ?? [],
   }));
-  const orchestratedRuntime = new CoreRuntime(tasks, executions, orchestratedStrategy, events);
+  const orchestratedRuntime = new CoreRuntime(tasks, executions, orchestratedStrategy, events, undefined, undefined, eventStore, transactionRunner);
   const executeOrchestration = new ExecuteOrchestration(orchestratedRuntime);
-
-  // Autonomous operations persistence (InMemory default for isolation/testing, Sqlite for durable)
-  const operationRepository: OperationRepositoryPort & OperationQueryPort =
-    (!isLogger && (optionsOrLogger as CreatePlatformOptions).operationRepository)
-      ? (optionsOrLogger as CreatePlatformOptions).operationRepository!
-      : (!isLogger && ((optionsOrLogger as CreatePlatformOptions).useDurablePersistence || (optionsOrLogger as CreatePlatformOptions).dbPath))
-        ? new SqliteOperationRepository({ dbPath: (optionsOrLogger as CreatePlatformOptions).dbPath ?? "data/app.db" })
-        : new InMemoryOperationRepository();
 
   const planner: PlannerPort = (!isLogger && (optionsOrLogger as CreatePlatformOptions).planner)
     ? (optionsOrLogger as CreatePlatformOptions).planner!
@@ -155,11 +218,14 @@ export const createPlatform = (
     events
   );
 
+  const diagnostics = new RuntimeDiagnosticsService(eventStore);
+
   const operationService = new AutonomousOperationService(
     autonomousOrchestrator,
     operationRepository,
     agents
   );
+
 
   return {
     tasks,
@@ -191,5 +257,11 @@ export const createPlatform = (
     autonomousOrchestrator,
     planner,
     evaluator,
+    db: dbManager,
+    recovery: recoveryService,
+    recoveryResult,
+    eventStore,
+    diagnostics,
   };
 };
+

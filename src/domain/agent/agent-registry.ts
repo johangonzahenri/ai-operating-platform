@@ -7,3 +7,6 @@ export interface AgentRegistry {
   update(agent: Agent): void;
   delete(id: string): void;
 }
+
+export type AgentRepository = AgentRegistry;
+

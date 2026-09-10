@@ -61,22 +61,34 @@ export class SqliteDatabase {
     return this.db;
   }
 
+  private inTransaction = false;
+
   /**
    * Executes a synchronous callback within an atomic transaction.
+   * If already within a transaction, executes the callback directly (re-entrant),
+   * allowing outer transactional boundaries (e.g. RestartRecoveryService) to manage the atomic scope.
    * If the callback throws, any mutations are rolled back immediately.
    */
   transaction<T>(fn: () => T): T {
+    if (this.inTransaction) {
+      return fn();
+    }
+
     const db = this.getDatabase();
     db.exec("BEGIN IMMEDIATE;");
+    this.inTransaction = true;
     try {
       const result = fn();
       db.exec("COMMIT;");
+      this.inTransaction = false;
       return result;
     } catch (err) {
       try {
         db.exec("ROLLBACK;");
       } catch {
         // Rollback failure is secondary to original exception
+      } finally {
+        this.inTransaction = false;
       }
       throw err;
     }

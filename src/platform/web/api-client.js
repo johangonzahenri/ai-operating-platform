@@ -32,6 +32,33 @@ export async function getStatus() {
   return request("/status");
 }
 
+export async function getHealth() {
+  return request("/health");
+}
+
+export async function getEvents(options = {}) {
+  const params = new URLSearchParams();
+  if (options.limit !== undefined && options.limit !== "") params.set("limit", String(options.limit));
+  if (options.afterSequence !== undefined && options.afterSequence !== "") params.set("afterSequence", String(options.afterSequence));
+  if (options.beforeSequence !== undefined && options.beforeSequence !== "") params.set("beforeSequence", String(options.beforeSequence));
+  if (options.taskId) params.set("taskId", options.taskId);
+  if (options.executionId) params.set("executionId", options.executionId);
+  if (options.agentId) params.set("agentId", options.agentId);
+  if (options.traceId) params.set("traceId", options.traceId);
+  if (options.correlationId) params.set("correlationId", options.correlationId);
+  if (options.eventType) params.set("eventType", options.eventType);
+  if (options.aggregateType) params.set("aggregateType", options.aggregateType);
+  if (options.from) params.set("from", options.from);
+  if (options.to) params.set("to", options.to);
+
+  const qs = params.toString();
+  return request(qs ? `/events?${qs}` : "/events");
+}
+
+export async function getEvent(id) {
+  return request(`/events/${encodeURIComponent(id)}`);
+}
+
 export async function getExecutions() {
   return request("/executions");
 }
@@ -64,9 +91,13 @@ export async function getMetrics() {
   return request("/metrics");
 }
 
-export async function getAuditLogs() {
-  return request("/audit");
+export async function getAuditLogs(options = {}) {
+  const params = new URLSearchParams();
+  if (options.executionId) params.set("executionId", options.executionId);
+  const qs = params.toString();
+  return request(qs ? `/audit?${qs}` : "/audit");
 }
+
 
 export async function getAgents() {
   return request("/agents");
@@ -150,4 +181,24 @@ export async function cancelOperation(id, reason) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ reason }),
   });
+}
+
+export async function getCrashRecoveryHistory() {
+  return request("/diagnostics/recovery/history");
+}
+
+export async function getTraceDiagnostics(traceId) {
+  return request(`/diagnostics/traces/${encodeURIComponent(traceId)}`);
+}
+
+export async function getTaskDiagnostics(taskId) {
+  return request(`/diagnostics/tasks/${encodeURIComponent(taskId)}/timeline`);
+}
+
+export async function getTasks() {
+  return request("/tasks");
+}
+
+export async function getTask(id) {
+  return request(`/tasks/${encodeURIComponent(id)}`);
 }

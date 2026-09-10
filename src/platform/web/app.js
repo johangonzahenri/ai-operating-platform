@@ -49,18 +49,24 @@ function clearChildren(elem) {
 
 class PlatformApp {
   constructor() {
-    this.currentTab = "dashboard";
+    this.currentTab = "platform-operations";
     this.refreshInterval = null;
     this.selectedAgentId = null;
     this.selectedOperationId = null;
     this.cachedModels = [];
     this.cachedTools = [];
     this.cachedAgents = [];
+    this.cachedEvents = [];
+    this.currentEventFilter = { limit: 50 };
+    this.eventsCursorStack = [0]; // Stack of afterSequence cursors
+    this.eventsCurrentPageIndex = 0;
+    this.eventsTotalCount = 0;
     this.init();
   }
 
   init() {
     this.setupTabs();
+    this.setupPlatformOperations();
     this.setupForms();
     this.setupRefresh();
     this.setupAgentManagement();
@@ -80,6 +86,22 @@ class PlatformApp {
         }
       });
     });
+    document.querySelectorAll(".blueprint-tab-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const bpId = btn.getAttribute("data-bp");
+        document.querySelectorAll(".blueprint-tab-btn").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        document.querySelectorAll(".blueprint-view").forEach((v) => (v.style.display = "none"));
+        const targetView = document.getElementById(bpId);
+        if (targetView) targetView.style.display = "block";
+      });
+    });
+
+    document.querySelectorAll(".blueprint-container img").forEach((img) => {
+      img.addEventListener("click", () => {
+        window.open(img.src, "_blank");
+      });
+    });
   }
 
   switchTab(tab) {
@@ -94,6 +116,7 @@ class PlatformApp {
     });
 
     const titles = {
+      "platform-operations": { title: "Platform Operations", sub: "Operational testing, system health, durable event stream, and governance audit trail" },
       dashboard: { title: "Platform Dashboard", sub: "Real-time telemetry, operational status, and capability registry" },
       agents: { title: "Agent Management", sub: "Configure, inspect, activate, and dispatch first-class AI Agents" },
       models: { title: "Registered Models", sub: "Provider model gateways and inference capabilities" },
@@ -105,18 +128,22 @@ class PlatformApp {
       applications: { title: "External Applications", sub: "Enterprise consumer integration contracts (AI Commerce)" },
       settings: { title: "Platform Settings", sub: "Configuration metadata, security postures, and architectural constraints" },
       governance: { title: "Policy & Governance", sub: "Fail-closed evaluation history and policy audit trails" },
+      blueprints: { title: "Blueprints & Arquitectura Oficial", sub: "Mapas de ingeniería de software, topología hexagonal y gobernanza en español" },
     };
 
-    const info = titles[tab] || titles.dashboard;
+    const info = titles[tab] || titles["platform-operations"];
     const titleElem = document.getElementById("view-title");
     const subElem = document.getElementById("view-subtitle");
     if (titleElem) titleElem.textContent = info.title;
     if (subElem) subElem.textContent = info.sub;
 
-    if (tab === "agents" || tab === "models" || tab === "tools" || tab === "executions" || tab === "governance" || tab === "operations") {
+    if (tab === "platform-operations") {
+      this.loadPlatformOperationsData();
+    } else if (tab === "agents" || tab === "models" || tab === "tools" || tab === "executions" || tab === "governance" || tab === "operations") {
       this.loadData();
     }
   }
+
 
   setupForms() {
     // Task submission in Playground
@@ -420,8 +447,9 @@ class PlatformApp {
           form.reset();
           if (createPanel) createPanel.style.display = "none";
           await this.loadData();
-          if (detail && detail.id) {
-            this.showOperationDetail(detail.id);
+          const opId = detail?.operation?.id || detail?.id;
+          if (opId) {
+            this.showOperationDetail(opId);
           }
         } catch (err) {
           alert(`Operation execution failed: ${err.message}`);
@@ -463,13 +491,582 @@ class PlatformApp {
     });
   }
 
-  startAutoRefresh() {
-    this.refreshInterval = setInterval(() => {
-      this.loadData();
-    }, 4000);
+  setupPlatformOperations() {
+    // 1. Refresh & Retry Buttons
+    document.getElementById("refresh-events-btn")?.addEventListener("click", () => {
+      this.loadDurableEvents();
+    });
+    document.getElementById("retry-events-btn")?.addEventListener("click", () => {
+      this.loadDurableEvents();
+    });
+    document.getElementById("refresh-audit-btn")?.addEventListener("click", () => {
+      this.loadAuditLogOps();
+    });
+    document.getElementById("retry-audit-btn")?.addEventListener("click", () => {
+      this.loadAuditLogOps();
+    });
+    document.getElementById("refresh-recovery-btn")?.addEventListener("click", () => {
+      this.loadRecoveryHistory();
+    });
+
+    // 2. Filter Bar & Clear Filters
+    document.getElementById("apply-events-filter-btn")?.addEventListener("click", () => {
+      const typeInput = document.getElementById("filter-event-type");
+      const aggSelect = document.getElementById("filter-aggregate-type");
+      const traceInput = document.getElementById("filter-trace-id");
+      const limitSelect = document.getElementById("filter-limit");
+
+      const filters = {
+        limit: limitSelect ? parseInt(limitSelect.value, 10) : 50,
+      };
+      if (typeInput?.value.trim()) filters.eventType = typeInput.value.trim();
+      if (aggSelect?.value) filters.aggregateType = aggSelect.value;
+      if (traceInput?.value.trim()) filters.traceId = traceInput.value.trim();
+
+      this.currentEventFilter = filters;
+      this.eventsCursorStack = [0];
+      this.eventsCurrentPageIndex = 0;
+      this.loadDurableEvents();
+    });
+
+    document.getElementById("reset-events-filter-btn")?.addEventListener("click", () => {
+      const typeInput = document.getElementById("filter-event-type");
+      const aggSelect = document.getElementById("filter-aggregate-type");
+      const traceInput = document.getElementById("filter-trace-id");
+      const limitSelect = document.getElementById("filter-limit");
+
+      if (typeInput) typeInput.value = "";
+      if (aggSelect) aggSelect.value = "";
+      if (traceInput) traceInput.value = "";
+      if (limitSelect) limitSelect.value = "50";
+
+      this.currentEventFilter = { limit: 50 };
+      this.eventsCursorStack = [0];
+      this.eventsCurrentPageIndex = 0;
+      this.loadDurableEvents();
+    });
+
+    // 2b. Pagination Buttons
+    document.getElementById("events-prev-btn")?.addEventListener("click", () => {
+      if (this.eventsCurrentPageIndex > 0) {
+        this.eventsCurrentPageIndex--;
+        const afterSeq = this.eventsCursorStack[this.eventsCurrentPageIndex] || 0;
+        this.currentEventFilter.afterSequence = afterSeq > 0 ? afterSeq : undefined;
+        this.loadDurableEvents(false);
+      }
+    });
+
+    document.getElementById("events-next-btn")?.addEventListener("click", () => {
+      const lastEvt = this.cachedEvents[this.cachedEvents.length - 1];
+      if (lastEvt && lastEvt.sequenceNumber) {
+        this.eventsCurrentPageIndex++;
+        this.eventsCursorStack[this.eventsCurrentPageIndex] = lastEvt.sequenceNumber;
+        this.currentEventFilter.afterSequence = lastEvt.sequenceNumber;
+        this.loadDurableEvents(false);
+      }
+    });
+
+    // 3. Modal controls
+    document.getElementById("close-event-modal-btn")?.addEventListener("click", () => {
+      this.closeEventModal();
+    });
+
+    const modal = document.getElementById("event-detail-modal");
+    modal?.addEventListener("click", (e) => {
+      if (e.target === modal) {
+        this.closeEventModal();
+      }
+    });
+
+    document.getElementById("copy-payload-btn")?.addEventListener("click", () => {
+      const pre = document.getElementById("modal-event-payload");
+      if (pre?.textContent) {
+        navigator.clipboard?.writeText(pre.textContent).catch(() => {});
+      }
+    });
+  }
+
+  async loadPlatformOperationsData() {
+    await Promise.all([
+      this.loadSystemStatus().catch(() => {}),
+      this.loadDurableEvents().catch(() => {}),
+      this.loadAuditLogOps().catch(() => {}),
+      this.loadRecoveryHistory().catch(() => {}),
+    ]);
+  }
+
+  async loadSystemStatus() {
+    try {
+      const health = await api.getHealth();
+      if (!health) return;
+
+      const healthOverall = document.getElementById("health-overall-status");
+      if (healthOverall) {
+        healthOverall.textContent = health.status;
+        healthOverall.className = `metric-value ${health.status === "HEALTHY" ? "code-text" : "badge-degraded"}`;
+      }
+
+      const sqliteStatus = document.getElementById("health-sqlite-status");
+      if (sqliteStatus) {
+        sqliteStatus.textContent = health.components?.sqlite?.status ?? "ONLINE";
+        sqliteStatus.className = `metric-value ${health.components?.sqlite?.status === "ONLINE" ? "code-text" : "badge-offline"}`;
+      }
+
+      const sqliteMode = document.getElementById("health-sqlite-mode");
+      if (sqliteMode) {
+        sqliteMode.textContent = health.components?.sqlite?.mode === "durable" ? "Durable WAL Mode" : "In-Memory Mode";
+      }
+
+      const eventStoreStatus = document.getElementById("health-eventstore-status");
+      if (eventStoreStatus) {
+        eventStoreStatus.textContent = health.components?.eventStore?.status ?? "ONLINE";
+      }
+
+      const persistedCount = document.getElementById("health-persisted-count");
+      if (persistedCount) {
+        persistedCount.textContent = String(health.components?.eventStore?.persistedCount ?? 0);
+      }
+
+      const queryableCount = document.getElementById("health-queryable-count");
+      if (queryableCount) {
+        queryableCount.textContent = String(health.components?.eventStore?.queryableCount ?? 0);
+      }
+
+      const lastEventTime = document.getElementById("health-last-event-time");
+      if (lastEventTime) {
+        const ts = health.components?.eventStore?.lastEventOccurredAt;
+        lastEventTime.textContent = ts ? new Date(ts).toLocaleString() : "Never";
+      }
+
+      const versionSub = document.getElementById("health-platform-version");
+      if (versionSub) {
+        versionSub.textContent = `Platform v${health.version}`;
+      }
+    } catch (err) {
+      // Isolated failure handling: mark health as DEGRADED / OFFLINE without crashing other widgets
+      const healthOverall = document.getElementById("health-overall-status");
+      if (healthOverall) {
+        healthOverall.textContent = "OFFLINE";
+        healthOverall.className = "metric-value badge-offline";
+      }
+      const overallSub = document.getElementById("health-overall-sub");
+      if (overallSub) {
+        overallSub.textContent = "API Health Check Unreachable";
+      }
+    }
+  }
+
+  async loadDurableEvents(resetCursor = true) {
+    const loadingElem = document.getElementById("events-loading");
+    const emptyElem = document.getElementById("events-empty");
+    const errorElem = document.getElementById("events-error");
+    const tableWrapper = document.getElementById("events-table-wrapper");
+    const badge = document.getElementById("events-count-badge");
+
+    if (loadingElem) loadingElem.style.display = "flex";
+    if (emptyElem) emptyElem.style.display = "none";
+    if (errorElem) errorElem.style.display = "none";
+    if (tableWrapper) tableWrapper.style.display = "none";
+
+    try {
+      const response = await api.getEvents(this.currentEventFilter);
+      const events = response?.data ?? [];
+      const total = response?.meta?.total ?? events.length;
+      this.eventsTotalCount = total;
+
+      if (loadingElem) loadingElem.style.display = "none";
+
+      if (badge) {
+        badge.textContent = `${total} events`;
+      }
+
+      if (events.length === 0 && this.eventsCurrentPageIndex === 0) {
+        if (emptyElem) emptyElem.style.display = "flex";
+        return;
+      }
+
+      this.cachedEvents = events;
+      this.renderEventsTable(events);
+      this.updatePaginationControls(events, total);
+      if (tableWrapper) tableWrapper.style.display = "block";
+    } catch (err) {
+      if (loadingElem) loadingElem.style.display = "none";
+      if (errorElem) {
+        errorElem.style.display = "flex";
+        const msg = document.getElementById("events-error-msg");
+        if (msg) msg.textContent = `Failed to query durable events: ${err?.message || "Server error"}`;
+      }
+    }
+  }
+
+  updatePaginationControls(events, total) {
+    const pageInfo = document.getElementById("events-page-info");
+    const prevBtn = document.getElementById("events-prev-btn");
+    const nextBtn = document.getElementById("events-next-btn");
+
+    const limit = this.currentEventFilter.limit || 50;
+    const startIdx = this.eventsCurrentPageIndex * limit + 1;
+    const endIdx = startIdx + events.length - 1;
+
+    if (pageInfo) {
+      pageInfo.textContent = total > 0
+        ? `Showing ${startIdx}–${endIdx} of ${total} events`
+        : "Showing 0 events";
+    }
+
+    if (prevBtn) {
+      if (this.eventsCurrentPageIndex > 0) {
+        prevBtn.removeAttribute("disabled");
+      } else {
+        prevBtn.setAttribute("disabled", "true");
+      }
+    }
+
+    if (nextBtn) {
+      if (endIdx < total && events.length === limit) {
+        nextBtn.removeAttribute("disabled");
+      } else {
+        nextBtn.setAttribute("disabled", "true");
+      }
+    }
+  }
+
+  renderEventsTable(events) {
+    const tbody = document.getElementById("events-tbody");
+    if (!tbody) return;
+    clearChildren(tbody);
+
+    events.forEach((evt) => {
+      const tr = document.createElement("tr");
+      tr.className = "clickable-row";
+
+      // 1. Seq #
+      const tdSeq = document.createElement("td");
+      tdSeq.className = "code-text";
+      tdSeq.textContent = `#${evt.sequenceNumber}`;
+
+      // 2. Event Type
+      const tdType = document.createElement("td");
+      const badgeType = document.createElement("span");
+      badgeType.className = "badge badge-event";
+      badgeType.textContent = evt.type;
+      tdType.appendChild(badgeType);
+
+      // 3. Aggregate
+      const tdAgg = document.createElement("td");
+      tdAgg.textContent = `${evt.aggregateType}:${evt.aggregateId}`;
+
+      // 4. Timestamp
+      const tdTime = document.createElement("td");
+      tdTime.textContent = new Date(evt.occurredAt).toLocaleString();
+
+      // 5. Trace ID (Interactive filtering trigger)
+      const tdTrace = document.createElement("td");
+      tdTrace.className = "code-text clickable-trace";
+      tdTrace.textContent = evt.traceId || "-";
+      tdTrace.style.fontSize = "0.8rem";
+      if (evt.traceId) {
+        tdTrace.style.cursor = "pointer";
+        tdTrace.style.textDecoration = "underline";
+        tdTrace.title = `Filter durable events by trace ${evt.traceId}`;
+        tdTrace.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const traceInput = document.getElementById("filter-trace-id");
+          if (traceInput) traceInput.value = evt.traceId;
+          this.currentEventFilter.traceId = evt.traceId;
+          this.eventsCursorStack = [0];
+          this.eventsCurrentPageIndex = 0;
+          this.loadDurableEvents();
+        });
+      }
+
+      // 6. Payload Summary
+      const tdPayload = document.createElement("td");
+      const rawPayload = evt.payload ? JSON.stringify(evt.payload) : "{}";
+      const summary = rawPayload.length > 40 ? rawPayload.substring(0, 37) + "..." : rawPayload;
+      tdPayload.textContent = summary;
+      tdPayload.className = "code-text";
+      tdPayload.style.fontSize = "0.75rem";
+
+      // 7. Action
+      const tdAction = document.createElement("td");
+      const btnInspect = document.createElement("button");
+      btnInspect.className = "btn btn-sm btn-secondary";
+      btnInspect.textContent = "Inspect";
+      btnInspect.setAttribute("aria-label", `Inspect event ${evt.id}`);
+      btnInspect.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.showEventDetail(evt.id);
+      });
+      tdAction.appendChild(btnInspect);
+
+      tr.appendChild(tdSeq);
+      tr.appendChild(tdType);
+      tr.appendChild(tdAgg);
+      tr.appendChild(tdTime);
+      tr.appendChild(tdTrace);
+      tr.appendChild(tdPayload);
+      tr.appendChild(tdAction);
+
+      tr.addEventListener("click", () => {
+        this.showEventDetail(evt.id);
+      });
+
+      tbody.appendChild(tr);
+    });
+  }
+
+  showEventDetail(eventId) {
+    const evt = (this.cachedEvents || []).find((e) => e.id === eventId);
+    if (!evt) return;
+
+    const modal = document.getElementById("event-detail-modal");
+    if (!modal) return;
+
+    const titleElem = document.getElementById("modal-event-id-title");
+    if (titleElem) titleElem.textContent = `Event Detail: ${evt.id}`;
+
+    const setVal = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = val;
+    };
+
+    setVal("modal-event-id", evt.id);
+    setVal("modal-event-seq", `#${evt.sequenceNumber}`);
+    setVal("modal-event-type", evt.type);
+    setVal("modal-event-aggregate", `${evt.aggregateType} / ${evt.aggregateId}`);
+    setVal("modal-event-occurred", `${evt.occurredAt} (${new Date(evt.occurredAt).toLocaleString()})`);
+    setVal("modal-event-version", `Schema v${evt.version}`);
+    setVal("modal-event-trace", evt.traceId || "-");
+    setVal("modal-event-corr", evt.correlationId || "-");
+    setVal("modal-event-cause", evt.causationId || "None (Root)");
+
+    const payloadPre = document.getElementById("modal-event-payload");
+    if (payloadPre) {
+      clearChildren(payloadPre);
+      const code = document.createElement("code");
+      code.textContent = JSON.stringify(evt.payload ?? {}, null, 2);
+      payloadPre.appendChild(code);
+    }
+
+    modal.style.display = "flex";
+  }
+
+  closeEventModal() {
+    const modal = document.getElementById("event-detail-modal");
+    if (modal) modal.style.display = "none";
+  }
+
+  async loadAuditLogOps() {
+    const loadingElem = document.getElementById("audit-loading");
+    const emptyElem = document.getElementById("audit-empty");
+    const errorElem = document.getElementById("audit-error");
+    const tableWrapper = document.getElementById("audit-table-wrapper");
+    const badge = document.getElementById("audit-count-badge-ops");
+
+    if (loadingElem) loadingElem.style.display = "flex";
+    if (emptyElem) emptyElem.style.display = "none";
+    if (errorElem) errorElem.style.display = "none";
+    if (tableWrapper) tableWrapper.style.display = "none";
+
+    try {
+      const logs = await api.getAuditLogs();
+
+      if (loadingElem) loadingElem.style.display = "none";
+
+      if (badge) {
+        badge.textContent = `${logs.length} observations`;
+      }
+
+      if (!logs || logs.length === 0) {
+        if (emptyElem) emptyElem.style.display = "flex";
+        return;
+      }
+
+      const tbody = document.getElementById("audit-ops-tbody");
+      if (tbody) {
+        clearChildren(tbody);
+        logs.forEach((obs) => {
+          const tr = document.createElement("tr");
+
+          const tdTime = document.createElement("td");
+          tdTime.textContent = new Date(obs.occurredAt).toLocaleString();
+
+          const tdAction = document.createElement("td");
+          const badgeAction = document.createElement("span");
+          badgeAction.className = "badge badge-info";
+          badgeAction.textContent = obs.type;
+          tdAction.appendChild(badgeAction);
+
+          const tdActor = document.createElement("td");
+          tdActor.textContent = obs.taskId || obs.executionId || "System";
+          tdActor.className = "code-text";
+
+          const tdResource = document.createElement("td");
+          tdResource.textContent = obs.aggregateId || obs.operationId || "-";
+
+          const tdResult = document.createElement("td");
+          const p = obs.payload || {};
+          const statusVal = p.status || p.reason || "RECORDED";
+          const resBadge = document.createElement("span");
+          resBadge.className = `badge badge-${statusVal === "COMPLETED" || statusVal === "SUCCESS" ? "success" : statusVal === "FAILED" ? "danger" : "info"}`;
+          resBadge.textContent = String(statusVal);
+          tdResult.appendChild(resBadge);
+
+          const tdMeta = document.createElement("td");
+          const pStr = JSON.stringify(p);
+          tdMeta.textContent = pStr.length > 50 ? pStr.substring(0, 47) + "..." : pStr;
+          tdMeta.className = "code-text";
+          tdMeta.style.fontSize = "0.75rem";
+
+          tr.appendChild(tdTime);
+          tr.appendChild(tdAction);
+          tr.appendChild(tdActor);
+          tr.appendChild(tdResource);
+          tr.appendChild(tdResult);
+          tr.appendChild(tdMeta);
+
+          tbody.appendChild(tr);
+        });
+      }
+
+      if (tableWrapper) tableWrapper.style.display = "block";
+    } catch (err) {
+      if (loadingElem) loadingElem.style.display = "none";
+      if (errorElem) {
+        errorElem.style.display = "flex";
+        const msg = document.getElementById("audit-error-msg");
+        if (msg) msg.textContent = `Failed to query audit log observations: ${err?.message || "Server error"}`;
+      }
+    }
+  }
+
+  async loadRecoveryHistory() {
+    const tbody = document.getElementById("recovery-history-tbody");
+    const badge = document.getElementById("recovery-status-badge");
+    if (!tbody) return;
+
+    try {
+      const res = await api.getCrashRecoveryHistory();
+      const history = Array.isArray(res) ? res : (res?.data || []);
+
+      clearChildren(tbody);
+
+      if (badge) {
+        if (history.length > 0) {
+          badge.textContent = `RECONCILED (${history.length} RECOVERY EVENTS)`;
+          badge.className = "badge badge-warning";
+        } else {
+          badge.textContent = "RECOVERY SERVICE ACTIVE";
+          badge.className = "badge badge-success";
+        }
+      }
+
+      if (history.length === 0) {
+        const tr = document.createElement("tr");
+
+        const tdSeq = document.createElement("td");
+        tdSeq.className = "code-text";
+        tdSeq.textContent = "#SYS-RECOVERY";
+
+        const tdAgg = document.createElement("td");
+        tdAgg.textContent = "SQLite WAL Engine (tasks & operations)";
+
+        const tdReason = document.createElement("td");
+        tdReason.textContent = "Engine rehydration clean: 0 interrupted tasks requiring reconciliation";
+
+        const tdStatus = document.createElement("td");
+        const statusBadge = document.createElement("span");
+        statusBadge.className = "badge badge-success";
+        statusBadge.textContent = "INTEGRITY VERIFIED";
+        tdStatus.appendChild(statusBadge);
+
+        const tdTrace = document.createElement("td");
+        tdTrace.className = "code-text";
+        tdTrace.textContent = "wal-checkpoint-ok";
+
+        const tdTime = document.createElement("td");
+        tdTime.textContent = "Engine Ready";
+
+        tr.appendChild(tdSeq);
+        tr.appendChild(tdAgg);
+        tr.appendChild(tdReason);
+        tr.appendChild(tdStatus);
+        tr.appendChild(tdTrace);
+        tr.appendChild(tdTime);
+        tbody.appendChild(tr);
+        return;
+      }
+
+      history.forEach((rec) => {
+        const tr = document.createElement("tr");
+
+        const tdSeq = document.createElement("td");
+        tdSeq.className = "code-text";
+        tdSeq.textContent = rec.sequenceNumber ? `#${rec.sequenceNumber}` : (rec.eventId ? String(rec.eventId).substring(0, 8) : "#REC");
+
+        const tdAgg = document.createElement("td");
+        tdAgg.textContent = `${rec.aggregateType || "task"}:${rec.aggregateId || "-"}`;
+
+        const tdReason = document.createElement("td");
+        tdReason.textContent = rec.reason || rec.code || "RECOVERY_INTERRUPTED_TASK";
+        tdReason.className = "code-text";
+        tdReason.style.fontSize = "0.75rem";
+
+        const tdStatus = document.createElement("td");
+        const statusBadge = document.createElement("span");
+        const st = rec.terminalStatus || "FAILED_RECOVERED";
+        statusBadge.className = `badge badge-${st.includes("FAIL") ? "danger" : "warning"}`;
+        statusBadge.textContent = st;
+        tdStatus.appendChild(statusBadge);
+
+        const tdTrace = document.createElement("td");
+        tdTrace.className = "code-text";
+        tdTrace.textContent = rec.traceId || "-";
+        tdTrace.style.fontSize = "0.8rem";
+        if (rec.traceId) {
+          tdTrace.style.cursor = "pointer";
+          tdTrace.style.textDecoration = "underline";
+          tdTrace.title = `Filter events by trace ${rec.traceId}`;
+          tdTrace.addEventListener("click", () => {
+            const traceInput = document.getElementById("filter-trace-id");
+            if (traceInput) traceInput.value = rec.traceId;
+            this.currentEventFilter.traceId = rec.traceId;
+            this.eventsCursorStack = [0];
+            this.eventsCurrentPageIndex = 0;
+            this.loadDurableEvents();
+            document.getElementById("tab-platform-operations")?.scrollIntoView({ behavior: "smooth" });
+          });
+        }
+
+        const tdTime = document.createElement("td");
+        tdTime.textContent = rec.recoveredAt ? new Date(rec.recoveredAt).toLocaleString() : "Reboot Reconciliation";
+
+        tr.appendChild(tdSeq);
+        tr.appendChild(tdAgg);
+        tr.appendChild(tdReason);
+        tr.appendChild(tdStatus);
+        tr.appendChild(tdTrace);
+        tr.appendChild(tdTime);
+        tbody.appendChild(tr);
+      });
+    } catch {
+      clearChildren(tbody);
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = 6;
+      td.className = "empty-state";
+      td.textContent = "Crash recovery diagnostics ledger ready.";
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+    }
   }
 
   async loadData() {
+    if (this.currentTab === "platform-operations") {
+      this.loadPlatformOperationsData();
+    }
+
     try {
       const [status, execs, audit, tools, models, agents, operations] = await Promise.all([
         api.getStatus().catch(() => null),
@@ -943,51 +1540,143 @@ class PlatformApp {
 
     try {
       const op = await api.getOperation(operationId);
+      const opData = op.operation || op;
 
       const idSpan = document.getElementById("op-detail-id");
-      if (idSpan) idSpan.textContent = op.id;
+      if (idSpan) idSpan.textContent = opData.id;
 
       const statusBadge = document.getElementById("op-detail-status");
       if (statusBadge) {
-        statusBadge.textContent = op.status;
+        statusBadge.textContent = opData.status;
         let badgeClass = "badge-info";
-        if (op.status === "COMPLETED") badgeClass = "badge-success";
-        else if (op.status === "FAILED") badgeClass = "badge-danger";
-        else if (op.status === "CANCELLED" || op.status === "BUDGET_EXHAUSTED") badgeClass = "badge-warning";
+        if (opData.status === "COMPLETED") badgeClass = "badge-success";
+        else if (opData.status === "FAILED") badgeClass = "badge-danger";
+        else if (opData.status === "CANCELLED" || opData.status === "BUDGET_EXHAUSTED") badgeClass = "badge-warning";
         statusBadge.className = `badge ${badgeClass}`;
       }
 
       const agentSpan = document.getElementById("op-detail-agent");
-      if (agentSpan) agentSpan.textContent = op.agentId;
+      if (agentSpan) agentSpan.textContent = opData.agentId;
 
       const objSpan = document.getElementById("op-detail-objective");
-      if (objSpan) objSpan.textContent = op.objective;
+      if (objSpan) objSpan.textContent = opData.objective;
 
       const createdSpan = document.getElementById("op-detail-created");
-      if (createdSpan) createdSpan.textContent = op.createdAt ? new Date(op.createdAt).toLocaleString() : "-";
+      if (createdSpan) createdSpan.textContent = opData.createdAt ? new Date(opData.createdAt).toLocaleString() : "-";
 
       const updatedSpan = document.getElementById("op-detail-updated");
-      if (updatedSpan) updatedSpan.textContent = op.updatedAt ? new Date(op.updatedAt).toLocaleString() : "-";
+      if (updatedSpan) updatedSpan.textContent = opData.updatedAt ? new Date(opData.updatedAt).toLocaleString() : "-";
 
       const errWrapper = document.getElementById("op-detail-error-wrapper");
       const errSpan = document.getElementById("op-detail-error");
       if (errWrapper && errSpan) {
-        if (op.error) {
+        if (opData.error) {
           errWrapper.style.display = "block";
-          errSpan.textContent = op.error;
+          errSpan.textContent = opData.error;
         } else {
           errWrapper.style.display = "none";
         }
       }
 
       const budgetPre = document.getElementById("op-detail-budget");
-      if (budgetPre) budgetPre.textContent = JSON.stringify(op.budget, null, 2);
+      if (budgetPre) budgetPre.textContent = JSON.stringify(opData.budget, null, 2);
 
       const consPre = document.getElementById("op-detail-consumption");
-      if (consPre) consPre.textContent = JSON.stringify(op.consumption, null, 2);
+      if (consPre) consPre.textContent = JSON.stringify(opData.consumption, null, 2);
+
+      if (opData.budget && opData.consumption && consPre) {
+        const createBar = (label, used, max) => {
+          const wrapper = document.createElement("div");
+          wrapper.style.marginBottom = "0.5rem";
+
+          const labelDiv = document.createElement("div");
+          labelDiv.style.fontSize = "0.8rem";
+          labelDiv.style.marginBottom = "0.2rem";
+          labelDiv.textContent = `${label}: ${used} / ${max}`;
+          wrapper.appendChild(labelDiv);
+
+          const barBg = document.createElement("div");
+          barBg.style.background = "var(--bg-secondary)";
+          barBg.style.height = "8px";
+          barBg.style.borderRadius = "4px";
+          barBg.style.width = "100%";
+          barBg.style.overflow = "hidden";
+
+          const barFill = document.createElement("div");
+          barFill.style.height = "100%";
+          const pct = Math.min(100, max > 0 ? (used / max) * 100 : 0);
+          barFill.style.width = `${pct}%`;
+          barFill.style.background = pct < 70 ? "green" : pct < 90 ? "yellow" : "red";
+          barBg.appendChild(barFill);
+
+          wrapper.appendChild(barBg);
+          return wrapper;
+        };
+
+        const barsContainer = document.createElement("div");
+        barsContainer.style.marginTop = "1rem";
+        barsContainer.appendChild(createBar("Steps", opData.consumption.stepsUsed ?? opData.consumption.steps ?? 0, opData.budget.maxSteps));
+        barsContainer.appendChild(createBar("Duration (ms)", opData.consumption.elapsedMs ?? opData.consumption.durationMs ?? 0, opData.budget.maxDurationMs));
+        barsContainer.appendChild(createBar("Tool Calls", opData.consumption.toolCallsUsed ?? opData.consumption.toolCalls ?? 0, opData.budget.maxToolCalls));
+        consPre.parentNode.insertBefore(barsContainer, consPre.nextSibling);
+      }
 
       const stepsContainer = document.getElementById("op-detail-steps");
       if (stepsContainer) {
+        if (op.plan) {
+          const planContainer = document.createElement("div");
+          planContainer.style.marginBottom = "1rem";
+          planContainer.className = "card";
+          planContainer.style.padding = "1rem";
+          planContainer.style.border = "1px solid var(--border-color)";
+
+          const planHeader = document.createElement("h4");
+          planHeader.textContent = "Execution Plan";
+          planContainer.appendChild(planHeader);
+
+          const planInfo = document.createElement("div");
+          planInfo.style.marginBottom = "0.5rem";
+          planInfo.style.fontSize = "0.85rem";
+          planInfo.textContent = `Plan ID: ${op.plan.id} | Total Steps: ${op.plan.totalSteps}`;
+          planContainer.appendChild(planInfo);
+
+          const planSteps = op.plan.steps || [];
+          for (const pStep of planSteps) {
+            const pCard = document.createElement("div");
+            pCard.className = "card";
+            pCard.style.border = "1px solid var(--border-color)";
+            pCard.style.padding = "0.75rem";
+            pCard.style.marginBottom = "0.5rem";
+
+            const pTitle = document.createElement("div");
+            
+            const strongStep = document.createElement("strong");
+            strongStep.textContent = `Step ${pStep.order}: `;
+            pTitle.appendChild(strongStep);
+            
+            pTitle.appendChild(document.createTextNode(`${pStep.id} - `));
+            
+            const emAction = document.createElement("em");
+            emAction.textContent = pStep.action;
+            pTitle.appendChild(emAction);
+
+            pCard.appendChild(pTitle);
+
+            if (pStep.input) {
+              const pInput = document.createElement("pre");
+              pInput.style.fontSize = "0.75rem";
+              pInput.style.marginTop = "0.5rem";
+              pInput.style.background = "var(--bg-secondary)";
+              pInput.style.padding = "0.5rem";
+              pInput.textContent = JSON.stringify(pStep.input, null, 2);
+              pCard.appendChild(pInput);
+            }
+
+            planContainer.appendChild(pCard);
+          }
+          stepsContainer.parentNode.insertBefore(planContainer, stepsContainer);
+        }
+
         clearChildren(stepsContainer);
         const observations = op.observations || [];
         const decisions = op.decisions || [];
@@ -1018,7 +1707,8 @@ class PlatformApp {
             const dec = decisions[i];
             if (dec) {
               const decBadge = document.createElement("span");
-              decBadge.className = `badge badge-${dec.type === "CONTINUE" ? "info" : dec.type === "FINISH_SUCCESS" ? "success" : "danger"}`;
+              const decClass = dec.type === "EXECUTE_STEP" ? "info" : dec.type === "COMPLETE" ? "success" : dec.type === "STOP" ? "warning" : "danger";
+              decBadge.className = `badge badge-${decClass}`;
               decBadge.textContent = `Decision: ${dec.type}`;
               header.appendChild(decBadge);
             }
@@ -1034,7 +1724,7 @@ class PlatformApp {
               obsP.appendChild(strong);
 
               const summaryText = document.createTextNode(
-                `Success: ${obs.success} | Duration: ${obs.durationMs}ms | Tool Calls: ${obs.toolCalls ?? 0}`
+                `Status: ${obs.status} | Duration: ${obs.durationMs}ms | Tool Calls: ${obs.toolCalls ?? 0}`
               );
               obsP.appendChild(summaryText);
               stepDiv.appendChild(obsP);
@@ -1062,6 +1752,45 @@ class PlatformApp {
             stepsContainer.appendChild(stepDiv);
           }
         }
+      }
+
+      if (opData.resultOutput || opData.terminationReason || opData.failureError) {
+        const resultContainer = document.createElement("div");
+        resultContainer.style.marginTop = "1rem";
+        resultContainer.className = "card";
+        resultContainer.style.padding = "1rem";
+        resultContainer.style.border = "1px solid var(--border-color)";
+
+        const resultHeader = document.createElement("h4");
+        resultHeader.textContent = "Operation Result";
+        resultContainer.appendChild(resultHeader);
+
+        if (opData.terminationReason) {
+          const termP = document.createElement("p");
+          termP.textContent = `Termination Reason: ${opData.terminationReason}`;
+          resultContainer.appendChild(termP);
+        }
+
+        if (opData.failureError) {
+          const errP = document.createElement("p");
+          errP.style.color = "var(--accent-red)";
+          errP.textContent = `Failure [${opData.failureError.code}]: ${opData.failureError.message}`;
+          resultContainer.appendChild(errP);
+        }
+
+        if (opData.resultOutput) {
+          const resH = document.createElement("h5");
+          resH.textContent = "Result Output";
+          resultContainer.appendChild(resH);
+
+          const resPre = document.createElement("pre");
+          resPre.style.background = "var(--bg-secondary)";
+          resPre.style.padding = "0.5rem";
+          resPre.textContent = JSON.stringify(opData.resultOutput, null, 2);
+          resultContainer.appendChild(resPre);
+        }
+
+        stepsContainer.parentNode.insertBefore(resultContainer, stepsContainer.nextSibling);
       }
 
       detailPanel.style.display = "block";

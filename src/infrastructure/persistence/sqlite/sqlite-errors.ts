@@ -19,15 +19,26 @@ export class IncompatibleSchemaVersionError extends SqlitePersistenceError {
 }
 
 export class OptimisticConcurrencyError extends SqlitePersistenceError {
+  readonly entityId: string;
+  readonly entityType: string;
+
   constructor(
-    readonly operationId: string,
+    operationOrEntityId: string,
     readonly expectedVersion: number,
-    readonly currentVersion?: number
+    readonly currentVersion?: number,
+    entityType: string = "operation"
   ) {
     super(
-      `Optimistic concurrency conflict on operation '${operationId}': expected version ${expectedVersion}` +
+      `Optimistic concurrency conflict on ${entityType} '${operationOrEntityId}': expected version ${expectedVersion}` +
         (currentVersion !== undefined ? `, but current version is ${currentVersion}` : "")
     );
     this.name = "OptimisticConcurrencyError";
+    this.entityId = operationOrEntityId;
+    this.entityType = entityType;
+  }
+
+  get operationId(): string {
+    return this.entityId;
   }
 }
+

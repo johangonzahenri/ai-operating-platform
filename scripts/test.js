@@ -25,7 +25,7 @@ if (testFiles.length === 0) {
   process.exit(1);
 }
 
-const res = spawnSync(process.execPath, ['--test', ...testFiles], {
+const res = spawnSync(process.execPath, ['--test', '--test-concurrency=1', ...testFiles], {
   stdio: 'inherit',
 });
 

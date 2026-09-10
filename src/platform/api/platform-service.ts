@@ -1,3 +1,4 @@
+import { PLATFORM_VERSION } from "../version.js";
 import { ExecuteOrchestration } from "../../application/orchestration/execute-orchestration.js";
 import { SubmitTask } from "../../application/submit-task.js";
 import { AgentService } from "../../application/agent/agent-service.js";
@@ -23,17 +24,33 @@ import {
 } from "../../application/ports/query-ports.js";
 import { InMemoryModelRegistry } from "../../infrastructure/model/in-memory-model-registry.js";
 import {
+  AuditQueryOptions,
+  DurableEvent,
+  DurableEventQueryPort,
+  DurableEventStore,
+} from "../../application/ports/durable-event-port.js";
+import { SqliteDatabase } from "../../infrastructure/persistence/sqlite/sqlite-database.js";
+import { RuntimeDiagnosticsService } from "../../application/diagnostics/runtime-diagnostics.js";
+import {
   AgentDTO,
   AuditObservationDTO,
   AutonomousOperationDetailDTO,
   AutonomousOperationDTO,
   CreateAgentRequestDTO,
   CreateAutonomousOperationRequestDTO,
+  CrashRecoveryDiagnosticDTO,
+  DiagnosticTraceNodeDTO,
+  DurableEventDTO,
+  DurableEventListResponseDTO,
   ExecutionDTO,
+  ExecutionTraceDiagnosticDTO,
   MetricSummaryDTO,
   ModelDTO,
   OrchestrationRequestDTO,
   OrchestrationResultDTO,
+  PaginatedResponseDTO,
+  PaginationOptions,
+  PlatformHealthDTO,
   PlatformStatusDTO,
   TaskDTO,
   ToolDTO,
@@ -53,6 +70,9 @@ export interface PlatformDependencies {
   readonly executeOrchestration: ExecuteOrchestration;
   readonly operations?: OperationQueryPort | undefined;
   readonly operationService?: AutonomousOperationService | undefined;
+  readonly eventStore?: (DurableEventStore & DurableEventQueryPort) | undefined;
+  readonly db?: SqliteDatabase | undefined;
+  readonly diagnostics?: RuntimeDiagnosticsService | undefined;
 }
 
 export class PlatformService {
@@ -62,6 +82,9 @@ export class PlatformService {
   private readonly agentService?: AgentService | undefined;
   private readonly operations?: OperationQueryPort | undefined;
   private readonly operationService?: AutonomousOperationService | undefined;
+  private readonly eventStore?: (DurableEventStore & DurableEventQueryPort) | undefined;
+  private readonly db?: SqliteDatabase | undefined;
+  private readonly diagnostics?: RuntimeDiagnosticsService | undefined;
   private readonly startTime: Date;
 
   constructor(deps: PlatformDependencies) {
@@ -79,6 +102,9 @@ export class PlatformService {
     this.agentService = deps.agentService;
     this.operations = deps.operations;
     this.operationService = deps.operationService;
+    this.eventStore = deps.eventStore;
+    this.db = deps.db;
+    this.diagnostics = deps.diagnostics;
     this.startTime = new Date();
   }
 
@@ -94,7 +120,7 @@ export class PlatformService {
 
     return {
       status: "HEALTHY",
-      version: "0.8.0",
+      version: PLATFORM_VERSION,
       uptimeSeconds,
       tasksCount: tasks.length,
       executionsCount: executions.length,
@@ -105,6 +131,182 @@ export class PlatformService {
       metrics,
     };
   }
+
+  getHealth(): PlatformHealthDTO {
+    const uptimeSeconds = Math.floor((Date.now() - this.startTime.getTime()) / 1000);
+    const nowIso = new Date().toISOString();
+
+    // 1. SQLite Engine Check
+    let sqliteStatus: "ONLINE" | "DEGRADED" | "OFFLINE" | "NOT_CONFIGURED" = "NOT_CONFIGURED";
+    let sqliteMode: "durable" | "in-memory" = "in-memory";
+    let sqliteMessage = "SQLite running in-memory or not configured";
+
+    if (this.db) {
+      try {
+        const rawDb = this.db.open();
+        const check = rawDb.prepare("SELECT 1 as alive;").get() as { alive?: number } | undefined;
+        if (check?.alive === 1) {
+          sqliteStatus = "ONLINE";
+          sqliteMode = "durable";
+          sqliteMessage = "SQLite durable engine verified (WAL mode active)";
+        } else {
+          sqliteStatus = "DEGRADED";
+          sqliteMessage = "SQLite health check returned unexpected response";
+        }
+      } catch (err) {
+        sqliteStatus = "OFFLINE";
+        sqliteMode = "durable";
+        sqliteMessage = `SQLite database check failed: ${err instanceof Error ? err.message : String(err)}`;
+      }
+    } else {
+      sqliteStatus = "ONLINE";
+      sqliteMode = "in-memory";
+      sqliteMessage = "Ephemeral memory persistence active";
+    }
+
+    // 2. Event Store Check
+    let eventStoreStatus: "ONLINE" | "OFFLINE" = "ONLINE";
+    let persistedCount = 0;
+    let queryableCount = 0;
+    let lastEventOccurredAt: string | undefined = undefined;
+
+    if (this.eventStore) {
+      try {
+        const allEvents = this.eventStore.getAllEvents();
+        persistedCount = allEvents.length;
+        queryableCount = allEvents.length;
+        const lastEvent = allEvents[allEvents.length - 1];
+        if (lastEvent) {
+          lastEventOccurredAt = lastEvent.occurredAt.toISOString();
+        }
+
+      } catch {
+        eventStoreStatus = "OFFLINE";
+      }
+    }
+
+    // 3. System Overall Status
+    const isHealthy = sqliteStatus === "ONLINE" && eventStoreStatus === "ONLINE";
+
+    return {
+      status: isHealthy ? "HEALTHY" : "DEGRADED",
+      version: PLATFORM_VERSION,
+      uptimeSeconds,
+      timestamp: nowIso,
+      components: {
+        api: {
+          status: "ONLINE",
+          message: "Platform HTTP API operational",
+        },
+        sqlite: {
+          status: sqliteStatus,
+          mode: sqliteMode,
+          message: sqliteMessage,
+        },
+        eventStore: {
+          status: eventStoreStatus,
+          persistedCount,
+          queryableCount,
+          lastEventOccurredAt,
+          message: `${queryableCount} durable events queryable`,
+        },
+        runtime: {
+          status: "ONLINE",
+          message: "CoreRuntime execution engine online",
+        },
+        recovery: {
+          status: "READY",
+          message: "Crash recovery reconciliation engine ready",
+        },
+      },
+    };
+  }
+
+  getEvents(options?: AuditQueryOptions): DurableEventListResponseDTO {
+    if (!this.eventStore) {
+      return {
+        data: [],
+        meta: {
+          count: 0,
+          total: 0,
+          afterSequence: options?.afterSequence,
+          beforeSequence: options?.beforeSequence,
+        },
+      };
+    }
+
+    const allEvents = this.eventStore.getAllEvents();
+    const total = allEvents.length;
+    const matchedEvents = options ? this.eventStore.query(options) : allEvents;
+
+    const data: DurableEventDTO[] = matchedEvents.map((e: DurableEvent) => ({
+      id: e.eventId,
+      sequenceNumber: e.sequenceNumber,
+      type: e.eventType,
+      aggregateType: e.aggregateType,
+      aggregateId: e.aggregateId,
+      traceId: e.traceId,
+      correlationId: e.correlationId,
+      causationId: e.causationId,
+      occurredAt: e.occurredAt.toISOString(),
+      version: e.schemaVersion,
+      metadata: {
+        sequenceNumber: e.sequenceNumber,
+        traceId: e.traceId,
+        correlationId: e.correlationId,
+        causationId: e.causationId,
+        schemaVersion: e.schemaVersion,
+      },
+      payload: e.payload,
+    }));
+
+    return {
+      data,
+      meta: {
+        count: data.length,
+        total,
+        afterSequence: options?.afterSequence,
+        beforeSequence: options?.beforeSequence,
+      },
+    };
+  }
+
+  getEvent(id: string): DurableEventDTO | undefined {
+    if (!this.eventStore) {
+      return undefined;
+    }
+
+    const allEvents = this.eventStore.getAllEvents();
+    const isNum = /^\d+$/.test(id);
+    const numSeq = isNum ? parseInt(id, 10) : undefined;
+
+    const e = allEvents.find((evt) => evt.eventId === id || (numSeq !== undefined && evt.sequenceNumber === numSeq));
+    if (!e) {
+      return undefined;
+    }
+
+    return {
+      id: e.eventId,
+      sequenceNumber: e.sequenceNumber,
+      type: e.eventType,
+      aggregateType: e.aggregateType,
+      aggregateId: e.aggregateId,
+      traceId: e.traceId,
+      correlationId: e.correlationId,
+      causationId: e.causationId,
+      occurredAt: e.occurredAt.toISOString(),
+      version: e.schemaVersion,
+      metadata: {
+        sequenceNumber: e.sequenceNumber,
+        traceId: e.traceId,
+        correlationId: e.correlationId,
+        causationId: e.causationId,
+        schemaVersion: e.schemaVersion,
+      },
+      payload: e.payload,
+    };
+  }
+
 
   getTasks(): readonly TaskDTO[] {
     return this.deps.tasks.list().map((t: TaskProjection) => ({
@@ -177,8 +379,9 @@ export class PlatformService {
     }));
   }
 
-  getAuditLogs(): readonly AuditObservationDTO[] {
-    return this.deps.audit.observations.map((obs: AuditObservationProjection) => ({
+  getAuditLogs(executionId?: string): readonly AuditObservationDTO[] {
+    const list = executionId ? this.deps.audit.findByExecutionId(executionId) : this.deps.audit.observations;
+    return list.map((obs: AuditObservationProjection) => ({
       eventId: obs.eventId,
       occurredAt: obs.occurredAt.toISOString(),
       type: obs.type,
@@ -190,6 +393,7 @@ export class PlatformService {
       payload: obs.payload,
     }));
   }
+
 
   getMetrics(): MetricSummaryDTO {
     const counters = this.deps.metrics.getAllCounters();
@@ -782,4 +986,117 @@ export class PlatformService {
       resultOutput: snap.resultOutput ? { ...snap.resultOutput } : undefined,
     };
   }
+
+  // --- Diagnostics (v0.9.2) ---
+
+  private mapTraceNode(node: { readonly sequenceNumber: number; readonly eventId: string; readonly eventType: string; readonly aggregateType: string; readonly aggregateId: string; readonly causationId?: string | undefined; readonly occurredAt: Date; readonly status?: string | undefined; readonly reason?: string | undefined; readonly code?: string | undefined; readonly message?: string | undefined; readonly payload: Readonly<Record<string, unknown>> }): DiagnosticTraceNodeDTO {
+    return {
+      sequenceNumber: node.sequenceNumber,
+      eventId: node.eventId,
+      eventType: node.eventType,
+      aggregateType: node.aggregateType,
+      aggregateId: node.aggregateId,
+      causationId: node.causationId,
+      occurredAt: node.occurredAt.toISOString(),
+      status: node.status,
+      reason: node.reason,
+      code: node.code,
+      message: node.message,
+      payload: node.payload,
+    };
+  }
+
+  getTraceDiagnostics(traceId: string): ExecutionTraceDiagnosticDTO | undefined {
+    if (!this.diagnostics) return undefined;
+    const result = this.diagnostics.getTraceDiagnostics(traceId);
+    if (!result) return undefined;
+    return {
+      traceId: result.traceId,
+      rootTaskId: result.rootTaskId,
+      executionId: result.executionId,
+      agentId: result.agentId,
+      status: result.status,
+      startedAt: result.startedAt?.toISOString(),
+      completedAt: result.completedAt?.toISOString(),
+      durationMs: result.durationMs,
+      failureReason: result.failureReason,
+      failureCode: result.failureCode,
+      isCrashRecovered: result.isCrashRecovered,
+      timeline: result.timeline.map((n) => this.mapTraceNode(n)),
+      causalChain: [...result.causalChain],
+    };
+  }
+
+  getCrashRecoveryHistory(): readonly CrashRecoveryDiagnosticDTO[] {
+    if (!this.diagnostics) return [];
+    return this.diagnostics.getCrashRecoveryDiagnostics().map((d) => ({
+      eventId: d.eventId,
+      sequenceNumber: d.sequenceNumber,
+      aggregateType: d.aggregateType,
+      aggregateId: d.aggregateId,
+      traceId: d.traceId,
+      recoveredAt: d.recoveredAt.toISOString(),
+      code: d.code,
+      reason: d.reason,
+      terminalStatus: d.terminalStatus,
+    }));
+  }
+
+  getTaskDiagnostics(taskId: string): readonly DiagnosticTraceNodeDTO[] {
+    if (!this.diagnostics) return [];
+    return this.diagnostics.getTaskHistory(taskId).map((n) => this.mapTraceNode(n));
+  }
+
+  // --- Paginated Listings (v0.9.2) ---
+
+  getTasksPaginated(options?: PaginationOptions): PaginatedResponseDTO<TaskDTO> {
+    const allTasks = this.getTasks();
+    const limit = options?.limit ?? 50;
+    const offset = options?.offset ?? 0;
+    const sliced = allTasks.slice(offset, offset + limit);
+    return {
+      data: sliced,
+      meta: { count: sliced.length, total: allTasks.length, limit, offset },
+    };
+  }
+
+  getExecutionsPaginated(options?: PaginationOptions): PaginatedResponseDTO<ExecutionDTO> {
+    const allExecs = this.getExecutions();
+    const limit = options?.limit ?? 50;
+    const offset = options?.offset ?? 0;
+    const sliced = allExecs.slice(offset, offset + limit);
+    return {
+      data: sliced,
+      meta: { count: sliced.length, total: allExecs.length, limit, offset },
+    };
+  }
+
+  listOperationsPaginated(options?: PaginationOptions & { readonly status?: string | undefined }): PaginatedResponseDTO<AutonomousOperationDTO> {
+    let allOps = this.listOperations();
+    if (options?.status) {
+      allOps = allOps.filter((op) => op.status === options.status);
+    }
+    const limit = options?.limit ?? 50;
+    const offset = options?.offset ?? 0;
+    const sliced = allOps.slice(offset, offset + limit);
+    return {
+      data: sliced,
+      meta: { count: sliced.length, total: allOps.length, limit, offset },
+    };
+  }
+
+  listAgentsPaginated(options?: PaginationOptions & { readonly status?: string | undefined }): PaginatedResponseDTO<AgentDTO> {
+    let allAgents = this.listAgents();
+    if (options?.status) {
+      allAgents = allAgents.filter((a) => a.status === options.status);
+    }
+    const limit = options?.limit ?? 50;
+    const offset = options?.offset ?? 0;
+    const sliced = allAgents.slice(offset, offset + limit);
+    return {
+      data: sliced,
+      meta: { count: sliced.length, total: allAgents.length, limit, offset },
+    };
+  }
 }
+

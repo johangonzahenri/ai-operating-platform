@@ -36,6 +36,10 @@ export interface SaveOperationDetails {
   readonly expectedVersion?: number | undefined;
 }
 
+export interface SqliteOperationRepositoryOptions extends SqliteDatabaseOptions {
+  readonly dbManager?: SqliteDatabase | undefined;
+}
+
 /**
  * Production SQLite durable adapter for OperationRepositoryPort & OperationQueryPort.
  * Implements atomic transactions, OCC versioning, idempotent persistence,
@@ -69,12 +73,19 @@ export class SqliteOperationRepository
   private readonly selectDecisionExistsStmt: StatementSync;
   private readonly insertDecisionStmt: StatementSync;
 
-  constructor(options: SqliteDatabaseOptions = {}) {
-    this.dbManager = new SqliteDatabase(options);
+  constructor(optionsOrDb: SqliteDatabase | SqliteOperationRepositoryOptions = {}) {
+    if (optionsOrDb instanceof SqliteDatabase) {
+      this.dbManager = optionsOrDb;
+    } else if (optionsOrDb && "dbManager" in optionsOrDb && optionsOrDb.dbManager) {
+      this.dbManager = optionsOrDb.dbManager;
+    } else {
+      this.dbManager = new SqliteDatabase(optionsOrDb as SqliteDatabaseOptions);
+    }
     this.db = this.dbManager.open();
 
     // Bootstrap and validate schema
     initializeSchema(this.db);
+
 
     // Prepare operations statements
     this.selectOpStmt = this.db.prepare("SELECT * FROM operations WHERE id = ?;");

@@ -231,3 +231,123 @@ export interface CreateAutonomousOperationRequestDTO {
 export interface CancelAutonomousOperationRequestDTO {
   readonly reason?: string | undefined;
 }
+
+export interface ComponentHealthDTO {
+  readonly status: "ONLINE" | "DEGRADED" | "OFFLINE" | "NOT_CONFIGURED" | "READY" | "RECONCILED";
+  readonly message?: string | undefined;
+  readonly details?: Readonly<Record<string, unknown>> | undefined;
+}
+
+export interface PlatformHealthDTO {
+  readonly status: "HEALTHY" | "DEGRADED" | "UNHEALTHY";
+  readonly version: string;
+  readonly uptimeSeconds: number;
+  readonly timestamp: string;
+  readonly components: {
+    readonly api: ComponentHealthDTO;
+    readonly sqlite: ComponentHealthDTO & {
+      readonly mode: "durable" | "in-memory";
+    };
+    readonly eventStore: ComponentHealthDTO & {
+      readonly persistedCount: number;
+      readonly queryableCount: number;
+      readonly lastEventOccurredAt?: string | undefined;
+    };
+    readonly runtime: ComponentHealthDTO;
+    readonly recovery: ComponentHealthDTO;
+  };
+}
+
+export interface DurableEventDTO {
+  readonly id: string;
+  readonly sequenceNumber: number;
+  readonly type: string;
+  readonly aggregateType: string;
+  readonly aggregateId: string;
+  readonly traceId: string;
+  readonly correlationId: string;
+  readonly causationId?: string | undefined;
+  readonly occurredAt: string;
+  readonly version: number;
+  readonly metadata: {
+    readonly sequenceNumber: number;
+    readonly traceId: string;
+    readonly correlationId: string;
+    readonly causationId?: string | undefined;
+    readonly schemaVersion: number;
+  };
+  readonly payload: Readonly<Record<string, unknown>>;
+}
+
+export interface DurableEventListResponseDTO {
+  readonly data: readonly DurableEventDTO[];
+  readonly meta: {
+    readonly count: number;
+    readonly total: number;
+    readonly afterSequence?: number | undefined;
+    readonly beforeSequence?: number | undefined;
+  };
+}
+
+// --- Diagnostics DTOs (v0.9.2) ---
+
+export interface DiagnosticTraceNodeDTO {
+  readonly sequenceNumber: number;
+  readonly eventId: string;
+  readonly eventType: string;
+  readonly aggregateType: string;
+  readonly aggregateId: string;
+  readonly causationId?: string | undefined;
+  readonly occurredAt: string;
+  readonly status?: string | undefined;
+  readonly reason?: string | undefined;
+  readonly code?: string | undefined;
+  readonly message?: string | undefined;
+  readonly payload: Readonly<Record<string, unknown>>;
+}
+
+export interface ExecutionTraceDiagnosticDTO {
+  readonly traceId: string;
+  readonly rootTaskId?: string | undefined;
+  readonly executionId?: string | undefined;
+  readonly agentId?: string | undefined;
+  readonly status: "COMPLETED" | "FAILED" | "CANCELLED" | "IN_PROGRESS" | "UNKNOWN";
+  readonly startedAt?: string | undefined;
+  readonly completedAt?: string | undefined;
+  readonly durationMs?: number | undefined;
+  readonly failureReason?: string | undefined;
+  readonly failureCode?: string | undefined;
+  readonly isCrashRecovered: boolean;
+  readonly timeline: readonly DiagnosticTraceNodeDTO[];
+  readonly causalChain: readonly string[];
+}
+
+export interface CrashRecoveryDiagnosticDTO {
+  readonly eventId: string;
+  readonly sequenceNumber: number;
+  readonly aggregateType: string;
+  readonly aggregateId: string;
+  readonly traceId: string;
+  readonly recoveredAt: string;
+  readonly code: string;
+  readonly reason: string;
+  readonly terminalStatus: string;
+}
+
+// --- Pagination DTOs (v0.9.2) ---
+
+export interface PaginatedResponseDTO<T> {
+  readonly data: readonly T[];
+  readonly meta: {
+    readonly count: number;
+    readonly total: number;
+    readonly limit: number;
+    readonly offset: number;
+  };
+}
+
+export interface PaginationOptions {
+  readonly limit?: number | undefined;
+  readonly offset?: number | undefined;
+}
+
