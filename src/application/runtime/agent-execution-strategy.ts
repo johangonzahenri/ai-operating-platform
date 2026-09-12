@@ -42,23 +42,10 @@ export class AgentExecutionStrategy implements ExecutionStrategy {
     // 2. Memory Scope inspection (if agent declares memoryScope)
     let memoryContext: Record<string, unknown> | undefined = undefined;
     if (agent.memoryScope) {
-      try {
-        const item = this.memory instanceof MemoryService
-          ? await this.memory.retrieve(agent.memoryScope, "context", context)
-          : await this.memory.retrieve(agent.memoryScope, "context");
-        if (item) {
-          memoryContext = item.value;
-          this.events.publish(
-            event("memory.retrieved", context.traceId, item.id, {
-              scope: item.scope,
-              key: item.key,
-              agentId: agent.id,
-            }, undefined, undefined, refs)
-          );
-        }
-      } catch {
-        // Non-fatal if memory scope item not found yet
-      }
+      const item = this.memory instanceof MemoryService
+        ? await this.memory.retrieve(agent.memoryScope, "context", context, agent.id)
+        : await this.memory.retrieve(agent.memoryScope, "context");
+      if (item) memoryContext = item.value;
     }
 
     // 3. Tool authorization & execution check if input specifies a tool invocation
@@ -117,7 +104,6 @@ export class AgentExecutionStrategy implements ExecutionStrategy {
     const enrichedInput: Record<string, unknown> = {
       ...task.request.input,
       ...(agent.instructions ? { instructions: agent.instructions } : {}),
-      ...(memoryContext ? { memory: memoryContext } : {}),
     };
 
     this.events.publish(
@@ -265,7 +251,7 @@ export class AgentExecutionStrategy implements ExecutionStrategy {
             { executionId: context.executionId, taskId: task.id, output: response.output },
             { agentId: agent.id }
           );
-          if (this.memory instanceof MemoryService) await this.memory.store(memItem, context);
+          if (this.memory instanceof MemoryService) await this.memory.store(memItem, context, agent.id);
           else await this.memory.store(memItem);
         } catch {
           // Memory persistence failure does not fail the execution

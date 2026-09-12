@@ -6,6 +6,19 @@ export interface MemoryQuery {
   readonly limit?: number | undefined;
 }
 
+export type MemoryOperation = "read" | "write" | "delete";
+
+export interface MemoryAuthorizationRequest {
+  readonly operation: MemoryOperation;
+  readonly scope: string;
+  readonly key: string;
+  readonly actorId?: string | undefined;
+}
+
+export interface MemoryPolicy {
+  authorize(request: MemoryAuthorizationRequest): void;
+}
+
 export interface MemoryItem {
   readonly id: string; readonly scope: string; readonly key: string; readonly value: Readonly<Record<string, unknown>>;
   readonly metadata: Readonly<Record<string, unknown>>; readonly createdAt: Date; readonly updatedAt: Date; readonly truncated: boolean;

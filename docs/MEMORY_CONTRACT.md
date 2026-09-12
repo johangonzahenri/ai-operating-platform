@@ -19,6 +19,15 @@ values.
 
 The current runtime uses agent-scoped memory only. Memory remains in-memory;
 there is no SQLite Memory table, semantic retrieval, vector store, or second
-EventStore. `MemoryService` is the application boundary for runtime writes and
-reads, while direct gateway injection remains supported for existing adapter
-tests.
+EventStore. `MemoryService` is the application boundary for runtime writes,
+reads, and deletes. Runtime access requires an agent identity; the composition
+policy permits the agent-declared scope, while callers can inject stricter
+policies for ownership rules. Direct gateway injection remains supported for
+existing adapter tests.
+
+`store` is an upsert by `scope + key`: updates preserve the existing `id` and
+`createdAt`, and advance `updatedAt`. Deletion removes the item immediately from
+the gateway; the deletion event remains only as operational audit metadata.
+When an agent execution retrieves memory, the selected bounded value is placed
+in `TaskContext.suppliedContext`. It is not added as a parallel model input and
+does not duplicate `ModelRequest.messages`.

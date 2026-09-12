@@ -144,7 +144,11 @@ export const createPlatform = (
   }
 
   const memory = new InMemoryMemoryGateway();
-  const memoryService = new MemoryService(memory, events);
+  const memoryService = new MemoryService(memory, events, {
+    authorize: ({ scope, actorId }) => {
+      if (!scope || !actorId) throw new Error("Agent identity is required for memory access");
+    },
+  });
 
   const tools = new InMemoryToolRegistry();
   tools.register(new CalculatorTool());
