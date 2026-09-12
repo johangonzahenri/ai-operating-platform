@@ -12,7 +12,11 @@ export type EventType =
   | "tool.execution.started" | "tool.execution.completed" | "tool.execution.failed"
   | "tool.requested" | "tool.started" | "tool.completed" | "tool.failed"
   | "model.tool.call.requested" | "model.tool.call.authorized" | "model.tool.call.rejected"
-  | "model.tool.result.returned" | "model.final.response";
+  | "model.tool.result.returned" | "model.final.response"
+  | "coordination.started" | "coordination.agent.selected" | "coordination.handoff.requested"
+  | "coordination.handoff.accepted" | "coordination.handoff.rejected"
+  | "coordination.agent.completed" | "coordination.agent.failed"
+  | "coordination.completed" | "coordination.failed";
 
 export interface DomainEvent {
   readonly id: string;

@@ -8,6 +8,7 @@ import { CoreRuntime } from "../application/runtime/core-runtime.js";
 import { ModelExecutionStrategy } from "../application/runtime/model-execution-strategy.js";
 import { AgentExecutionStrategy } from "../application/runtime/agent-execution-strategy.js";
 import { AgentService } from "../application/agent/agent-service.js";
+import { MultiAgentCoordinator } from "../application/coordination/multi-agent-coordinator.js";
 import { Agent } from "../domain/agent/agent.js";
 import { AgentRegistry } from "../domain/agent/agent-registry.js";
 import { InMemoryAgentRegistry } from "../infrastructure/agent/in-memory-agent-registry.js";
@@ -199,6 +200,7 @@ export const createPlatform = (
   const agentStrategy = new AgentExecutionStrategy(models, toolGateway, memoryService, events, policy);
   const agentRuntime = new CoreRuntime(tasks, executions, agentStrategy, events, undefined, undefined, eventStore, transactionRunner);
   const agentService = new AgentService(agents, agentRuntime, modelRegistry, tools);
+  const multiAgentCoordinator = new MultiAgentCoordinator(agentRuntime, agents, policy, events);
 
   // Orchestrated execution runtime & use case
   const orchestrator = new SequentialOrchestrator(models, toolGateway, events, policy);
@@ -253,6 +255,7 @@ export const createPlatform = (
     agentRegistry: agents,
     agentService,
     agentRuntime,
+    multiAgentCoordinator,
     agentStrategy,
     runtime,
     orchestratedRuntime,
