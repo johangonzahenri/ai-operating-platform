@@ -5,14 +5,15 @@
  */
 
 const BASE_PATH = "/api/v1";
+const PLATFORM_BASE_PATH = "/api/platform/v1";
 
-async function request(path, options = {}) {
+async function request(path, options = {}, basePath = BASE_PATH) {
   const headers = {
     Accept: "application/json",
     ...(options.headers || {}),
   };
 
-  const response = await fetch(`${BASE_PATH}${path}`, {
+  const response = await fetch(`${basePath}${path}`, {
     ...options,
     headers,
   });
@@ -24,6 +25,38 @@ async function request(path, options = {}) {
     err.status = response.status;
     err.data = data;
     throw err;
+  }
+
+  async function platformRequest(path, options = {}) {
+    return request(path, options, PLATFORM_BASE_PATH);
+  }
+
+  export async function getPlatformHealth() {
+    return platformRequest("/health");
+  }
+
+  export async function getPlatformAgents() {
+    return platformRequest("/agents");
+  }
+
+  export async function createPlatformTask(agentId, objective, traceId) {
+    return platformRequest("/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ agentId, input: { objective }, ...(traceId ? { traceId } : {}) }),
+    });
+  }
+
+  export async function executePlatformTask(taskId) {
+    return platformRequest(`/tasks/${encodeURIComponent(taskId)}/execute`, { method: "POST" });
+  }
+
+  export async function getPlatformExecution(executionId) {
+    return platformRequest(`/executions/${encodeURIComponent(executionId)}`);
+  }
+
+  export async function getPlatformExecutionEvents(executionId) {
+    return platformRequest(`/executions/${encodeURIComponent(executionId)}/events`);
   }
   return data;
 }

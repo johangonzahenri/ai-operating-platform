@@ -15,7 +15,7 @@ function createMockFetch(handler: (url: string, init?: RequestInit) => Promise<R
 
 test("OllamaModelGateway (Happy Path): returns normalized ModelResponse on HTTP 200", async () => {
   const mockFetch = createMockFetch(async (url, init) => {
-    assert.equal(url, "http://127.0.0.1:11434/api/generate");
+    assert.equal(url, "http://127.0.0.1:11434/api/chat");
     assert.equal(init?.method, "POST");
     const reqBody = JSON.parse(String(init?.body));
     assert.equal(reqBody.model, "llama3");
@@ -24,7 +24,7 @@ test("OllamaModelGateway (Happy Path): returns normalized ModelResponse on HTTP 
     const mockResponse = {
       model: "llama3",
       created_at: "2026-09-09T18:00:00.000Z",
-      response: "Plan summary calculation result",
+      message: { role: "assistant", content: "Plan summary calculation result" },
       done: true,
       done_reason: "stop",
       total_duration: 150000000,
@@ -67,7 +67,7 @@ test("OllamaModelGateway (Structured Output): parses JSON format into output obj
 
     const mockResponse = {
       model: "llama3",
-      response: '{"steps": [{"action": "calc", "input": {"a": 1, "b": 2}}], "status": "READY"}',
+      message: { role: "assistant", content: '{"steps": [{"action": "calc", "input": {"a": 1, "b": 2}}], "status": "READY"}' },
       done: true,
       prompt_eval_count: 10,
       eval_count: 25,
@@ -99,7 +99,7 @@ test("OllamaModelGateway (Structured Output Error): throws ModelInvalidResponseE
   const mockFetch = createMockFetch(async () => {
     const mockResponse = {
       model: "llama3",
-      response: "This is raw unformatted text, not valid JSON",
+      message: { role: "assistant", content: "This is raw unformatted text, not valid JSON" },
       done: true,
     };
     return new Response(JSON.stringify(mockResponse), { status: 200 });

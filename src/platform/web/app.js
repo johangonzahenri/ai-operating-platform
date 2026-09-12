@@ -73,8 +73,170 @@ class PlatformApp {
     this.setupDetailLookup();
     this.setupApplicationsSimulation();
     this.setupOperations();
+    this.setupOperationalConsole();
     this.loadData();
     this.startAutoRefresh();
+  }
+
+  setupOperationalConsole() {
+    const form = document.getElementById("ops-task-form");
+    if (!form) return;
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      await this.runOperationalTask();
+    });
+    this.loadOperationalHealth();
+  }
+
+  async loadOperationalHealth() {
+    try {
+      const health = await api.getPlatformHealth();
+      const components = health.components || {};
+      this.setText("ops-platform-status", health.status || "UNKNOWN");
+      this.setText("ops-runtime-status", components.runtime?.status || "UNKNOWN");
+      this.setText("ops-persistence-status", components.sqlite?.status || "UNKNOWN");
+      this.setText("ops-event-count", String(components.eventStore?.queryableCount ?? 0));
+      this.setText("ops-connection-status", `API ONLINE · v${health.version || "unknown"}`);
+    } catch (error) {
+      this.setText("ops-connection-status", "Platform unavailable");
+      this.showOperationalError(error);
+    }
+  }
+
+  async runOperationalTask() {
+    const objective = document.getElementById("ops-objective")?.value?.trim();
+    const button = document.getElementById("ops-execute-btn");
+    if (!objective) return;
+    if (button) button.disabled = true;
+    this.setText("ops-execution-status", "CREATING");
+    this.hideOperationalError();
+    this.setText("ops-timeline", "");
+    this.setText("ops-final-result", "Waiting for execution result...");
+    try {
+      const agents = await api.getPlatformAgents();
+      const activeAgent = Array.isArray(agents) ? agents.find((agent) => agent.status === "ACTIVE") : undefined;
+      if (!activeAgent?.id) throw new Error("No active agent is available");
+      const created = await api.createPlatformTask(activeAgent.id, objective);
+      const task = created.task || {};
+      let execution = created.execution || {};
+      this.setText("ops-task-id", task.id || "—");
+      this.setText("ops-execution-id", execution.id || "—");
+      this.setText("ops-trace-id", execution.traceId || task.traceId || "—");
+      this.setText("ops-execution-status", execution.status || "RUNNING");
+      if (task.id) execution = await api.executePlatformTask(task.id);
+      if (execution.id) {
+        this.setText("ops-execution-id", execution.id);
+        await this.pollOperationalExecution(execution.id);
+      }
+    } catch (error) {
+      this.setText("ops-execution-status", "FAILED");
+      this.showOperationalError(error);
+    } finally {
+      if (button) button.disabled = false;
+      this.loadOperationalHealth();
+    }
+  }
+
+  async pollOperationalExecution(executionId) {
+    const terminal = new Set(["COMPLETED", "FAILED", "CANCELLED", "TIMEOUT", "POLICY_DENIED"]);
+    const maxAttempts = 60;
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      const [execution, events] = await Promise.all([
+        api.getPlatformExecution(executionId),
+        api.getPlatformExecutionEvents(executionId),
+      ]);
+      this.renderOperationalExecution(execution, Array.isArray(events) ? events : []);
+      if (terminal.has(String(execution.status).toUpperCase())) return;
+      await new Promise((resolve) => setTimeout(resolve, Math.min(250 + attempt * 100, 1500)));
+    }
+    throw new Error("Execution polling timed out");
+  }
+
+  renderOperationalExecution(execution, events) {
+    this.setText("ops-execution-status", execution.status || "UNKNOWN");
+    this.setText("ops-execution-id", execution.id || "—");
+    this.setText("ops-task-id", execution.taskId || "—");
+    this.setText("ops-trace-id", execution.traceId || "—");
+    const metadata = execution.metadata || {};
+    this.setText("ops-model", execution.model || metadata.model || "Not reported");
+    this.setText("ops-tool", execution.currentTool || metadata.currentTool || "Not reported");
+    this.setText("ops-round", execution.currentRound === undefined ? "Not reported" : String(execution.currentRound));
+    this.setText("ops-activity", execution.currentActivity || "Not reported");
+    const policyEvent = events.find((item) => String(item.type).toLowerCase().includes("policy"));
+    this.setText("ops-policy", policyEvent ? policyEvent.type : "Not reported");
+    const result = execution.finalResult || execution.result || metadata.finalResult || metadata.result;
+    this.setText("ops-final-result", result ? JSON.stringify(result, null, 2) : (execution.error?.message || "No completed result yet."));
+    this.renderOperationalToolCalls(execution.toolCallObservations || []);
+    this.renderOperationalTimeline(events);
+  }
+
+  renderOperationalToolCalls(calls) {
+    const container = document.getElementById("ops-tool-calls");
+    if (!container) return;
+    clearChildren(container);
+    if (!Array.isArray(calls) || calls.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "ops-empty";
+      empty.textContent = "No tool calls reported.";
+      container.appendChild(empty);
+      return;
+    }
+    calls.forEach((call) => {
+      const item = document.createElement("div");
+      item.className = "ops-tool-call";
+      const title = document.createElement("strong");
+      title.textContent = String(call.toolName || "Not reported");
+      const details = document.createElement("span");
+      details.textContent = `Call ID: ${call.toolCallId || "Not reported"} · Round: ${call.round ?? "Not reported"} · Status: ${call.status || "Not reported"}${call.durationMs === undefined ? "" : ` · ${call.durationMs}ms`}`;
+      item.append(title, details);
+      container.appendChild(item);
+    });
+  }
+
+  renderOperationalTimeline(events) {
+    const container = document.getElementById("ops-timeline");
+    if (!container) return;
+    clearChildren(container);
+    this.setText("ops-event-total", `${events.length} event${events.length === 1 ? "" : "s"}`);
+    if (events.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "ops-empty";
+      empty.textContent = "No events reported for this execution.";
+      container.appendChild(empty);
+      return;
+    }
+    events.forEach((event) => {
+      const item = document.createElement("article");
+      item.className = "ops-timeline-item";
+      const heading = document.createElement("strong");
+      heading.textContent = event.type || "EVENT";
+      const detail = document.createElement("span");
+      const payload = event.payload || {};
+      const tool = payload.tool || payload.toolId || payload.name;
+      detail.textContent = `${event.occurredAt ? new Date(event.occurredAt).toLocaleTimeString() : "time unavailable"}${tool ? ` · ${tool}` : ""}`;
+      item.append(heading, detail);
+      container.appendChild(item);
+    });
+  }
+
+  setText(id, value) {
+    const element = document.getElementById(id);
+    if (element) element.textContent = value;
+  }
+
+  showOperationalError(error) {
+    const element = document.getElementById("ops-error");
+    if (!element) return;
+    element.hidden = false;
+    element.textContent = error?.message || "Platform request failed";
+  }
+
+  hideOperationalError() {
+    const element = document.getElementById("ops-error");
+    if (element) {
+      element.hidden = true;
+      element.textContent = "";
+    }
   }
 
   setupTabs() {

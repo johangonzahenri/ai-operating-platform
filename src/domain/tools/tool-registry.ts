@@ -84,5 +84,5 @@ export interface ToolRegistry {
 
 export interface ToolGateway {
   execute(toolId: string, input: Readonly<Record<string, unknown>>, context: ExecutionContext): Promise<ToolResult>;
+  definition?(toolId: string): ToolDefinition | undefined;
 }
-

@@ -4,6 +4,9 @@ import { ToolGateway, ToolNotFoundError, ToolRequest, ToolResult, ToolValidation
 
 export class RegistryToolGateway implements ToolGateway {
   constructor(private readonly registry: ToolRegistry, private readonly events: EventPublisher) {}
+  definition(toolId: string) {
+    return this.registry.find(toolId)?.definition;
+  }
   async execute(toolId: string, input: Readonly<Record<string, unknown>>, context: ExecutionContext): Promise<ToolResult> {
     return this.executeRequest({ toolId, input }, context);
   }
@@ -14,8 +17,19 @@ export class RegistryToolGateway implements ToolGateway {
     const refs = { taskId: context.taskId, executionId: context.executionId };
     this.events.publish(event("tool.execution.started", context.traceId, request.toolId, { toolId: request.toolId }, undefined, undefined, refs));
     try {
-      const result = await tool.execute(request.input, context);
-      this.events.publish(event("tool.execution.completed", context.traceId, request.toolId, { toolId: request.toolId }, undefined, undefined, refs)); return result;
+      const timeoutMs = tool.definition.timeoutMs ?? 30000;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const timeout = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new ToolExecutionError(request.toolId, "TOOL_TIMEOUT")), timeoutMs);
+      });
+      try {
+        const result = await Promise.race([tool.execute(request.input, context), timeout]);
+        if (timer) clearTimeout(timer);
+        this.events.publish(event("tool.execution.completed", context.traceId, request.toolId, { toolId: request.toolId }, undefined, undefined, refs)); return result;
+      } catch (cause) {
+        if (timer) clearTimeout(timer);
+        throw cause;
+      }
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : "Unknown tool failure";
       this.events.publish(event("tool.execution.failed", context.traceId, request.toolId, { toolId: request.toolId, message }, undefined, undefined, refs));
@@ -26,5 +40,6 @@ export class RegistryToolGateway implements ToolGateway {
     if (input === null || typeof input !== "object") throw new ToolValidationError(toolId, "Tool input must be an object");
     for (const key of required) if (!(key in input)) throw new ToolValidationError(toolId, `Missing required input: ${key}`);
     for (const [key, type] of Object.entries(properties)) if (key in input && typeof input[key] !== type) throw new ToolValidationError(toolId, `Input ${key} must be a ${type}`);
+    for (const key of Object.keys(input)) if (!(key in properties)) throw new ToolValidationError(toolId, `Additional input is not permitted: ${key}`);
   }
 }

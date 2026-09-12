@@ -4,6 +4,11 @@ export interface ModelUsage {
   readonly totalTokens: number;
 }
 
+export type ModelMessage =
+  | { readonly role: "system" | "user"; readonly content: string }
+  | { readonly role: "assistant"; readonly content?: string | undefined; readonly toolCalls?: readonly ModelToolCall[] | undefined }
+  | { readonly role: "tool"; readonly toolResult: ModelToolResult };
+
 export type ModelFinishReason = "stop" | "length" | "tool_calls" | "content_filter" | "error" | string;
 
 export interface ModelRequest {
@@ -17,6 +22,28 @@ export interface ModelRequest {
   readonly requestedFormat?: "text" | "json_schema" | "json_object" | undefined;
   readonly jsonSchema?: Readonly<Record<string, unknown>> | undefined;
   readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+  readonly tools?: readonly ModelToolDefinition[] | undefined;
+  readonly toolResults?: readonly ModelToolResult[] | undefined;
+  readonly messages?: readonly ModelMessage[] | undefined;
+}
+
+export interface ModelToolDefinition {
+  readonly name: string;
+  readonly description: string;
+  readonly inputSchema: Readonly<Record<string, unknown>>;
+}
+
+export interface ModelToolCall {
+  readonly id: string;
+  readonly name: string;
+  readonly arguments: Readonly<Record<string, unknown>>;
+}
+
+export interface ModelToolResult {
+  readonly toolCallId: string;
+  readonly name: string;
+  readonly output: Readonly<Record<string, unknown>>;
+  readonly success: boolean;
 }
 
 export interface ModelResponse {
@@ -28,6 +55,7 @@ export interface ModelResponse {
   readonly latencyMs?: number | undefined;
   readonly finishReason?: ModelFinishReason | undefined;
   readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+  readonly toolCalls?: readonly ModelToolCall[] | undefined;
 }
 
 // --- Standardized Model Error Hierarchy (v0.9.3) ---
@@ -119,4 +147,3 @@ export const validateModelRequest = (request: ModelRequest): void => {
 export interface ModelGateway {
   generate(request: ModelRequest): Promise<ModelResponse>;
 }
-

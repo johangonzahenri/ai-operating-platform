@@ -60,8 +60,10 @@ test("LLMPlanner (1 & 5): Valid planning request extracts and returns valid Plan
   assert.ok(plan instanceof Plan);
   assert.equal(plan.id, "plan-op-test-1");
   assert.equal(plan.totalSteps, 2);
-  assert.equal(plan.steps[0].action, "fetch_metrics");
-  assert.equal(plan.steps[1].action, "compute_summary");
+  const firstStep = plan.steps[0]!;
+  const secondStep = plan.steps[1]!;
+  assert.equal(firstStep.action, "fetch_metrics");
+  assert.equal(secondStep.action, "compute_summary");
 });
 
 test("LLMPlanner (2 & 3 & 4): ModelGateway invocation preserves traceId, system instruction, and schema format", async () => {

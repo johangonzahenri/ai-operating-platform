@@ -16,7 +16,8 @@ import { RegistryToolGateway } from "../application/tools/tool-gateway.js";
 import { PolicyGateway } from "../domain/policy/policy.js";
 import { InMemoryPolicyGateway } from "../infrastructure/policy/in-memory-policy-gateway.js";
 import { InMemoryEventPublisher } from "../infrastructure/events/in-memory-event-publisher.js";
-import { StubModelGateway } from "../infrastructure/model/stub-model-gateway.js";
+import { createModelGateway } from "../infrastructure/model/provider-factory.js";
+import { modelProviderConfigFromEnvironment } from "../infrastructure/model/model-provider-config.js";
 import { InMemoryModelRegistry } from "../infrastructure/model/in-memory-model-registry.js";
 import { StructuredEventLogger, StructuredLogger } from "../infrastructure/observability/structured-event-logger.js";
 import { InMemoryTaskRepository } from "../infrastructure/persistence/in-memory-task-repository.js";
@@ -44,6 +45,7 @@ import { TaskRepository } from "../domain/task/task.js";
 import { ExecutionRepository } from "../domain/execution/execution.js";
 import { TaskQueryPort, ExecutionQueryPort, AgentQueryPort } from "../application/ports/query-ports.js";
 import { StubPlanner } from "../infrastructure/autonomy/stub-planner.js";
+import { LLMPlanner } from "../infrastructure/autonomy/llm-planner.js";
 import { RestartRecoveryService } from "../application/recovery/restart-recovery-service.js";
 import { RecoveryPort, RecoveryResult, TransactionRunner } from "../application/ports/recovery-port.js";
 import { SqliteTransactionRunner } from "../infrastructure/persistence/sqlite/sqlite-transaction-runner.js";
@@ -147,16 +149,17 @@ export const createPlatform = (
   const tools = new InMemoryToolRegistry();
   tools.register(new CalculatorTool());
   const toolGateway = new RegistryToolGateway(tools, events);
-  const models = new StubModelGateway();
+  const modelConfig = modelProviderConfigFromEnvironment();
+  const models = createModelGateway();
 
   const modelRegistry: ModelQueryPort = (!isLogger && (optionsOrLogger as CreatePlatformOptions).modelRegistry)
     ? (optionsOrLogger as CreatePlatformOptions).modelRegistry!
     : new InMemoryModelRegistry([
         {
-          id: "stub-model",
-          provider: "stub",
-          name: "Stub Deterministic Model",
-          status: "connected",
+          id: modelConfig.defaultModel,
+          provider: modelConfig.provider,
+          name: `${modelConfig.provider} model`,
+          status: modelConfig.provider === "stub" ? "connected" : "available",
           capabilities: ["text-generation", "structured-output"],
         },
       ]);
@@ -174,7 +177,7 @@ export const createPlatform = (
         id: "foundation-agent",
         name: "Foundation Agent",
         description: "Default general-purpose operational agent",
-        model: "stub-model",
+        model: modelConfig.defaultModel,
         instructions: "You are the foundation operational agent of the AI Operating Platform.",
         tools: ["calculator"],
         memoryScope: "foundation-agent",
@@ -204,7 +207,9 @@ export const createPlatform = (
 
   const planner: PlannerPort = (!isLogger && (optionsOrLogger as CreatePlatformOptions).planner)
     ? (optionsOrLogger as CreatePlatformOptions).planner!
-    : new StubPlanner();
+    : modelConfig.provider === "stub"
+      ? new StubPlanner()
+      : new LLMPlanner(models, { model: modelConfig.defaultModel });
 
   const evaluator: DecisionEvaluatorPort = (!isLogger && (optionsOrLogger as CreatePlatformOptions).evaluator)
     ? (optionsOrLogger as CreatePlatformOptions).evaluator!
@@ -264,4 +269,3 @@ export const createPlatform = (
     diagnostics,
   };
 };
-

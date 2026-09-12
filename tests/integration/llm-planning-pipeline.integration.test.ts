@@ -47,8 +47,10 @@ test("Integration Pipeline: Goal -> PlanningRequest -> LLMPlanner -> ModelGatewa
   assert.ok(plan instanceof Plan);
   assert.equal(plan.id, "plan-op-pipeline-valid");
   assert.equal(plan.totalSteps, 2);
-  assert.equal(plan.steps[0].action, "read_system_metrics");
-  assert.equal(plan.steps[1].action, "transform_data");
+  const firstStep = plan.steps[0]!;
+  const secondStep = plan.steps[1]!;
+  assert.equal(firstStep.action, "read_system_metrics");
+  assert.equal(secondStep.action, "transform_data");
 });
 
 test("Integration Pipeline (Malicious Rejection): Unauthorized tool 'delete_everything' is REJECTED fail-closed", async () => {

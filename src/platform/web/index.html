@@ -107,6 +107,68 @@
       <!-- 0. View: Platform Operations (Primary Observability Hub) -->
       <section id="tab-platform-operations" class="tab-view active">
 
+        <section class="ops-console" aria-labelledby="ops-console-title">
+          <div class="ops-console-header">
+            <div>
+              <span class="ops-eyebrow">OPERATIONAL INTELLIGENCE CONSOLE</span>
+              <h2 id="ops-console-title">AI Operating Platform</h2>
+              <p>Observe a governed model execution from objective to durable result.</p>
+            </div>
+            <div class="ops-connection" id="ops-connection-status">Checking platform...</div>
+          </div>
+
+          <div class="ops-status-grid">
+            <div class="ops-status-card"><span>Platform</span><strong id="ops-platform-status">—</strong></div>
+            <div class="ops-status-card"><span>Runtime</span><strong id="ops-runtime-status">—</strong></div>
+            <div class="ops-status-card"><span>Persistence</span><strong id="ops-persistence-status">—</strong></div>
+            <div class="ops-status-card"><span>Events</span><strong id="ops-event-count">—</strong></div>
+          </div>
+
+          <div class="ops-task-panel">
+            <div>
+              <span class="ops-eyebrow">NEW TASK</span>
+              <h3>Give the platform an objective</h3>
+              <p class="ops-muted">The console creates and executes a real task through Platform API v1.</p>
+            </div>
+            <form id="ops-task-form" class="ops-task-form">
+              <label for="ops-objective">Objective</label>
+              <textarea id="ops-objective" rows="3" required placeholder="Describe what you want the AI system to accomplish...">Quiero unas zapatillas negras para correr</textarea>
+              <button class="btn btn-primary" id="ops-execute-btn" type="submit">Execute task</button>
+            </form>
+          </div>
+
+          <div class="ops-execution-summary">
+            <div class="ops-section-heading"><span class="ops-eyebrow">EXECUTION</span><span id="ops-execution-status" class="ops-badge">IDLE</span></div>
+            <div class="ops-identifiers">
+              <div><span>Task</span><code id="ops-task-id">—</code></div>
+              <div><span>Execution</span><code id="ops-execution-id">—</code></div>
+              <div><span>Trace</span><code id="ops-trace-id">—</code></div>
+            </div>
+          </div>
+
+          <div class="ops-grid">
+            <div class="ops-card">
+              <div class="ops-section-heading"><span class="ops-eyebrow">EXECUTION TIMELINE</span><span id="ops-event-total">0 events</span></div>
+              <div id="ops-timeline" class="ops-timeline"><div class="ops-empty">Run a task to observe real lifecycle events.</div></div>
+            </div>
+            <div class="ops-card">
+              <div class="ops-section-heading"><span class="ops-eyebrow">CURRENT ACTIVITY</span></div>
+              <dl class="ops-activity">
+                <div><dt>Model</dt><dd id="ops-model">Not reported</dd></div>
+                <div><dt>Tool</dt><dd id="ops-tool">Not reported</dd></div>
+                <div><dt>Policy</dt><dd id="ops-policy">Not reported</dd></div>
+                <div><dt>Round</dt><dd id="ops-round">Not reported</dd></div>
+                <div><dt>Activity</dt><dd id="ops-activity">Not reported</dd></div>
+              </dl>
+              <div class="ops-section-heading ops-result-heading"><span class="ops-eyebrow">FINAL RESULT</span></div>
+              <pre id="ops-final-result" class="ops-result">No completed result yet.</pre>
+              <div class="ops-section-heading ops-result-heading"><span class="ops-eyebrow">TOOL CALLS</span></div>
+              <div id="ops-tool-calls" class="ops-tool-calls"><div class="ops-empty">No tool calls reported.</div></div>
+            </div>
+          </div>
+          <div id="ops-error" class="ops-error" role="alert" hidden></div>
+        </section>
+
         <!-- Autonomous AI Infrastructure Lifecycle Pipeline -->
         <div class="system-pipeline-container">
           <div class="pipeline-header">

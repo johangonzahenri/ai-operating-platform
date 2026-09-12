@@ -56,6 +56,7 @@ import {
   ToolDTO,
   UpdateAgentRequestDTO,
 } from "./platform-dto.js";
+import { projectExecutionObservability } from "../product/execution-observability.js";
 
 export interface PlatformDependencies {
   readonly tasks: TaskQueryPort;
@@ -337,7 +338,7 @@ export class PlatformService {
   }
 
   getExecutions(): readonly ExecutionDTO[] {
-    return this.deps.executions.list().map((e: ExecutionProjection) => ({
+    return this.deps.executions.list().map((e: ExecutionProjection) => this.enrichExecution({
       id: e.id,
       taskId: e.taskId,
       traceId: e.traceId,
@@ -352,7 +353,7 @@ export class PlatformService {
   getExecution(id: string): ExecutionDTO | undefined {
     const e = this.deps.executions.findById(id);
     if (!e) return undefined;
-    return {
+    return this.enrichExecution({
       id: e.id,
       taskId: e.taskId,
       traceId: e.traceId,
@@ -361,7 +362,26 @@ export class PlatformService {
       completedAt: e.completedAt?.toISOString(),
       metadata: e.resultMetadata,
       error: e.error ? { code: e.error.code, message: e.error.message } : undefined,
-    };
+    });
+  }
+
+  getExecutionForTask(taskId: string): ExecutionDTO | undefined {
+    const execution = this.deps.executions.list().find((candidate) => candidate.taskId === taskId);
+    if (!execution) return undefined;
+    return this.enrichExecution({
+      id: execution.id,
+      taskId: execution.taskId,
+      traceId: execution.traceId,
+      status: execution.status,
+      startedAt: execution.startedAt?.toISOString(),
+      completedAt: execution.completedAt?.toISOString(),
+      metadata: execution.resultMetadata,
+      error: execution.error ? { code: execution.error.code, message: execution.error.message } : undefined,
+    });
+  }
+
+  private enrichExecution(execution: ExecutionDTO): ExecutionDTO {
+    return { ...execution, ...projectExecutionObservability(execution, this.getExecutionTimeline(execution.id)) };
   }
 
   getExecutionTimeline(executionId: string): readonly AuditObservationDTO[] {
@@ -593,7 +613,7 @@ export class PlatformService {
       error: execution.error ? { code: execution.error.code, message: execution.error.message } : undefined,
     };
 
-    return { task: taskDto, execution: execDto };
+    return { task: taskDto, execution: this.enrichExecution(execDto) };
   }
 
   // --- Task & Execution Submission ---
@@ -631,7 +651,7 @@ export class PlatformService {
       error: execution.error ? { code: execution.error.code, message: execution.error.message } : undefined,
     };
 
-    return { task: taskDto, execution: execDto };
+    return { task: taskDto, execution: this.enrichExecution(execDto) };
   }
 
   async submitExecution(
@@ -1099,4 +1119,3 @@ export class PlatformService {
     };
   }
 }
-

@@ -61,6 +61,11 @@ export class InMemoryToolRegistry implements ToolRegistry {
         throw new ToolValidationError(id, `Input property '${key}' must be of type '${type}'`);
       }
     }
+    for (const key of Object.keys(input)) {
+      if (!(key in properties)) {
+        throw new ToolValidationError(id, `Additional input property '${key}' is not permitted`);
+      }
+    }
     return true;
   }
 
@@ -105,4 +110,3 @@ export class InMemoryToolRegistry implements ToolRegistry {
     }
   }
 }
-

@@ -16,6 +16,13 @@ export type HttpFetchFn = (
   init?: RequestInit
 ) => Promise<Response>;
 
+function toJsonSchema(schema: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> {
+  if ("properties" in schema && "required" in schema) {
+    return { type: "object", properties: schema.properties, required: schema.required, additionalProperties: false };
+  }
+  return schema;
+}
+
 export class OllamaModelGateway implements ModelGateway {
   readonly provider = "ollama";
   private readonly config: ModelProviderConfig;
@@ -56,11 +63,15 @@ export class OllamaModelGateway implements ModelGateway {
     const payload: Record<string, unknown> = {
       model,
       prompt: promptText,
+      ...(request.messages ? { messages: request.messages.map((item) => item.role === "tool"
+        ? { role: "tool", content: JSON.stringify(item.toolResult.output) }
+        : { role: item.role, content: item.content ?? "" }) } : {}),
       stream: false,
       options: {
         ...(request.temperature !== undefined ? { temperature: request.temperature } : {}),
         ...(request.maxTokens !== undefined ? { num_predict: request.maxTokens } : {}),
       },
+      ...(request.tools ? { tools: request.tools } : {}),
     };
 
     if (request.systemInstruction) {
@@ -70,12 +81,18 @@ export class OllamaModelGateway implements ModelGateway {
     if (isStructured) {
       payload.format = "json";
     }
+    if (request.tools) {
+      payload.tools = request.tools.map((tool) => ({
+        type: "function",
+        function: { name: tool.name, description: tool.description, parameters: toJsonSchema(tool.inputSchema) },
+      }));
+    }
 
     const startTime = Date.now();
     let response: Response;
 
     try {
-      response = await this.fetchFn(`${baseUrl}/api/generate`, {
+      response = await this.fetchFn(`${baseUrl}/api/chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -93,6 +110,7 @@ export class OllamaModelGateway implements ModelGateway {
             `Ollama request timed out after ${timeoutMs}ms`
           );
         }
+
         if (
           "code" in err &&
           (err.code === "ECONNREFUSED" || err.code === "ENOTFOUND" || err.code === "EHOSTUNREACH")
@@ -109,6 +127,7 @@ export class OllamaModelGateway implements ModelGateway {
           );
         }
       }
+
       throw new ModelProviderError(
         this.provider,
         `Ollama network request failed: ${err instanceof Error ? err.message : String(err)}`
@@ -157,7 +176,12 @@ export class OllamaModelGateway implements ModelGateway {
     }
 
     const data = responseData as Record<string, unknown>;
-    const rawContent = typeof data.response === "string" ? data.response : "";
+    const message = data.message as Record<string, unknown> | undefined;
+    const rawContent = typeof message?.content === "string" ? message.content : (typeof data.response === "string" ? data.response : "");
+    const toolCalls = Array.isArray(message?.tool_calls) ? message.tool_calls.map((call) => {
+      const item = call as Record<string, unknown>;
+      return { id: String(item.id ?? ""), name: String(item.name ?? ""), arguments: (item.arguments && typeof item.arguments === "object" ? item.arguments : {}) as Record<string, unknown> };
+    }) : [];
 
     let structuredOutput: Readonly<Record<string, unknown>>;
     if (isStructured) {
@@ -193,6 +217,7 @@ export class OllamaModelGateway implements ModelGateway {
       model,
       content: rawContent,
       output: structuredOutput,
+      toolCalls,
       usage: {
         inputTokens: promptTokens,
         outputTokens: completionTokens,

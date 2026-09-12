@@ -10,7 +10,9 @@ export type EventType =
   | "agent.started" | "agent.completed" | "agent.failed"
   | "model.requested" | "model.completed" | "model.failed"
   | "tool.execution.started" | "tool.execution.completed" | "tool.execution.failed"
-  | "tool.requested" | "tool.started" | "tool.completed" | "tool.failed";
+  | "tool.requested" | "tool.started" | "tool.completed" | "tool.failed"
+  | "model.tool.call.requested" | "model.tool.call.authorized" | "model.tool.call.rejected"
+  | "model.tool.result.returned" | "model.final.response";
 
 export interface DomainEvent {
   readonly id: string;

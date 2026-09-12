@@ -17,6 +17,7 @@ import {
 } from "../../application/autonomy/autonomous-operation-service.js";
 import { AutonomyBudgetValidationError } from "../../domain/autonomy/autonomy-budget.js";
 import { AutonomousOperationValidationError } from "../../domain/autonomy/autonomous-operation.js";
+import { randomUUID } from "node:crypto";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -38,6 +39,8 @@ type JsonBodyResult =
 
 export function createHttpServer(service: PlatformService): http.Server {
   return http.createServer(async (req, res) => {
+    const requestId = req.headers["x-request-id"]?.toString().trim() || randomUUID();
+    res.setHeader("X-Request-Id", requestId);
     // 1. Secure CORS: strictly restricted to localhost / 127.0.0.1 origins
     const origin = req.headers.origin;
     if (origin) {
@@ -150,10 +153,13 @@ export function createHttpServer(service: PlatformService): http.Server {
 
     try {
       // 1. API Endpoints (Support /api/v1/ and /api/ prefixes)
+      const isPlatformV1 = pathname.startsWith("/api/platform/v1/");
       const isV1 = pathname.startsWith("/api/v1/");
       const isUnversioned = pathname.startsWith("/api/");
-      if (isV1 || isUnversioned) {
-        const subPath = isV1
+      if (isPlatformV1 || isV1 || isUnversioned) {
+        const subPath = isPlatformV1
+          ? pathname.substring("/api/platform/v1".length)
+          : isV1
           ? pathname.substring("/api/v1".length)
           : pathname.substring("/api".length);
 
@@ -555,7 +561,7 @@ export function createHttpServer(service: PlatformService): http.Server {
             sendError(bodyResult.status, bodyResult.error, bodyResult.code);
             return;
           }
-          const { agentId: rawAgentId, input, traceId: rawTraceId } = bodyResult.body;
+          const { agentId: rawAgentId, input, traceId: rawTraceId, metadata: rawMetadata } = bodyResult.body;
 
           const agentId = normalizeId(rawAgentId);
           if (!agentId) {
@@ -566,6 +572,19 @@ export function createHttpServer(service: PlatformService): http.Server {
             sendError(400, "Bad Request: 'input' is required and must be a non-empty object", "INVALID_INPUT");
             return;
           }
+          let metadata: Record<string, string> | undefined;
+          if (rawMetadata !== undefined) {
+            if (!rawMetadata || typeof rawMetadata !== "object" || Array.isArray(rawMetadata)) {
+              sendError(400, "Bad Request: 'metadata' must be an object", "INVALID_METADATA");
+              return;
+            }
+            const entries = Object.entries(rawMetadata);
+            if (entries.length > 16 || entries.some(([key, value]) => key.length === 0 || key.length > 64 || typeof value !== "string" || value.length > 256)) {
+              sendError(400, "Bad Request: 'metadata' must contain at most 16 string values", "INVALID_METADATA");
+              return;
+            }
+            metadata = Object.fromEntries(entries) as Record<string, string>;
+          }
           let traceId: string | undefined = undefined;
           if (rawTraceId !== undefined) {
             traceId = normalizeId(rawTraceId);
@@ -575,7 +594,8 @@ export function createHttpServer(service: PlatformService): http.Server {
             }
           }
 
-          const result = await service.submitTask(agentId, input as Record<string, unknown>, traceId);
+          const taskInput = metadata ? { ...(input as Record<string, unknown>), metadata } : input as Record<string, unknown>;
+          const result = await service.submitTask(agentId, taskInput, traceId);
           sendJson(201, result);
           return;
         }
@@ -593,7 +613,30 @@ export function createHttpServer(service: PlatformService): http.Server {
             sendError(404, "Task not found", "NOT_FOUND");
             return;
           }
+
           sendJson(200, task);
+          return;
+        }
+
+        // Product-layer compatibility route. Task creation already starts an execution
+        // in the current engine, so this returns that correlated execution idempotently.
+        const taskExecuteMatch = subPath.match(/^\/tasks\/([^/]+)\/execute$/);
+        if (taskExecuteMatch && req.method === "POST") {
+          const id = normalizeId(taskExecuteMatch[1]);
+          if (!id) {
+            sendError(400, "Bad Request: Invalid task ID format", "INVALID_ID");
+            return;
+          }
+          if (!service.getTask(id)) {
+            sendError(404, "Task not found", "TASK_NOT_FOUND");
+            return;
+          }
+          const execution = service.getExecutionForTask(id);
+          if (!execution) {
+            sendError(404, "Execution for task not found", "EXECUTION_NOT_FOUND");
+            return;
+          }
+          sendJson(200, execution);
           return;
         }
 
@@ -648,6 +691,21 @@ export function createHttpServer(service: PlatformService): http.Server {
           return;
         }
 
+        const executionEventsMatch = subPath.match(/^\/executions\/([^/]+)\/events$/);
+        if (executionEventsMatch && req.method === "GET") {
+          const id = normalizeId(executionEventsMatch[1]);
+          if (!id) {
+            sendError(400, "Bad Request: Invalid execution ID format", "INVALID_ID");
+            return;
+          }
+          if (!service.getExecution(id)) {
+            sendError(404, "Execution not found", "EXECUTION_NOT_FOUND");
+            return;
+          }
+          sendJson(200, service.getExecutionTimeline(id));
+          return;
+        }
+
         // GET /executions/:id
         const execMatch = subPath.match(/^\/executions\/([^/]+)$/);
         if (execMatch && req.method === "GET") {
@@ -661,6 +719,7 @@ export function createHttpServer(service: PlatformService): http.Server {
             sendError(404, "Execution not found", "NOT_FOUND");
             return;
           }
+
           sendJson(200, exec);
           return;
         }

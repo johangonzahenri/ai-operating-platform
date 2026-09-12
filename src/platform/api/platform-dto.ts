@@ -17,6 +17,17 @@ export interface ExecutionDTO {
   readonly startedAt?: string | undefined;
   readonly completedAt?: string | undefined;
   readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+  readonly provider?: string | undefined;
+  readonly model?: string | undefined;
+  readonly currentRound?: number | undefined;
+  readonly currentTool?: string | undefined;
+  readonly toolCalls?: number | undefined;
+  readonly completedToolCalls?: number | undefined;
+  readonly toolErrors?: number | undefined;
+  readonly currentActivity?: string | undefined;
+  readonly durationMs?: number | undefined;
+  readonly finalResult?: Readonly<Record<string, unknown>> | undefined;
+  readonly toolCallObservations?: readonly Readonly<Record<string, unknown>>[] | undefined;
   readonly error?: { readonly code: string; readonly message: string } | undefined;
 }
 
@@ -350,4 +361,3 @@ export interface PaginationOptions {
   readonly limit?: number | undefined;
   readonly offset?: number | undefined;
 }
-
