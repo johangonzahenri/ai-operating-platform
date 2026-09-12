@@ -1,10 +1,22 @@
 node_modules/
 dist/
 .env
+.env.*
 coverage/
 *.log
+logs/
+*.db
+*.sqlite
+*.sqlite3
+*.db-wal
+*.db-shm
 .vscode/
 .idea/
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
 
 # Generated documentation artifacts
 LIBRO_OFICIAL_AI_OPERATING_PLATFORM.pdf
