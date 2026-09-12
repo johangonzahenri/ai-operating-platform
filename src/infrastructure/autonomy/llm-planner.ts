@@ -80,6 +80,7 @@ export class LLMPlanner implements PlannerPort {
         budget: request.budget.snapshot(),
         currentStep: request.currentStep,
         agentId: request.agentId,
+        ...(request.taskContext ? { taskContext: request.taskContext.snapshot() } : {}),
       },
       objective: request.objective,
       systemInstruction,

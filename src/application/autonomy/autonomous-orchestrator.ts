@@ -9,6 +9,7 @@ import { Observation } from "../../domain/autonomy/observation.js";
 import { Plan, PlanStep } from "../../domain/autonomy/plan.js";
 import { PlannerPort } from "../../domain/autonomy/planner-port.js";
 import { PlanningRequest } from "../../domain/autonomy/planning-request.js";
+import { TaskContext } from "../../domain/context/task-context.js";
 import { EventPublisher, event } from "../../domain/events/events.js";
 import { Runtime, RuntimeResult } from "../../domain/execution/runtime.js";
 import { PolicyGateway } from "../../domain/policy/policy.js";
@@ -119,6 +120,14 @@ export class AutonomousOrchestrator {
       budget: operation.budget,
       currentStep: 1,
       metadata: request.metadata,
+      taskContext: TaskContext.create({
+        taskId: operation.id,
+        executionId: operation.id,
+        objective: operation.objective,
+        taskMetadata: request.metadata,
+        executionStatus: operation.status,
+        executionSummary: { ...operation.snapshot().consumption },
+      }),
     });
 
     let plan: Plan;

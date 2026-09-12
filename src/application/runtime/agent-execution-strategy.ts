@@ -10,6 +10,7 @@ import { PolicyDeniedError, PolicyEvaluationError, PolicyGateway } from "../../d
 import { Task } from "../../domain/task/task.js";
 import { ModelMessage } from "../../domain/model/model-gateway.js";
 import { executionLimitsFromEnvironment } from "./execution-limits.js";
+import { TaskContext } from "../../domain/context/task-context.js";
 
 const SENSITIVE_KEY = /(authorization|api[_-]?key|token|secret|password|cookie|credential|header|env|private[_-]?key)/i;
 function safeToolValue(value: unknown, depth = 0): unknown {
@@ -136,10 +137,22 @@ export class AgentExecutionStrategy implements ExecutionStrategy {
       const limits = executionLimitsFromEnvironment();
       const loopStartedAt = Date.now();
       const messages: ModelMessage[] = [{ role: "user", content: typeof enrichedInput.objective === "string" ? enrichedInput.objective : JSON.stringify(enrichedInput) }];
+      let taskContext = TaskContext.create({
+        taskId: task.id,
+        executionId: context.executionId,
+        objective: typeof enrichedInput.objective === "string" ? enrichedInput.objective : JSON.stringify(enrichedInput),
+        taskMetadata: typeof task.request.input.metadata === "object" && task.request.input.metadata !== null && !Array.isArray(task.request.input.metadata)
+          ? task.request.input.metadata as Readonly<Record<string, unknown>>
+          : undefined,
+        executionStatus: "RUNNING",
+        currentRound: 0,
+        messages,
+        suppliedContext: memoryContext,
+      });
       let response = await this.models.generate({
         traceId: context.traceId,
         model: agent.model,
-        input: enrichedInput,
+        input: { ...enrichedInput, taskContext: taskContext.snapshot({ includeMessages: false }) },
         messages,
         ...(toolDefinitions.length > 0 ? { tools: toolDefinitions } : {}),
       });
@@ -181,6 +194,20 @@ export class AgentExecutionStrategy implements ExecutionStrategy {
             const observation = { toolCallId: call.id, name: call.name, output: result.output, success: true };
             toolResults.push(observation);
             messages.push({ role: "tool", toolResult: observation });
+            taskContext = TaskContext.create({
+              taskId: task.id,
+              executionId: context.executionId,
+              objective: typeof enrichedInput.objective === "string" ? enrichedInput.objective : JSON.stringify(enrichedInput),
+              taskMetadata: typeof task.request.input.metadata === "object" && task.request.input.metadata !== null && !Array.isArray(task.request.input.metadata)
+                ? task.request.input.metadata as Readonly<Record<string, unknown>>
+                : undefined,
+              executionStatus: "RUNNING",
+              currentRound: round,
+              currentTool: call.name,
+              observations: toolResults,
+              messages,
+              suppliedContext: memoryContext,
+            });
             this.events.publish(event("model.tool.result.returned", context.traceId, call.id, {
               toolCallId: call.id, toolName: call.name, round, success: true, result: safeToolValue(result.output),
             }, undefined, undefined, refs));
@@ -188,6 +215,20 @@ export class AgentExecutionStrategy implements ExecutionStrategy {
             const observation = { toolCallId: call.id, name: call.name, output: { error: error instanceof Error ? error.message : String(error) }, success: false };
             toolResults.push(observation);
             messages.push({ role: "tool", toolResult: observation });
+            taskContext = TaskContext.create({
+              taskId: task.id,
+              executionId: context.executionId,
+              objective: typeof enrichedInput.objective === "string" ? enrichedInput.objective : JSON.stringify(enrichedInput),
+              taskMetadata: typeof task.request.input.metadata === "object" && task.request.input.metadata !== null && !Array.isArray(task.request.input.metadata)
+                ? task.request.input.metadata as Readonly<Record<string, unknown>>
+                : undefined,
+              executionStatus: "RUNNING",
+              currentRound: round,
+              currentTool: call.name,
+              observations: toolResults,
+              messages,
+              suppliedContext: memoryContext,
+            });
             this.events.publish(event("model.tool.result.returned", context.traceId, call.id, {
               toolCallId: call.id, toolName: call.name, round, success: false,
               error: error instanceof Error ? error.message : String(error),
@@ -195,7 +236,7 @@ export class AgentExecutionStrategy implements ExecutionStrategy {
           }
         }
         response = await this.models.generate({
-          traceId: context.traceId, model: agent.model, input: enrichedInput,
+          traceId: context.traceId, model: agent.model, input: { ...enrichedInput, taskContext: taskContext.snapshot({ includeMessages: false }) },
           tools: toolDefinitions, messages,
         });
       }

@@ -1,4 +1,5 @@
 import { AutonomyBudget, AutonomyBudgetSnapshot } from "./autonomy-budget.js";
+import { TaskContext, TaskContextSnapshot } from "../context/task-context.js";
 
 export class PlanningValidationError extends Error {
   constructor(message: string) {
@@ -41,6 +42,7 @@ export interface PlanningRequestProps {
   readonly budget: AutonomyBudget;
   readonly currentStep: number;
   readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+  readonly taskContext?: TaskContext | undefined;
 }
 
 export interface PlanningRequestSnapshot {
@@ -50,6 +52,7 @@ export interface PlanningRequestSnapshot {
   readonly budget: AutonomyBudgetSnapshot;
   readonly currentStep: number;
   readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+  readonly taskContext?: TaskContextSnapshot | undefined;
 }
 
 /**
@@ -63,6 +66,7 @@ export class PlanningRequest {
   readonly budget: AutonomyBudget;
   readonly currentStep: number;
   readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+  readonly taskContext?: TaskContext | undefined;
 
   private constructor(
     operationId: string,
@@ -70,7 +74,8 @@ export class PlanningRequest {
     agentId: string,
     budget: AutonomyBudget,
     currentStep: number,
-    metadata?: Readonly<Record<string, unknown>> | undefined
+    metadata?: Readonly<Record<string, unknown>> | undefined,
+    taskContext?: TaskContext | undefined
   ) {
     this.operationId = operationId;
     this.objective = objective;
@@ -78,6 +83,7 @@ export class PlanningRequest {
     this.budget = budget;
     this.currentStep = currentStep;
     this.metadata = metadata;
+    this.taskContext = taskContext;
     Object.freeze(this);
   }
 
@@ -127,7 +133,8 @@ export class PlanningRequest {
       agentId,
       props.budget,
       props.currentStep,
-      frozenMetadata
+      frozenMetadata,
+      props.taskContext
     );
   }
 
@@ -139,6 +146,7 @@ export class PlanningRequest {
       budget: this.budget.snapshot(),
       currentStep: this.currentStep,
       ...(this.metadata !== undefined ? { metadata: Object.freeze({ ...this.metadata }) } : {}),
+      ...(this.taskContext !== undefined ? { taskContext: this.taskContext.snapshot() } : {}),
     });
   }
 }
