@@ -192,7 +192,7 @@ export const createPlatform = (
   const submitTask = new SubmitTask(runtime);
 
   // Dedicated Agent execution strategy & runtime
-  const agentStrategy = new AgentExecutionStrategy(models, toolGateway, memory, events, policy);
+  const agentStrategy = new AgentExecutionStrategy(models, toolGateway, memoryService, events, policy);
   const agentRuntime = new CoreRuntime(tasks, executions, agentStrategy, events, undefined, undefined, eventStore, transactionRunner);
   const agentService = new AgentService(agents, agentRuntime, modelRegistry, tools);
 

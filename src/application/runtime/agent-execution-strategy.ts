@@ -4,6 +4,7 @@ import { EventPublisher, event } from "../../domain/events/events.js";
 import { ExecutionContext } from "../../domain/execution/execution-context.js";
 import { ExecutionStrategy, ExecutionStrategyResult } from "../../domain/execution/execution-strategy.js";
 import { MemoryGateway, createMemoryItem } from "../../domain/memory/memory-gateway.js";
+import { MemoryService } from "../memory/memory-service.js";
 import { ModelGateway, ModelToolResult } from "../../domain/model/model-gateway.js";
 import { ToolGateway } from "../../domain/tools/tool-registry.js";
 import { PolicyDeniedError, PolicyEvaluationError, PolicyGateway } from "../../domain/policy/policy.js";
@@ -27,7 +28,7 @@ export class AgentExecutionStrategy implements ExecutionStrategy {
   constructor(
     private readonly models: ModelGateway,
     private readonly tools: ToolGateway,
-    private readonly memory: MemoryGateway,
+    private readonly memory: MemoryGateway | MemoryService,
     private readonly events: EventPublisher,
     private readonly policy: PolicyGateway
   ) {}
@@ -42,7 +43,9 @@ export class AgentExecutionStrategy implements ExecutionStrategy {
     let memoryContext: Record<string, unknown> | undefined = undefined;
     if (agent.memoryScope) {
       try {
-        const item = await this.memory.retrieve(agent.memoryScope, "context");
+        const item = this.memory instanceof MemoryService
+          ? await this.memory.retrieve(agent.memoryScope, "context", context)
+          : await this.memory.retrieve(agent.memoryScope, "context");
         if (item) {
           memoryContext = item.value;
           this.events.publish(
@@ -262,14 +265,8 @@ export class AgentExecutionStrategy implements ExecutionStrategy {
             { executionId: context.executionId, taskId: task.id, output: response.output },
             { agentId: agent.id }
           );
-          await this.memory.store(memItem);
-          this.events.publish(
-            event("memory.stored", context.traceId, memId, {
-              scope: agent.memoryScope,
-              key: "last_execution",
-              agentId: agent.id,
-            }, undefined, undefined, refs)
-          );
+          if (this.memory instanceof MemoryService) await this.memory.store(memItem, context);
+          else await this.memory.store(memItem);
         } catch {
           // Memory persistence failure does not fail the execution
         }

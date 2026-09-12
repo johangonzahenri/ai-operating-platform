@@ -1,6 +1,7 @@
 import { ModelMessage } from "../model/model-gateway.js";
+import { BoundedDataLimits, DEFAULT_BOUNDED_DATA_LIMITS, deepFreeze, sanitizeBoundedValue, validateBoundedDataLimits } from "./bounded-data.js";
 
-export interface TaskContextLimits {
+export interface TaskContextLimits extends BoundedDataLimits {
   readonly maxMessages: number;
   readonly maxObservations: number;
   readonly maxStringLength: number;
@@ -60,21 +61,10 @@ export class TaskContextValidationError extends Error {
   }
 }
 
-const SENSITIVE_KEY = /(authorization|api[_-]?key|token|secret|password|cookie|credential|header|env|private[_-]?key)/i;
-
-function deepFreeze<T>(value: T): T {
-  if (value !== null && typeof value === "object" && !Object.isFrozen(value)) {
-    Object.freeze(value);
-    for (const nested of Object.values(value as Record<string, unknown>)) deepFreeze(nested);
-  }
-  return value;
-}
-
 function validateLimits(limits: TaskContextLimits): TaskContextLimits {
-  for (const [key, value] of Object.entries(limits)) {
-    if (!Number.isInteger(value) || value < 1) {
-      throw new TaskContextValidationError(`Task context limit '${key}' must be a positive integer`);
-    }
+  validateBoundedDataLimits(limits);
+  if (!Number.isInteger(limits.maxMessages) || limits.maxMessages < 1 || !Number.isInteger(limits.maxObservations) || limits.maxObservations < 1) {
+    throw new TaskContextValidationError("Task context message and observation limits must be positive integers");
   }
   return limits;
 }
@@ -85,29 +75,7 @@ function safeValue(
   depth = 0,
   state: { truncated: boolean } = { truncated: false }
 ): unknown {
-  if (depth > limits.maxDepth) {
-    state.truncated = true;
-    return "[truncated]";
-  }
-  if (typeof value === "string") {
-    if (value.length > limits.maxStringLength) {
-      state.truncated = true;
-      return `${value.slice(0, limits.maxStringLength)}[truncated]`;
-    }
-    return value;
-  }
-  if (value === null || typeof value !== "object") return value;
-  if (Array.isArray(value)) {
-    const items = value.slice(0, limits.maxObjectKeys);
-    if (items.length !== value.length) state.truncated = true;
-    return items.map((item) => safeValue(item, limits, depth + 1, state));
-  }
-  const entries = Object.entries(value);
-  if (entries.length > limits.maxObjectKeys) state.truncated = true;
-  return Object.fromEntries(entries.slice(0, limits.maxObjectKeys).map(([key, item]) => [
-    key,
-    SENSITIVE_KEY.test(key) ? "[redacted]" : safeValue(item, limits, depth + 1, state),
-  ]));
+  return sanitizeBoundedValue(value, limits, depth, state);
 }
 
 function normalizeRecord(
