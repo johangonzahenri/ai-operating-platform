@@ -1,13 +1,14 @@
 import crypto from "node:crypto";
-import { Agent, AgentNotFoundError, AgentInactiveError } from "../agent/agent.js";
 import { BoundedDataLimits, DEFAULT_BOUNDED_DATA_LIMITS, deepFreeze, sanitizeBoundedValue, validateBoundedDataLimits } from "../context/bounded-data.js";
 
 export type CoordinationStatus = "RUNNING" | "COMPLETED" | "FAILED" | "PARTIAL" | "CANCELLED" | "TIMEOUT" | "POLICY_DENIED";
 export type HandoffStatus = "REQUESTED" | "ACCEPTED" | "REJECTED" | "COMPLETED" | "FAILED";
+export const COORDINATION_ROLES = Object.freeze(["DIAGNOSTIC", "DECISION", "EXECUTION", "VERIFICATION"] as const);
+export type CoordinationRole = typeof COORDINATION_ROLES[number];
 
 export interface CoordinationStep {
   readonly agentId: string;
-  readonly role: "DIAGNOSTIC" | "DECISION" | "EXECUTION" | "VERIFICATION" | string;
+  readonly role: CoordinationRole;
   readonly required?: boolean;
 }
 
@@ -20,6 +21,8 @@ export interface CoordinationRequestProps {
   readonly steps: readonly CoordinationStep[];
   readonly maxHandoffs?: number;
   readonly timeoutMs?: number;
+  readonly verificationCriteria?: Readonly<Record<string, unknown>>;
+  readonly depth?: number;
 }
 
 export interface CoordinationLimits {
@@ -100,25 +103,31 @@ export class AgentHandoff {
 export class CoordinationRequest {
   readonly coordinationId!: string; readonly correlationId!: string; readonly taskId!: string; readonly objective!: string;
   readonly input!: Readonly<Record<string, unknown>>; readonly steps!: readonly CoordinationStep[]; readonly maxHandoffs!: number; readonly timeoutMs!: number;
+  readonly verificationCriteria!: Readonly<Record<string, unknown>>;
+  readonly depth!: number;
   private constructor(props: CoordinationRequest) { Object.assign(this, props); Object.freeze(this); }
   static create(props: CoordinationRequestProps, limits: CoordinationLimits = DEFAULT_COORDINATION_LIMITS): CoordinationRequest {
     if (!props || typeof props.taskId !== "string" || !props.taskId.trim() || typeof props.objective !== "string" || !props.objective.trim()) throw new CoordinationValidationError("Coordination requires taskId and objective");
     if (!Array.isArray(props.steps) || props.steps.length < 2 || props.steps.length > limits.maxAgents) throw new CoordinationValidationError(`Coordination requires between 2 and ${limits.maxAgents} steps`);
-    if (props.steps.some((step) => !step?.agentId?.trim() || !step.role?.trim())) throw new CoordinationValidationError("Every coordination step requires agentId and role");
+    if (props.steps.some((step) => !step?.agentId?.trim() || !step.role?.trim() || !COORDINATION_ROLES.includes(step.role as CoordinationRole))) throw new CoordinationValidationError("Every coordination step requires a valid role");
     const ids = new Set(props.steps.map((step) => step.agentId.trim()));
     if (ids.size !== props.steps.length) throw new CoordinationValidationError("Coordination cannot repeat an agent");
+    if (props.steps.at(-1)?.role !== "VERIFICATION") throw new CoordinationValidationError("Coordination must end with a verification step");
     if (!props.input || typeof props.input !== "object" || Array.isArray(props.input)) throw new CoordinationValidationError("Coordination input must be an object");
     const state = { truncated: false };
     const input = deepFreeze(sanitizeBoundedValue(props.input, limits.data, 0, state) as Readonly<Record<string, unknown>>);
+    const verificationCriteria = deepFreeze(sanitizeBoundedValue(props.verificationCriteria ?? {}, limits.data, 0, state) as Readonly<Record<string, unknown>>);
     const maxHandoffs = props.maxHandoffs ?? props.steps.length - 1;
     if (!Number.isInteger(maxHandoffs) || maxHandoffs < props.steps.length - 1 || maxHandoffs > limits.maxHandoffs) throw new CoordinationValidationError("Invalid coordination handoff budget");
     const timeoutMs = props.timeoutMs ?? 30000;
     if (!Number.isInteger(timeoutMs) || timeoutMs < 1) throw new CoordinationValidationError("Coordination timeout must be positive");
+    const depth = props.depth ?? 0;
+    if (!Number.isInteger(depth) || depth < 0 || depth >= limits.maxDepth) throw new CoordinationValidationError("Recursive coordination is not permitted");
     return new CoordinationRequest({
       coordinationId: props.coordinationId?.trim() || crypto.randomUUID(), correlationId: props.correlationId?.trim() || crypto.randomUUID(),
       taskId: props.taskId.trim(), objective: props.objective.trim(), input,
       steps: Object.freeze(props.steps.map((step) => Object.freeze({ agentId: step.agentId.trim(), role: step.role.trim(), required: step.required !== false }))),
-      maxHandoffs, timeoutMs,
+      maxHandoffs, timeoutMs, verificationCriteria, depth,
     });
   }
 }
