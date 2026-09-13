@@ -186,9 +186,10 @@ Evaluator Exception / Error     ──► DENY (POLICY_EVALUATION_FAILED)
 | Domain Security Types & Contracts (`Principal`, `SecurityContext`, `TrustBoundary`) | **IMPLEMENTED** |
 | 15 Security Invariants Formalized | **IMPLEMENTED** |
 | Fail-Closed Authorization Engine (`evaluateFailClosedAuthorization`) | **IMPLEMENTED** |
-| PolicyGateway Multi-Agent & Tool Evaluation | **IMPLEMENTED** |
+| PolicyGateway Centralized Decision Point | **IMPLEMENTED** |
 | Secret Sanitization & Bounded Contexts | **IMPLEMENTED** |
 | Identity & Authentication Service (API Key, Scaffolding Bearer JWT) | **IMPLEMENTED** |
 | Fine-Grained Role-Based Access Control (RBAC) & Authorization Evaluator | **IMPLEMENTED** |
-| Subsystem Boundaries (Agent / Tool / Model Security) | **NEXT PHASE (Prompt 48)** |
-| Cryptographic Audit Event Signing | **FUTURE (Phase 13)** |
+| Subsystem Security Boundaries (Agent / Tool / Model / Memory / Delegation) | **IMPLEMENTED** |
+| Security Control & Threat Mitigation Verification | **IMPLEMENTED** |
+| Hardware Network Egress Firewall & TEE/TPM Attestation | **FUTURE INFRASTRUCTURE** |
