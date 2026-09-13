@@ -1,4 +1,4 @@
-﻿# Security Architecture v0.1 — AI Operating Platform
+# Security Architecture v0.1 — AI Operating Platform
 
 ## 1. Executive Summary & Security Goals
 
@@ -188,6 +188,7 @@ Evaluator Exception / Error     ──► DENY (POLICY_EVALUATION_FAILED)
 | Fail-Closed Authorization Engine (`evaluateFailClosedAuthorization`) | **IMPLEMENTED** |
 | PolicyGateway Multi-Agent & Tool Evaluation | **IMPLEMENTED** |
 | Secret Sanitization & Bounded Contexts | **IMPLEMENTED** |
-| Authentication Handlers (JWT, API Key validation) | **NEXT PHASE (Prompt 46)** |
-| Fine-Grained Role-Based Access Control (RBAC) Policies | **FUTURE (Phase 13)** |
+| Identity & Authentication Service (API Key, Scaffolding Bearer JWT) | **IMPLEMENTED** |
+| Fine-Grained Role-Based Access Control (RBAC) & Authorization Evaluator | **IMPLEMENTED** |
+| Subsystem Boundaries (Agent / Tool / Model Security) | **NEXT PHASE (Prompt 48)** |
 | Cryptographic Audit Event Signing | **FUTURE (Phase 13)** |
