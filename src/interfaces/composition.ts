@@ -54,6 +54,18 @@ import { DurableEventStore, DurableEventQueryPort } from "../application/ports/d
 import { InMemoryEventStore } from "../infrastructure/persistence/in-memory-event-store.js";
 import { SqliteEventStore } from "../infrastructure/persistence/sqlite/sqlite-event-store.js";
 import { RuntimeDiagnosticsService } from "../application/diagnostics/runtime-diagnostics.js";
+import {
+  AuthenticationService,
+  ApiKeyAuthenticationProvider,
+  BearerTokenAuthenticationProvider,
+} from "../application/security/authentication-service.js";
+import { RbacAuthorizationEvaluator } from "../application/security/rbac-authorization-evaluator.js";
+import {
+  ApiKeyRepository,
+  InMemoryApiKeyRepository,
+} from "../infrastructure/security/in-memory-api-key-repository.js";
+import { InMemoryRoleRepository } from "../infrastructure/security/in-memory-role-repository.js";
+import { RoleRepository } from "../domain/security/authorization.js";
 
 export interface CreatePlatformOptions {
   readonly logger?: StructuredLogger | undefined;
@@ -67,7 +79,12 @@ export interface CreatePlatformOptions {
   readonly dbPath?: string | undefined;
   readonly skipRecovery?: boolean | undefined;
   readonly eventStore?: (DurableEventStore & DurableEventQueryPort) | undefined;
+  readonly apiKeyRepository?: ApiKeyRepository | undefined;
+  readonly roleRepository?: RoleRepository | undefined;
+  readonly authenticationService?: AuthenticationService | undefined;
+  readonly rbacEvaluator?: RbacAuthorizationEvaluator | undefined;
 }
+
 
 /** Composition root: wires domain ports to infrastructure adapters and exposes use cases. */
 export const createPlatform = (
@@ -237,9 +254,28 @@ export const createPlatform = (
     agents
   );
 
+  const apiKeyRepository: ApiKeyRepository = (!isLogger && (optionsOrLogger as CreatePlatformOptions).apiKeyRepository)
+    ? (optionsOrLogger as CreatePlatformOptions).apiKeyRepository!
+    : new InMemoryApiKeyRepository();
+
+  const roleRepository: RoleRepository = (!isLogger && (optionsOrLogger as CreatePlatformOptions).roleRepository)
+    ? (optionsOrLogger as CreatePlatformOptions).roleRepository!
+    : new InMemoryRoleRepository();
+
+  const authenticationService: AuthenticationService = (!isLogger && (optionsOrLogger as CreatePlatformOptions).authenticationService)
+    ? (optionsOrLogger as CreatePlatformOptions).authenticationService!
+    : new AuthenticationService(events, [
+        new ApiKeyAuthenticationProvider(apiKeyRepository),
+        new BearerTokenAuthenticationProvider(),
+      ]);
+
+  const rbacEvaluator: RbacAuthorizationEvaluator = (!isLogger && (optionsOrLogger as CreatePlatformOptions).rbacEvaluator)
+    ? (optionsOrLogger as CreatePlatformOptions).rbacEvaluator!
+    : new RbacAuthorizationEvaluator(roleRepository, events);
 
   return {
     tasks,
+    taskRepository: tasks as unknown as TaskRepository,
     executions,
     events,
     audit,
@@ -274,5 +310,10 @@ export const createPlatform = (
     recoveryResult,
     eventStore,
     diagnostics,
+    apiKeyRepository,
+    roleRepository,
+    authenticationService,
+    rbacEvaluator,
   };
 };
+

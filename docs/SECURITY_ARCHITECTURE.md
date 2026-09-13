@@ -193,3 +193,32 @@ Evaluator Exception / Error     ──► DENY (POLICY_EVALUATION_FAILED)
 | Subsystem Security Boundaries (Agent / Tool / Model / Memory / Delegation) | **IMPLEMENTED** |
 | Security Control & Threat Mitigation Verification | **IMPLEMENTED** |
 | Hardware Network Egress Firewall & TEE/TPM Attestation | **FUTURE INFRASTRUCTURE** |
+## 10. Platform API Security Boundary & Production Integration (Phase 14)
+
+The `/api/v1` HTTP surface establishes the production-ready boundary between external applications (e.g. Tentaciones platform adapter, web frontends, integration scripts) and the AI Operating Platform Core.
+
+```text
+HTTP Request (Headers: Authorization / X-API-Key / Idempotency-Key)
+    │
+    ▼
+[Boundary A: HTTP Layer]
+  1. Method, URL, Path-Traversal & Content-Type Validation
+  2. AuthenticationService: Resolves verified Principal (API Key / Bearer)
+  3. SecurityContext Construction: Bounds Principal, Roles, and Tenant
+    │
+    ▼
+[RBAC Authorization Middleware]
+  4. Evaluates required action (public.read, agent.read, task.create, task.read, task.cancel)
+  5. Denies missing or insufficient roles fail-closed
+    │
+    ▼
+[Boundary B: Core Platform Execution]
+  6. Automatic Identity Binding: Caller identity and tenant derived strictly from SecurityContext
+  7. Tenant Isolation: Multi-tenant filtering on Task queries and mutations
+  8. Sanitized Output: Platform projections hide internal instructions and credentials
+```
+
+### Key Production Guarantees:
+- **Tenant Isolation**: Tasks and events cannot be accessed across tenant boundaries; unauthenticated or foreign tenant queries return safe `404 Not Found` responses to prevent ID enumeration.
+- **Identity Integrity**: `callerId` and `tenantId` in task payloads are stamped directly by the server from the verified security context; client spoofing in payload JSON is ignored.
+- **Fail-Closed Protection**: Inactive, expired, revoked, or malformed API keys/tokens are rejected with standard `401 Unauthorized` / `403 Forbidden` responses.

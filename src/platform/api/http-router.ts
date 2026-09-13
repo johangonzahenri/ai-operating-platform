@@ -17,6 +17,27 @@ import {
 } from "../../application/autonomy/autonomous-operation-service.js";
 import { AutonomyBudgetValidationError } from "../../domain/autonomy/autonomy-budget.js";
 import { AutonomousOperationValidationError } from "../../domain/autonomy/autonomous-operation.js";
+import {
+  TaskNotFoundError,
+  InvalidTaskTransitionError,
+} from "../../domain/task/task.js";
+import {
+  AuthenticationService,
+  ApiKeyAuthenticationProvider,
+  BearerTokenAuthenticationProvider,
+} from "../../application/security/authentication-service.js";
+import {
+  AuthorizationEvaluator,
+  RbacAuthorizationEvaluator,
+} from "../../application/security/rbac-authorization-evaluator.js";
+import {
+  ApiKeyRepository,
+  InMemoryApiKeyRepository,
+} from "../../infrastructure/security/in-memory-api-key-repository.js";
+import { InMemoryRoleRepository } from "../../infrastructure/security/in-memory-role-repository.js";
+import { RoleRepository, ResourceType } from "../../domain/security/authorization.js";
+import { SecurityContext } from "../../domain/security/security.js";
+
 import { randomUUID } from "node:crypto";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -37,10 +58,41 @@ type JsonBodyResult =
   | { ok: true; body: Record<string, unknown> }
   | { ok: false; status: number; error: string; code?: string };
 
-export function createHttpServer(service: PlatformService): http.Server {
+export interface HttpServerOptions {
+  readonly authService?: AuthenticationService | undefined;
+  readonly authzEvaluator?: AuthorizationEvaluator | undefined;
+  readonly roleRepository?: RoleRepository | undefined;
+  readonly apiKeyRepository?: ApiKeyRepository | undefined;
+  readonly enforceSecurity?: boolean | undefined;
+}
+
+export function createHttpServer(
+  service: PlatformService,
+  options?: HttpServerOptions
+): http.Server {
+  const authService =
+    options?.authService ??
+    new AuthenticationService(undefined, [
+      new ApiKeyAuthenticationProvider(
+        options?.apiKeyRepository ?? new InMemoryApiKeyRepository()
+      ),
+      new BearerTokenAuthenticationProvider(),
+    ]);
+
+  const authzEvaluator =
+    options?.authzEvaluator ??
+    new RbacAuthorizationEvaluator(
+      options?.roleRepository ?? new InMemoryRoleRepository()
+    );
+
+  const mustEnforceSecurity = Boolean(
+    options?.enforceSecurity || options?.authService
+  );
+
   return http.createServer(async (req, res) => {
     const requestId = req.headers["x-request-id"]?.toString().trim() || randomUUID();
     res.setHeader("X-Request-Id", requestId);
+
     // 1. Secure CORS: strictly restricted to localhost / 127.0.0.1 origins
     const origin = req.headers.origin;
     if (origin) {
@@ -151,6 +203,61 @@ export function createHttpServer(service: PlatformService): http.Server {
       });
     };
 
+    const hasAuthHeader = Boolean(
+      req.headers.authorization ||
+      req.headers["x-api-key"] ||
+      req.headers["x-agent-token"]
+    );
+
+    const authenticateAndAuthorize = async (
+      action: string,
+      resourceType: ResourceType = "API",
+      resourceId = "",
+      targetTenantId?: string,
+      strict = false
+    ): Promise<
+      | { ok: true; context?: SecurityContext }
+      | { ok: false; status: number; code: string; message: string }
+    > => {
+
+      if (strict || mustEnforceSecurity || hasAuthHeader) {
+        const authResult = await authService.authenticateFromHeaders(
+          req.headers,
+          undefined,
+          requestId
+        );
+        if (!authResult.authenticated || !authResult.context) {
+          return {
+            ok: false,
+            status: 401,
+            code: authResult.code ?? "UNAUTHORIZED",
+            message: authResult.reason ?? "Authentication required",
+          };
+        }
+
+        const authzResult = await authzEvaluator.evaluate({
+          context: authResult.context,
+          action,
+          resourceType,
+          resourceId,
+          targetTenantId,
+        });
+
+        if (!authzResult.allowed) {
+          return {
+            ok: false,
+            status: 403,
+            code: authzResult.code ?? "FORBIDDEN",
+            message: authzResult.reason ?? "Access denied",
+          };
+        }
+
+        return { ok: true, context: authResult.context };
+      }
+
+      return { ok: true };
+    };
+
     try {
       // 1. API Endpoints (Support /api/v1/ and /api/ prefixes)
       const isPlatformV1 = pathname.startsWith("/api/platform/v1/");
@@ -163,17 +270,29 @@ export function createHttpServer(service: PlatformService): http.Server {
           ? pathname.substring("/api/v1".length)
           : pathname.substring("/api".length);
 
-        // GET /status
+        // GET /status (Public)
         if (subPath === "/status" && req.method === "GET") {
           sendJson(200, service.getStatus());
           return;
         }
 
-        // GET /health
+        // GET /health (Public)
         if (subPath === "/health" && req.method === "GET") {
           sendJson(200, service.getHealth());
           return;
         }
+
+        // GET /platform (Protected)
+        if (subPath === "/platform" && req.method === "GET") {
+          const authCheck = await authenticateAndAuthorize("public.read", undefined, undefined, undefined, true);
+          if (!authCheck.ok) {
+            sendError(authCheck.status, authCheck.message, authCheck.code);
+            return;
+          }
+          sendJson(200, service.getPlatformMetadata());
+          return;
+        }
+
 
         // GET /events
         if (subPath === "/events" && req.method === "GET") {
@@ -326,7 +445,12 @@ export function createHttpServer(service: PlatformService): http.Server {
 
         // GET /agents
         if (subPath === "/agents" && req.method === "GET") {
-          sendJson(200, service.listAgents());
+          const authCheck = await authenticateAndAuthorize("agent.read", "AGENT");
+          if (!authCheck.ok) {
+            sendError(authCheck.status, authCheck.message, authCheck.code);
+            return;
+          }
+          sendJson(200, service.listSafeAgents());
           return;
         }
 
@@ -550,18 +674,29 @@ export function createHttpServer(service: PlatformService): http.Server {
 
         // GET /tasks
         if (subPath === "/tasks" && req.method === "GET") {
+          const authCheck = await authenticateAndAuthorize("task.read", "TASK");
+          if (!authCheck.ok) {
+            sendError(authCheck.status, authCheck.message, authCheck.code);
+            return;
+          }
           sendJson(200, service.getTasks());
           return;
         }
 
         // POST /tasks
         if (subPath === "/tasks" && req.method === "POST") {
+          const authCheck = await authenticateAndAuthorize("task.create", "TASK");
+          if (!authCheck.ok) {
+            sendError(authCheck.status, authCheck.message, authCheck.code);
+            return;
+          }
+
           const bodyResult = await readJsonBody();
           if (!bodyResult.ok) {
             sendError(bodyResult.status, bodyResult.error, bodyResult.code);
             return;
           }
-          const { agentId: rawAgentId, input, traceId: rawTraceId, metadata: rawMetadata } = bodyResult.body;
+          const { agentId: rawAgentId, input, traceId: rawTraceId, metadata: rawMetadata, idempotencyKey: rawIdempotencyKey } = bodyResult.body;
 
           const agentId = normalizeId(rawAgentId);
           if (!agentId) {
@@ -594,9 +729,118 @@ export function createHttpServer(service: PlatformService): http.Server {
             }
           }
 
+          // Security: Stamp caller principal and tenant into metadata (prevent spoofing)
+          if (authCheck.context?.principal) {
+            metadata = {
+              ...(metadata ?? {}),
+              callerPrincipalId: authCheck.context.principal.id,
+              ...(authCheck.context.tenantId ? { callerTenantId: authCheck.context.tenantId } : {}),
+            };
+          }
+
+          const idempotencyKey =
+            typeof rawIdempotencyKey === "string" && rawIdempotencyKey.trim() !== ""
+              ? rawIdempotencyKey.trim()
+              : req.headers["idempotency-key"]?.toString().trim();
+          if (idempotencyKey) {
+            metadata = {
+              ...(metadata ?? {}),
+              idempotencyKey,
+            };
+          }
+
           const taskInput = metadata ? { ...(input as Record<string, unknown>), metadata } : input as Record<string, unknown>;
           const result = await service.submitTask(agentId, taskInput, traceId);
           sendJson(201, result);
+          return;
+        }
+
+        // POST /tasks/:id/cancel
+        const taskCancelMatch = subPath.match(/^\/tasks\/([^/]+)\/cancel$/);
+        if (taskCancelMatch && req.method === "POST") {
+          const id = normalizeId(taskCancelMatch[1]);
+          if (!id) {
+            sendError(400, "Bad Request: Invalid task ID format", "INVALID_ID");
+            return;
+          }
+
+          const task = service.getTask(id);
+          if (!task) {
+            sendError(404, "Task not found", "TASK_NOT_FOUND");
+            return;
+          }
+
+          const taskTenant = (task.input?.metadata as Record<string, string> | undefined)?.callerTenantId;
+          const authCheck = await authenticateAndAuthorize("task.cancel", "TASK", id, taskTenant, true);
+          if (!authCheck.ok) {
+            if (authCheck.code === "SECURITY_TENANT_ISOLATION_VIOLATION") {
+              sendError(404, "Task not found", "TASK_NOT_FOUND");
+              return;
+            }
+            sendError(authCheck.status, authCheck.message, authCheck.code);
+            return;
+          }
+
+          let reason: string | undefined = undefined;
+          const contentType = req.headers["content-type"];
+          if (contentType) {
+            const bodyResult = await readJsonBody();
+            if (bodyResult.ok && typeof bodyResult.body.reason === "string") {
+              reason = bodyResult.body.reason.trim();
+            }
+          }
+
+          try {
+            const cancelled = service.cancelTask(id, reason);
+            sendJson(200, cancelled);
+            return;
+          } catch (err) {
+            if (err instanceof TaskNotFoundError) {
+              sendError(404, err.message, "TASK_NOT_FOUND");
+              return;
+            }
+            if (err instanceof InvalidTaskTransitionError) {
+              sendError(409, err.message, "INVALID_TASK_TRANSITION");
+              return;
+            }
+            throw err;
+          }
+        }
+
+        // GET /tasks/:id/events
+        const taskEventsMatch = subPath.match(/^\/tasks\/([^/]+)\/events$/);
+        if (taskEventsMatch && req.method === "GET") {
+          const id = normalizeId(taskEventsMatch[1]);
+          if (!id) {
+            sendError(400, "Bad Request: Invalid task ID format", "INVALID_ID");
+            return;
+          }
+
+          const task = service.getTask(id);
+          if (!task) {
+            sendError(404, "Task not found", "TASK_NOT_FOUND");
+            return;
+          }
+
+          const taskTenant = (task.input?.metadata as Record<string, string> | undefined)?.callerTenantId;
+          const authCheck = await authenticateAndAuthorize("task.read", "TASK", id, taskTenant, true);
+          if (!authCheck.ok) {
+            if (authCheck.code === "SECURITY_TENANT_ISOLATION_VIOLATION") {
+              sendError(404, "Task not found", "TASK_NOT_FOUND");
+              return;
+            }
+            sendError(authCheck.status, authCheck.message, authCheck.code);
+            return;
+          }
+
+          const events = service.getTaskEvents(id);
+          sendJson(200, {
+            data: events,
+            meta: {
+              count: events.length,
+              taskId: id,
+            },
+          });
           return;
         }
 
@@ -614,9 +858,21 @@ export function createHttpServer(service: PlatformService): http.Server {
             return;
           }
 
+          const taskTenant = (task.input?.metadata as Record<string, string> | undefined)?.callerTenantId;
+          const authCheck = await authenticateAndAuthorize("task.read", "TASK", id, taskTenant);
+          if (!authCheck.ok) {
+            if (authCheck.code === "SECURITY_TENANT_ISOLATION_VIOLATION") {
+              sendError(404, "Task not found", "NOT_FOUND");
+              return;
+            }
+            sendError(authCheck.status, authCheck.message, authCheck.code);
+            return;
+          }
+
           sendJson(200, task);
           return;
         }
+
 
         // Product-layer compatibility route. Task creation already starts an execution
         // in the current engine, so this returns that correlated execution idempotently.

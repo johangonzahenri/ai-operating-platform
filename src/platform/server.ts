@@ -18,6 +18,7 @@ async function bootstrap() {
   // PlatformService receives its dependencies explicitly through ports/use cases
   const service = new PlatformService({
     tasks: platform.tasks,
+    taskRepository: platform.taskRepository,
     executions: platform.executions,
     audit: platform.audit,
     metrics: platform.metrics,
@@ -34,8 +35,13 @@ async function bootstrap() {
     diagnostics: platform.diagnostics,
   });
 
+  const server = createHttpServer(service, {
+    authService: platform.authenticationService,
+    authzEvaluator: platform.rbacEvaluator,
+    roleRepository: platform.roleRepository,
+    apiKeyRepository: platform.apiKeyRepository,
+  });
 
-  const server = createHttpServer(service);
 
   server.listen(PORT, HOST, () => {
     console.info(`========================================================`);

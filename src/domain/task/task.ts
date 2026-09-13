@@ -21,6 +21,11 @@ export class InvalidTaskInputError extends Error {
   constructor(message: string) { super(message); this.name = "InvalidTaskInputError"; }
 }
 
+export class TaskNotFoundError extends Error {
+  constructor(message: string) { super(message); this.name = "TaskNotFoundError"; }
+}
+
+
 export class TaskError {
   constructor(readonly code: string, readonly message: string) {
     if (typeof code !== "string" || code.trim() === "") throw new InvalidTaskInputError("Task error requires a non-empty code");

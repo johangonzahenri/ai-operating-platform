@@ -1,4 +1,4 @@
-﻿import { Principal } from "../../domain/security/security.js";
+import { Principal } from "../../domain/security/security.js";
 import { Role, RoleRepository } from "../../domain/security/authorization.js";
 
 export class InMemoryRoleRepository implements RoleRepository {
@@ -27,6 +27,7 @@ export class InMemoryRoleRepository implements RoleRepository {
           "health.check",
           "task.read",
           "task.create",
+          "task.cancel",
           "agent.read",
           "model.read",
           "tool.read",
@@ -66,8 +67,11 @@ export class InMemoryRoleRepository implements RoleRepository {
         id: "service",
         name: "Service Integration",
         permissions: [
+          "public.read",
+          "health.check",
           "task.create",
           "task.read",
+          "task.cancel",
           "task.execute",
           "agent.read",
           "tool.read",

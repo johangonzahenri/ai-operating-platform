@@ -1,4 +1,6 @@
+import crypto from "node:crypto";
 import { PLATFORM_VERSION } from "../version.js";
+
 import { ExecuteOrchestration } from "../../application/orchestration/execute-orchestration.js";
 import { SubmitTask } from "../../application/submit-task.js";
 import { AgentService } from "../../application/agent/agent-service.js";
@@ -32,6 +34,12 @@ import {
 import { SqliteDatabase } from "../../infrastructure/persistence/sqlite/sqlite-database.js";
 import { RuntimeDiagnosticsService } from "../../application/diagnostics/runtime-diagnostics.js";
 import {
+  Task,
+  TaskRepository,
+  TaskNotFoundError,
+  InvalidTaskTransitionError,
+} from "../../domain/task/task.js";
+import {
   AgentDTO,
   AuditObservationDTO,
   AutonomousOperationDetailDTO,
@@ -51,15 +59,22 @@ import {
   PaginatedResponseDTO,
   PaginationOptions,
   PlatformHealthDTO,
+  PlatformMetadataDTO,
   PlatformStatusDTO,
+  SafeAgentMetadataDTO,
+  TaskCancellationResultDTO,
   TaskDTO,
   ToolDTO,
   UpdateAgentRequestDTO,
 } from "./platform-dto.js";
 import { projectExecutionObservability } from "../product/execution-observability.js";
 
+export { TaskNotFoundError };
+
+
 export interface PlatformDependencies {
   readonly tasks: TaskQueryPort;
+  readonly taskRepository?: TaskRepository | undefined;
   readonly executions: ExecutionQueryPort;
   readonly audit: AuditQueryPort;
   readonly metrics: MetricsQueryPort;
@@ -132,6 +147,53 @@ export class PlatformService {
       metrics,
     };
   }
+
+  getPlatformMetadata(): PlatformMetadataDTO {
+    const uptimeSeconds = Math.floor((Date.now() - this.startTime.getTime()) / 1000);
+    const models = this.models.list();
+    const tools = this.deps.tools.list();
+    const agents = this.listAgents();
+
+    return {
+      name: "AI Operating Platform",
+      version: PLATFORM_VERSION,
+      environment: process.env.NODE_ENV || "production",
+      uptimeSeconds,
+      status: "HEALTHY",
+      capabilities: [
+        "tasks",
+        "executions",
+        "agents",
+        "tools",
+        "models",
+        "orchestration",
+        "autonomy",
+        "diagnostics",
+        "events",
+        "security",
+      ],
+      defaultModel: models[0]?.id ?? "stub-model",
+      modelsCount: models.length,
+      toolsCount: tools.length,
+      agentsCount: agents.length,
+    };
+  }
+
+  listSafeAgents(): readonly SafeAgentMetadataDTO[] {
+    return this.listAgents().map((a) => ({
+      id: a.id,
+      name: a.name,
+      description: a.description,
+      version: a.version,
+      status: a.status,
+      model: a.model,
+      tools: a.tools,
+      memoryScope: a.memoryScope,
+      createdAt: a.createdAt,
+      updatedAt: a.updatedAt,
+    }));
+  }
+
 
   getHealth(): PlatformHealthDTO {
     const uptimeSeconds = Math.floor((Date.now() - this.startTime.getTime()) / 1000);
@@ -336,6 +398,63 @@ export class PlatformService {
       error: t.error ? { code: t.error.code, message: t.error.message } : undefined,
     };
   }
+
+  cancelTask(id: string, reason?: string): TaskCancellationResultDTO {
+    const tasksRepo = this.deps.taskRepository ?? (this.deps.tasks as unknown as TaskRepository);
+    const task = tasksRepo.findById ? tasksRepo.findById(id) : undefined;
+    if (!task) {
+      const projection = this.deps.tasks.findById(id);
+      if (!projection) {
+        throw new TaskNotFoundError(`Task '${id}' not found`);
+      }
+      throw new Error(`Task repository does not support modification for task '${id}'`);
+    }
+
+    if (task.status === "COMPLETED" || task.status === "FAILED") {
+      throw new InvalidTaskTransitionError(task.status, "CANCELLED");
+    }
+
+    if (task.status !== "CANCELLED") {
+      const cancelled = task.transition("CANCELLED");
+      tasksRepo.save(cancelled);
+
+      if (this.eventStore) {
+        this.eventStore.append({
+          eventId: crypto.randomUUID(),
+          eventType: "task.cancelled",
+          aggregateType: "task",
+          aggregateId: id,
+          traceId: task.traceId,
+          correlationId: task.traceId,
+          occurredAt: new Date(),
+          schemaVersion: 1,
+          payload: { taskId: id, reason: reason ?? "User requested cancellation" },
+        });
+      }
+
+    }
+
+    return {
+      taskId: id,
+      status: "CANCELLED",
+      cancelledAt: new Date().toISOString(),
+      reason,
+    };
+  }
+
+  getTaskEvents(taskId: string): readonly DurableEventDTO[] {
+    if (!this.eventStore) {
+      return [];
+    }
+    const all = this.getEvents({ taskId });
+    return all.data.filter(
+      (e) =>
+        e.aggregateId === taskId ||
+        (e.payload && typeof e.payload === "object" && (e.payload as Record<string, unknown>).taskId === taskId) ||
+        (e.metadata && (e.metadata as Record<string, unknown>).taskId === taskId)
+    );
+  }
+
 
   getExecutions(): readonly ExecutionDTO[] {
     return this.deps.executions.list().map((e: ExecutionProjection) => this.enrichExecution({

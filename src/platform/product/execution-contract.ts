@@ -129,3 +129,8 @@ export function toEventDTO(event: DurableEventDTO | AuditObservationDTO): EventC
 export function toHealthDTO(health: PlatformHealthDTO): HealthContract {
   return health;
 }
+
+export type PlatformMetadataContract = import("../api/platform-dto.js").PlatformMetadataDTO;
+export type SafeAgentMetadataContract = import("../api/platform-dto.js").SafeAgentMetadataDTO;
+export type TaskCancellationContract = import("../api/platform-dto.js").TaskCancellationResultDTO;
+

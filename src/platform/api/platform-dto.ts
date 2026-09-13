@@ -361,3 +361,47 @@ export interface PaginationOptions {
   readonly limit?: number | undefined;
   readonly offset?: number | undefined;
 }
+
+// --- Platform API v1 DTOs (Phase 14) ---
+
+export interface PlatformMetadataDTO {
+  readonly name: string;
+  readonly version: string;
+  readonly environment: string;
+  readonly uptimeSeconds: number;
+  readonly status: string;
+  readonly capabilities: readonly string[];
+  readonly defaultModel: string;
+  readonly modelsCount: number;
+  readonly toolsCount: number;
+  readonly agentsCount: number;
+}
+
+export interface SafeAgentMetadataDTO {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+  readonly version: number;
+  readonly status: "ACTIVE" | "INACTIVE";
+  readonly model: string;
+  readonly tools: readonly string[];
+  readonly memoryScope?: string | undefined;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export interface TaskCancellationResultDTO {
+  readonly taskId: string;
+  readonly status: "CANCELLED";
+  readonly cancelledAt: string;
+  readonly reason?: string | undefined;
+}
+
+export interface PlatformApiResponse<T> {
+  readonly success: boolean;
+  readonly data?: T | undefined;
+  readonly error?: { readonly code: string; readonly message: string; readonly details?: unknown } | undefined;
+  readonly requestId: string;
+  readonly correlationId?: string | undefined;
+}
+

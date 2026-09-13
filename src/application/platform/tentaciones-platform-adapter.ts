@@ -13,12 +13,19 @@ import type {
 export const TENTACIONES_APPLICATION = "tentaciones";
 export const PRODUCT_DISCOVERY_CAPABILITY = "product.discovery";
 
+export interface TentacionesPlatformClient {
+  readonly tasks: Pick<PlatformClient["tasks"], "create" | "execute" | "get">;
+  readonly executions: Pick<PlatformClient["executions"], "get" | "events">;
+  readonly health: Pick<PlatformClient["health"], "get">;
+}
+
 export interface TentacionesPlatformAdapterOptions {
-  readonly client: Pick<PlatformClient, "tasks" | "executions" | "health">;
+  readonly client: TentacionesPlatformClient;
   readonly applicationVersion: string;
   readonly agentId?: string | undefined;
   readonly traceIdFactory?: (() => string) | undefined;
 }
+
 
 export interface ProductDiscoveryResult {
   readonly status: "COMPLETED" | "FAILED" | "RUNNING" | "CREATED" | "CANCELLED" | "PLATFORM_UNAVAILABLE";
