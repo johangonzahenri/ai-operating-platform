@@ -16,7 +16,8 @@ export type EventType =
   | "coordination.started" | "coordination.agent.selected" | "coordination.handoff.requested"
   | "coordination.handoff.accepted" | "coordination.handoff.rejected"
   | "coordination.agent.completed" | "coordination.agent.failed"
-  | "coordination.completed" | "coordination.failed";
+  | "coordination.completed" | "coordination.failed"
+  | "auth.succeeded" | "auth.failed" | "auth.revoked" | "auth.expired";
 
 export interface DomainEvent {
   readonly id: string;
