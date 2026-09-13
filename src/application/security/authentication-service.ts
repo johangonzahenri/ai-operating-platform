@@ -7,6 +7,8 @@ import {
 } from "../../domain/security/security.js";
 import {
   ApiKeyRecord,
+  BearerTokenClaims,
+  BearerTokenVerifier,
   AuthenticationRequest,
   AuthenticationResult,
 } from "../../domain/security/authentication.js";
@@ -65,100 +67,94 @@ export class ApiKeyAuthenticationProvider implements AuthenticationProvider {
       return {
         authenticated: false,
         code: "INVALID_FORMAT",
-        reason: "API key format invalid. Expected 'keyId.secret' or 'ak_keyId_secret'",
+        reason: "API key format is invalid",
         evaluatedAt: now,
       };
     }
 
-    const record = await this.apiKeyRepository.findById(keyId);
-    if (!record) {
+    try {
+      const record = await this.apiKeyRepository.findById(keyId);
+      if (!record) {
+        return {
+          authenticated: false,
+          code: "KEY_NOT_FOUND",
+          reason: "API key not found",
+          evaluatedAt: now,
+        };
+      }
+
+      if (record.status === "REVOKED") {
+        return {
+          authenticated: false,
+          code: "KEY_REVOKED",
+          reason: "API key has been revoked",
+          evaluatedAt: now,
+        };
+      }
+
+      if (record.status === "EXPIRED" || record.isExpired(now)) {
+        return {
+          authenticated: false,
+          code: "KEY_EXPIRED",
+          reason: "API key has expired",
+          evaluatedAt: now,
+        };
+      }
+
+      if (!record.verifySecret(secret)) {
+        return {
+          authenticated: false,
+          code: "INVALID_SECRET",
+          reason: "Invalid API key secret",
+          evaluatedAt: now,
+        };
+      }
+
+      const principal = record.toPrincipal();
+
+      if (principal.type === "SYSTEM") {
+        return {
+          authenticated: false,
+          code: "PRIVILEGE_ESCALATION_BLOCKED",
+          reason: "SYSTEM principal type cannot be authenticated via external credentials",
+          evaluatedAt: now,
+        };
+      }
+
+      const context = SecurityContext.create({
+        principal,
+        authenticated: true,
+        correlationId: typeof metadata?.correlationId === "string" ? metadata.correlationId : crypto.randomUUID(),
+        tenantId: principal.tenantId,
+        metadata,
+      });
+
+      return {
+        authenticated: true,
+        principal,
+        context,
+        evaluatedAt: now,
+      };
+    } catch {
       return {
         authenticated: false,
-        code: "KEY_NOT_FOUND",
-        reason: "API key not found",
+        code: "AUTHENTICATION_ERROR",
+        reason: "Authentication failed due to an internal error",
         evaluatedAt: now,
       };
     }
-
-    if (record.status === "REVOKED") {
-      return {
-        authenticated: false,
-        code: "KEY_REVOKED",
-        reason: "API key has been revoked",
-        evaluatedAt: now,
-      };
-    }
-
-    if (record.status === "EXPIRED" || record.isExpired(now)) {
-      return {
-        authenticated: false,
-        code: "KEY_EXPIRED",
-        reason: "API key has expired",
-        evaluatedAt: now,
-      };
-    }
-
-    if (!record.verifySecret(secret)) {
-      return {
-        authenticated: false,
-        code: "INVALID_SECRET",
-        reason: "Invalid API key secret",
-        evaluatedAt: now,
-      };
-    }
-
-    const principal = record.toPrincipal();
-
-    if (principal.type === "SYSTEM") {
-      return {
-        authenticated: false,
-        code: "PRIVILEGE_ESCALATION_BLOCKED",
-        reason: "SYSTEM principal type cannot be authenticated via API key",
-        evaluatedAt: now,
-      };
-    }
-
-    const context = SecurityContext.create({
-      principal,
-      authenticated: true,
-      correlationId: typeof metadata?.correlationId === "string" ? metadata.correlationId : crypto.randomUUID(),
-      tenantId: principal.tenantId,
-      metadata,
-    });
-
-    return {
-      authenticated: true,
-      principal,
-      context,
-      evaluatedAt: now,
-    };
   }
 }
 
 export interface BearerTokenProviderOptions {
-  readonly secretOrPublicKey: string | Buffer;
-  readonly algorithm?: "HS256" | "RS256" | undefined;
-  readonly issuer?: string | undefined;
-  readonly audience?: string | readonly string[] | undefined;
-  readonly clockToleranceSeconds?: number | undefined;
+  readonly verifier?: BearerTokenVerifier | undefined;
 }
 
 export class BearerTokenAuthenticationProvider implements AuthenticationProvider {
-  private readonly secretOrPublicKey: string | Buffer;
-  private readonly algorithm: "HS256" | "RS256";
-  private readonly issuer?: string | undefined;
-  private readonly audience?: string | readonly string[] | undefined;
-  private readonly clockToleranceSeconds: number;
+  private readonly verifier?: BearerTokenVerifier | undefined;
 
-  constructor(options: BearerTokenProviderOptions) {
-    if (!options.secretOrPublicKey) {
-      throw new Error("secretOrPublicKey is required for BearerTokenAuthenticationProvider");
-    }
-    this.secretOrPublicKey = options.secretOrPublicKey;
-    this.algorithm = options.algorithm ?? "HS256";
-    this.issuer = options.issuer;
-    this.audience = options.audience;
-    this.clockToleranceSeconds = options.clockToleranceSeconds ?? 0;
+  constructor(options?: BearerTokenProviderOptions) {
+    this.verifier = options?.verifier;
   }
 
   supports(credentialType: string): boolean {
@@ -179,182 +175,74 @@ export class BearerTokenAuthenticationProvider implements AuthenticationProvider
       };
     }
 
-    const token = credential.trim();
-    const parts = token.split(".");
-    if (parts.length !== 3) {
+    if (!this.verifier) {
       return {
         authenticated: false,
-        code: "INVALID_JWT_FORMAT",
-        reason: "JWT must contain header, payload, and signature components",
+        code: "UNTRUSTED_BEARER_PROVIDER",
+        reason: "JWT verification pending trusted adapter/dependency",
         evaluatedAt: now,
       };
     }
 
-    const headerB64 = parts[0] ?? "";
-    const payloadB64 = parts[1] ?? "";
-    const signatureB64 = parts[2] ?? "";
-    let header: Record<string, unknown>;
-    let payload: Record<string, unknown>;
+    const token = credential.trim();
+    let claims: BearerTokenClaims | null = null;
 
     try {
-      header = JSON.parse(Buffer.from(headerB64, "base64url").toString("utf8"));
-      payload = JSON.parse(Buffer.from(payloadB64, "base64url").toString("utf8"));
+      claims = await this.verifier.verifyToken(token);
     } catch {
       return {
         authenticated: false,
-        code: "INVALID_JWT_ENCODING",
-        reason: "JWT header or payload is not valid base64url JSON",
+        code: "TOKEN_VERIFICATION_FAILED",
+        reason: "Bearer token verification failed",
         evaluatedAt: now,
       };
     }
 
-    if (
-      !header.alg ||
-      typeof header.alg !== "string" ||
-      header.alg.toLowerCase() === "none" ||
-      header.alg !== this.algorithm
-    ) {
+    if (!claims) {
       return {
         authenticated: false,
-        code: "UNSUPPORTED_ALGORITHM",
-        reason: "JWT algorithm '" + String(header.alg) + "' is not supported or not allowed",
+        code: "INVALID_TOKEN",
+        reason: "Bearer token could not be verified",
         evaluatedAt: now,
       };
     }
 
-    const signingInput = headerB64 + "." + payloadB64;
-    const signature = Buffer.from(signatureB64, "base64url");
-
-    if (this.algorithm === "HS256") {
-      const expectedSignature = crypto
-        .createHmac("sha256", this.secretOrPublicKey)
-        .update(signingInput)
-        .digest();
-
-      if (
-        signature.length !== expectedSignature.length ||
-        !crypto.timingSafeEqual(signature, expectedSignature)
-      ) {
-        return {
-          authenticated: false,
-          code: "INVALID_SIGNATURE",
-          reason: "JWT signature verification failed",
-          evaluatedAt: now,
-        };
-      }
-    } else if (this.algorithm === "RS256") {
-      try {
-        const verifier = crypto.createVerify("RSA-SHA256");
-        verifier.update(signingInput);
-        const valid = verifier.verify(this.secretOrPublicKey, signature);
-        if (!valid) {
-          return {
-            authenticated: false,
-            code: "INVALID_SIGNATURE",
-            reason: "JWT signature verification failed",
-            evaluatedAt: now,
-          };
-        }
-      } catch (err) {
-        return {
-          authenticated: false,
-          code: "SIGNATURE_VERIFICATION_ERROR",
-          reason: "Signature verification error: " + (err instanceof Error ? err.message : String(err)),
-          evaluatedAt: now,
-        };
-      }
-    }
-
-    const nowSec = Math.floor(now.getTime() / 1000);
-
-    if (typeof payload.exp === "number") {
-      if (nowSec > payload.exp + this.clockToleranceSeconds) {
-        return {
-          authenticated: false,
-          code: "TOKEN_EXPIRED",
-          reason: "JWT has expired",
-          evaluatedAt: now,
-        };
-      }
-    }
-
-    if (typeof payload.nbf === "number") {
-      if (nowSec < payload.nbf - this.clockToleranceSeconds) {
-        return {
-          authenticated: false,
-          code: "TOKEN_NOT_YET_VALID",
-          reason: "JWT is not valid yet",
-          evaluatedAt: now,
-        };
-      }
-    }
-
-    if (this.issuer && payload.iss !== this.issuer) {
-      return {
-        authenticated: false,
-        code: "INVALID_ISSUER",
-        reason: "JWT issuer '" + String(payload.iss) + "' does not match expected '" + this.issuer + "'",
-        evaluatedAt: now,
-      };
-    }
-
-    if (this.audience) {
-      const tokenAud = payload.aud;
-      const expectedAud = Array.isArray(this.audience) ? this.audience : [this.audience];
-      const actualAud = Array.isArray(tokenAud) ? tokenAud : [tokenAud];
-      const match = expectedAud.some((aud) => actualAud.includes(aud));
-      if (!match) {
-        return {
-          authenticated: false,
-          code: "INVALID_AUDIENCE",
-          reason: "JWT audience does not match expected audience",
-          evaluatedAt: now,
-        };
-      }
-    }
-
-    if (!payload.sub || typeof payload.sub !== "string" || payload.sub.trim() === "") {
+    if (!claims.sub || typeof claims.sub !== "string" || claims.sub.trim() === "") {
       return {
         authenticated: false,
         code: "MISSING_SUBJECT",
-        reason: "JWT subject claim (sub) is missing or invalid",
+        reason: "Token subject claim is missing or invalid",
+        evaluatedAt: now,
+      };
+    }
+
+    const validExternalTypes: readonly PrincipalType[] = ["HUMAN", "SERVICE", "AGENT", "TOOL"];
+    if (claims.principalType === "SYSTEM") {
+      return {
+        authenticated: false,
+        code: "PRIVILEGE_ESCALATION_BLOCKED",
+        reason: "SYSTEM principal type cannot be authenticated via external credentials",
         evaluatedAt: now,
       };
     }
 
     const principalType: PrincipalType =
-      typeof payload.principalType === "string" &&
-      ["HUMAN", "SERVICE", "AGENT", "TOOL"].includes(payload.principalType)
-        ? (payload.principalType as PrincipalType)
+      typeof claims.principalType === "string" && validExternalTypes.includes(claims.principalType as PrincipalType)
+        ? (claims.principalType as PrincipalType)
         : "HUMAN";
 
-    if (payload.principalType === "SYSTEM" || principalType === ("SYSTEM" as PrincipalType)) {
-      return {
-        authenticated: false,
-        code: "PRIVILEGE_ESCALATION_BLOCKED",
-        reason: "SYSTEM principal type cannot be authenticated via Bearer token",
-        evaluatedAt: now,
-      };
-    }
-
-    const roles = Array.isArray(payload.roles)
-      ? (payload.roles as unknown[]).filter((r): r is string => typeof r === "string")
-      : ["user"];
-
-    const permissions = Array.isArray(payload.permissions)
-      ? (payload.permissions as unknown[]).filter((p): p is string => typeof p === "string")
-      : [];
+    const roles = Array.isArray(claims.roles)
+      ? (claims.roles as unknown[]).filter((r): r is string => typeof r === "string" && r.trim() !== "")
+      : ["authenticated"];
 
     const principal = Principal.create({
-      id: payload.sub,
+      id: claims.sub.trim(),
       type: principalType,
-      name: typeof payload.name === "string" ? payload.name : ("User (" + payload.sub + ")"),
+      name: typeof claims.name === "string" && claims.name.trim() !== "" ? claims.name.trim() : `User (${claims.sub.trim()})`,
       roles,
-      permissions,
-      tenantId: typeof payload.tenantId === "string" ? payload.tenantId : undefined,
-      metadata: typeof payload.metadata === "object" && payload.metadata !== null
-        ? (payload.metadata as Record<string, unknown>)
-        : undefined,
+      permissions: [], // Authentication establishes identity; Authorization is determined by PolicyGateway / RBAC
+      tenantId: typeof claims.tenantId === "string" && claims.tenantId.trim() !== "" ? claims.tenantId.trim() : undefined,
+      metadata: typeof claims.metadata === "object" && claims.metadata !== null ? claims.metadata : undefined,
     });
 
     const context = SecurityContext.create({
@@ -396,7 +284,7 @@ export class AuthenticationService {
       const result: AuthenticationResult = {
         authenticated: false,
         code: "UNSUPPORTED_CREDENTIAL_TYPE",
-        reason: "No provider registered for credential type: '" + request.credentialType + "'",
+        reason: `No provider registered for credential type: '${request.credentialType}'`,
         evaluatedAt: now,
       };
       this.publishAuthEvent("auth.failed", request, result);
@@ -417,11 +305,11 @@ export class AuthenticationService {
         this.publishAuthEvent(eventType, request, result);
       }
       return result;
-    } catch (err) {
+    } catch {
       const result: AuthenticationResult = {
         authenticated: false,
         code: "AUTHENTICATION_ERROR",
-        reason: err instanceof Error ? err.message : String(err),
+        reason: "Authentication failed due to an internal error",
         evaluatedAt: now,
       };
       this.publishAuthEvent("auth.failed", request, result);

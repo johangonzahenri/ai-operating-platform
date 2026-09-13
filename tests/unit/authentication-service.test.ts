@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import crypto from "node:crypto";
-import { ApiKeyRecord, ApiKeyValidationError } from "../../src/domain/security/authentication.js";
+import {
+  ApiKeyRecord,
+  ApiKeyValidationError,
+  BearerTokenClaims,
+  BearerTokenVerifier,
+} from "../../src/domain/security/authentication.js";
 import {
   ApiKeyAuthenticationProvider,
   BearerTokenAuthenticationProvider,
@@ -9,6 +14,7 @@ import {
 } from "../../src/application/security/authentication-service.js";
 import { InMemoryApiKeyRepository } from "../../src/infrastructure/security/in-memory-api-key-repository.js";
 import { EventPublisher, DomainEvent } from "../../src/domain/events/events.js";
+import { evaluateFailClosedAuthorization } from "../../src/domain/security/security.js";
 
 class MockEventPublisher implements EventPublisher {
   readonly publishedEvents: DomainEvent[] = [];
@@ -17,12 +23,19 @@ class MockEventPublisher implements EventPublisher {
   }
 }
 
-function createJwt(header: object, payload: object, secret: string): string {
-  const headerB64 = Buffer.from(JSON.stringify(header)).toString("base64url");
-  const payloadB64 = Buffer.from(JSON.stringify(payload)).toString("base64url");
-  const signingInput = headerB64 + "." + payloadB64;
-  const sig = crypto.createHmac("sha256", secret).update(signingInput).digest("base64url");
-  return signingInput + "." + sig;
+// Test adapter fixture simulating a trusted JWT verifier (e.g. jose/jsonwebtoken adapter)
+class MockTrustedJwtVerifier implements BearerTokenVerifier {
+  constructor(
+    private readonly validTokens: Map<string, BearerTokenClaims> = new Map(),
+    private readonly shouldThrow: boolean = false
+  ) {}
+
+  async verifyToken(token: string): Promise<BearerTokenClaims | null> {
+    if (this.shouldThrow) {
+      throw new Error("Simulated internal cryptographic verification crash with raw token " + token);
+    }
+    return this.validTokens.get(token) ?? null;
+  }
 }
 
 test("1. ApiKeyRecord: creates valid record with hashed secret and timing-safe verification", () => {
@@ -35,7 +48,6 @@ test("1. ApiKeyRecord: creates valid record with hashed secret and timing-safe v
     principalType: "SERVICE",
     keyHash,
     roles: ["service", "data_reader"],
-    permissions: ["data.read"],
     tenantId: "tenant-1",
   });
 
@@ -74,7 +86,6 @@ test("3. ApiKeyAuthenticationProvider: authenticates valid key in keyId.secret a
     principalType: "AGENT",
     keyHash: ApiKeyRecord.hashSecret(secret),
     roles: ["agent"],
-    permissions: ["tool.execute"],
   });
   await repo.save(record);
 
@@ -82,7 +93,6 @@ test("3. ApiKeyAuthenticationProvider: authenticates valid key in keyId.secret a
   assert.equal(res1.authenticated, true);
   assert.equal(res1.principal?.id, "agent_007");
   assert.equal(res1.principal?.type, "AGENT");
-  assert.equal(res1.principal?.hasPermission("tool.execute"), true);
   assert.equal(res1.context?.authenticated, true);
 
   const res2 = await provider.authenticate("ak_client1_" + secret);
@@ -135,104 +145,109 @@ test("4. ApiKeyAuthenticationProvider: rejects invalid secret, unknown key, revo
   assert.equal(expired.code, "KEY_EXPIRED");
 });
 
-test("5. BearerTokenAuthenticationProvider: validates JWT with HS256 signature and claims", async () => {
-  const jwtSecret = "super_jwt_secret_32_bytes_long_key_1234";
-  const provider = new BearerTokenAuthenticationProvider({
-    secretOrPublicKey: jwtSecret,
-    algorithm: "HS256",
-    issuer: "ai-platform-auth",
-    audience: "ai-platform-runtime",
+test("5. BearerTokenAuthenticationProvider: safely fails closed when unconfigured (pending trusted adapter)", async () => {
+  const provider = new BearerTokenAuthenticationProvider(); // no verifier
+
+  const res = await provider.authenticate("some.jwt.token");
+  assert.equal(res.authenticated, false);
+  assert.equal(res.code, "UNTRUSTED_BEARER_PROVIDER");
+  assert.equal(res.reason, "JWT verification pending trusted adapter/dependency");
+});
+
+test("6. BearerTokenAuthenticationProvider: verifies token via trusted adapter and enforces canonical PrincipalType", async () => {
+  const tokenStore = new Map<string, BearerTokenClaims>();
+  tokenStore.set("valid-jwt-token-123", {
+    sub: "agent_planner_01",
+    principalType: "AGENT",
+    name: "Planner Agent",
+    roles: ["planner"],
+    tenantId: "tenant-ai",
   });
 
-  const validToken = createJwt(
-    { alg: "HS256", typ: "JWT" },
-    {
-      sub: "agent_planner",
-      principalType: "AGENT",
-      iss: "ai-platform-auth",
-      aud: "ai-platform-runtime",
-      exp: Math.floor(Date.now() / 1000) + 3600,
-      roles: ["planner"],
-      permissions: ["plan.create"],
-    },
-    jwtSecret,
-  );
+  const verifier = new MockTrustedJwtVerifier(tokenStore);
+  const provider = new BearerTokenAuthenticationProvider({ verifier });
 
-  const res = await provider.authenticate(validToken);
+  const res = await provider.authenticate("valid-jwt-token-123");
   assert.equal(res.authenticated, true);
-  assert.equal(res.principal?.id, "agent_planner");
+  assert.equal(res.principal?.id, "agent_planner_01");
   assert.equal(res.principal?.type, "AGENT");
-  assert.equal(res.principal?.hasPermission("plan.create"), true);
+  assert.equal(res.principal?.name, "Planner Agent");
   assert.equal(res.context?.authenticated, true);
+  assert.equal(res.context?.tenantId, "tenant-ai");
+
+  const invalidRes = await provider.authenticate("unregistered-token");
+  assert.equal(invalidRes.authenticated, false);
+  assert.equal(invalidRes.code, "INVALID_TOKEN");
 });
 
-test("6. BearerTokenAuthenticationProvider: strictly rejects alg: none and tampered payload", async () => {
-  const jwtSecret = "super_jwt_secret_32_bytes_long_key_1234";
-  const provider = new BearerTokenAuthenticationProvider({
-    secretOrPublicKey: jwtSecret,
-    algorithm: "HS256",
+test("7. BearerTokenAuthenticationProvider: strictly rejects SYSTEM escalation, missing subject, and sanitizes verifier crashes", async () => {
+  const tokenStore = new Map<string, BearerTokenClaims>();
+  tokenStore.set("system-escalation-token", {
+    sub: "system-internal",
+    principalType: "SYSTEM",
+  });
+  tokenStore.set("missing-sub-token", {
+    sub: "",
+    principalType: "HUMAN",
   });
 
-  const noneHeaderB64 = Buffer.from(JSON.stringify({ alg: "none", typ: "JWT" })).toString("base64url");
-  const payloadB64 = Buffer.from(JSON.stringify({ sub: "admin", principalType: "HUMAN" })).toString("base64url");
-  const algNoneToken = noneHeaderB64 + "." + payloadB64 + ".";
+  const verifier = new MockTrustedJwtVerifier(tokenStore);
+  const provider = new BearerTokenAuthenticationProvider({ verifier });
 
-  const algNoneRes = await provider.authenticate(algNoneToken);
-  assert.equal(algNoneRes.authenticated, false);
-  assert.equal(algNoneRes.code, "UNSUPPORTED_ALGORITHM");
-
-  const validToken = createJwt(
-    { alg: "HS256", typ: "JWT" },
-    { sub: "user1" },
-    jwtSecret,
-  );
-  const parts = validToken.split(".");
-  const tamperedPayloadB64 = Buffer.from(JSON.stringify({ sub: "admin", roles: ["admin"] })).toString("base64url");
-  const tamperedToken = parts[0] + "." + tamperedPayloadB64 + "." + parts[2];
-
-  const tamperedRes = await provider.authenticate(tamperedToken);
-  assert.equal(tamperedRes.authenticated, false);
-  assert.equal(tamperedRes.code, "INVALID_SIGNATURE");
-});
-
-test("7. BearerTokenAuthenticationProvider: rejects expired token, issuer/audience mismatch, and SYSTEM escalation", async () => {
-  const jwtSecret = "super_jwt_secret_32_bytes_long_key_1234";
-  const provider = new BearerTokenAuthenticationProvider({
-    secretOrPublicKey: jwtSecret,
-    algorithm: "HS256",
-    issuer: "expected-iss",
-    audience: "expected-aud",
-  });
-
-  const expiredToken = createJwt(
-    { alg: "HS256", typ: "JWT" },
-    { sub: "u1", iss: "expected-iss", aud: "expected-aud", exp: Math.floor(Date.now() / 1000) - 100 },
-    jwtSecret,
-  );
-  const expiredRes = await provider.authenticate(expiredToken);
-  assert.equal(expiredRes.authenticated, false);
-  assert.equal(expiredRes.code, "TOKEN_EXPIRED");
-
-  const wrongIssToken = createJwt(
-    { alg: "HS256", typ: "JWT" },
-    { sub: "u1", iss: "wrong-iss", aud: "expected-aud" },
-    jwtSecret,
-  );
-  const wrongIssRes = await provider.authenticate(wrongIssToken);
-  assert.equal(wrongIssRes.authenticated, false);
-  assert.equal(wrongIssRes.code, "INVALID_ISSUER");
-
-  const systemEscalationToken = createJwt(
-    { alg: "HS256", typ: "JWT" },
-    { sub: "malicious", principalType: "SYSTEM", iss: "expected-iss", aud: "expected-aud" },
-    jwtSecret,
-  );
-  const systemRes = await provider.authenticate(systemEscalationToken);
+  const systemRes = await provider.authenticate("system-escalation-token");
   assert.equal(systemRes.authenticated, false);
   assert.equal(systemRes.code, "PRIVILEGE_ESCALATION_BLOCKED");
+
+  const missingSubRes = await provider.authenticate("missing-sub-token");
+  assert.equal(missingSubRes.authenticated, false);
+  assert.equal(missingSubRes.code, "MISSING_SUBJECT");
+
+  const crashingVerifier = new MockTrustedJwtVerifier(new Map(), true);
+  const crashingProvider = new BearerTokenAuthenticationProvider({ verifier: crashingVerifier });
+  const crashRes = await crashingProvider.authenticate("crash-token-secret-data");
+  assert.equal(crashRes.authenticated, false);
+  assert.equal(crashRes.code, "TOKEN_VERIFICATION_FAILED");
+  assert.equal(crashRes.reason, "Bearer token verification failed");
+  // Ensure the raw error message containing crash-token-secret-data did NOT leak into reason
+  assert.equal(crashRes.reason?.includes("crash-token-secret-data"), false);
 });
 
-test("8. AuthenticationService: extracts and authenticates from Authorization, X-API-Key, X-Agent-Token headers and handles anonymous", async () => {
+test("8. Mandatory Control Test: Authentication != Authorization (authenticated credential does not grant implicit admin or wildcard permissions)", async () => {
+  const tokenStore = new Map<string, BearerTokenClaims>();
+  tokenStore.set("user-jwt", {
+    sub: "regular_user_42",
+    principalType: "HUMAN",
+    roles: ["user", "viewer"],
+  });
+
+  const verifier = new MockTrustedJwtVerifier(tokenStore);
+  const provider = new BearerTokenAuthenticationProvider({ verifier });
+
+  const authResult = await provider.authenticate("user-jwt");
+  assert.equal(authResult.authenticated, true);
+  assert.ok(authResult.principal);
+  assert.ok(authResult.context);
+
+  // Assert: NOT implicit admin and NOT implicit "*"
+  assert.equal(authResult.principal.hasRole("admin"), false);
+  assert.equal(authResult.principal.hasPermission("*"), false);
+  assert.equal(authResult.principal.hasPermission("admin.execute"), false);
+  assert.equal(authResult.principal.permissions.length, 0);
+
+  // Assert: Policy Gateway / Authorization fails-closed for protected action requiring privileged permission
+  const decision = evaluateFailClosedAuthorization({
+    context: authResult.context,
+    action: "system.reboot",
+    resourceType: "API",
+    resourceId: "platform-kernel",
+    requiredPermission: "system.reboot",
+  });
+
+  assert.equal(decision.allowed, false);
+  assert.equal(decision.code, "SECURITY_PERMISSION_DENIED");
+});
+
+test("9. AuthenticationService: extracts and authenticates from Authorization, X-API-Key, X-Agent-Token headers and handles anonymous", async () => {
   const repo = new InMemoryApiKeyRepository();
   const apiKeySecret = "api_secret_12345";
   await repo.save(
@@ -243,10 +258,16 @@ test("8. AuthenticationService: extracts and authenticates from Authorization, X
     }),
   );
 
-  const jwtSecret = "jwt_secret_for_header_testing_12345";
+  const tokenStore = new Map<string, BearerTokenClaims>();
+  tokenStore.set("jwt-agent-token", {
+    sub: "agent_alpha",
+    principalType: "AGENT",
+  });
+  const verifier = new MockTrustedJwtVerifier(tokenStore);
+
   const service = new AuthenticationService(undefined, [
     new ApiKeyAuthenticationProvider(repo),
-    new BearerTokenAuthenticationProvider({ secretOrPublicKey: jwtSecret }),
+    new BearerTokenAuthenticationProvider({ verifier }),
   ]);
 
   const xApiKeyRes = await service.authenticateFromHeaders({ "x-api-key": "key10." + apiKeySecret });
@@ -257,10 +278,13 @@ test("8. AuthenticationService: extracts and authenticates from Authorization, X
   assert.equal(authApiKeyRes.authenticated, true);
   assert.equal(authApiKeyRes.principal?.id, "service_logger");
 
-  const token = createJwt({ alg: "HS256" }, { sub: "agent_alpha", principalType: "AGENT" }, jwtSecret);
-  const authBearerRes = await service.authenticateFromHeaders({ authorization: "Bearer " + token });
+  const authBearerRes = await service.authenticateFromHeaders({ authorization: "Bearer jwt-agent-token" });
   assert.equal(authBearerRes.authenticated, true);
   assert.equal(authBearerRes.principal?.id, "agent_alpha");
+
+  const xAgentTokenRes = await service.authenticateFromHeaders({ "x-agent-token": "jwt-agent-token" });
+  assert.equal(xAgentTokenRes.authenticated, true);
+  assert.equal(xAgentTokenRes.principal?.id, "agent_alpha");
 
   const anonRes = await service.authenticateFromHeaders({});
   assert.equal(anonRes.authenticated, false);
@@ -270,14 +294,16 @@ test("8. AuthenticationService: extracts and authenticates from Authorization, X
   assert.equal(anonRes.context?.authenticated, false);
 });
 
-test("9. AuthenticationService: publishes domain events without leaking raw secrets/credentials", async () => {
+test("10. Secret Handling & Event Security: secrets/tokens/keys are never exposed in events or errors", async () => {
   const repo = new InMemoryApiKeyRepository();
-  const secret = "sensitive_secret_do_not_leak";
+  const sensitiveKeySecret = "SUPER_SECRET_API_KEY_DO_NOT_EXPOSE_9999";
+  const sensitiveJwt = "SUPER_SECRET_JWT_BEARER_TOKEN_HEADER_DATA_1111";
+
   await repo.save(
     ApiKeyRecord.create({
       id: "sec_key",
       principalId: "worker_secure",
-      keyHash: ApiKeyRecord.hashSecret(secret),
+      keyHash: ApiKeyRecord.hashSecret(sensitiveKeySecret),
     }),
   );
 
@@ -286,30 +312,31 @@ test("9. AuthenticationService: publishes domain events without leaking raw secr
     new ApiKeyAuthenticationProvider(repo),
   ]);
 
+  // Successful auth
   await service.authenticate({
     credentialType: "API_KEY",
-    credential: "sec_key." + secret,
+    credential: "sec_key." + sensitiveKeySecret,
     correlationId: "corr-success-1",
   });
 
-  assert.equal(eventPublisher.publishedEvents.length, 1);
-  const successEvent = eventPublisher.publishedEvents[0]!;
-  assert.equal(successEvent.type, "auth.succeeded");
-  assert.equal(successEvent.traceId, "corr-success-1");
-  assert.equal(successEvent.payload.principalId, "worker_secure");
-
-  const eventJson = JSON.stringify(successEvent);
-  assert.equal(eventJson.includes(secret), false);
-
+  // Failed auth
   await service.authenticate({
     credentialType: "API_KEY",
-    credential: "sec_key.wrong_secret_attempt",
+    credential: "sec_key.WRONG_SECRET_TRY",
     correlationId: "corr-fail-1",
   });
 
-  assert.equal(eventPublisher.publishedEvents.length, 2);
-  const failEvent = eventPublisher.publishedEvents[1]!;
-  assert.equal(failEvent.type, "auth.failed");
-  assert.equal(failEvent.traceId, "corr-fail-1");
-  assert.equal(JSON.stringify(failEvent).includes("wrong_secret_attempt"), false);
+  // Unsupported type
+  await service.authenticate({
+    credentialType: "BEARER_TOKEN",
+    credential: sensitiveJwt,
+    correlationId: "corr-unsupported-1",
+  });
+
+  assert.equal(eventPublisher.publishedEvents.length, 3);
+
+  const allEventsJson = JSON.stringify(eventPublisher.publishedEvents);
+  assert.equal(allEventsJson.includes(sensitiveKeySecret), false, "Raw API secret must not appear in events");
+  assert.equal(allEventsJson.includes("WRONG_SECRET_TRY"), false, "Failed attempt secret must not appear in events");
+  assert.equal(allEventsJson.includes(sensitiveJwt), false, "JWT token must not appear in events");
 });

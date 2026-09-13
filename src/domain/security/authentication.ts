@@ -1,4 +1,4 @@
-﻿import crypto from "node:crypto";
+import crypto from "node:crypto";
 import { deepFreeze, sanitizeBoundedValue, DEFAULT_BOUNDED_DATA_LIMITS, BoundedDataLimits } from "../context/bounded-data.js";
 import { Principal, PrincipalType, SecurityContext } from "./security.js";
 
@@ -12,7 +12,6 @@ export interface ApiKeyRecordProps {
   readonly keyHash: string;
   readonly status?: ApiKeyStatus | undefined;
   readonly roles?: readonly string[] | undefined;
-  readonly permissions?: readonly string[] | undefined;
   readonly tenantId?: string | undefined;
   readonly createdAt?: Date | undefined;
   readonly expiresAt?: Date | undefined;
@@ -33,7 +32,6 @@ export class ApiKeyRecord {
   readonly keyHash!: string;
   readonly status!: ApiKeyStatus;
   readonly roles!: readonly string[];
-  readonly permissions!: readonly string[];
   readonly tenantId?: string | undefined;
   readonly createdAt!: Date;
   readonly expiresAt?: Date | undefined;
@@ -46,7 +44,6 @@ export class ApiKeyRecord {
     keyHash: string;
     status: ApiKeyStatus;
     roles: readonly string[];
-    permissions: readonly string[];
     tenantId?: string | undefined;
     createdAt: Date;
     expiresAt?: Date | undefined;
@@ -94,10 +91,6 @@ export class ApiKeyRecord {
       ? Object.freeze([...new Set(props.roles.map((r) => (typeof r === "string" ? r.trim() : "")).filter(Boolean))])
       : Object.freeze(["service"]);
 
-    const permissions = Array.isArray(props.permissions)
-      ? Object.freeze([...new Set(props.permissions.map((p) => (typeof p === "string" ? p.trim() : "")).filter(Boolean))])
-      : Object.freeze([]);
-
     const createdAt = props.createdAt instanceof Date && !Number.isNaN(props.createdAt.getTime())
       ? new Date(props.createdAt.getTime())
       : new Date();
@@ -117,7 +110,6 @@ export class ApiKeyRecord {
       keyHash: props.keyHash.trim().toLowerCase(),
       status,
       roles,
-      permissions,
       ...(props.tenantId?.trim() ? { tenantId: props.tenantId.trim() } : {}),
       createdAt,
       ...(expiresAt ? { expiresAt } : {}),
@@ -149,7 +141,7 @@ export class ApiKeyRecord {
       type: this.principalType,
       name: `API Key (${this.id})`,
       roles: this.roles,
-      permissions: this.permissions,
+      permissions: [], // Authentication establishes identity only; authorization is evaluated by policy/RBAC
       tenantId: this.tenantId,
       metadata: { keyId: this.id },
     });
@@ -164,10 +156,14 @@ export interface BearerTokenClaims {
   readonly nbf?: number | undefined;
   readonly iat?: number | undefined;
   readonly principalType?: PrincipalType | undefined;
+  readonly name?: string | undefined;
   readonly roles?: readonly string[] | undefined;
-  readonly permissions?: readonly string[] | undefined;
   readonly tenantId?: string | undefined;
   readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+}
+
+export interface BearerTokenVerifier {
+  verifyToken(token: string): Promise<BearerTokenClaims | null>;
 }
 
 export interface AuthenticationRequest {
