@@ -281,26 +281,35 @@ Aggregation is deterministic Coordinator logic, not unconstrained LLM judgment:
 The final result must identify which steps succeeded and never present an
 unverified execution as success.
 
-## 21. Implementation Decision
+## 21. Implementation Status
 
-**CONTRACT READY**
+**HARDENED RUNTIME IMPLEMENTED**
 
-The primary use case is strong enough to define a small future contract, but
-runtime implementation is intentionally deferred. The current architecture
-already supplies the necessary foundations without requiring a new framework or
-new persistence model.
+The primary operations use case (`DIAGNOSTIC` -> `DECISION` -> `EXECUTION` -> `VERIFICATION`) is fully implemented and hardened in `src/domain/coordination/coordination.ts` and `src/application/coordination/multi-agent-coordinator.ts`.
+
+Key architectural invariants enforced:
+- `MultiAgentCoordinator` is the single coordination authority.
+- `maxAgents = 4`, `maxHandoffs = 3`, `maxDepth = 1`.
+- Independent verification semantics: no forced `verified: true`; verdicts evaluated explicitly (`PASS` / `FAIL` / conflict / missing).
+- Runtime budget counters (`agentsExecuted`, `handoffsCreated`, `coordinationDepth`).
+- Context and memory isolation across agent handoffs.
+- Bounded, sanitized `AgentHandoff` payloads.
+- Policy evaluated before each step.
+- Full domain event observability.
+
+**COORDINATION STATE DURABILITY: NOT YET IMPLEMENTED**
+Child tasks and executions are durable and recoverable via SQLite and CoreRuntime. Top-level coordination requests and results remain ephemeral in memory.
 
 ## 22. Files Changed + Validation
 
-Changed file:
-
+Core Implementation Files:
+- `src/domain/coordination/coordination.ts`
+- `src/application/coordination/multi-agent-coordinator.ts`
+- `tests/unit/multi-agent-coordinator.test.ts`
+- `docs/MULTI_AGENT_RUNTIME.md`
 - `docs/MULTI_AGENT_COORDINATION_CONTRACT.md`
 
-No production classes, endpoints, registries, Memory, TaskContext, CoreRuntime,
-or events were changed.
-
-Validation required for this documentation-only checkpoint:
-
+Validation required:
 - `npm run build`
 - `npm test`
 - `npm run check`

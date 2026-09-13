@@ -1,10 +1,104 @@
 import crypto from "node:crypto";
+import type { Agent } from "../agent/agent.js";
 import { BoundedDataLimits, DEFAULT_BOUNDED_DATA_LIMITS, deepFreeze, sanitizeBoundedValue, validateBoundedDataLimits } from "../context/bounded-data.js";
 
 export type CoordinationStatus = "RUNNING" | "COMPLETED" | "FAILED" | "PARTIAL" | "CANCELLED" | "TIMEOUT" | "POLICY_DENIED";
 export type HandoffStatus = "REQUESTED" | "ACCEPTED" | "REJECTED" | "COMPLETED" | "FAILED";
 export const COORDINATION_ROLES = Object.freeze(["DIAGNOSTIC", "DECISION", "EXECUTION", "VERIFICATION"] as const);
 export type CoordinationRole = typeof COORDINATION_ROLES[number];
+
+export type VerificationVerdictStatus = "PASS" | "FAIL";
+
+export interface VerificationDecision {
+  readonly status: VerificationVerdictStatus;
+  readonly verified: boolean;
+  readonly reason?: string;
+  readonly evidence?: Readonly<Record<string, unknown>>;
+}
+
+export interface VerificationEvaluationResult {
+  readonly pass: boolean;
+  readonly decision?: VerificationDecision;
+  readonly error?: Readonly<{ code: string; message: string }>;
+}
+
+export function evaluateVerificationOutput(output: unknown): VerificationEvaluationResult {
+  if (output === null || output === undefined || typeof output !== "object" || Array.isArray(output)) {
+    return {
+      pass: false,
+      error: { code: "VERIFICATION_MALFORMED", message: "Verification output must be a non-null object" },
+    };
+  }
+
+  const record = output as Record<string, unknown>;
+  const keys = Object.keys(record);
+  if (keys.length === 0) {
+    return {
+      pass: false,
+      error: { code: "VERIFICATION_MISSING", message: "Verification output is empty and lacks a verdict" },
+    };
+  }
+
+  const rawStatus = typeof record.status === "string" ? record.status.trim().toUpperCase() : undefined;
+  const rawVerified = typeof record.verified === "boolean" ? record.verified : undefined;
+  const reason = typeof record.reason === "string" ? record.reason.trim() : undefined;
+  const evidence = record.evidence && typeof record.evidence === "object" && !Array.isArray(record.evidence)
+    ? (record.evidence as Readonly<Record<string, unknown>>)
+    : undefined;
+
+  // Check for explicit contradiction / conflict
+  if (rawStatus === "PASS" && rawVerified === false) {
+    return {
+      pass: false,
+      error: { code: "VERIFICATION_CONFLICT", message: "Verification output contains conflicting status 'PASS' and verified false" },
+    };
+  }
+  if ((rawStatus === "FAIL" || rawStatus === "FAILED") && rawVerified === true) {
+    return {
+      pass: false,
+      error: { code: "VERIFICATION_CONFLICT", message: "Verification output contains conflicting status 'FAIL' and verified true" },
+    };
+  }
+
+  // Explicit PASS verdict
+  if (rawStatus === "PASS" || (rawVerified === true && rawStatus === undefined)) {
+    return {
+      pass: true,
+      decision: {
+        status: "PASS",
+        verified: true,
+        ...(reason ? { reason } : {}),
+        ...(evidence ? { evidence } : {}),
+      },
+    };
+  }
+
+  // Explicit FAIL verdict
+  if (rawStatus === "FAIL" || rawStatus === "FAILED" || rawVerified === false) {
+    return {
+      pass: false,
+      decision: {
+        status: "FAIL",
+        verified: false,
+        ...(reason ? { reason } : {}),
+        ...(evidence ? { evidence } : {}),
+      },
+      error: {
+        code: "VERIFICATION_FAILED",
+        message: reason ?? "Verification agent rejected execution result",
+      },
+    };
+  }
+
+  // Ambiguous verdict
+  return {
+    pass: false,
+    error: {
+      code: "VERIFICATION_AMBIGUOUS",
+      message: "Verification output lacks definitive PASS or FAIL status",
+    },
+  };
+}
 
 export interface CoordinationStep {
   readonly agentId: string;
@@ -126,7 +220,7 @@ export class CoordinationRequest {
     return new CoordinationRequest({
       coordinationId: props.coordinationId?.trim() || crypto.randomUUID(), correlationId: props.correlationId?.trim() || crypto.randomUUID(),
       taskId: props.taskId.trim(), objective: props.objective.trim(), input,
-      steps: Object.freeze(props.steps.map((step) => Object.freeze({ agentId: step.agentId.trim(), role: step.role.trim(), required: step.required !== false }))),
+      steps: Object.freeze(props.steps.map((step) => Object.freeze({ agentId: step.agentId.trim(), role: step.role.trim() as CoordinationRole, required: step.required !== false }))),
       maxHandoffs, timeoutMs, verificationCriteria, depth,
     });
   }
@@ -141,6 +235,8 @@ export interface CoordinationResult {
   readonly handoffs: readonly AgentHandoff[];
   readonly output?: Readonly<Record<string, unknown>>;
   readonly error?: Readonly<{ code: string; message: string }>;
+  readonly agentsExecuted?: number;
+  readonly handoffsCreated?: number;
 }
 
 export interface AgentLookup {
