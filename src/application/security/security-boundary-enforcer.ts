@@ -1,14 +1,20 @@
 ﻿import crypto from "node:crypto";
 import { EventPublisher, DomainEvent } from "../../domain/events/events.js";
-import { SecurityContext, Principal } from "../../domain/security/security.js";
+import { SecurityContext, Principal, RiskLevel } from "../../domain/security/security.js";
 import { PolicyGateway, PolicyDecision } from "../../domain/policy/policy.js";
+import {
+  deepFreeze,
+  sanitizeBoundedValue,
+  DEFAULT_BOUNDED_DATA_LIMITS,
+  BoundedDataLimits,
+} from "../../domain/context/bounded-data.js";
 import {
   ToolInvocationRequest,
   ModelInvocationRequest,
   MemoryAccessRequest,
   AgentDelegation,
   ModelProviderAllowlist,
-  SecurityBoundaryViolationError,
+  ToolOutputSanitizationResult,
 } from "../../domain/security/boundaries.js";
 import { AuthorizationEvaluator } from "./rbac-authorization-evaluator.js";
 
@@ -39,7 +45,42 @@ export class SecurityBoundaryEnforcer {
     this.modelAllowlists.set(agentOrRoleId, allowlist);
   }
 
-  // 1. Tool Boundary Enforcement
+  // 1. Risk Level Integrity: Prevents caller from arbitrarily downgrading intrinsically high-risk actions
+  deriveTrustedRiskLevel(resourceType: string, action: string, callerReportedRisk?: RiskLevel): RiskLevel {
+    const act = action.toLowerCase();
+    const res = resourceType.toLowerCase();
+
+    // Sensitive / high risk operations
+    if (
+      act.includes("format") ||
+      act.includes("delete_all") ||
+      act.includes("shutdown") ||
+      act.includes("reboot") ||
+      act.includes("elevate") ||
+      res === "system"
+    ) {
+      return "CRITICAL";
+    }
+
+    if (
+      act.includes("shell") ||
+      act.includes("execute") ||
+      act.includes("write") ||
+      act.includes("assign") ||
+      act.includes("modify") ||
+      res === "coordination"
+    ) {
+      return "HIGH";
+    }
+
+    if (act.includes("invoke") || act.includes("transfer")) {
+      return "MEDIUM";
+    }
+
+    return callerReportedRisk ?? "LOW";
+  }
+
+  // 2. Tool Boundary Enforcement (Pre-execution authorization)
   async enforceToolBoundary(request: ToolInvocationRequest): Promise<PolicyDecision> {
     if (!request || typeof request !== "object" || !request.context || !(request.context instanceof SecurityContext)) {
       return {
@@ -50,23 +91,29 @@ export class SecurityBoundaryEnforcer {
       };
     }
 
-    const { context, toolId, input, targetTenantId, targetScope, targetAgentId } = request;
+    const { context, toolId, targetTenantId, targetScope, targetAgentId } = request;
     const principal = context.principal;
 
-    // Agent identity derived exclusively from SecurityContext
-    const effectiveAgentId = principal.type === "AGENT" ? principal.id : targetAgentId;
+    // Caller identity strictly from SecurityContext (no fallback to targetAgentId as caller)
+    const callerId = principal.id;
+    const action = request.action ?? "tool.invoke";
+    const requiredPermission = request.requiredPermission ?? (toolId.startsWith("system.") ? toolId : undefined);
 
-    // Evaluate RBAC Authorization for tool.invoke
+    // Trusted Risk derivation
+    const trustedRisk = this.deriveTrustedRiskLevel("TOOL", action, request.riskLevel);
+
+    // Evaluate RBAC Authorization for tool
     const authzResult = await this.evaluator.evaluate({
       context,
-      action: "tool.invoke",
+      action,
       resourceType: "TOOL",
       resourceId: toolId,
-      targetAgentId: effectiveAgentId,
+      requiredPermission,
+      targetAgentId,
       targetTenantId,
       targetScope,
-      riskLevel: request.riskLevel,
-      metadata: { toolId, inputSanitized: true },
+      riskLevel: trustedRisk,
+      metadata: { toolId, callerId, inputSanitized: true },
     });
 
     if (!authzResult.allowed) {
@@ -86,7 +133,19 @@ export class SecurityBoundaryEnforcer {
     };
   }
 
-  // 2. Model Boundary & Allowlist Enforcement
+  // 3. Tool Output Sanitization & Boundary Enforcement (Post-execution)
+  enforceToolOutput(rawOutput: unknown, limits: BoundedDataLimits = DEFAULT_BOUNDED_DATA_LIMITS): ToolOutputSanitizationResult {
+    const state = { truncated: false };
+    const sanitized = deepFreeze(sanitizeBoundedValue(rawOutput, limits, 0, state));
+
+    return {
+      sanitizedOutput: sanitized,
+      isBounded: true,
+      bytesTruncated: state.truncated,
+    };
+  }
+
+  // 4. Model Boundary & Allowlist Enforcement
   async enforceModelBoundary(request: ModelInvocationRequest): Promise<PolicyDecision> {
     if (!request || typeof request !== "object" || !request.context || !(request.context instanceof SecurityContext)) {
       return {
@@ -134,12 +193,15 @@ export class SecurityBoundaryEnforcer {
       }
     }
 
+    const action = request.action ?? "model.invoke";
+
     // 2. Evaluate RBAC Authorization for model.invoke
     const authzResult = await this.evaluator.evaluate({
       context,
-      action: "model.invoke",
+      action,
       resourceType: "MODEL",
       resourceId: modelId,
+      requiredPermission: request.requiredPermission,
       targetAgentId,
       targetTenantId,
       targetScope,
@@ -163,7 +225,7 @@ export class SecurityBoundaryEnforcer {
     };
   }
 
-  // 3. Memory Boundary & Scope Ownership Enforcement
+  // 5. Memory Boundary & Scope Ownership Enforcement (READ, WRITE, DELETE)
   async enforceMemoryBoundary(request: MemoryAccessRequest): Promise<PolicyDecision> {
     if (!request || typeof request !== "object" || !request.context || !(request.context instanceof SecurityContext)) {
       return {
@@ -187,9 +249,8 @@ export class SecurityBoundaryEnforcer {
       };
     }
 
-    // Memory Scope & Ownership:
-    // If principal is an AGENT, it can access its own memory scope (e.g. `agent-${principal.id}` or `session-${id}`)
-    // Accessing another agent's dedicated scope (`agent-other`) is blocked without explicit authorization
+    // Memory Scope Ownership check:
+    // If principal is an AGENT, dedicated agent scopes (e.g. `agent-${id}`) are strictly isolated to that agent
     if (principal.type === "AGENT") {
       if (scope.startsWith("agent-") && scope !== `agent-${principal.id}`) {
         return {
@@ -208,6 +269,7 @@ export class SecurityBoundaryEnforcer {
       action,
       resourceType: "MEMORY",
       resourceId: `${scope}:${key}`,
+      requiredPermission: request.requiredPermission,
       targetAgentId,
       targetTenantId,
       metadata: { scope, key, operation },
@@ -230,13 +292,31 @@ export class SecurityBoundaryEnforcer {
     };
   }
 
-  // 4. Agent Delegation Enforcement
-  enforceDelegationBoundary(delegation: AgentDelegation, sourceContext: SecurityContext): { allowed: boolean; code: string; reason: string } {
+  // 6. Agent Delegation Boundary & Escalation Prevention
+  async enforceDelegationBoundary(delegation: AgentDelegation, sourceContext: SecurityContext): Promise<{ allowed: boolean; code: string; reason: string }> {
     if (!delegation || typeof delegation !== "object" || !sourceContext || !(sourceContext instanceof SecurityContext)) {
       return {
         allowed: false,
         code: "SECURITY_INVALID_REQUEST",
         reason: "Agent delegation requires a valid delegation object and source SecurityContext",
+      };
+    }
+
+    // Source must be authenticated
+    if (!sourceContext.authenticated) {
+      return {
+        allowed: false,
+        code: "SECURITY_UNAUTHENTICATED",
+        reason: "Unauthenticated source cannot delegate capabilities",
+      };
+    }
+
+    // Source principal mismatch check
+    if (sourceContext.principal.id !== delegation.sourcePrincipalId) {
+      return {
+        allowed: false,
+        code: "SECURITY_DELEGATION_IDENTITY_MISMATCH",
+        reason: `Source context principal '${sourceContext.principal.id}' does not match delegation source '${delegation.sourcePrincipalId}'`,
       };
     }
 
@@ -260,21 +340,47 @@ export class SecurityBoundaryEnforcer {
       };
     }
 
-    // Source principal mismatch check
-    if (sourceContext.principal.id !== delegation.sourcePrincipalId) {
-      return {
-        allowed: false,
-        code: "SECURITY_DELEGATION_IDENTITY_MISMATCH",
-        reason: `Source context principal '${sourceContext.principal.id}' does not match delegation source '${delegation.sourcePrincipalId}'`,
-      };
-    }
-
-    // Prevent privilege escalation via delegation: Target cannot acquire SYSTEM privileges
+    // Prevent privilege escalation via delegation: Target cannot acquire SYSTEM privileges or universal wildcard
     if (delegation.targetPrincipalId === "system-internal" || delegation.delegatedCapability === "*") {
       return {
         allowed: false,
         code: "SECURITY_DELEGATION_ESCALATION_BLOCKED",
         reason: "Delegation cannot confer SYSTEM or wildcard privileges",
+      };
+    }
+
+    // Tenant boundary check: Source cannot delegate cross-tenant capabilities beyond its own tenant
+    if (sourceContext.tenantId && delegation.tenantId && sourceContext.tenantId !== delegation.tenantId) {
+      return {
+        allowed: false,
+        code: "SECURITY_DELEGATION_TENANT_ESCALATION_BLOCKED",
+        reason: `Source tenant '${sourceContext.tenantId}' cannot delegate capabilities for target tenant '${delegation.tenantId}'`,
+      };
+    }
+
+    // Scope boundary check: Source cannot delegate broader scope than its own scope
+    if (sourceContext.resourceScope && delegation.scope && sourceContext.resourceScope !== delegation.scope && sourceContext.resourceScope !== "*") {
+      return {
+        allowed: false,
+        code: "SECURITY_DELEGATION_SCOPE_ESCALATION_BLOCKED",
+        reason: `Source scope '${sourceContext.resourceScope}' cannot delegate capabilities for target scope '${delegation.scope}'`,
+      };
+    }
+
+    // Capability check: Verify source has authorization for handoff.transfer AND the capability being delegated
+    const handoffAuthz = await this.evaluator.evaluate({
+      context: sourceContext,
+      action: "handoff.transfer",
+      resourceType: "COORDINATION",
+      resourceId: delegation.resource,
+      targetAgentId: delegation.targetPrincipalId,
+    });
+
+    if (!handoffAuthz.allowed) {
+      return {
+        allowed: false,
+        code: "SECURITY_DELEGATION_UNAUTHORIZED",
+        reason: `Source principal '${sourceContext.principal.id}' is not authorized to delegate handoffs`,
       };
     }
 

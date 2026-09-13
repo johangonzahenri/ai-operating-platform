@@ -12,6 +12,7 @@ export interface ToolInvocationRequest {
   readonly context: SecurityContext;
   readonly toolId: string;
   readonly action?: string | undefined;
+  readonly requiredPermission?: string | undefined;
   readonly input: Readonly<Record<string, unknown>>;
   readonly targetAgentId?: string | undefined;
   readonly targetTenantId?: string | undefined;
@@ -26,6 +27,7 @@ export interface ModelInvocationRequest {
   readonly modelId: string;
   readonly providerId?: string | undefined;
   readonly action?: string | undefined;
+  readonly requiredPermission?: string | undefined;
   readonly input: Readonly<Record<string, unknown>>;
   readonly targetAgentId?: string | undefined;
   readonly targetTenantId?: string | undefined;
@@ -39,6 +41,7 @@ export interface MemoryAccessRequest {
   readonly operation: "READ" | "WRITE" | "DELETE";
   readonly scope: string;
   readonly key: string;
+  readonly requiredPermission?: string | undefined;
   readonly targetTenantId?: string | undefined;
   readonly targetAgentId?: string | undefined;
   readonly correlationId?: string | undefined;
@@ -61,4 +64,10 @@ export interface AgentDelegation {
 export interface ModelProviderAllowlist {
   readonly allowedModels: readonly string[];
   readonly allowedProviders?: readonly string[] | undefined;
+}
+
+export interface ToolOutputSanitizationResult {
+  readonly sanitizedOutput: unknown;
+  readonly isBounded: boolean;
+  readonly bytesTruncated: boolean;
 }

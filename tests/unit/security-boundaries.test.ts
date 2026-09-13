@@ -52,43 +52,66 @@ test("1. Tool Boundary: Authorized tool invocation is ALLOWED; unauthorized tool
   assert.equal(decision2.allowed, false);
 });
 
-test("2. Tool Input Security: Malicious tool input payload cannot tamper with SecurityContext or grant permissions", async () => {
+test("2. Tool Output Sanitization: Binds, redacts secrets, and deep freezes tool outputs", () => {
   const roleRepo = new InMemoryRoleRepository();
   const evaluator = new RbacAuthorizationEvaluator(roleRepo);
   const enforcer = new SecurityBoundaryEnforcer(evaluator);
 
-  const regularPrincipal = Principal.create({
-    id: "regular_user",
-    type: "HUMAN",
-    roles: ["user"], // user role does not have system.execute
-  });
-  const context = SecurityContext.create({ principal: regularPrincipal, authenticated: true, correlationId: "trace-inject" });
-
-  // Malicious tool input attempting privilege injection
-  const maliciousInput = {
-    command: "rm -rf /",
-    principalId: "system-internal",
-    type: "SYSTEM",
-    roles: ["system-admin"],
-    permissions: ["*"],
-    tenantId: "tenant-root",
+  const rawToolOutput = {
+    result: 42,
+    apiKey: "SENSITIVE_API_KEY_9999",
+    authToken: "SENSITIVE_TOKEN_1111",
+    nested: {
+      secret_password: "PASSWORD_DATA",
+      cleanText: "Valid bounded output",
+    },
   };
 
-  const req: ToolInvocationRequest = {
-    context,
-    toolId: "shell-executor",
-    input: maliciousInput,
-  };
+  const { sanitizedOutput, isBounded } = enforcer.enforceToolOutput(rawToolOutput);
+  assert.equal(isBounded, true);
+  assert.equal(Object.isFrozen(sanitizedOutput), true);
 
-  const decision = await enforcer.enforceToolBoundary(req);
-  assert.equal(decision.allowed, false);
-  // Assert: context principal remains untouched and un-escalated
-  assert.equal(context.principal.id, "regular_user");
-  assert.equal(context.principal.hasPermission("*"), false);
-  assert.equal(context.principal.hasRole("system-admin"), false);
+  const outObj = sanitizedOutput as any;
+  assert.equal(outObj.result, 42);
+  assert.equal(outObj.apiKey, "[redacted]");
+  assert.equal(outObj.authToken, "[redacted]");
+  assert.equal(outObj.nested.secret_password, "[redacted]");
+  assert.equal(outObj.nested.cleanText, "Valid bounded output");
 });
 
-test("3. Model Boundary: Enforces allowed models and providers per agent", async () => {
+test("3. Tool Escape Prevention: Tool A calling Tool B requires independent authorization", async () => {
+  const roleRepo = new InMemoryRoleRepository();
+  const evaluator = new RbacAuthorizationEvaluator(roleRepo);
+  const enforcer = new SecurityBoundaryEnforcer(evaluator);
+
+  const workerPrincipal = Principal.create({
+    id: "agent_worker",
+    type: "AGENT",
+    roles: ["agent"], // has tool.invoke
+  });
+  const context = SecurityContext.create({ principal: workerPrincipal, authenticated: true, correlationId: "trace-escape" });
+
+  // Tool A is authorized
+  const toolAReq: ToolInvocationRequest = {
+    context,
+    toolId: "tool-a-search",
+    input: { query: "data" },
+  };
+  const toolADecision = await enforcer.enforceToolBoundary(toolAReq);
+  assert.equal(toolADecision.allowed, true);
+
+  // Tool A attempting to invoke privileged Tool B (system.shutdown) without authorization
+  const privilegedToolBReq: ToolInvocationRequest = {
+    context,
+    toolId: "system.shutdown",
+    action: "system.shutdown",
+    input: { force: true },
+  };
+  const toolBDecision = await enforcer.enforceToolBoundary(privilegedToolBReq);
+  assert.equal(toolBDecision.allowed, false, "Tool B must not inherit Tool A's authorization");
+});
+
+test("4. Model Boundary: Enforces allowed models and providers per agent", async () => {
   const roleRepo = new InMemoryRoleRepository();
   const evaluator = new RbacAuthorizationEvaluator(roleRepo);
   const enforcer = new SecurityBoundaryEnforcer(evaluator, undefined, {
@@ -141,7 +164,7 @@ test("3. Model Boundary: Enforces allowed models and providers per agent", async
   assert.equal(disallowedProviderRes.code, "SECURITY_PROVIDER_NOT_ALLOWED");
 });
 
-test("4. Memory Boundary: Agent access to own memory is ALLOWED; access to other agent's memory or cross-tenant is DENIED", async () => {
+test("5. Memory Boundary: Enforces ownership & tenant isolation across READ, WRITE, and DELETE", async () => {
   const roleRepo = new InMemoryRoleRepository();
   const evaluator = new RbacAuthorizationEvaluator(roleRepo);
   const enforcer = new SecurityBoundaryEnforcer(evaluator);
@@ -159,42 +182,58 @@ test("4. Memory Boundary: Agent access to own memory is ALLOWED; access to other
     correlationId: "trace-mem-1",
   });
 
-  // Access to own memory scope
-  const ownMemReq: MemoryAccessRequest = {
+  // 1. READ own memory
+  const readOwnRes = await enforcer.enforceMemoryBoundary({
     context: context1,
     operation: "READ",
     scope: "agent-agent_alpha",
     key: "last_step",
-  };
-  const ownMemRes = await enforcer.enforceMemoryBoundary(ownMemReq);
-  assert.equal(ownMemRes.allowed, true);
-  assert.equal(ownMemRes.code, "SECURITY_MEMORY_ALLOWED");
+  });
+  assert.equal(readOwnRes.allowed, true);
+  assert.equal(readOwnRes.code, "SECURITY_MEMORY_ALLOWED");
 
-  // Access to other agent's dedicated scope
-  const otherMemReq: MemoryAccessRequest = {
+  // 2. WRITE own memory
+  const writeOwnRes = await enforcer.enforceMemoryBoundary({
+    context: context1,
+    operation: "WRITE",
+    scope: "agent-agent_alpha",
+    key: "state_data",
+  });
+  assert.equal(writeOwnRes.allowed, true);
+
+  // 3. READ foreign agent memory -> DENIED
+  const readOtherRes = await enforcer.enforceMemoryBoundary({
     context: context1,
     operation: "READ",
-    scope: "agent-agent_beta", // Foreign agent scope!
+    scope: "agent-agent_beta",
     key: "secret_data",
-  };
-  const otherMemRes = await enforcer.enforceMemoryBoundary(otherMemReq);
-  assert.equal(otherMemRes.allowed, false);
-  assert.equal(otherMemRes.code, "SECURITY_MEMORY_OWNERSHIP_VIOLATION");
+  });
+  assert.equal(readOtherRes.allowed, false);
+  assert.equal(readOtherRes.code, "SECURITY_MEMORY_OWNERSHIP_VIOLATION");
 
-  // Cross-tenant memory access attempt
-  const crossTenantMemReq: MemoryAccessRequest = {
+  // 4. WRITE foreign agent memory -> DENIED
+  const writeOtherRes = await enforcer.enforceMemoryBoundary({
+    context: context1,
+    operation: "WRITE",
+    scope: "agent-agent_beta",
+    key: "tampered_data",
+  });
+  assert.equal(writeOtherRes.allowed, false);
+  assert.equal(writeOtherRes.code, "SECURITY_MEMORY_OWNERSHIP_VIOLATION");
+
+  // 5. Cross-tenant memory access -> DENIED
+  const crossTenantRes = await enforcer.enforceMemoryBoundary({
     context: context1,
     operation: "READ",
     scope: "tenant-shared",
     key: "config",
-    targetTenantId: "tenant-2", // Foreign tenant!
-  };
-  const crossTenantRes = await enforcer.enforceMemoryBoundary(crossTenantMemReq);
+    targetTenantId: "tenant-2",
+  });
   assert.equal(crossTenantRes.allowed, false);
   assert.equal(crossTenantRes.code, "SECURITY_TENANT_ISOLATION_VIOLATION");
 });
 
-test("5. Delegation Boundary: Enforces bounded delegation depth, expiration, and escalation protection", () => {
+test("6. Delegation Boundary: Enforces authorization, bounded depth, and scope/tenant isolation", async () => {
   const roleRepo = new InMemoryRoleRepository();
   const evaluator = new RbacAuthorizationEvaluator(roleRepo);
   const enforcer = new SecurityBoundaryEnforcer(evaluator, undefined, { maxDelegationDepth: 2 });
@@ -202,58 +241,82 @@ test("5. Delegation Boundary: Enforces bounded delegation depth, expiration, and
   const supervisorPrincipal = Principal.create({
     id: "agent_supervisor",
     type: "AGENT",
-    roles: ["operator"],
+    roles: ["operator"], // has coordination.* and handoff.transfer
+    tenantId: "tenant-1",
   });
   const supervisorContext = SecurityContext.create({
     principal: supervisorPrincipal,
     authenticated: true,
+    tenantId: "tenant-1",
+    resourceScope: "scope-analytics",
     correlationId: "trace-del-1",
   });
 
-  // Valid delegation at depth 1
+  // Valid delegation
   const validDelegation: AgentDelegation = {
     sourcePrincipalId: "agent_supervisor",
     targetPrincipalId: "agent_worker",
     delegatedCapability: "tool.invoke",
     resource: "tool:search",
+    tenantId: "tenant-1",
+    scope: "scope-analytics",
     depth: 1,
     maxDepth: 2,
     correlationId: "trace-del-1",
   };
-  const validRes = enforcer.enforceDelegationBoundary(validDelegation, supervisorContext);
+  const validRes = await enforcer.enforceDelegationBoundary(validDelegation, supervisorContext);
   assert.equal(validRes.allowed, true);
   assert.equal(validRes.code, "SECURITY_DELEGATION_ALLOWED");
 
   // Depth exceeded delegation (depth 3 > maxDepth 2)
   const deepDelegation: AgentDelegation = {
     sourcePrincipalId: "agent_supervisor",
-    targetPrincipalId: "agent_sub_sub_worker",
+    targetPrincipalId: "agent_sub_worker",
     delegatedCapability: "tool.invoke",
     resource: "tool:search",
     depth: 3,
     maxDepth: 2,
     correlationId: "trace-del-2",
   };
-  const deepRes = enforcer.enforceDelegationBoundary(deepDelegation, supervisorContext);
+  const deepRes = await enforcer.enforceDelegationBoundary(deepDelegation, supervisorContext);
   assert.equal(deepRes.allowed, false);
   assert.equal(deepRes.code, "SECURITY_DELEGATION_DEPTH_EXCEEDED");
 
-  // Escalation attempt via delegation
-  const escalationDelegation: AgentDelegation = {
+  // Tenant escalation via delegation (source in tenant-1 delegating for tenant-2)
+  const tenantEscalationDelegation: AgentDelegation = {
     sourcePrincipalId: "agent_supervisor",
-    targetPrincipalId: "system-internal",
-    delegatedCapability: "*",
-    resource: "*",
+    targetPrincipalId: "agent_worker",
+    delegatedCapability: "tool.invoke",
+    resource: "tool:search",
+    tenantId: "tenant-2", // Mismatched tenant!
     depth: 1,
     maxDepth: 2,
     correlationId: "trace-del-3",
   };
-  const escalationRes = enforcer.enforceDelegationBoundary(escalationDelegation, supervisorContext);
-  assert.equal(escalationRes.allowed, false);
-  assert.equal(escalationRes.code, "SECURITY_DELEGATION_ESCALATION_BLOCKED");
+  const tenantRes = await enforcer.enforceDelegationBoundary(tenantEscalationDelegation, supervisorContext);
+  assert.equal(tenantRes.allowed, false);
+  assert.equal(tenantRes.code, "SECURITY_DELEGATION_TENANT_ESCALATION_BLOCKED");
 });
 
-test("6. Prompt Injection Resistance: Prompt injections cannot alter SecurityContext or Policy Decisions", async () => {
+test("7. Risk Level Integrity: Caller cannot downgrade high/critical risk operations", () => {
+  const roleRepo = new InMemoryRoleRepository();
+  const evaluator = new RbacAuthorizationEvaluator(roleRepo);
+  const enforcer = new SecurityBoundaryEnforcer(evaluator);
+
+  // Intrinsically critical action
+  const risk1 = enforcer.deriveTrustedRiskLevel("SYSTEM", "system.shutdown", "LOW");
+  assert.equal(risk1, "CRITICAL", "Caller sent LOW, but system.shutdown must be derived as CRITICAL");
+
+  // Intrinsically high action
+  const risk2 = enforcer.deriveTrustedRiskLevel("TOOL", "shell.execute", "LOW");
+  assert.equal(risk2, "HIGH", "Caller sent LOW, but shell.execute must be derived as HIGH");
+
+  // Normal read
+  const risk3 = enforcer.deriveTrustedRiskLevel("API", "public.read", "LOW");
+  assert.equal(risk3, "LOW");
+});
+
+test("8. Prompt Injection & Tool Input Security: Malicious injection payloads cannot mutate SecurityContext", async () => {
   const roleRepo = new InMemoryRoleRepository();
   const evaluator = new RbacAuthorizationEvaluator(roleRepo);
   const enforcer = new SecurityBoundaryEnforcer(evaluator);
@@ -261,7 +324,7 @@ test("6. Prompt Injection Resistance: Prompt injections cannot alter SecurityCon
   const regularPrincipal = Principal.create({
     id: "user_standard",
     type: "HUMAN",
-    roles: ["user"], // standard user
+    roles: ["user"],
   });
   const context = SecurityContext.create({
     principal: regularPrincipal,
