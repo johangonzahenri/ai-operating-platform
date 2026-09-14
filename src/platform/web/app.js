@@ -54,6 +54,8 @@ class PlatformApp {
     this.selectedAgentId = null;
     this.selectedOperationId = null;
     this.selectedToolId = null;
+    this.selectedModelId = null;
+    this.selectedAppId = null;
     this.cachedModels = [];
     this.cachedTools = [];
     this.cachedAgents = [];
@@ -64,11 +66,82 @@ class PlatformApp {
     this.toolsSearchQuery = "";
     this.toolsRiskFilter = "ALL";
     this.toolsModeFilter = "ALL";
+    this.modelsSearchQuery = "";
+    this.modelsProviderFilter = "ALL";
+    this.modelsStatusFilter = "ALL";
+    this.appsSearchQuery = "";
+    this.appsStatusFilter = "ALL";
     this.pendingConfirmCallback = null;
     this.currentEventFilter = { limit: 50 };
     this.eventsCursorStack = [0]; // Stack of afterSequence cursors
     this.eventsCurrentPageIndex = 0;
     this.eventsTotalCount = 0;
+    this.applications = [
+      {
+        id: "tentaciones-commerce",
+        name: "Tentaciones AI Commerce",
+        category: "Fashion / Footwear / Virtual AR Fitting Room",
+        status: "CONNECTED",
+        integrationType: "Platform API Client (REST / HTTP)",
+        endpoints: ["POST /api/v1/tasks", "POST /api/v1/tasks/:id/execute", "POST /api/v1/orchestrate", "GET /api/v1/health"],
+        description: "Enterprise AI Fashion & Footwear commerce platform consuming AI Operating Platform for intelligent catalog search, outfit generation, cart resolution, and virtual 3D/AR fitting room styling.",
+        tags: ["E-Commerce", "Virtual Fitting Room", "AR / 3D", "Multi-Step Cart"],
+        capabilities: [
+          "Catalog & Product Search Intelligence",
+          "Personalized Shopping Assistant Agent (conversational)",
+          "Multi-Step Cart & Discount Resolver (orchestrated workflow)",
+          "Virtual 3D / AR Fitting Room Size Recommendation",
+        ],
+        architecture: {
+          client: "TentacionesPlatformAdapter",
+          protocol: "HTTP REST / 127.0.0.1:3000",
+          coupling: "Zero domain imports / Hexagonal Port Isolation",
+          telemetry: "Full trace ID correlation across tasks & events",
+        },
+      },
+      {
+        id: "vehicle-parts-platform",
+        name: "Vehicle Parts & Diagnostics Platform",
+        category: "Industrial Automotive / Diagnostics",
+        status: "PLANNED",
+        integrationType: "Platform API Client (REST / HTTP)",
+        endpoints: ["POST /api/v1/tasks", "POST /api/v1/operations"],
+        description: "Heavy machinery and vehicle parts diagnostics assistant designed to consume the AI Operating Platform through the Platform API.",
+        tags: ["Automotive", "Industrial Diagnostics", "Parts Hierarchy"],
+        capabilities: [
+          "Automotive & Machinery Parts Catalog Search",
+          "Diagnostic Symptom-to-Part Troubleshooting Agent",
+          "Warehouse Stock Allocation & Order Dispatch",
+        ],
+        architecture: {
+          client: "VehicleDiagnosticsAdapter (Planned)",
+          protocol: "HTTP REST / Platform API v1",
+          coupling: "Zero domain imports",
+          telemetry: "Trace ID correlation",
+        },
+      },
+      {
+        id: "enterprise-support-agent",
+        name: "Enterprise Support & Knowledge Assistant",
+        category: "Customer Experience / Tier-1 Automation",
+        status: "PLANNED",
+        integrationType: "Platform API Client (REST / HTTP)",
+        endpoints: ["POST /api/v1/tasks"],
+        description: "Automated ticket resolution and knowledge base semantic retrieval assistant designed to consume the AI Operating Platform.",
+        tags: ["Customer Support", "Knowledge Base", "Ticket Routing"],
+        capabilities: [
+          "Automated Tier-1 Customer Ticket Triage",
+          "Semantic Knowledge Base Search & Retrieval",
+          "Policy-Governed Response Formulation",
+        ],
+        architecture: {
+          client: "SupportDeskPlatformAdapter (Planned)",
+          protocol: "HTTP REST / Platform API v1",
+          coupling: "Zero domain imports",
+          telemetry: "Audit log correlation",
+        },
+      },
+    ];
     this.init();
   }
 
@@ -82,6 +155,10 @@ class PlatformApp {
     this.setupAgentFilters();
     this.setupToolFilters();
     this.setupToolDetail();
+    this.setupModelFilters();
+    this.setupModelDetail();
+    this.setupApplications();
+    this.setupInteractiveBlueprint();
     this.setupConfirmationModal();
     this.setupDetailLookup();
     this.setupApplicationsSimulation();
@@ -655,6 +732,189 @@ class PlatformApp {
       closeBtn.addEventListener("click", () => {
         panel.style.display = "none";
       });
+    }
+  }
+
+  setupModelFilters() {
+    const searchInput = document.getElementById("models-search-input");
+    const providerSelect = document.getElementById("models-provider-filter");
+    const statusSelect = document.getElementById("models-status-filter");
+    const clearBtn = document.getElementById("models-clear-filter-btn");
+
+    if (searchInput) {
+      searchInput.addEventListener("input", () => {
+        this.modelsSearchQuery = searchInput.value.trim().toLowerCase();
+        this.renderModels(this.getFilteredModels());
+      });
+    }
+
+    if (providerSelect) {
+      providerSelect.addEventListener("change", () => {
+        this.modelsProviderFilter = providerSelect.value;
+        this.renderModels(this.getFilteredModels());
+      });
+    }
+
+    if (statusSelect) {
+      statusSelect.addEventListener("change", () => {
+        this.modelsStatusFilter = statusSelect.value;
+        this.renderModels(this.getFilteredModels());
+      });
+    }
+
+    if (clearBtn) {
+      clearBtn.addEventListener("click", () => {
+        this.modelsSearchQuery = "";
+        this.modelsProviderFilter = "ALL";
+        this.modelsStatusFilter = "ALL";
+        if (searchInput) searchInput.value = "";
+        if (providerSelect) providerSelect.value = "ALL";
+        if (statusSelect) statusSelect.value = "ALL";
+        this.renderModels(this.getFilteredModels());
+      });
+    }
+  }
+
+  getFilteredModels() {
+    return this.cachedModels.filter((model) => {
+      if (this.modelsProviderFilter !== "ALL" && model.provider !== this.modelsProviderFilter) {
+        return false;
+      }
+      if (this.modelsStatusFilter !== "ALL" && model.status !== this.modelsStatusFilter) {
+        return false;
+      }
+      if (this.modelsSearchQuery) {
+        const query = this.modelsSearchQuery;
+        const nameMatch = String(model.name || "").toLowerCase().includes(query);
+        const idMatch = String(model.id || "").toLowerCase().includes(query);
+        const provMatch = String(model.provider || "").toLowerCase().includes(query);
+        const capsMatch = Array.isArray(model.capabilities) && model.capabilities.some((c) => String(c).toLowerCase().includes(query));
+        if (!nameMatch && !idMatch && !provMatch && !capsMatch) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }
+
+  setupModelDetail() {
+    const closeBtn = document.getElementById("close-model-detail-btn");
+    const panel = document.getElementById("model-detail-panel");
+    if (closeBtn && panel) {
+      closeBtn.addEventListener("click", () => {
+        panel.style.display = "none";
+      });
+    }
+  }
+
+  setupApplications() {
+    const searchInput = document.getElementById("apps-search-input");
+    const statusSelect = document.getElementById("apps-status-filter");
+    const clearBtn = document.getElementById("apps-clear-filter-btn");
+    const closeDetailBtn = document.getElementById("close-app-detail-btn");
+    const panel = document.getElementById("app-detail-panel");
+
+    if (searchInput) {
+      searchInput.addEventListener("input", () => {
+        this.appsSearchQuery = searchInput.value.trim().toLowerCase();
+        this.renderApplications(this.getFilteredApplications());
+      });
+    }
+
+    if (statusSelect) {
+      statusSelect.addEventListener("change", () => {
+        this.appsStatusFilter = statusSelect.value;
+        this.renderApplications(this.getFilteredApplications());
+      });
+    }
+
+    if (clearBtn) {
+      clearBtn.addEventListener("click", () => {
+        this.appsSearchQuery = "";
+        this.appsStatusFilter = "ALL";
+        if (searchInput) searchInput.value = "";
+        if (statusSelect) statusSelect.value = "ALL";
+        this.renderApplications(this.getFilteredApplications());
+      });
+    }
+
+    if (closeDetailBtn && panel) {
+      closeDetailBtn.addEventListener("click", () => {
+        panel.style.display = "none";
+      });
+    }
+  }
+
+  getFilteredApplications() {
+    return (this.applications || []).filter((app) => {
+      if (this.appsStatusFilter !== "ALL" && app.status !== this.appsStatusFilter) {
+        return false;
+      }
+      if (this.appsSearchQuery) {
+        const query = this.appsSearchQuery;
+        const nameMatch = String(app.name || "").toLowerCase().includes(query);
+        const idMatch = String(app.id || "").toLowerCase().includes(query);
+        const catMatch = String(app.category || "").toLowerCase().includes(query);
+        const descMatch = String(app.description || "").toLowerCase().includes(query);
+        const tagMatch = Array.isArray(app.tags) && app.tags.some((t) => String(t).toLowerCase().includes(query));
+        if (!nameMatch && !idMatch && !catMatch && !descMatch && !tagMatch) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }
+
+  setupInteractiveBlueprint() {
+    const nodes = document.querySelectorAll(".blueprint-node[data-nav-target]");
+    nodes.forEach((node) => {
+      const target = node.getAttribute("data-nav-target");
+      if (!target) return;
+
+      node.setAttribute("tabindex", "0");
+      node.setAttribute("role", "button");
+      node.setAttribute("aria-label", `Navigate to ${target} view`);
+
+      node.addEventListener("click", () => {
+        this.switchTab(target);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+
+      node.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          this.switchTab(target);
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+      });
+    });
+
+    const subRows = document.querySelectorAll(".build-status-table tbody tr[data-nav-target]");
+    subRows.forEach((row) => {
+      const target = row.getAttribute("data-nav-target");
+      if (!target) return;
+      row.style.cursor = "pointer";
+      row.setAttribute("tabindex", "0");
+      row.addEventListener("click", () => {
+        this.switchTab(target);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+      row.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          this.switchTab(target);
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+      });
+    });
+  }
+
+  updateBlueprintTelemetry(status, health) {
+    const bpTelemetry = document.getElementById("bp-runtime-status-badge");
+    if (bpTelemetry) {
+      const isOnline = status?.version || health?.status === "HEALTHY";
+      bpTelemetry.textContent = isOnline ? "ENGINE ACTIVE · HEALTHY" : "ENGINE OFFLINE";
+      bpTelemetry.className = `status-pill ${isOnline ? "status-pill-healthy" : "status-pill-offline"}`;
     }
   }
 
@@ -1518,7 +1778,7 @@ class PlatformApp {
       }
       if (Array.isArray(models)) {
         this.cachedModels = models;
-        this.renderModels(models);
+        this.renderModels(this.getFilteredModels());
         this.populateModelOptions(models);
       }
       if (Array.isArray(agents)) {
@@ -1530,6 +1790,8 @@ class PlatformApp {
       if (Array.isArray(operations)) {
         this.renderOperations(operations);
       }
+      this.renderApplications(this.getFilteredApplications());
+      this.updateBlueprintTelemetry(status);
     } catch {
       const statusElem = document.getElementById("engine-status");
       if (statusElem) statusElem.textContent = "Engine: Offline";
@@ -1749,11 +2011,14 @@ class PlatformApp {
     const toolsMatrix = document.getElementById("agent-detail-tools-matrix");
     const tasksSection = document.getElementById("agent-detail-tasks-section");
 
+    const hierarchyContainer = document.getElementById("agent-detail-hierarchy");
+
     if (!panel || !title || !summary) return;
 
     clearChildren(summary);
     if (toolsMatrix) clearChildren(toolsMatrix);
     if (tasksSection) clearChildren(tasksSection);
+    if (hierarchyContainer) clearChildren(hierarchyContainer);
 
     title.textContent = id;
     panel.style.display = "block";
@@ -1761,6 +2026,158 @@ class PlatformApp {
 
     try {
       const agent = await api.getAgent(id);
+
+      // Render Agent -> Model -> Tool -> Memory Hierarchy Tree
+      if (hierarchyContainer) {
+        const treeCard = document.createElement("div");
+        treeCard.className = "agent-hierarchy-tree";
+
+        const treeTitle = document.createElement("div");
+        treeTitle.className = "agent-hierarchy-title";
+        treeTitle.textContent = "AGENT ORCHESTRATION & CAPABILITY HIERARCHY TREE";
+        treeCard.appendChild(treeTitle);
+
+        // Root Agent Node
+        const rootNode = document.createElement("div");
+        rootNode.className = "tree-node tree-node-root";
+        
+        const rootIcon = document.createElement("span");
+        rootIcon.className = "tree-node-icon";
+        rootIcon.textContent = "🤖";
+        
+        const rootLabel = document.createElement("span");
+        rootLabel.className = "tree-node-label";
+        rootLabel.textContent = `Agent: ${agent.name} (${agent.id})`;
+
+        const rootBadge = document.createElement("span");
+        rootBadge.className = `badge badge-${agent.status === "ACTIVE" ? "success" : "danger"}`;
+        rootBadge.textContent = agent.status;
+
+        rootNode.append(rootIcon, rootLabel, rootBadge);
+        treeCard.appendChild(rootNode);
+
+        // Branches wrapper
+        const branches = document.createElement("div");
+        branches.className = "tree-branches";
+
+        // Branch 1: Model Gateway
+        const modelBranch = document.createElement("div");
+        modelBranch.className = "tree-branch-item";
+        
+        const modelNode = document.createElement("div");
+        modelNode.className = "tree-node";
+        
+        const mIcon = document.createElement("span");
+        mIcon.className = "tree-node-icon";
+        mIcon.textContent = "🧠";
+        
+        const mLabel = document.createElement("span");
+        mLabel.className = "tree-node-label";
+        mLabel.textContent = `Model Gateway: ${agent.model}`;
+
+        const mBadge = document.createElement("span");
+        mBadge.className = "badge badge-info";
+        mBadge.textContent = "INFERENCE GATEWAY";
+
+        modelNode.append(mIcon, mLabel, mBadge);
+        modelBranch.appendChild(modelNode);
+        branches.appendChild(modelBranch);
+
+        // Branch 2: Authorized Tools
+        const toolBranch = document.createElement("div");
+        toolBranch.className = "tree-branch-item";
+
+        const toolNode = document.createElement("div");
+        toolNode.className = "tree-node";
+
+        const tIcon = document.createElement("span");
+        tIcon.className = "tree-node-icon";
+        tIcon.textContent = "🛠️";
+
+        const tLabel = document.createElement("span");
+        tLabel.className = "tree-node-label";
+        const assignedTools = agent.tools || [];
+        tLabel.textContent = `Authorized Tools (${assignedTools.length})`;
+
+        toolNode.append(tIcon, tLabel);
+        toolBranch.appendChild(toolNode);
+
+        if (assignedTools.length > 0) {
+          const toolSubList = document.createElement("div");
+          toolSubList.style.display = "flex";
+          toolSubList.style.flexWrap = "wrap";
+          toolSubList.style.gap = "0.35rem";
+          toolSubList.style.marginLeft = "1.5rem";
+          toolSubList.style.marginTop = "0.35rem";
+
+          for (const tid of assignedTools) {
+            const tChip = document.createElement("span");
+            tChip.className = "badge badge-success";
+            tChip.style.fontSize = "0.75rem";
+            tChip.textContent = `✓ ${tid}`;
+            toolSubList.appendChild(tChip);
+          }
+          toolBranch.appendChild(toolSubList);
+        } else {
+          const noTool = document.createElement("div");
+          noTool.style.fontSize = "0.75rem";
+          noTool.style.color = "var(--text-muted)";
+          noTool.style.marginLeft = "1.5rem";
+          noTool.style.marginTop = "0.25rem";
+          noTool.textContent = "No tools assigned (Pure reasoning/planning mode)";
+          toolBranch.appendChild(noTool);
+        }
+        branches.appendChild(toolBranch);
+
+        // Branch 3: Memory Partition
+        const memBranch = document.createElement("div");
+        memBranch.className = "tree-branch-item";
+
+        const memNode = document.createElement("div");
+        memNode.className = "tree-node";
+
+        const memIcon = document.createElement("span");
+        memIcon.className = "tree-node-icon";
+        memIcon.textContent = "💾";
+
+        const memLabel = document.createElement("span");
+        memLabel.className = "tree-node-label";
+        memLabel.textContent = `Memory Partition: ${agent.memoryScope || "None (Stateless Session)"}`;
+
+        const memBadge = document.createElement("span");
+        memBadge.className = "badge";
+        memBadge.textContent = agent.memoryScope ? "ISOLATED PARTITION" : "STATELESS";
+
+        memNode.append(memIcon, memLabel, memBadge);
+        memBranch.appendChild(memNode);
+        branches.appendChild(memBranch);
+
+        // Branch 4: Fail-Closed Security Policy
+        const secBranch = document.createElement("div");
+        secBranch.className = "tree-branch-item";
+
+        const secNode = document.createElement("div");
+        secNode.className = "tree-node";
+
+        const secIcon = document.createElement("span");
+        secIcon.className = "tree-node-icon";
+        secIcon.textContent = "🛡️";
+
+        const secLabel = document.createElement("span");
+        secLabel.className = "tree-node-label";
+        secLabel.textContent = "Policy & Governance: Fail-Closed Bound Check & Audit Trail";
+
+        const secBadge = document.createElement("span");
+        secBadge.className = "badge badge-warning";
+        secBadge.textContent = "AUDITED";
+
+        secNode.append(secIcon, secLabel, secBadge);
+        secBranch.appendChild(secNode);
+        branches.appendChild(secBranch);
+
+        treeCard.appendChild(branches);
+        hierarchyContainer.appendChild(treeCard);
+      }
 
       const grid = document.createElement("div");
       grid.style.display = "grid";
@@ -2368,57 +2785,628 @@ class PlatformApp {
     }
   }
 
-  renderModels(models) {
+  renderModels(modelsToRender) {
+    const models = Array.isArray(modelsToRender) ? modelsToRender : this.getFilteredModels();
     const badge = document.getElementById("models-count-badge");
-    if (badge) badge.textContent = String(models.length);
+    if (badge) {
+      badge.textContent = `${models.length} of ${this.cachedModels.length} model${this.cachedModels.length === 1 ? "" : "s"}`;
+    }
 
+    // 1. Table view (#models-tbody)
     const tbody = document.getElementById("models-tbody");
-    if (!tbody) return;
-    clearChildren(tbody);
+    if (tbody) {
+      clearChildren(tbody);
 
-    if (models.length === 0) {
-      const tr = document.createElement("tr");
-      const td = document.createElement("td");
-      td.colSpan = 5;
-      td.className = "empty-state";
-      td.textContent = "No AI models registered in runtime";
-      tr.appendChild(td);
-      tbody.appendChild(tr);
+      if (models.length === 0) {
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = 6;
+        td.className = "empty-state";
+        td.textContent = this.cachedModels.length === 0
+          ? "No AI models registered in runtime."
+          : "No models match the current search or filter criteria.";
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+      } else {
+        for (const m of models) {
+          const tr = document.createElement("tr");
+          tr.className = "clickable-row";
+
+          // Model ID & Name
+          const tdName = document.createElement("td");
+          const strong = document.createElement("strong");
+          strong.textContent = m.name || m.id;
+          const idDiv = document.createElement("div");
+          const codeId = document.createElement("code");
+          codeId.textContent = m.id;
+          idDiv.appendChild(codeId);
+          tdName.appendChild(strong);
+          tdName.appendChild(idDiv);
+
+          // Provider
+          const tdProvider = document.createElement("td");
+          const spanProv = document.createElement("span");
+          spanProv.className = "badge";
+          spanProv.textContent = m.provider;
+          tdProvider.appendChild(spanProv);
+
+          // Status
+          const tdStatus = document.createElement("td");
+          const spanStatus = document.createElement("span");
+          spanStatus.className = `badge badge-${m.status === "ACTIVE" || m.status === "ONLINE" || m.status === "AVAILABLE" ? "success" : "warning"}`;
+          spanStatus.textContent = m.status || "AVAILABLE";
+          tdStatus.appendChild(spanStatus);
+
+          // Capabilities
+          const tdCaps = document.createElement("td");
+          if (Array.isArray(m.capabilities) && m.capabilities.length > 0) {
+            for (const cap of m.capabilities) {
+              const capBadge = document.createElement("span");
+              capBadge.className = "badge badge-info";
+              capBadge.style.marginRight = "4px";
+              capBadge.textContent = cap;
+              tdCaps.appendChild(capBadge);
+            }
+          } else {
+            tdCaps.textContent = "-";
+          }
+
+          // Assigned Agents Count
+          const tdAgents = document.createElement("td");
+          const assignedAgents = (this.cachedAgents || []).filter((a) => a.model === m.id);
+          const countBadge = document.createElement("span");
+          countBadge.className = assignedAgents.length > 0 ? "badge badge-agent" : "badge badge-offline";
+          countBadge.textContent = `${assignedAgents.length} agent${assignedAgents.length === 1 ? "" : "s"}`;
+          tdAgents.appendChild(countBadge);
+
+          // Actions
+          const tdActions = document.createElement("td");
+          const viewBtn = document.createElement("button");
+          viewBtn.className = "btn btn-sm btn-secondary";
+          viewBtn.textContent = "View Detail";
+          viewBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            this.showModelDetail(m.id);
+          });
+          tdActions.appendChild(viewBtn);
+
+          tr.append(tdName, tdProvider, tdStatus, tdCaps, tdAgents, tdActions);
+          tr.addEventListener("click", () => this.showModelDetail(m.id));
+          tbody.appendChild(tr);
+        }
+      }
+    }
+
+    // 2. Card grid view (#models-list)
+    const container = document.getElementById("models-list");
+    if (container) {
+      clearChildren(container);
+
+      if (models.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "empty-state";
+        empty.textContent = this.cachedModels.length === 0 ? "No models registered" : "No models match the selected filters";
+        container.appendChild(empty);
+      } else {
+        for (const m of models) {
+          const card = document.createElement("div");
+          card.className = "tool-card";
+
+          const header = document.createElement("div");
+          header.className = "tool-card-header";
+
+          const title = document.createElement("h4");
+          title.textContent = m.name || m.id;
+
+          const badgeGroup = document.createElement("div");
+          badgeGroup.style.display = "flex";
+          badgeGroup.style.gap = "0.35rem";
+          badgeGroup.style.alignItems = "center";
+
+          const provBadge = document.createElement("span");
+          provBadge.className = "badge";
+          provBadge.textContent = m.provider;
+          badgeGroup.appendChild(provBadge);
+
+          const statusBadge = document.createElement("span");
+          statusBadge.className = `badge badge-${m.status === "ACTIVE" || m.status === "ONLINE" || m.status === "AVAILABLE" ? "success" : "warning"}`;
+          statusBadge.textContent = m.status || "AVAILABLE";
+          badgeGroup.appendChild(statusBadge);
+
+          header.append(title, badgeGroup);
+
+          const desc = document.createElement("p");
+          desc.className = "tool-desc";
+          desc.textContent = `Provider Model Gateway for ${m.provider}. Standardized streaming and structured completion interface.`;
+
+          const metaRow = document.createElement("div");
+          metaRow.style.display = "flex";
+          metaRow.style.gap = "0.5rem";
+          metaRow.style.marginTop = "0.75rem";
+          metaRow.style.alignItems = "center";
+          metaRow.style.flexWrap = "wrap";
+
+          if (Array.isArray(m.capabilities)) {
+            for (const c of m.capabilities) {
+              const cb = document.createElement("span");
+              cb.className = "badge badge-info";
+              cb.textContent = c;
+              metaRow.appendChild(cb);
+            }
+          }
+
+          const assigned = (this.cachedAgents || []).filter((a) => a.model === m.id);
+          const agSpan = document.createElement("span");
+          agSpan.className = "badge badge-agent";
+          agSpan.textContent = `${assigned.length} assigned agent${assigned.length === 1 ? "" : "s"}`;
+          metaRow.appendChild(agSpan);
+
+          const viewBtn = document.createElement("button");
+          viewBtn.className = "btn btn-sm btn-secondary";
+          viewBtn.style.marginTop = "0.75rem";
+          viewBtn.style.width = "100%";
+          viewBtn.textContent = "Inspect Gateway & Assigned Agents";
+          viewBtn.addEventListener("click", () => this.showModelDetail(m.id));
+
+          card.append(header, desc, metaRow, viewBtn);
+          container.appendChild(card);
+        }
+      }
+    }
+  }
+
+  showModelDetail(id) {
+    this.selectedModelId = id;
+    const panel = document.getElementById("model-detail-panel");
+    const title = document.getElementById("model-detail-title");
+    const summary = document.getElementById("model-detail-summary");
+    const capsContainer = document.getElementById("model-detail-caps");
+    const agentsContainer = document.getElementById("model-detail-agents");
+    const govContainer = document.getElementById("model-detail-governance");
+
+    if (!panel || !title || !summary) return;
+
+    clearChildren(summary);
+    if (capsContainer) clearChildren(capsContainer);
+    if (agentsContainer) clearChildren(agentsContainer);
+    if (govContainer) clearChildren(govContainer);
+
+    const model = this.cachedModels.find((m) => m.id === id) || {
+      id,
+      name: id,
+      provider: "STUB",
+      status: "AVAILABLE",
+      capabilities: ["COMPLETION", "STRUCTURED_OUTPUT"],
+    };
+
+    title.textContent = `${model.name || model.id} (${model.id})`;
+    panel.style.display = "block";
+    panel.scrollIntoView({ behavior: "smooth" });
+
+    // 1. Summary Grid
+    const grid = document.createElement("div");
+    grid.style.display = "grid";
+    grid.style.gridTemplateColumns = "repeat(auto-fit, minmax(180px, 1fr))";
+    grid.style.gap = "1rem";
+    grid.style.marginBottom = "1rem";
+
+    const createBox = (label, val, badgeClass = null) => {
+      const box = document.createElement("div");
+      box.style.background = "var(--bg-secondary)";
+      box.style.padding = "0.75rem 1rem";
+      box.style.borderRadius = "var(--radius-sm)";
+      const l = document.createElement("div");
+      l.style.fontSize = "0.75rem";
+      l.style.color = "var(--text-secondary)";
+      l.textContent = label;
+      const v = document.createElement("div");
+      v.style.fontWeight = "bold";
+      v.style.marginTop = "0.25rem";
+      if (badgeClass) {
+        const badge = document.createElement("span");
+        badge.className = `badge ${badgeClass}`;
+        badge.textContent = String(val);
+        v.appendChild(badge);
+      } else {
+        v.textContent = String(val);
+      }
+      box.appendChild(l);
+      box.appendChild(v);
+      return box;
+    };
+
+    grid.appendChild(createBox("MODEL ID", model.id));
+    grid.appendChild(createBox("NAME", model.name || model.id));
+    grid.appendChild(createBox("PROVIDER", model.provider, "badge-info"));
+    grid.appendChild(
+      createBox(
+        "STATUS",
+        model.status || "AVAILABLE",
+        model.status === "ACTIVE" || model.status === "AVAILABLE" || model.status === "ONLINE" ? "badge-success" : "badge-warning"
+      )
+    );
+    grid.appendChild(createBox("CONTEXT WINDOW", model.contextWindow ? `${model.contextWindow.toLocaleString()} tokens` : "128k (Standard)"));
+    grid.appendChild(createBox("LATENCY CLASS", model.latencyClass || "Standard Tier (<250ms)"));
+
+    summary.appendChild(grid);
+
+    // 2. Capabilities Breakdown
+    if (capsContainer) {
+      const capsCard = document.createElement("div");
+      capsCard.className = "card";
+      capsCard.style.padding = "1rem";
+      capsCard.style.border = "1px solid var(--border-color)";
+
+      const cTitle = document.createElement("h4");
+      cTitle.textContent = "Supported Model Capabilities & Interfaces";
+      cTitle.style.marginBottom = "0.5rem";
+      capsCard.appendChild(cTitle);
+
+      const cDesc = document.createElement("p");
+      cDesc.style.fontSize = "0.82rem";
+      cDesc.style.color = "var(--text-secondary)";
+      cDesc.style.marginBottom = "0.75rem";
+      cDesc.textContent = "Features supported natively by this model gateway through the unified Core Engine adapter:";
+      capsCard.appendChild(cDesc);
+
+      const chipsBox = document.createElement("div");
+      chipsBox.style.display = "flex";
+      chipsBox.style.flexWrap = "wrap";
+      chipsBox.style.gap = "0.5rem";
+
+      const caps = Array.isArray(model.capabilities) && model.capabilities.length > 0
+        ? model.capabilities
+        : ["TEXT_COMPLETION", "STRUCTURED_PLANNING", "TOOL_CALLING", "STREAMING"];
+
+      for (const cap of caps) {
+        const chip = document.createElement("span");
+        chip.className = "badge badge-info";
+        chip.style.padding = "6px 12px";
+        chip.style.fontSize = "0.8rem";
+        chip.textContent = `✓ ${cap}`;
+        chipsBox.appendChild(chip);
+      }
+
+      capsCard.appendChild(chipsBox);
+      capsContainer.appendChild(capsCard);
+    }
+
+    // 3. Assigned Agents List
+    if (agentsContainer) {
+      const agentsCard = document.createElement("div");
+      agentsCard.className = "card";
+      agentsCard.style.padding = "1rem";
+      agentsCard.style.border = "1px solid var(--border-color)";
+
+      const aTitle = document.createElement("h4");
+      aTitle.textContent = "Agents Configured with this Model Gateway";
+      aTitle.style.marginBottom = "0.5rem";
+      agentsCard.appendChild(aTitle);
+
+      const assignedAgents = (this.cachedAgents || []).filter((a) => a.model === model.id);
+
+      if (assignedAgents.length === 0) {
+        const empty = document.createElement("p");
+        empty.className = "empty-state";
+        empty.textContent = `No active agents are currently configured to route inference to '${model.id}'.`;
+        agentsCard.appendChild(empty);
+      } else {
+        const table = document.createElement("table");
+        table.className = "data-table";
+        table.style.fontSize = "0.82rem";
+
+        const thead = document.createElement("thead");
+        const trHead = document.createElement("tr");
+        for (const h of ["Agent Name", "Agent ID", "Status", "Memory Scope", "Action"]) {
+          const th = document.createElement("th");
+          th.textContent = h;
+          trHead.appendChild(th);
+        }
+        thead.appendChild(trHead);
+        table.appendChild(thead);
+
+        const tb = document.createElement("tbody");
+        for (const agent of assignedAgents) {
+          const tr = document.createElement("tr");
+
+          const tdName = document.createElement("td");
+          const str = document.createElement("strong");
+          str.textContent = agent.name;
+          tdName.appendChild(str);
+
+          const tdId = document.createElement("td");
+          const code = document.createElement("code");
+          code.textContent = agent.id;
+          tdId.appendChild(code);
+
+          const tdStatus = document.createElement("td");
+          const badge = document.createElement("span");
+          badge.className = `badge badge-${agent.status === "ACTIVE" ? "success" : "danger"}`;
+          badge.textContent = agent.status;
+          tdStatus.appendChild(badge);
+
+          const tdScope = document.createElement("td");
+          tdScope.textContent = agent.memoryScope || "Stateless";
+
+          const tdAction = document.createElement("td");
+          const btn = document.createElement("button");
+          btn.className = "btn btn-sm btn-secondary";
+          btn.textContent = "View Agent";
+          btn.addEventListener("click", () => {
+            this.switchTab("agents");
+            this.showAgentDetail(agent.id);
+          });
+          tdAction.appendChild(btn);
+
+          tr.append(tdName, tdId, tdStatus, tdScope, tdAction);
+          tb.appendChild(tr);
+        }
+
+        table.appendChild(tb);
+        agentsCard.appendChild(table);
+      }
+
+      agentsContainer.appendChild(agentsCard);
+    }
+
+    // 4. Governance Ledger Note
+    if (govContainer) {
+      const govCard = document.createElement("div");
+      govCard.className = "card";
+      govCard.style.padding = "1rem";
+      govCard.style.border = "1px solid var(--border-color)";
+
+      const gTitle = document.createElement("h4");
+      gTitle.textContent = "Model Gateway Isolation & Fail-Closed Guardrails";
+      gTitle.style.marginBottom = "0.5rem";
+      govCard.appendChild(gTitle);
+
+      const gP = document.createElement("p");
+      gP.style.fontSize = "0.82rem";
+      gP.style.color = "var(--text-secondary)";
+      gP.textContent = `All completions through '${model.id}' are governed by fail-closed policy checks. Tokens, prompt injections, and malformed completions are intercepted by the Real Intelligence Security Runtime before tool dispatch or execution termination.`;
+      govCard.appendChild(gP);
+
+      govContainer.appendChild(govCard);
+    }
+  }
+
+  renderApplications(appsToRender) {
+    const apps = Array.isArray(appsToRender) ? appsToRender : this.getFilteredApplications();
+    const badge = document.getElementById("apps-count-badge");
+    if (badge) {
+      badge.textContent = `${apps.length} of ${this.applications.length} application${this.applications.length === 1 ? "" : "s"}`;
+    }
+
+    const container = document.getElementById("applications-list");
+    if (!container) return;
+    clearChildren(container);
+
+    if (apps.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.textContent = "No external applications match the selected filters.";
+      container.appendChild(empty);
       return;
     }
 
-    for (const m of models) {
-      const tr = document.createElement("tr");
+    for (const app of apps) {
+      const card = document.createElement("div");
+      card.className = "app-card";
+      if (app.status === "CONNECTED") {
+        card.classList.add("connected");
+      }
 
-      const tdId = document.createElement("td");
-      const codeId = document.createElement("code");
-      codeId.textContent = m.id;
-      tdId.appendChild(codeId);
+      const header = document.createElement("div");
+      header.className = "app-card-header";
 
-      const tdName = document.createElement("td");
-      tdName.textContent = m.name;
+      const titleGroup = document.createElement("div");
+      const title = document.createElement("h3");
+      title.className = "app-card-title";
+      title.textContent = app.name;
 
-      const tdProvider = document.createElement("td");
-      const spanProv = document.createElement("span");
-      spanProv.className = "badge";
-      spanProv.textContent = m.provider;
-      tdProvider.appendChild(spanProv);
+      const cat = document.createElement("div");
+      cat.className = "app-card-category";
+      cat.textContent = app.category;
+      titleGroup.append(title, cat);
 
-      const tdStatus = document.createElement("td");
-      const spanStatus = document.createElement("span");
-      spanStatus.className = "badge badge-success";
-      spanStatus.textContent = m.status;
-      tdStatus.appendChild(spanStatus);
+      const statusPill = document.createElement("span");
+      statusPill.className = `status-pill ${app.status === "CONNECTED" ? "status-pill-connected" : "status-pill-planned"}`;
+      statusPill.textContent = app.status;
 
-      const tdCaps = document.createElement("td");
-      tdCaps.textContent = Array.isArray(m.capabilities) ? m.capabilities.join(", ") : "-";
+      header.append(titleGroup, statusPill);
 
-      tr.appendChild(tdId);
-      tr.appendChild(tdName);
-      tr.appendChild(tdProvider);
-      tr.appendChild(tdStatus);
-      tr.appendChild(tdCaps);
-      tbody.appendChild(tr);
+      const desc = document.createElement("p");
+      desc.className = "app-card-desc";
+      desc.textContent = app.description;
+
+      // Badges
+      const badgesDiv = document.createElement("div");
+      badgesDiv.className = "app-card-badges";
+      if (Array.isArray(app.tags)) {
+        for (const tag of app.tags) {
+          const tagSpan = document.createElement("span");
+          tagSpan.className = "badge badge-info";
+          tagSpan.textContent = tag;
+          badgesDiv.appendChild(tagSpan);
+        }
+      }
+
+      // Endpoints list
+      const epDiv = document.createElement("div");
+      epDiv.className = "app-card-endpoints";
+      const epTitle = document.createElement("div");
+      epTitle.className = "app-card-endpoints-title";
+      epTitle.textContent = "Platform Endpoints Consumed:";
+      epDiv.appendChild(epTitle);
+
+      const epList = document.createElement("div");
+      epList.className = "app-card-endpoints-list";
+      if (Array.isArray(app.endpoints)) {
+        for (const ep of app.endpoints) {
+          const epCode = document.createElement("code");
+          epCode.textContent = ep;
+          epList.appendChild(epCode);
+        }
+      }
+      epDiv.appendChild(epList);
+
+      // Actions
+      const actionsDiv = document.createElement("div");
+      actionsDiv.className = "app-card-actions";
+
+      const inspectBtn = document.createElement("button");
+      inspectBtn.className = "btn btn-sm btn-secondary";
+      inspectBtn.textContent = "Inspect Integration Contract";
+      inspectBtn.addEventListener("click", () => this.showApplicationDetail(app.id));
+
+      actionsDiv.appendChild(inspectBtn);
+
+      if (app.status === "CONNECTED") {
+        const testBtn = document.createElement("button");
+        testBtn.className = "btn btn-sm btn-primary";
+        testBtn.textContent = "Test Platform Integration";
+        testBtn.addEventListener("click", () => {
+          this.showApplicationDetail(app.id);
+          const simSection = document.getElementById("commerce-sim-card");
+          if (simSection) {
+            simSection.scrollIntoView({ behavior: "smooth" });
+          }
+        });
+        actionsDiv.appendChild(testBtn);
+      }
+
+      card.append(header, desc, badgesDiv, epDiv, actionsDiv);
+      container.appendChild(card);
+    }
+  }
+
+  showApplicationDetail(appId) {
+    this.selectedAppId = appId;
+    const app = (this.applications || []).find((a) => a.id === appId);
+    const panel = document.getElementById("app-detail-panel");
+    const title = document.getElementById("app-detail-title");
+    const summary = document.getElementById("app-detail-summary");
+    const capsDiv = document.getElementById("app-detail-capabilities");
+    const archDiv = document.getElementById("app-detail-architecture");
+    const simSection = document.getElementById("app-detail-simulation-section");
+
+    if (!panel || !title || !summary || !app) return;
+
+    clearChildren(summary);
+    if (capsDiv) clearChildren(capsDiv);
+    if (archDiv) clearChildren(archDiv);
+
+    title.textContent = `${app.name} (${app.id})`;
+    panel.style.display = "block";
+    panel.scrollIntoView({ behavior: "smooth" });
+
+    // 1. Summary Grid
+    const grid = document.createElement("div");
+    grid.style.display = "grid";
+    grid.style.gridTemplateColumns = "repeat(auto-fit, minmax(200px, 1fr))";
+    grid.style.gap = "1rem";
+    grid.style.marginBottom = "1rem";
+
+    const createBox = (label, val, isPill = false) => {
+      const box = document.createElement("div");
+      box.style.background = "var(--bg-secondary)";
+      box.style.padding = "0.75rem 1rem";
+      box.style.borderRadius = "var(--radius-sm)";
+      const l = document.createElement("div");
+      l.style.fontSize = "0.75rem";
+      l.style.color = "var(--text-secondary)";
+      l.textContent = label;
+      const v = document.createElement("div");
+      v.style.fontWeight = "bold";
+      v.style.marginTop = "0.25rem";
+      if (isPill) {
+        const pill = document.createElement("span");
+        pill.className = `status-pill ${val === "CONNECTED" ? "status-pill-connected" : "status-pill-planned"}`;
+        pill.textContent = String(val);
+        v.appendChild(pill);
+      } else {
+        v.textContent = String(val);
+      }
+      box.appendChild(l);
+      box.appendChild(v);
+      return box;
+    };
+
+    grid.appendChild(createBox("APPLICATION ID", app.id));
+    grid.appendChild(createBox("STATUS", app.status, true));
+    grid.appendChild(createBox("CATEGORY", app.category));
+    grid.appendChild(createBox("INTEGRATION TYPE", app.integrationType));
+
+    summary.appendChild(grid);
+
+    const descP = document.createElement("p");
+    descP.style.color = "var(--text-secondary)";
+    descP.style.marginBottom = "1rem";
+    descP.textContent = app.description;
+    summary.appendChild(descP);
+
+    // 2. Capabilities
+    if (capsDiv && Array.isArray(app.capabilities)) {
+      const card = document.createElement("div");
+      card.className = "card";
+      card.style.padding = "1rem";
+      card.style.border = "1px solid var(--border-color)";
+
+      const h4 = document.createElement("h4");
+      h4.textContent = "Application Subsystems & AI Capabilities";
+      h4.style.marginBottom = "0.75rem";
+      card.appendChild(h4);
+
+      const list = document.createElement("ul");
+      list.style.paddingLeft = "1.25rem";
+      list.style.lineHeight = "1.7";
+      for (const cap of app.capabilities) {
+        const li = document.createElement("li");
+        li.textContent = cap;
+        list.appendChild(li);
+      }
+      card.appendChild(list);
+      capsDiv.appendChild(card);
+    }
+
+    // 3. Architecture & Port Isolation Contract
+    if (archDiv && app.architecture) {
+      const card = document.createElement("div");
+      card.className = "card";
+      card.style.padding = "1rem";
+      card.style.border = "1px solid var(--border-color)";
+
+      const h4 = document.createElement("h4");
+      h4.textContent = "Architectural Coupling & Invariant Contract";
+      h4.style.marginBottom = "0.75rem";
+      card.appendChild(h4);
+
+      const table = document.createElement("table");
+      table.className = "data-table";
+      table.style.fontSize = "0.82rem";
+
+      const tb = document.createElement("tbody");
+      for (const [k, v] of Object.entries(app.architecture)) {
+        const tr = document.createElement("tr");
+        const tdK = document.createElement("td");
+        tdK.style.fontWeight = "bold";
+        tdK.style.width = "220px";
+        tdK.textContent = k.toUpperCase();
+        const tdV = document.createElement("td");
+        tdV.className = "code-text";
+        tdV.textContent = String(v);
+        tr.append(tdK, tdV);
+        tb.appendChild(tr);
+      }
+      table.appendChild(tb);
+      card.appendChild(table);
+      archDiv.appendChild(card);
+    }
+
+    // 4. Live Simulation Visibility
+    if (simSection) {
+      simSection.style.display = app.status === "CONNECTED" ? "block" : "none";
     }
   }
 

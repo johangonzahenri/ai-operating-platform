@@ -47,7 +47,7 @@
           <span>Execution Detail</span>
         </button>
 
-        <div class="nav-section-label">Runtime &amp; Capabilities</div>
+        <div class="nav-section-label">Runtime &amp; Intelligence</div>
         <button class="nav-item" data-tab="models">
           <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-2.04z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-2.04z"/></svg></span>
           <span>Models</span>
@@ -61,18 +61,20 @@
           <span>Playground</span>
         </button>
 
-        <div class="nav-section-label">Governance &amp; Arch</div>
+        <div class="nav-section-label">Applications &amp; Ecosystem</div>
+        <button class="nav-item" data-tab="applications">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span>
+          <span>Applications</span>
+        </button>
+
+        <div class="nav-section-label">Architecture &amp; Governance</div>
         <button class="nav-item" data-tab="blueprints">
           <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/><line x1="12" y1="22" x2="12" y2="12"/><polyline points="2 8.5 12 12 22 8.5"/></svg></span>
-          <span>Blueprints &amp; Arquitectura</span>
+          <span>Blueprint &amp; System Map</span>
         </button>
         <button class="nav-item" data-tab="governance">
           <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
           <span>Governance</span>
-        </button>
-        <button class="nav-item" data-tab="applications">
-          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span>
-          <span>Applications</span>
         </button>
         <button class="nav-item" data-tab="settings">
           <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
@@ -714,6 +716,8 @@
           </div>
           <div class="card-body">
             <div id="agent-detail-summary" style="margin-bottom:1.5rem;"></div>
+            <!-- Agent Architecture Hierarchy (Agent -> Model -> Tools -> Memory) -->
+            <div id="agent-detail-hierarchy" style="margin-bottom:1.5rem;"></div>
 
             <!-- Agent Tool Relationship & Capabilities Breakdown -->
             <div id="agent-detail-tools-matrix" style="margin-bottom:1.5rem;"></div>
@@ -744,28 +748,90 @@
         </div>
       </section>
 
-      <!-- 3. View: Models -->
+      <!-- 3. View: Models (Model Gateway Console) -->
       <section id="tab-models" class="tab-view">
         <div class="card full-width">
           <div class="card-header">
-            <h3>Registered AI Models</h3>
-            <span class="badge badge-info" id="models-count-badge">0</span>
+            <div>
+              <h3>AI Model Gateways &amp; Inference Capabilities</h3>
+              <p style="font-size:0.85rem; color:var(--text-secondary); margin-top:0.25rem;">
+                Configured model gateways, providers, latency profiles, capabilities, and active agent bindings
+              </p>
+            </div>
+            <div style="display:flex; gap:0.75rem; align-items:center;">
+              <span class="badge badge-info" id="models-count-badge">0 models</span>
+            </div>
           </div>
           <div class="card-body">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Model ID</th>
-                  <th>Name</th>
-                  <th>Provider</th>
-                  <th>Status</th>
-                  <th>Capabilities</th>
-                </tr>
-              </thead>
-              <tbody id="models-tbody">
-                <tr><td colspan="5" class="empty-state">Loading models...</td></tr>
-              </tbody>
-            </table>
+            <!-- Search and Filter Bar -->
+            <div class="filter-bar">
+              <div class="filter-group" style="flex: 1; min-width: 200px;">
+                <label for="models-search-input">Search Models</label>
+                <input type="text" id="models-search-input" class="form-control" placeholder="Search by model ID, name, provider, or capability...">
+              </div>
+              <div class="filter-group">
+                <label for="models-provider-filter">Provider</label>
+                <select id="models-provider-filter" class="form-control">
+                  <option value="ALL">All Providers</option>
+                  <option value="stub">Stub Deterministic</option>
+                  <option value="openai">OpenAI</option>
+                  <option value="anthropic">Anthropic</option>
+                  <option value="google">Google DeepMind</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label for="models-status-filter">Status</label>
+                <select id="models-status-filter" class="form-control">
+                  <option value="ALL">All Statuses</option>
+                  <option value="connected">Connected / Live</option>
+                  <option value="available">Available</option>
+                  <option value="unavailable">Unavailable / Offline</option>
+                </select>
+              </div>
+              <button id="models-clear-filter-btn" class="btn btn-sm btn-secondary" style="align-self:flex-end;">Clear Filters</button>
+            </div>
+
+            <!-- Models Table -->
+            <div style="overflow-x:auto; margin-bottom:1.5rem;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Gateway ID &amp; Name</th>
+                    <th>Provider</th>
+                    <th>Status</th>
+                    <th>Capabilities</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="models-tbody">
+                  <tr><td colspan="5" class="empty-state">Loading registered model gateways...</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Card Grid View -->
+            <div id="models-list" class="app-cards-grid">
+              <!-- Injected via JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Model Detail Inspector Panel -->
+        <div class="card full-width" id="model-detail-panel" style="display:none; margin-top:1.5rem;">
+          <div class="card-header">
+            <h3>Model Gateway Detail: <span id="model-detail-title" class="code-text"></span></h3>
+            <button id="close-model-detail-btn" class="btn btn-sm btn-secondary">Close</button>
+          </div>
+          <div class="card-body">
+            <div id="model-detail-summary" style="margin-bottom:1.5rem;"></div>
+
+            <!-- Agents using this Model Gateway -->
+            <div id="model-detail-agents" style="margin-bottom:1.5rem;"></div>
+
+            <!-- Model Governance & Security Notice -->
+            <div id="model-detail-governance" class="ops-muted" style="font-size:0.82rem; padding:0.75rem; background:var(--bg-tertiary); border-radius:var(--radius-sm);">
+              🔒 <strong>Model Gateway Governance:</strong> All inference requests pass through the governed Model Gateway Router under fail-closed tenant budgets, prompt sanitization, and structured schema validation.
+            </div>
           </div>
         </div>
       </section>
@@ -1124,49 +1190,87 @@
         </div>
       </section>
 
-      <!-- 8. View: Applications (AI Commerce) -->
+      <!-- 8. View: Applications (Connected Applications & Consumer Ecosystem Hub) -->
       <section id="tab-applications" class="tab-view">
         <div class="card full-width">
           <div class="card-header">
-            <h3>External Applications &amp; Consumers</h3>
-            <span class="badge badge-success">API Consumer</span>
+            <div>
+              <h3>Connected Applications &amp; Consumer Ecosystem</h3>
+              <p style="font-size:0.85rem; color:var(--text-secondary); margin-top:0.25rem;">
+                External enterprise systems consuming AI Operating Platform strictly through public REST contracts (<code>/api/v1</code>). Zero domain coupling.
+              </p>
+            </div>
+            <div style="display:flex; gap:0.75rem; align-items:center;">
+              <span class="badge badge-success" id="apps-count-badge">3 applications</span>
+            </div>
           </div>
           <div class="card-body">
-            <p style="color:var(--text-secondary); margin-bottom:1.5rem;">
-              External applications (such as <strong>AI Commerce</strong>) integrate strictly through the <strong>Platform API contracts</strong> (<code>/api/v1</code>). They never import domain entities, application use cases, or infrastructure adapters directly.
-            </p>
+            <!-- Search & Filter Bar -->
+            <div class="filter-bar">
+              <div class="filter-group" style="flex: 1; min-width: 200px;">
+                <label for="apps-search-input">Search Applications</label>
+                <input type="text" id="apps-search-input" class="form-control" placeholder="Search by application name, ID, category, or integration...">
+              </div>
+              <div class="filter-group">
+                <label for="apps-status-filter">Integration Status</label>
+                <select id="apps-status-filter" class="form-control">
+                  <option value="ALL">All Statuses</option>
+                  <option value="CONNECTED">Connected / Live</option>
+                  <option value="PLANNED">Planned</option>
+                </select>
+              </div>
+              <button id="apps-clear-filter-btn" class="btn btn-sm btn-secondary" style="align-self:flex-end;">Clear Filters</button>
+            </div>
 
-            <div class="two-col-grid">
-              <div class="card" style="background:var(--bg-tertiary);">
+            <!-- Application Cards Grid -->
+            <div id="applications-list" class="app-cards-grid">
+              <!-- Injected dynamically via app.js -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Application Detail Panel -->
+        <div class="card full-width" id="app-detail-panel" style="display:none; margin-top:1.5rem;">
+          <div class="card-header">
+            <h3>Application Detail: <span id="app-detail-title" class="code-text"></span></h3>
+            <button id="close-app-detail-btn" class="btn btn-sm btn-secondary">Close</button>
+          </div>
+          <div class="card-body">
+            <div id="app-detail-summary" style="margin-bottom:1.5rem;"></div>
+
+            <div class="two-col-grid" style="margin-bottom:1.5rem;">
+              <div class="card" style="background:var(--bg-tertiary); margin:0;">
                 <div class="card-header">
-                  <h4>AI Commerce Integration Spec</h4>
+                  <h4>Application Capabilities &amp; Features</h4>
                 </div>
                 <div class="card-body">
-                  <p style="font-size:0.875rem; color:var(--text-secondary); margin-bottom:0.75rem;">
-                    Demonstrates an external enterprise e-commerce platform consuming AI Operating Platform to evaluate purchase discount rules and calculate taxes.
-                  </p>
-                  <ul style="font-size:0.85rem; color:var(--text-secondary); padding-left:1.2rem; line-height:1.7;">
-                    <li><strong>Caller:</strong> <code>commerce-order-service</code></li>
-                    <li><strong>Target Endpoint:</strong> <code>POST /api/v1/orchestrate</code></li>
-                    <li><strong>Contract Boundary:</strong> Zero Core Engine imports</li>
-                    <li><strong>Trace Correlation:</strong> End-to-end trace ID propagated</li>
-                  </ul>
+                  <div id="app-detail-capabilities"></div>
                 </div>
               </div>
 
-              <div class="card" style="background:var(--bg-tertiary);">
+              <div class="card" style="background:var(--bg-tertiary); margin:0;">
                 <div class="card-header">
-                  <h4>Run AI Commerce Simulation</h4>
+                  <h4>Platform Integration &amp; Architecture</h4>
                 </div>
                 <div class="card-body">
-                  <p style="font-size:0.875rem; color:var(--text-secondary); margin-bottom:1rem;">
-                    Execute an automated order calculation workflow using the Calculator tool and deterministic Model synthesis.
-                  </p>
-                  <button id="run-commerce-simulation-btn" class="btn btn-primary">Dispatch Order Calculation</button>
-                  <div id="commerce-sim-output" style="display:none; margin-top:1rem;">
-                    <span id="commerce-sim-badge" class="badge"></span>
-                    <pre id="commerce-sim-json" class="json-display" style="margin-top:0.5rem; max-height:200px;"></pre>
-                  </div>
+                  <div id="app-detail-architecture"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tentaciones Simulation Runner (Contextual) -->
+            <div id="app-simulation-card" class="card" style="background:var(--bg-elevated); border:1px solid var(--border-color); margin-top:1rem;">
+              <div class="card-header">
+                <h4>Run Application Integration Simulation</h4>
+              </div>
+              <div class="card-body">
+                <p style="font-size:0.875rem; color:var(--text-secondary); margin-bottom:1rem;">
+                  Dispatch a real order calculation workflow through <code>POST /api/v1/orchestrate</code> using authorized platform tools and deterministic inference.
+                </p>
+                <button id="run-commerce-simulation-btn" class="btn btn-primary">Dispatch Order Calculation</button>
+                <div id="commerce-sim-output" style="display:none; margin-top:1rem;">
+                  <span id="commerce-sim-badge" class="badge"></span>
+                  <pre id="commerce-sim-json" class="json-display" style="margin-top:0.5rem; max-height:200px;"></pre>
                 </div>
               </div>
             </div>
@@ -1259,14 +1363,14 @@
         </div>
       </section>
 
-      <!-- 11. View: Blueprints & Arquitectura Oficial (Infografías y Libro) -->
+      <!-- 11. View: Blueprints & Arquitectura Oficial (Interactive Control Center Blueprint) -->
       <section id="tab-blueprints" class="tab-view">
         <div class="card full-width">
           <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
             <div>
-              <h3>Infografías Maestras de Arquitectura &amp; Ecosistema (Español)</h3>
+              <h3>Interactive Platform System Blueprint &amp; System Map</h3>
               <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 4px;">
-                Visualización interactiva de las garantías operacionales, topología hexagonal y habilitación multiplataforma.
+                Visual orchestration map of the AI Operating Platform. Click any architectural component to inspect its live state and telemetry.
               </p>
             </div>
             <div style="display: flex; gap: 0.5rem; align-items: center;">
@@ -1276,6 +1380,268 @@
             </div>
           </div>
           <div class="card-body">
+            <!-- 1. Interactive Master Blueprint Grid (Clickable Architecture Nodes) -->
+            <div class="blueprint-system-map" id="interactive-system-blueprint">
+              <!-- Tier 1: External Applications -->
+              <div class="blueprint-tier">
+                <div class="blueprint-tier-label">
+                  <span>1. External Applications &amp; Consumer Ecosystem</span>
+                  <span class="status-pill status-pill-connected" id="bp-status-apps">1 Connected · 2 Planned</span>
+                </div>
+                <div class="blueprint-nodes-row">
+                  <div class="blueprint-node" data-nav-target="applications" tabindex="0" role="button" aria-label="View Tentaciones AI Commerce Application">
+                    <div class="blueprint-node-header">
+                      <span class="blueprint-node-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg> Tentaciones AI Commerce</span>
+                      <span class="status-pill status-pill-connected">Connected</span>
+                    </div>
+                    <div class="blueprint-node-desc">AI Fashion &amp; Footwear commerce consuming platform intelligence for catalog search, outfit styling, and virtual AR fitting room.</div>
+                    <div class="blueprint-node-meta">
+                      <span>Target: /api/v1/*</span>
+                      <span>Click to inspect &rarr;</span>
+                    </div>
+                  </div>
+                  <div class="blueprint-node" data-nav-target="applications" tabindex="0" role="button" aria-label="View Vehicle Parts Application">
+                    <div class="blueprint-node-header">
+                      <span class="blueprint-node-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg> Vehicle Parts Platform</span>
+                      <span class="status-pill status-pill-planned">Planned</span>
+                    </div>
+                    <div class="blueprint-node-desc">Industrial automotive &amp; machinery diagnostics platform consuming governed task execution.</div>
+                    <div class="blueprint-node-meta">
+                      <span>Target: /api/v1/tasks</span>
+                      <span>Click to inspect &rarr;</span>
+                    </div>
+                  </div>
+                  <div class="blueprint-node" data-nav-target="applications" tabindex="0" role="button" aria-label="View External Ecosystem Consumers">
+                    <div class="blueprint-node-header">
+                      <span class="blueprint-node-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 22 22 22 12 2"/></svg> Future Ecosystem Apps</span>
+                      <span class="status-pill status-pill-planned">Planned</span>
+                    </div>
+                    <div class="blueprint-node-desc">Third-party web/mobile frontends, automation runners, and chatbots consuming Platform API.</div>
+                    <div class="blueprint-node-meta">
+                      <span>REST &amp; Webhooks</span>
+                      <span>Click to inspect &rarr;</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="blueprint-connector">
+                <span>&darr; Public REST Contracts &amp; SDK (/api/v1 &amp; PlatformClient) &darr;</span>
+              </div>
+
+              <!-- Tier 2: Platform API Gateway -->
+              <div class="blueprint-tier">
+                <div class="blueprint-tier-label">
+                  <span>2. Platform API Gateway &amp; Governance Boundary</span>
+                  <span class="status-pill status-pill-healthy" id="bp-status-api">Operational</span>
+                </div>
+                <div class="blueprint-nodes-row">
+                  <div class="blueprint-node" data-nav-target="settings" tabindex="0" role="button" aria-label="View Platform API Settings">
+                    <div class="blueprint-node-header">
+                      <span class="blueprint-node-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> API Gateway &amp; Security Boundary</span>
+                      <span class="status-pill status-pill-healthy">Enforced</span>
+                    </div>
+                    <div class="blueprint-node-desc">Loopback isolation (127.0.0.1:3000), API key/bearer auth, typed DTO validation, and fail-closed RBAC evaluators.</div>
+                    <div class="blueprint-node-meta">
+                      <span>HTTP REST / Rate Limits</span>
+                      <span>Click to inspect &rarr;</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="blueprint-connector">
+                <span>&darr; Domain Invariant: CORE ENGINE &ne; PLATFORM PRODUCT &ne; APPLICATIONS &darr;</span>
+              </div>
+
+              <!-- Tier 3: Autonomous Orchestration & Planning -->
+              <div class="blueprint-tier">
+                <div class="blueprint-tier-label">
+                  <span>3. Autonomous Orchestration &amp; Planning Tier</span>
+                  <span class="status-pill status-pill-healthy" id="bp-status-ops">Operational</span>
+                </div>
+                <div class="blueprint-nodes-row">
+                  <div class="blueprint-node" data-nav-target="operations" tabindex="0" role="button" aria-label="View Autonomous Operations">
+                    <div class="blueprint-node-header">
+                      <span class="blueprint-node-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-2.05 11a22.35 22.35 0 0 1-4 2z"/></svg> LLM Planner &amp; Multi-Step Loop</span>
+                      <span class="status-pill status-pill-healthy">Operational</span>
+                    </div>
+                    <div class="blueprint-node-desc">DAG plan generation, step validation, and bounded loop execution governed by AutonomyBudget.</div>
+                    <div class="blueprint-node-meta">
+                      <span>AutonomyBudget / Fail-Closed</span>
+                      <span>Click to inspect &rarr;</span>
+                    </div>
+                  </div>
+                  <div class="blueprint-node" data-nav-target="agents" tabindex="0" role="button" aria-label="View AI Agents">
+                    <div class="blueprint-node-header">
+                      <span class="blueprint-node-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/></svg> First-Class AI Agents</span>
+                      <span class="status-pill status-pill-healthy">Operational</span>
+                    </div>
+                    <div class="blueprint-node-desc">Deterministic system prompt injection, tool authorization whitelists, and isolated memory scopes.</div>
+                    <div class="blueprint-node-meta">
+                      <span>OCC Versioned / Persistent</span>
+                      <span>Click to inspect &rarr;</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="blueprint-connector">
+                <span>&darr; Provider-Neutral Port &amp; Adapter Boundaries &darr;</span>
+              </div>
+
+              <!-- Tier 4: Intelligence Runtime & Gateways -->
+              <div class="blueprint-tier">
+                <div class="blueprint-tier-label">
+                  <span>4. Intelligence Runtime &amp; Capability Gateways</span>
+                  <span class="status-pill status-pill-healthy" id="bp-status-runtime">Operational</span>
+                </div>
+                <div class="blueprint-nodes-row">
+                  <div class="blueprint-node" data-nav-target="models" tabindex="0" role="button" aria-label="View Model Gateways">
+                    <div class="blueprint-node-header">
+                      <span class="blueprint-node-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-2.04z"/></svg> Model Gateway &amp; Router</span>
+                      <span class="status-pill status-pill-healthy">Operational</span>
+                    </div>
+                    <div class="blueprint-node-desc">Provider-neutral LLM gateway with structured outputs, schema adherence, latency tracking, and fallback routing.</div>
+                    <div class="blueprint-node-meta">
+                      <span>Multi-Provider Gateways</span>
+                      <span>Click to inspect &rarr;</span>
+                    </div>
+                  </div>
+                  <div class="blueprint-node" data-nav-target="tools" tabindex="0" role="button" aria-label="View Tool Catalog">
+                    <div class="blueprint-node-header">
+                      <span class="blueprint-node-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg> Dynamic Tool Invocation Runtime</span>
+                      <span class="status-pill status-pill-healthy">Operational</span>
+                    </div>
+                    <div class="blueprint-node-desc">Versioned capability catalog, JSON schema validation, risk level gates (LOW to CRITICAL), and prototype pollution guards.</div>
+                    <div class="blueprint-node-meta">
+                      <span>Safe Execution / Audited</span>
+                      <span>Click to inspect &rarr;</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="blueprint-connector">
+                <span>&darr; Monotonic Event Sourcing &amp; Crash Recovery &darr;</span>
+              </div>
+
+              <!-- Tier 5: Persistence & Governance Ledger -->
+              <div class="blueprint-tier">
+                <div class="blueprint-tier-label">
+                  <span>5. Durable Persistence &amp; Governance Ledger</span>
+                  <span class="status-pill status-pill-healthy" id="bp-status-persistence">Durable WAL</span>
+                </div>
+                <div class="blueprint-nodes-row">
+                  <div class="blueprint-node" data-nav-target="platform-operations" tabindex="0" role="button" aria-label="View SQLite WAL Event Ledger">
+                    <div class="blueprint-node-header">
+                      <span class="blueprint-node-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 22 22 22 12 2"/></svg> SQLite WAL Durable Ledger</span>
+                      <span class="status-pill status-pill-healthy">WAL Active</span>
+                    </div>
+                    <div class="blueprint-node-desc">Append-only monotonic sequence numbering, immutable event persistence, and automatic crash recovery rehydration.</div>
+                    <div class="blueprint-node-meta">
+                      <span>SQLite 3 / Schema v3</span>
+                      <span>Click to inspect &rarr;</span>
+                    </div>
+                  </div>
+                  <div class="blueprint-node" data-nav-target="governance" tabindex="0" role="button" aria-label="View Governance & Audit">
+                    <div class="blueprint-node-header">
+                      <span class="blueprint-node-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Fail-Closed Governance &amp; Audit</span>
+                      <span class="status-pill status-pill-healthy">Operational</span>
+                    </div>
+                    <div class="blueprint-node-desc">Trace-correlated causation trees, tenant isolation, zero npm runtime dependencies, and verifiable compliance logs.</div>
+                    <div class="blueprint-node-meta">
+                      <span>0 CVEs / Full Audit Trail</span>
+                      <span>Click to inspect &rarr;</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. Platform Build & Capability Subsystems Status Table -->
+            <div class="card" style="background:var(--bg-elevated); margin-bottom:1.5rem; border:1px solid var(--border-color);">
+              <div class="card-header">
+                <h4>Platform Subsystems Operational Build Status</h4>
+              </div>
+              <div class="card-body">
+                <table class="build-status-table">
+                  <thead>
+                    <tr>
+                      <th>Platform Subsystem</th>
+                      <th>Phase / Milestone</th>
+                      <th>Operational Status</th>
+                      <th>Architecture &amp; Guarantees</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><strong>Core Engine &amp; Hexagonal Ports</strong></td>
+                      <td>Phase 1–14</td>
+                      <td><span class="status-pill status-pill-operational">Operational</span></td>
+                      <td>Zero domain leakage, deterministic test doubles, clean ports &amp; adapters.</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Platform REST API Gateway</strong></td>
+                      <td>Phase 15–16</td>
+                      <td><span class="status-pill status-pill-operational">Operational</span></td>
+                      <td>Loopback HTTP REST contracts (/api/v1), typed DTO envelopes, 1MB payload limits.</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Fail-Closed Security &amp; RBAC</strong></td>
+                      <td>Phase 15</td>
+                      <td><span class="status-pill status-pill-operational">Operational</span></td>
+                      <td>Principal-aware token authentication, role evaluators, prompt injection guards.</td>
+                    </tr>
+                    <tr>
+                      <td><strong>First-Class AI Agents Subsystem</strong></td>
+                      <td>Phase 15–16</td>
+                      <td><span class="status-pill status-pill-operational">Operational</span></td>
+                      <td>Optimistic concurrency control, versioned state, tool whitelists, memory scopes.</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Dynamic Tool Registry &amp; Invocation</strong></td>
+                      <td>Phase 15–16</td>
+                      <td><span class="status-pill status-pill-operational">Operational</span></td>
+                      <td>Risk-bounded tool execution (LOW to CRITICAL), parameter validation, prototype shields.</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Model Gateway &amp; Router</strong></td>
+                      <td>Phase 15–16</td>
+                      <td><span class="status-pill status-pill-operational">Operational</span></td>
+                      <td>Provider-neutral routing, structured output formatting, latency &amp; availability tracking.</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Durable WAL Persistence &amp; Recovery</strong></td>
+                      <td>Phase 14–15</td>
+                      <td><span class="status-pill status-pill-operational">Operational</span></td>
+                      <td>SQLite WAL engine, monotonic event store, restart reconciliation service.</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Web Control Center Console</strong></td>
+                      <td>Phase 16</td>
+                      <td><span class="status-pill status-pill-operational">Operational</span></td>
+                      <td>Zero innerHTML XSS prevention, reactive telemetry, interactive system map.</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Tentaciones AI Commerce Integration</strong></td>
+                      <td>Phase 16</td>
+                      <td><span class="status-pill status-pill-connected">Connected</span></td>
+                      <td>External consumer adapter executing tasks &amp; orchestrations through PlatformClient.</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Vehicle Diagnostics &amp; Future Apps</strong></td>
+                      <td>Future Roadmap</td>
+                      <td><span class="status-pill status-pill-planned">Planned</span></td>
+                      <td>Designed to consume public Platform API without core engine modifications.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- 3. Infographic Blueprints Section (Original Assets) -->
+            <h4 style="margin-bottom:0.75rem;">Official Architectural Infographics &amp; Specification</h4>
             <!-- Segmented Switcher for Blueprints -->
             <div class="blueprint-nav" style="display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.75rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border-color);">
               <button type="button" class="btn btn-secondary active blueprint-tab-btn" data-bp="bp-ecosistema" style="display:inline-flex;align-items:center;gap:0.4rem;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> Ecosistema Multiplataforma</button>

@@ -83,7 +83,9 @@ Domain-specific business logic (such as Tentaciones E-Commerce catalog, cart, an
 
 ---
 
-## 6. Management Consoles Reference
+## 6. Management Consoles & Control Center Reference
 
 For deep technical specifications, capability matrices, and schema inspectors of specific consoles:
+- **Platform Control Center**: See [`docs/PLATFORM_CONTROL_CENTER.md`](PLATFORM_CONTROL_CENTER.md) for full documentation of the unified control center, models console, external applications catalog, and interactive visual blueprint.
+- **Visual Master Map**: See [`docs/VISUAL_MASTER_MAP.md`](VISUAL_MASTER_MAP.md) for the complete 7-tier architecture map, subsystem build status table, and blueprint infographics.
 - **Agent & Tool Management Console**: See [`docs/AGENT_TOOL_CONSOLE.md`](AGENT_TOOL_CONSOLE.md) for full documentation of agent lifecycle management, authorized capability matrices, risk level models, execution modes, human approval gates, and safe read-only JSON schema inspectors.

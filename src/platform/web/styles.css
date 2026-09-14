@@ -1169,3 +1169,316 @@ body {
 .ops-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(280px,.75fr);gap:1rem}.ops-card{min-height:230px}.ops-section-heading>span:last-child{color:#91a0b8;font-size:.75rem}.ops-timeline{display:grid;gap:.5rem;margin-top:1rem}.ops-timeline-item{display:flex;justify-content:space-between;gap:1rem;padding:.7rem .8rem;border-left:2px solid #38bdf8;background:#14243a}.ops-timeline-item strong{font-size:.78rem}.ops-timeline-item span{color:#91a0b8;font-size:.75rem}.ops-empty{padding:1.5rem 0;color:#91a0b8;font-size:.85rem}.ops-activity{display:grid;gap:.75rem;margin:1rem 0}.ops-activity div{display:flex;justify-content:space-between;border-bottom:1px solid #263b57;padding-bottom:.45rem}.ops-activity dt{color:#91a0b8;font-size:.8rem}.ops-activity dd{margin:0;max-width:65%;overflow-wrap:anywhere;text-align:right;font-size:.8rem}.ops-result-heading{margin-top:1.25rem}.ops-result{max-height:160px;overflow:auto;margin:.7rem 0 0;padding:.8rem;border-radius:7px;background:#091321;color:#dbeafe;font: .75rem/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre-wrap}.ops-error{margin-top:1rem;padding:.8rem;border:1px solid #ef4444;border-radius:7px;background:#3b1118;color:#fecaca;font-size:.85rem}
 .ops-tool-calls{display:grid;gap:.5rem;margin-top:.7rem}.ops-tool-call{display:grid;gap:.25rem;padding:.65rem .75rem;border-left:2px solid #a78bfa;background:#14243a}.ops-tool-call strong{font-size:.8rem}.ops-tool-call span{color:#91a0b8;font-size:.72rem}
 @media (max-width:800px){.ops-status-grid{grid-template-columns:repeat(2,1fr)}.ops-task-panel,.ops-grid{grid-template-columns:1fr}.ops-identifiers{grid-template-columns:1fr}.ops-console-header{align-items:flex-start;flex-direction:column}}
+
+/* ==========================================================================
+   PROMPT 59: PLATFORM CONTROL CENTER, MODELS, APPLICATIONS & BLUEPRINT STYLES
+   ========================================================================== */
+
+/* Status Pills & Indicators */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.status-pill-healthy,
+.status-pill-connected,
+.status-pill-operational {
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--accent-emerald);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.status-pill-planned {
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--text-muted);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.status-pill-degraded,
+.status-pill-partial {
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--accent-amber);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.status-pill-offline,
+.status-pill-unavailable {
+  background: rgba(220, 38, 38, 0.12);
+  color: var(--accent-red);
+  border: 1px solid rgba(220, 38, 38, 0.25);
+}
+
+/* Interactive Blueprint System Map */
+.blueprint-system-map {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.5rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  margin-bottom: 2rem;
+}
+
+.blueprint-tier {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.blueprint-tier-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  padding: 0 0.25rem;
+}
+
+.blueprint-nodes-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.blueprint-node {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem 1.15rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.blueprint-node:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-blue);
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.12);
+}
+
+.blueprint-node:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 2px;
+}
+
+.blueprint-node-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.4rem;
+}
+
+.blueprint-node-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.blueprint-node-desc {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  margin-bottom: 0.6rem;
+}
+
+.blueprint-node-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: auto;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.blueprint-connector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem 0;
+  color: var(--accent-blue);
+  font-size: 0.85rem;
+  font-weight: 600;
+  gap: 0.5rem;
+}
+
+.blueprint-connector span {
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Build Status Table */
+.build-status-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.build-status-table th,
+.build-status-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  text-align: left;
+}
+
+.build-status-table th {
+  background: var(--bg-tertiary);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
+
+/* Application Cards & Catalog */
+.app-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.25rem;
+  margin-top: 1rem;
+}
+
+.app-card {
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.app-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-cyan);
+  box-shadow: 0 8px 24px rgba(2, 132, 199, 0.12);
+}
+
+.app-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.6rem;
+}
+
+.app-card-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.app-card-category {
+  font-size: 0.75rem;
+  color: var(--accent-cyan);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.app-card-desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 1rem;
+}
+
+.app-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.app-tag {
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-xs);
+  color: var(--text-secondary);
+}
+
+/* Agent Hierarchy Tree Component */
+.agent-hierarchy-tree {
+  padding: 1.25rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  margin-bottom: 1.5rem;
+}
+
+.tree-root-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  margin-bottom: 1rem;
+}
+
+.tree-branches-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-left: 1.5rem;
+  border-left: 2px solid var(--accent-blue);
+  margin-left: 1rem;
+}
+
+.tree-branch-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+
+.tree-branch-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.tree-branch-content {
+  flex: 1;
+}
+
+.tree-branch-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 0.2rem;
+}
+
+.tree-branch-val {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
