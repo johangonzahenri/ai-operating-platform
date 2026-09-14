@@ -251,6 +251,8 @@ export interface ComponentHealthDTO {
 
 export interface PlatformHealthDTO {
   readonly status: "HEALTHY" | "DEGRADED" | "UNHEALTHY";
+  readonly liveness?: "UP" | "DOWN" | undefined;
+  readonly readiness?: "READY" | "NOT_READY" | undefined;
   readonly version: string;
   readonly uptimeSeconds: number;
   readonly timestamp: string;

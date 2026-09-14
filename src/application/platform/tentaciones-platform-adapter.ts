@@ -7,6 +7,8 @@ import type {
   EventContract,
   ExecutionContract,
   HealthContract,
+  SafeAgentMetadataContract,
+  TaskCancellationContract,
   TaskContract,
 } from "../../platform/product/execution-contract.js";
 
@@ -14,8 +16,9 @@ export const TENTACIONES_APPLICATION = "tentaciones";
 export const PRODUCT_DISCOVERY_CAPABILITY = "product.discovery";
 
 export interface TentacionesPlatformClient {
-  readonly tasks: Pick<PlatformClient["tasks"], "create" | "execute" | "get">;
+  readonly tasks: Pick<PlatformClient["tasks"], "create" | "execute" | "get"> & Partial<Pick<PlatformClient["tasks"], "cancel" | "events">>;
   readonly executions: Pick<PlatformClient["executions"], "get" | "events">;
+  readonly agents?: Pick<PlatformClient["agents"], "list"> | undefined;
   readonly health: Pick<PlatformClient["health"], "get">;
 }
 
@@ -104,6 +107,27 @@ export class TentacionesPlatformAdapter {
 
   getExecutionEvents(executionId: string): Promise<readonly EventContract[]> {
     return this.client.executions.events(executionId);
+  }
+
+  async listAgents(): Promise<readonly SafeAgentMetadataContract[]> {
+    if (!this.client.agents) {
+      throw new Error("Client does not support agent listing");
+    }
+    return this.client.agents.list();
+  }
+
+  async cancelTask(taskId: string, reason?: string): Promise<TaskCancellationContract> {
+    if (!this.client.tasks.cancel) {
+      throw new Error("Client does not support task cancellation");
+    }
+    return this.client.tasks.cancel(taskId, reason);
+  }
+
+  async getTaskEvents(taskId: string): Promise<readonly EventContract[]> {
+    if (!this.client.tasks.events) {
+      throw new Error("Client does not support task events");
+    }
+    return this.client.tasks.events(taskId);
   }
 
   async getHealth(): Promise<PlatformAvailability> {

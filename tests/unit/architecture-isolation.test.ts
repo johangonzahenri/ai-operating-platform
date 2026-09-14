@@ -70,3 +70,42 @@ test("Architectural Invariant: CoreRuntime does NOT import OllamaModelGateway or
   assert.equal(coreRuntimeContent.includes("AnthropicModelGateway"), false);
 });
 
+test("Architectural Invariant: TentacionesPlatformAdapter does NOT import domain, runtime, or infrastructure directly", async () => {
+  const fs = await import("node:fs");
+  const adapterContent = fs.readFileSync("src/application/platform/tentaciones-platform-adapter.ts", "utf8");
+  assert.equal(adapterContent.includes("../../domain/"), false, "Tentaciones cannot import domain directly");
+  assert.equal(adapterContent.includes("../../application/runtime/"), false, "Tentaciones cannot import CoreRuntime directly");
+  assert.equal(adapterContent.includes("../../infrastructure/"), false, "Tentaciones cannot import infrastructure directly");
+});
+
+test("Architectural Invariant: HTTP Router does NOT import CoreRuntime directly", async () => {
+  const fs = await import("node:fs");
+  const routerContent = fs.readFileSync("src/platform/api/http-router.ts", "utf8");
+  assert.equal(routerContent.includes("CoreRuntime"), false, "HTTP Router must not import CoreRuntime directly; must use PlatformService");
+});
+
+test("Architectural Invariant: Domain files have ZERO imports from HTTP or Express", async () => {
+  const fs = await import("node:fs");
+  const path = await import("node:path");
+
+  function scanDir(dir: string): string[] {
+    let files: string[] = [];
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        files = files.concat(scanDir(full));
+      } else if (entry.name.endsWith(".ts")) {
+        files.push(full);
+      }
+    }
+    return files;
+  }
+
+  const domainFiles = scanDir("src/domain");
+  for (const file of domainFiles) {
+    const content = fs.readFileSync(file, "utf8");
+    assert.equal(content.includes("from \"node:http\"") || content.includes("from 'node:http'"), false);
+    assert.equal(content.includes("express"), false);
+  }
+});
+

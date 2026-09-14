@@ -4,6 +4,49 @@
  */
 
 :root {
+  /* Surfaces & Canvas (Default: Clean Executive Light Theme) */
+  --bg-primary: #f8fafc;
+  --bg-secondary: #f1f5f9;
+  --bg-tertiary: #e2e8f0;
+  --bg-elevated: #ffffff;
+  --bg-input: #ffffff;
+  --border-color: rgba(15, 23, 42, 0.09);
+  --border-focus: rgba(37, 99, 235, 0.5);
+  --border-subtle: rgba(15, 23, 42, 0.05);
+
+  /* Typography */
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --text-dim: #94a3b8;
+
+  /* Semantic Status & Accents */
+  --accent-cyan: #0284c7;
+  --accent-blue: #2563eb;
+  --accent-indigo: #4f46e5;
+  --accent-purple: #9333ea;
+  --accent-green: #059669;
+  --accent-emerald: #10b981;
+  --accent-red: #dc2626;
+  --accent-rose: #e11d48;
+  --accent-amber: #d97706;
+
+  /* Font Stacks */
+  --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, Monaco, Consolas, monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Segoe UI", Roboto, sans-serif;
+
+  /* Geometry */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+}
+
+/* Dark Theme (Alternative) */
+[data-theme="dark"],
+.dark,
+body.dark {
   /* Surfaces & Canvas */
   --bg-primary: #08090d;
   --bg-secondary: #0d1017;
@@ -30,17 +73,6 @@
   --accent-red: #f87171;
   --accent-rose: #f43f5e;
   --accent-amber: #fbbf24;
-
-  /* Font Stacks */
-  --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, Monaco, Consolas, monospace;
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Segoe UI", Roboto, sans-serif;
-
-  /* Geometry */
-  --radius-xs: 4px;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 18px;
-  --radius-xl: 24px;
 }
 
 * {

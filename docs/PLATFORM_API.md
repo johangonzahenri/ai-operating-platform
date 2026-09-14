@@ -1,4 +1,4 @@
-﻿# AI Operating Platform — Platform API Contract (/api/v1)
+# AI Operating Platform — Platform API Contract (/api/v1)
 
 ## Overview
 
@@ -80,7 +80,7 @@ All responses from `/api/v1` adhere to a uniform structure:
 - **Method & Path**: `GET /api/v1/health`
 - **Authentication**: None (Public)
 - **Permissions**: None
-- **Description**: Lightweight health and uptime check for load balancers and container orchestrators.
+- **Description**: Lightweight health, liveness, readiness, and uptime check for load balancers and container orchestrators.
 - **Success Status**: `200 OK`
 - **Response**:
 ```json
@@ -88,7 +88,9 @@ All responses from `/api/v1` adhere to a uniform structure:
   "status": "HEALTHY",
   "version": "1.0.0",
   "uptime": 123.456,
-  "timestamp": "2026-09-13T22:00:00.000Z"
+  "timestamp": "2026-09-13T22:00:00.000Z",
+  "liveness": "UP",
+  "readiness": "READY"
 }
 ```
 
@@ -146,7 +148,9 @@ All responses from `/api/v1` adhere to a uniform structure:
 - **Authentication**: Required
 - **Required Permission**: `task.create` / `tasks:create`
 - **Headers**:
-  - `Idempotency-Key` (Optional): Unique idempotency key. Repeating a request with the same key returns the existing task without re-executing.
+  - `Idempotency-Key` (Optional): Unique idempotency key. Repeating a request with the same key returns the cached completed task result without re-executing.
+  - If a concurrent request is already in-flight with the same key, HTTP `409 Conflict` (`code: IDEMPOTENCY_CONCURRENT_EXECUTION`) is returned.
+  - If a repeated request provides a payload differing from the initial request, HTTP `409 Conflict` (`code: IDEMPOTENCY_PAYLOAD_MISMATCH`) is returned.
 - **Body**:
 ```json
 {
@@ -158,7 +162,7 @@ All responses from `/api/v1` adhere to a uniform structure:
 }
 ```
 - **Description**: Creates and schedules a new platform execution task. `callerId` is automatically bound from the verified `SecurityContext.principal.id` and `tenantId` is bound from the principal's tenant.
-- **Success Status**: `201 Created` (or `200 OK` if returning existing idempotent task)
+- **Success Status**: `201 Created` (or `200 OK` if returning existing cached idempotent task)
 - **Response**:
 ```json
 {

@@ -109,10 +109,12 @@ export function createHttpServer(
         // Invalid origin URL - do not set header
       }
     }
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Key, X-Request-Id, Idempotency-Key");
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("X-Frame-Options", "DENY");
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.setHeader("Pragma", "no-cache");
 
     if (req.method === "OPTIONS") {
       res.writeHead(204);
@@ -749,10 +751,46 @@ export function createHttpServer(
             };
           }
 
-          const taskInput = metadata ? { ...(input as Record<string, unknown>), metadata } : input as Record<string, unknown>;
-          const result = await service.submitTask(agentId, taskInput, traceId);
-          sendJson(201, result);
-          return;
+          const idempotencyStore = service.getIdempotencyStore();
+          const callerTenantId = authCheck.context?.tenantId;
+          const callerPrincipalId = authCheck.context?.principal?.id;
+
+          if (idempotencyKey) {
+            const acquireResult = await idempotencyStore.acquire(
+              idempotencyKey,
+              { agentId, input },
+              callerTenantId,
+              callerPrincipalId
+            );
+
+            if (acquireResult.status === "MISMATCH") {
+              sendError(409, "Idempotency key was previously used with a different request payload", "IDEMPOTENCY_PAYLOAD_MISMATCH");
+              return;
+            }
+            if (acquireResult.status === "IN_PROGRESS") {
+              sendError(409, "A request with this idempotency key is currently in progress", "IDEMPOTENCY_CONCURRENT_EXECUTION");
+              return;
+            }
+            if (acquireResult.status === "CACHED") {
+              sendJson(acquireResult.statusCode, acquireResult.response);
+              return;
+            }
+          }
+
+          try {
+            const taskInput = metadata ? { ...(input as Record<string, unknown>), metadata } : input as Record<string, unknown>;
+            const result = await service.submitTask(agentId, taskInput, traceId);
+            if (idempotencyKey) {
+              await idempotencyStore.complete(idempotencyKey, 201, result, callerTenantId, callerPrincipalId);
+            }
+            sendJson(201, result);
+            return;
+          } catch (err) {
+            if (idempotencyKey) {
+              await idempotencyStore.fail(idempotencyKey, 500, { error: err instanceof Error ? err.message : String(err) }, callerTenantId, callerPrincipalId);
+            }
+            throw err;
+          }
         }
 
         // POST /tasks/:id/cancel
@@ -883,8 +921,19 @@ export function createHttpServer(
             sendError(400, "Bad Request: Invalid task ID format", "INVALID_ID");
             return;
           }
-          if (!service.getTask(id)) {
+          const task = service.getTask(id);
+          if (!task) {
             sendError(404, "Task not found", "TASK_NOT_FOUND");
+            return;
+          }
+          const taskTenant = (task.input?.metadata as Record<string, string> | undefined)?.callerTenantId;
+          const authCheck = await authenticateAndAuthorize("task.execute", "TASK", id, taskTenant);
+          if (!authCheck.ok) {
+            if (authCheck.code === "SECURITY_TENANT_ISOLATION_VIOLATION") {
+              sendError(404, "Task not found", "TASK_NOT_FOUND");
+              return;
+            }
+            sendError(authCheck.status, authCheck.message, authCheck.code);
             return;
           }
           const execution = service.getExecutionForTask(id);

@@ -210,12 +210,20 @@ export function createPlatformClient(options: PlatformClientOptions) {
     },
   };
 
+  const healthGet = async (): Promise<HealthContract> => toHealthDTO(await request<PlatformHealthDTO>("/health"));
+
   return {
     tasks,
     executions,
     agents,
     platform,
-    health: { get: async (): Promise<HealthContract> => toHealthDTO(await request<PlatformHealthDTO>("/health")) },
+    health: Object.assign(healthGet, { get: healthGet }),
+    getPlatformInfo: () => platform.get(),
+    listAgents: () => agents.list(),
+    createTask: (input: CreateTaskInput) => tasks.create(input),
+    getTask: (taskId: string) => tasks.get(taskId),
+    cancelTask: (taskId: string, reason?: string) => tasks.cancel(taskId, reason),
+    getTaskEvents: (taskId: string) => tasks.events(taskId),
   };
 }
 

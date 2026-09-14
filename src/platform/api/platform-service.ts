@@ -39,6 +39,8 @@ import {
   TaskNotFoundError,
   InvalidTaskTransitionError,
 } from "../../domain/task/task.js";
+import { IdempotencyStore } from "../../application/ports/idempotency-port.js";
+import { InMemoryIdempotencyStore } from "../../infrastructure/persistence/in-memory-idempotency-store.js";
 import {
   AgentDTO,
   AuditObservationDTO,
@@ -89,6 +91,7 @@ export interface PlatformDependencies {
   readonly eventStore?: (DurableEventStore & DurableEventQueryPort) | undefined;
   readonly db?: SqliteDatabase | undefined;
   readonly diagnostics?: RuntimeDiagnosticsService | undefined;
+  readonly idempotencyStore?: IdempotencyStore | undefined;
 }
 
 export class PlatformService {
@@ -101,6 +104,7 @@ export class PlatformService {
   private readonly eventStore?: (DurableEventStore & DurableEventQueryPort) | undefined;
   private readonly db?: SqliteDatabase | undefined;
   private readonly diagnostics?: RuntimeDiagnosticsService | undefined;
+  private readonly idempotencyStore: IdempotencyStore;
   private readonly startTime: Date;
 
   constructor(deps: PlatformDependencies) {
@@ -121,7 +125,12 @@ export class PlatformService {
     this.eventStore = deps.eventStore;
     this.db = deps.db;
     this.diagnostics = deps.diagnostics;
+    this.idempotencyStore = deps.idempotencyStore ?? new InMemoryIdempotencyStore();
     this.startTime = new Date();
+  }
+
+  getIdempotencyStore(): IdempotencyStore {
+    return this.idempotencyStore;
   }
 
   getStatus(): PlatformStatusDTO {
@@ -253,6 +262,8 @@ export class PlatformService {
 
     return {
       status: isHealthy ? "HEALTHY" : "DEGRADED",
+      liveness: "UP",
+      readiness: isHealthy ? "READY" : "NOT_READY",
       version: PLATFORM_VERSION,
       uptimeSeconds,
       timestamp: nowIso,

@@ -65,6 +65,7 @@ class PlatformApp {
   }
 
   init() {
+    this.setupTheme();
     this.setupTabs();
     this.setupPlatformOperations();
     this.setupForms();
@@ -76,6 +77,41 @@ class PlatformApp {
     this.setupOperationalConsole();
     this.loadData();
     this.startAutoRefresh();
+  }
+
+  setupTheme() {
+    const savedTheme = localStorage.getItem("ai_platform_theme") || "light";
+    this.applyTheme(savedTheme);
+
+    const toggleBtn = document.getElementById("theme-toggle-btn");
+    if (toggleBtn) {
+      toggleBtn.addEventListener("click", () => {
+        const currentTheme = document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+        const newTheme = currentTheme === "dark" ? "light" : "dark";
+        this.applyTheme(newTheme);
+      });
+    }
+  }
+
+  applyTheme(theme) {
+    const toggleBtn = document.getElementById("theme-toggle-btn");
+    if (theme === "dark") {
+      document.documentElement.setAttribute("data-theme", "dark");
+      document.body.classList.add("dark");
+      localStorage.setItem("ai_platform_theme", "dark");
+      if (toggleBtn) {
+        toggleBtn.textContent = "☀️ Modo Claro";
+        toggleBtn.title = "Cambiar a Modo Claro (por defecto)";
+      }
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+      document.body.classList.remove("dark");
+      localStorage.setItem("ai_platform_theme", "light");
+      if (toggleBtn) {
+        toggleBtn.textContent = "🌙 Modo Oscuro";
+        toggleBtn.title = "Cambiar a Modo Oscuro (alternativo)";
+      }
+    }
   }
 
   setupOperationalConsole() {
