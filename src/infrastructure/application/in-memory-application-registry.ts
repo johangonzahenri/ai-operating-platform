@@ -14,6 +14,10 @@ export const DEFAULT_EXTERNAL_APPLICATIONS: readonly ExternalApplication[] = Obj
     sourceOfTruth: "Platform API",
     allowedCapabilities: [
       "product.discovery",
+      "product.recommendation",
+      "product.compare",
+      "cart.assistance",
+      "ar.fitting_room",
       "orchestrate",
       "tasks.read",
       "tasks.create",

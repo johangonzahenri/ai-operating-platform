@@ -68,6 +68,10 @@ $$\text{CORE ENGINE} \neq \text{PLATFORM PRODUCT} \neq \text{APPLICATIONS}$$
 3. **Authentication Mode**: `API_KEY` (`key-tentaciones.<secret>`)
 4. **Allowed Capabilities (Default-Deny)**:
    - `product.discovery`
+   - `product.recommendation`
+   - `product.compare`
+   - `cart.assistance`
+   - `ar.fitting_room`
    - `orchestrate`
    - `tasks.create`
    - `tasks.read`

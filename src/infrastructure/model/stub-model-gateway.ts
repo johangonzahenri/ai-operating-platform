@@ -71,6 +71,104 @@ export class StubModelGateway implements ModelGateway, ModelProviderAdapter {
       };
     }
 
+    if (request.input.capability === "product.recommendation") {
+      const preferences = typeof request.input.preferences === "string" ? request.input.preferences : "";
+      const candidates = Array.isArray(request.input.candidates) ? request.input.candidates : [];
+      const history = Array.isArray(request.input.history) ? request.input.history : [];
+      const recommendations = candidates.map((item: Record<string, unknown>, index: number) => ({
+        ...item,
+        score: Math.max(0.7, 0.99 - index * 0.05),
+        reasoning: `Matches preference for ${preferences || "style"} based on profile matching`,
+      }));
+      return {
+        provider: "stub",
+        model: request.model,
+        content: "deterministic product recommendation",
+        output: {
+          capability: "product.recommendation",
+          preferences,
+          history,
+          recommendations,
+          count: recommendations.length,
+        },
+        metadata: { deterministic: true },
+        finishReason: "stop",
+      };
+    }
+
+    if (request.input.capability === "product.compare") {
+      const products = Array.isArray(request.input.products) ? request.input.products : [];
+      const comparisonMatrix = products.map((prod: Record<string, unknown>) => ({
+        id: prod.id ?? "unknown",
+        name: prod.name ?? "Product",
+        price: prod.price ?? 0,
+        category: prod.category ?? "General",
+        color: prod.color ?? "Standard",
+        material: prod.material ?? "Synthetic",
+        fit: prod.fit ?? "Regular",
+      }));
+      return {
+        provider: "stub",
+        model: request.model,
+        content: "deterministic product comparison",
+        output: {
+          capability: "product.compare",
+          matrix: comparisonMatrix,
+          differentiators: ["price", "material", "fit"],
+          count: comparisonMatrix.length,
+        },
+        metadata: { deterministic: true },
+        finishReason: "stop",
+      };
+    }
+
+    if (request.input.capability === "cart.assistance") {
+      const cart = (request.input.cart && typeof request.input.cart === "object" ? request.input.cart : { items: [], subtotal: 0, currency: "EUR" }) as { items: readonly unknown[]; subtotal: number; currency: string };
+      const action = typeof request.input.action === "string" ? request.input.action : "evaluate";
+      const freeShippingThreshold = 100;
+      const subtotal = Number(cart.subtotal) || 0;
+      const missingForFreeShipping = Math.max(0, freeShippingThreshold - subtotal);
+      return {
+        provider: "stub",
+        model: request.model,
+        content: "deterministic cart assistance",
+        output: {
+          capability: "cart.assistance",
+          action,
+          itemCount: Array.isArray(cart.items) ? cart.items.length : 0,
+          subtotal,
+          freeShippingThreshold,
+          missingForFreeShipping,
+          qualifiesForFreeShipping: missingForFreeShipping === 0,
+          suggestedAddons: missingForFreeShipping > 0 ? [{ id: "socks-running-01", name: "Calcetines Running Pro", price: 15 }] : [],
+        },
+        metadata: { deterministic: true },
+        finishReason: "stop",
+      };
+    }
+
+    if (request.input.capability === "ar.fitting_room") {
+      const profile = typeof request.input.profile === "string" ? request.input.profile : "Sora";
+      const productId = typeof request.input.productId === "string" ? request.input.productId : "";
+      const assetUrn = typeof request.input.assetUrn === "string" ? request.input.assetUrn : `urn:tentaciones:ar:apparel:${productId}`;
+      return {
+        provider: "stub",
+        model: request.model,
+        content: "deterministic ar fitting room resolution",
+        output: {
+          capability: "ar.fitting_room",
+          productId,
+          profile,
+          assetUrn,
+          status: "AR_AVAILABLE",
+          previewUrl: `https://ar.tentaciones.com/preview/${encodeURIComponent(assetUrn)}?profile=${profile}`,
+          version: "v1.0.0",
+        },
+        metadata: { deterministic: true },
+        finishReason: "stop",
+      };
+    }
+
     return {
       provider: "stub",
       model: request.model,
