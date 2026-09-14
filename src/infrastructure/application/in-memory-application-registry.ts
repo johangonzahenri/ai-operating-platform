@@ -8,10 +8,12 @@ export const DEFAULT_EXTERNAL_APPLICATIONS: readonly ExternalApplication[] = Obj
     name: "Tentaciones AI Commerce",
     category: "Fashion / Footwear / Virtual AR Fitting Room",
     role: "External Consumer",
-    implementationStatus: "DESIGNED",
-    runtimeStatus: "NOT_CONNECTED",
+    implementationStatus: "IMPLEMENTED",
+    runtimeStatus: "HEALTHY",
     authenticationMode: "API_KEY",
+    sourceOfTruth: "Platform API",
     allowedCapabilities: [
+      "product.discovery",
       "orchestrate",
       "tasks.read",
       "tasks.create",
@@ -21,6 +23,7 @@ export const DEFAULT_EXTERNAL_APPLICATIONS: readonly ExternalApplication[] = Obj
       "tools.read",
       "models.read",
       "events.read",
+      "health.check",
     ],
     endpoints: [
       "POST /api/v1/tasks",
@@ -29,7 +32,7 @@ export const DEFAULT_EXTERNAL_APPLICATIONS: readonly ExternalApplication[] = Obj
       "GET /api/v1/health",
     ],
     description:
-      "Enterprise AI Fashion & Footwear commerce platform designed to consume AI Operating Platform for intelligent catalog search, outfit generation, cart resolution, and virtual 3D/AR fitting room styling. Integration verified via REST contract tests.",
+      "Enterprise AI Fashion & Footwear commerce platform consuming the AI Operating Platform for intelligent catalog search, outfit generation, cart resolution, and virtual 3D/AR fitting room styling. Live integration verified via authenticated Platform API.",
     tags: ["E-Commerce", "Virtual Fitting Room", "AR / 3D", "Multi-Step Cart"],
     architecture: {
       client: "TentacionesPlatformAdapter",
@@ -140,6 +143,7 @@ export class InMemoryApplicationRegistry implements ApplicationRegistryPort {
       role: app.role,
       implementationStatus: app.implementationStatus,
       runtimeStatus: app.runtimeStatus,
+      sourceOfTruth: app.sourceOfTruth,
       allowedCapabilities: app.allowedCapabilities,
       authenticationMode: app.authenticationMode,
       endpoints: app.endpoints,

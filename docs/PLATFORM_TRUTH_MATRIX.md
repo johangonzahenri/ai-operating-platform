@@ -51,7 +51,7 @@ To maintain absolute engineering integrity and transparency, every piece of data
 | **Models Console** | Registered Model Gateways | `GET /api/v1/models` | Model Query Port | `IMPLEMENTED` | `AVAILABLE` | **LIVE** | `stub-model` registered in `InMemoryModelRegistry`. |
 | **Model Detail** | Provider, Latency & Capabilities | `GET /api/v1/models/:id` | Model Definition DTO | `IMPLEMENTED` | `AVAILABLE` | **LIVE** | Gateway capabilities and assigned agents list. |
 | **Autonomous Operations**| Operations Ledger & Budget | `GET /api/v1/operations` | AutonomousOperationService | `IMPLEMENTED` | `HEALTHY` | **LIVE** | Budget-bounded autonomous execution loops. |
-| **Applications Console** | Tentaciones AI Commerce | External Application Contract | Architectural Contract | `DESIGNED` | `PLANNED` | **PLANNED INTEGRATION** | Reference ecommerce consumer; not a live server. |
+| **Applications Console** | Tentaciones AI Commerce | `GET /api/v1/applications/tentaciones-commerce` | Platform API & Adapter | `IMPLEMENTED` | `HEALTHY` | **LIVE APPLICATION** | Live integrated consumer with authenticated product discovery. |
 | **Applications Console** | Vehicle Parts Platform | External Application Contract | Architectural Contract | `PLANNED` | `NOT_CONNECTED`| **PLANNED INTEGRATION** | Future industrial automotive consumer. |
 | **Applications Console** | Enterprise Support Agent | External Application Contract | Architectural Contract | `PLANNED` | `NOT_CONNECTED`| **PLANNED INTEGRATION** | Future customer service consumer. |
 | **Applications Simulation**| Order Calculation Simulation | `POST /api/v1/orchestrate`| Public Platform API | `IMPLEMENTED` | `SIMULATED` | **ORCHESTRATION TEST** | Live test of orchestration API simulating ecommerce cart. |

@@ -12,7 +12,7 @@ import type {
   TaskContract,
 } from "../../platform/product/execution-contract.js";
 
-export const TENTACIONES_APPLICATION = "tentaciones";
+export const TENTACIONES_APPLICATION = "tentaciones-commerce";
 export const PRODUCT_DISCOVERY_CAPABILITY = "product.discovery";
 
 export interface TentacionesPlatformClient {
@@ -25,19 +25,25 @@ export interface TentacionesPlatformClient {
 export interface TentacionesPlatformAdapterOptions {
   readonly client: TentacionesPlatformClient;
   readonly applicationVersion: string;
+  readonly applicationId?: string | undefined;
+  readonly tenantId?: string | undefined;
   readonly agentId?: string | undefined;
   readonly traceIdFactory?: (() => string) | undefined;
 }
 
-
 export interface ProductDiscoveryResult {
-  readonly status: "COMPLETED" | "FAILED" | "RUNNING" | "CREATED" | "CANCELLED" | "PLATFORM_UNAVAILABLE";
+  readonly status: "COMPLETED" | "FAILED" | "RUNNING" | "CREATED" | "CANCELLED" | "PLATFORM_UNAVAILABLE" | "UNAUTHORIZED" | "FORBIDDEN";
+  readonly source: "AI Operating Platform" | "Local AI Engine" | "Traditional Commerce";
+  readonly applicationId: string;
   readonly executionId?: string | undefined;
   readonly taskId?: string | undefined;
   readonly traceId?: string | undefined;
+  readonly query?: string | undefined;
+  readonly intent?: { readonly terms: readonly string[] } | undefined;
+  readonly products?: readonly Readonly<Record<string, unknown>>[] | undefined;
   readonly result?: Readonly<Record<string, unknown>> | undefined;
   readonly error?: { readonly code: string; readonly message: string } | undefined;
-  readonly fallback: "NONE" | "TRADITIONAL_COMMERCE";
+  readonly fallback: "NONE" | "LOCAL_FALLBACK" | "TRADITIONAL_COMMERCE";
 }
 
 export interface PlatformAvailability {
@@ -52,8 +58,10 @@ function assertVersion(version: string): string {
   return normalized;
 }
 
-function errorDetails(error: unknown): { readonly code: string; readonly message: string } {
-  if (error instanceof PlatformClientError) return { code: error.code, message: error.message };
+function errorDetails(error: unknown): { readonly code: string; readonly message: string; readonly status?: number | undefined } {
+  if (error instanceof PlatformClientError) {
+    return { code: error.code, message: error.message, status: error.status };
+  }
   if (error instanceof Error) return { code: "PLATFORM_ERROR", message: error.message };
   return { code: "PLATFORM_ERROR", message: "Platform request failed" };
 }
@@ -68,12 +76,16 @@ function mapDiscoveryStatus(status: string): ProductDiscoveryResult["status"] {
 export class TentacionesPlatformAdapter {
   private readonly client: TentacionesPlatformAdapterOptions["client"];
   private readonly applicationVersion: string;
+  private readonly applicationId: string;
+  private readonly tenantId: string;
   private readonly agentId: string;
   private readonly traceIdFactory: () => string;
 
   constructor(options: TentacionesPlatformAdapterOptions) {
     this.client = options.client;
     this.applicationVersion = assertVersion(options.applicationVersion);
+    this.applicationId = options.applicationId?.trim() || TENTACIONES_APPLICATION;
+    this.tenantId = options.tenantId?.trim() || "tenant-tentaciones";
     this.agentId = options.agentId?.trim() || "foundation-agent";
     this.traceIdFactory = options.traceIdFactory ?? crypto.randomUUID;
   }
@@ -89,10 +101,12 @@ export class TentacionesPlatformAdapter {
       },
       traceId,
       metadata: {
-        application: TENTACIONES_APPLICATION,
+        application: this.applicationId,
+        applicationId: this.applicationId,
         applicationVersion: this.applicationVersion,
         capability: PRODUCT_DISCOVERY_CAPABILITY,
         source: "shopping-agent",
+        callerTenantId: this.tenantId,
       },
     });
   }
@@ -138,11 +152,18 @@ export class TentacionesPlatformAdapter {
     }
   }
 
+  async checkAvailability(): Promise<PlatformAvailability> {
+    return this.getHealth();
+  }
+
   async discoverProducts(userMessage: string, traceId?: string): Promise<ProductDiscoveryResult> {
     const availability = await this.getHealth();
     if (!availability.available) {
       return {
         status: "PLATFORM_UNAVAILABLE",
+        source: "Traditional Commerce",
+        applicationId: this.applicationId,
+        query: userMessage,
         error: availability.error,
         fallback: "TRADITIONAL_COMMERCE",
       };
@@ -152,21 +173,48 @@ export class TentacionesPlatformAdapter {
       const task = await this.createTask(userMessage, traceId);
       const execution = await this.executeTask(task.taskId);
       const current = await this.getExecution(execution.executionId);
+      const rawResult = current.result ?? task.result;
+
+      const intent = rawResult && typeof rawResult === "object" && "intent" in rawResult
+        ? rawResult.intent as { readonly terms: readonly string[] }
+        : undefined;
+
+      const products = rawResult && typeof rawResult === "object" && "products" in rawResult && Array.isArray(rawResult.products)
+        ? rawResult.products as readonly Readonly<Record<string, unknown>>[]
+        : [];
+
       return {
         status: mapDiscoveryStatus(current.status),
+        source: "AI Operating Platform",
+        applicationId: this.applicationId,
         executionId: current.executionId,
         taskId: current.taskId,
         traceId: current.traceId,
-        result: current.result ?? task.result,
+        query: userMessage,
+        intent,
+        products,
+        result: rawResult,
         error: current.error,
         fallback: "NONE",
       };
     } catch (error) {
+      const err = errorDetails(error);
+      const isAuthError = err.status === 401 || err.code === "SECURITY_UNAUTHENTICATED";
+      const isForbidden = err.status === 403 || err.code === "APPLICATION_SCOPE_FORBIDDEN";
+
+      let status: ProductDiscoveryResult["status"] = "FAILED";
+      if (isAuthError) status = "UNAUTHORIZED";
+      else if (isForbidden) status = "FORBIDDEN";
+
       return {
-        status: "FAILED",
-        error: errorDetails(error),
-        fallback: "TRADITIONAL_COMMERCE",
+        status,
+        source: "Local AI Engine",
+        applicationId: this.applicationId,
+        query: userMessage,
+        error: err,
+        fallback: "LOCAL_FALLBACK",
       };
     }
   }
 }
+

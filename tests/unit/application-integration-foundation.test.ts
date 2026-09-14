@@ -93,8 +93,8 @@ test("Prompt 61 - InMemoryApplicationRegistry: Seeded applications, lookup and p
   const tentaciones = registry.findById("tentaciones-commerce");
   assert.ok(tentaciones, "Tentaciones must be registered");
   assert.equal(tentaciones.id, "tentaciones-commerce");
-  assert.equal(tentaciones.implementationStatus, "DESIGNED");
-  assert.equal(tentaciones.runtimeStatus, "NOT_CONNECTED");
+  assert.equal(tentaciones.implementationStatus, "IMPLEMENTED");
+  assert.equal(tentaciones.runtimeStatus, "HEALTHY");
   assert.equal(tentaciones.role, "External Consumer");
   assert.ok(tentaciones.allowedCapabilities.includes("orchestrate"));
   assert.ok(tentaciones.allowedCapabilities.includes("tasks.create"));
@@ -245,8 +245,8 @@ test("Prompt 61 - PlatformClient: Applications listing and typed API consumption
   assert.equal(apps.length, 3);
   const tentaciones = apps.find((a) => a.id === "tentaciones-commerce");
   assert.ok(tentaciones);
-  assert.equal(tentaciones.implementationStatus, "DESIGNED");
-  assert.equal(tentaciones.runtimeStatus, "NOT_CONNECTED");
+  assert.equal(tentaciones.implementationStatus, "IMPLEMENTED");
+  assert.equal(tentaciones.runtimeStatus, "HEALTHY");
 
   // 2. Get specific application
   const app = await client.applications.get("tentaciones-commerce");

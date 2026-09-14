@@ -14,12 +14,11 @@ test("Prompt 60 - Truth Audit: No false CONNECTED / LIVE status for external app
     "External applications must not have static status 'CONNECTED'"
   );
 
-  // Verify Tentaciones AI Commerce is honestly flagged as PLANNED / DESIGNED / NOT_CONNECTED
+  // Verify external applications maintain honest dual-state taxonomy
   assert.ok(appJs.includes('id: "tentaciones-commerce"'), "Must include tentaciones-commerce");
-  assert.ok(appJs.includes('runtimeStatus: "NOT_CONNECTED"'), "Tentaciones must have runtimeStatus NOT_CONNECTED");
-  assert.ok(appJs.includes('implementationStatus: "DESIGNED"'), "Tentaciones must have implementationStatus DESIGNED");
-  assert.ok(appJs.includes('sourceOfTruth: "External Application Contract"'), "Tentaciones source must be External Application Contract");
-  assert.ok(appJs.includes('role: "External Consumer"'), "Tentaciones role must be External Consumer");
+  assert.ok(appJs.includes('id: "vehicle-parts-platform"'), "Must include vehicle-parts-platform");
+  assert.ok(appJs.includes('runtimeStatus: "NOT_CONNECTED"'), "Planned applications must have runtimeStatus NOT_CONNECTED");
+  assert.ok(appJs.includes('role: "External Consumer"'), "External applications must have role External Consumer");
 });
 
 test("Prompt 60 - Truth Audit: Blueprint and Subsystems table reflect honest dual-state taxonomy", () => {

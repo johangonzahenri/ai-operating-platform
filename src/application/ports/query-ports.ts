@@ -187,6 +187,7 @@ export interface ApplicationProjection {
   readonly role: string;
   readonly implementationStatus: "IMPLEMENTED" | "PARTIAL" | "DESIGNED" | "PLANNED";
   readonly runtimeStatus: "HEALTHY" | "OPERATIONAL" | "AVAILABLE" | "ENFORCED" | "WAL_ACTIVE" | "NOT_CONNECTED" | "OFFLINE" | "DEGRADED";
+  readonly sourceOfTruth?: string | undefined;
   readonly allowedCapabilities: readonly string[];
   readonly authenticationMode: "API_KEY" | "BEARER_TOKEN" | "MUTUAL_TLS";
   readonly endpoints: readonly string[];

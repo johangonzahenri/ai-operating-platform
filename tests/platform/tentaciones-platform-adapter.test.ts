@@ -66,10 +66,12 @@ test("Tentaciones adapter sends product discovery identity through the public cl
   assert.equal(result.executionId, "execution-1");
   assert.equal(result.fallback, "NONE");
   assert.deepEqual(createRequest?.metadata, {
-    application: "tentaciones",
+    application: "tentaciones-commerce",
+    applicationId: "tentaciones-commerce",
     applicationVersion: "1.4.0",
     capability: "product.discovery",
     source: "shopping-agent",
+    callerTenantId: "tenant-tentaciones",
   });
 });
 
