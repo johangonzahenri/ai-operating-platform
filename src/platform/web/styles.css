@@ -1189,13 +1189,21 @@ body {
 
 .status-pill-healthy,
 .status-pill-connected,
-.status-pill-operational {
+.status-pill-operational,
+.status-pill-implemented {
   background: rgba(16, 185, 129, 0.12);
   color: var(--accent-emerald);
   border: 1px solid rgba(16, 185, 129, 0.25);
 }
 
-.status-pill-planned {
+.status-pill-designed {
+  background: rgba(56, 189, 248, 0.12);
+  color: #0284c7;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+.status-pill-planned,
+.status-pill-not-connected {
   background: rgba(148, 163, 184, 0.12);
   color: var(--text-muted);
   border: 1px solid rgba(148, 163, 184, 0.25);
@@ -1213,6 +1221,36 @@ body {
   background: rgba(220, 38, 38, 0.12);
   color: var(--accent-red);
   border: 1px solid rgba(220, 38, 38, 0.25);
+}
+
+/* Source of Truth Badges */
+.source-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: var(--radius-xs);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.source-badge-api {
+  background: rgba(37, 99, 235, 0.08);
+  color: var(--accent-blue);
+  border: 1px solid rgba(37, 99, 235, 0.2);
+}
+
+.source-badge-arch {
+  background: rgba(148, 163, 184, 0.1);
+  color: var(--text-secondary);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.source-badge-ext {
+  background: rgba(139, 92, 246, 0.08);
+  color: #8b5cf6;
+  border: 1px solid rgba(139, 92, 246, 0.2);
 }
 
 /* Interactive Blueprint System Map */

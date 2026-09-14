@@ -103,11 +103,11 @@ test("Prompt 59 - Applications Console: External Consumer Contracts & Invariant 
   // Agent detail has hierarchy container
   assert.ok(html.includes('id="agent-detail-hierarchy"'), "Must include #agent-detail-hierarchy");
 
-  // Verify app.js defines Tentaciones Commerce as CONNECTED and others as PLANNED
+  // Verify app.js defines Tentaciones Commerce as PLANNED and DESIGNED external consumer
   const appJsPath = path.join("src", "platform", "web", "app.js");
   const appJs = fs.readFileSync(appJsPath, "utf8");
   assert.ok(appJs.includes('"tentaciones-commerce"'), "Must register tentaciones-commerce in applications list");
-  assert.ok(appJs.includes('"CONNECTED"'), "Must flag tentaciones-commerce as CONNECTED");
+  assert.ok(appJs.includes('"DESIGNED"'), "Must flag applications implementation as DESIGNED");
   assert.ok(appJs.includes('"vehicle-parts-platform"'), "Must register vehicle-parts-platform");
   assert.ok(appJs.includes('"enterprise-support-agent"'), "Must register enterprise-support-agent");
   assert.ok(appJs.includes('"PLANNED"'), "Must flag planned applications as PLANNED");

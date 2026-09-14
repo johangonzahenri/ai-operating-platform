@@ -81,10 +81,16 @@ class PlatformApp {
         id: "tentaciones-commerce",
         name: "Tentaciones AI Commerce",
         category: "Fashion / Footwear / Virtual AR Fitting Room",
-        status: "CONNECTED",
+        status: "PLANNED",
+        implementationStatus: "DESIGNED",
+        runtimeStatus: "NOT_CONNECTED",
+        sourceOfTruth: "External Application Contract",
+        sourceBadgeClass: "source-badge-ext",
+        role: "External Consumer",
+        integrationTarget: "Platform API (/api/v1/*)",
         integrationType: "Platform API Client (REST / HTTP)",
         endpoints: ["POST /api/v1/tasks", "POST /api/v1/tasks/:id/execute", "POST /api/v1/orchestrate", "GET /api/v1/health"],
-        description: "Enterprise AI Fashion & Footwear commerce platform consuming AI Operating Platform for intelligent catalog search, outfit generation, cart resolution, and virtual 3D/AR fitting room styling.",
+        description: "Enterprise AI Fashion & Footwear commerce platform designed to consume AI Operating Platform for intelligent catalog search, outfit generation, cart resolution, and virtual 3D/AR fitting room styling. Integration verified via REST contract tests.",
         tags: ["E-Commerce", "Virtual Fitting Room", "AR / 3D", "Multi-Step Cart"],
         capabilities: [
           "Catalog & Product Search Intelligence",
@@ -104,6 +110,12 @@ class PlatformApp {
         name: "Vehicle Parts & Diagnostics Platform",
         category: "Industrial Automotive / Diagnostics",
         status: "PLANNED",
+        implementationStatus: "DESIGNED",
+        runtimeStatus: "PLANNED",
+        sourceOfTruth: "Architectural Specification",
+        sourceBadgeClass: "source-badge-arch",
+        role: "External Consumer",
+        integrationTarget: "Platform API (/api/v1/*)",
         integrationType: "Platform API Client (REST / HTTP)",
         endpoints: ["POST /api/v1/tasks", "POST /api/v1/operations"],
         description: "Heavy machinery and vehicle parts diagnostics assistant designed to consume the AI Operating Platform through the Platform API.",
@@ -125,6 +137,12 @@ class PlatformApp {
         name: "Enterprise Support & Knowledge Assistant",
         category: "Customer Experience / Tier-1 Automation",
         status: "PLANNED",
+        implementationStatus: "DESIGNED",
+        runtimeStatus: "PLANNED",
+        sourceOfTruth: "Architectural Specification",
+        sourceBadgeClass: "source-badge-arch",
+        role: "External Consumer",
+        integrationTarget: "Platform API (/api/v1/*)",
         integrationType: "Platform API Client (REST / HTTP)",
         endpoints: ["POST /api/v1/tasks"],
         description: "Automated ticket resolution and knowledge base semantic retrieval assistant designed to consume the AI Operating Platform.",
@@ -3193,9 +3211,6 @@ class PlatformApp {
     for (const app of apps) {
       const card = document.createElement("div");
       card.className = "app-card";
-      if (app.status === "CONNECTED") {
-        card.classList.add("connected");
-      }
 
       const header = document.createElement("div");
       header.className = "app-card-header";
@@ -3210,11 +3225,22 @@ class PlatformApp {
       cat.textContent = app.category;
       titleGroup.append(title, cat);
 
-      const statusPill = document.createElement("span");
-      statusPill.className = `status-pill ${app.status === "CONNECTED" ? "status-pill-connected" : "status-pill-planned"}`;
-      statusPill.textContent = app.status;
+      const pillsGroup = document.createElement("div");
+      pillsGroup.style.display = "flex";
+      pillsGroup.style.flexDirection = "column";
+      pillsGroup.style.gap = "0.25rem";
+      pillsGroup.style.alignItems = "flex-end";
 
-      header.append(titleGroup, statusPill);
+      const sourceBadge = document.createElement("span");
+      sourceBadge.className = `source-badge ${app.sourceBadgeClass || "source-badge-ext"}`;
+      sourceBadge.textContent = app.sourceOfTruth || "External Contract";
+
+      const statusPill = document.createElement("span");
+      statusPill.className = `status-pill ${app.runtimeStatus === "NOT_CONNECTED" ? "status-pill-not-connected" : "status-pill-planned"}`;
+      statusPill.textContent = `${app.implementationStatus || "DESIGNED"} · ${app.runtimeStatus || "PLANNED"}`;
+
+      pillsGroup.append(sourceBadge, statusPill);
+      header.append(titleGroup, pillsGroup);
 
       const desc = document.createElement("p");
       desc.className = "app-card-desc";
@@ -3262,13 +3288,13 @@ class PlatformApp {
 
       actionsDiv.appendChild(inspectBtn);
 
-      if (app.status === "CONNECTED") {
+      if (app.id === "tentaciones-commerce") {
         const testBtn = document.createElement("button");
         testBtn.className = "btn btn-sm btn-primary";
-        testBtn.textContent = "Test Platform Integration";
+        testBtn.textContent = "Dispatch Orchestration Test";
         testBtn.addEventListener("click", () => {
           this.showApplicationDetail(app.id);
-          const simSection = document.getElementById("commerce-sim-card");
+          const simSection = document.getElementById("app-simulation-card");
           if (simSection) {
             simSection.scrollIntoView({ behavior: "smooth" });
           }
@@ -3289,7 +3315,7 @@ class PlatformApp {
     const summary = document.getElementById("app-detail-summary");
     const capsDiv = document.getElementById("app-detail-capabilities");
     const archDiv = document.getElementById("app-detail-architecture");
-    const simSection = document.getElementById("app-detail-simulation-section");
+    const simSection = document.getElementById("app-simulation-card");
 
     if (!panel || !title || !summary || !app) return;
 
@@ -3308,7 +3334,7 @@ class PlatformApp {
     grid.style.gap = "1rem";
     grid.style.marginBottom = "1rem";
 
-    const createBox = (label, val, isPill = false) => {
+    const createBox = (label, val, isPill = false, pillClass = "") => {
       const box = document.createElement("div");
       box.style.background = "var(--bg-secondary)";
       box.style.padding = "0.75rem 1rem";
@@ -3322,7 +3348,7 @@ class PlatformApp {
       v.style.marginTop = "0.25rem";
       if (isPill) {
         const pill = document.createElement("span");
-        pill.className = `status-pill ${val === "CONNECTED" ? "status-pill-connected" : "status-pill-planned"}`;
+        pill.className = `status-pill ${pillClass || "status-pill-designed"}`;
         pill.textContent = String(val);
         v.appendChild(pill);
       } else {
@@ -3334,9 +3360,11 @@ class PlatformApp {
     };
 
     grid.appendChild(createBox("APPLICATION ID", app.id));
-    grid.appendChild(createBox("STATUS", app.status, true));
-    grid.appendChild(createBox("CATEGORY", app.category));
-    grid.appendChild(createBox("INTEGRATION TYPE", app.integrationType));
+    grid.appendChild(createBox("ROLE", app.role || "External Consumer"));
+    grid.appendChild(createBox("IMPLEMENTATION", app.implementationStatus || "DESIGNED", true, "status-pill-designed"));
+    grid.appendChild(createBox("RUNTIME STATUS", app.runtimeStatus || "NOT_CONNECTED", true, app.runtimeStatus === "NOT_CONNECTED" ? "status-pill-not-connected" : "status-pill-planned"));
+    grid.appendChild(createBox("SOURCE OF TRUTH", app.sourceOfTruth || "External Application Contract"));
+    grid.appendChild(createBox("INTEGRATION TARGET", app.integrationTarget || "Platform API (/api/v1/*)"));
 
     summary.appendChild(grid);
 
@@ -3406,7 +3434,7 @@ class PlatformApp {
 
     // 4. Live Simulation Visibility
     if (simSection) {
-      simSection.style.display = app.status === "CONNECTED" ? "block" : "none";
+      simSection.style.display = app.id === "tentaciones-commerce" ? "block" : "none";
     }
   }
 

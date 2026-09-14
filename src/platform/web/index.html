@@ -1190,18 +1190,19 @@
         </div>
       </section>
 
-      <!-- 8. View: Applications (Connected Applications & Consumer Ecosystem Hub) -->
+      <!-- 8. View: Applications (External Applications & Consumer Ecosystem Hub) -->
       <section id="tab-applications" class="tab-view">
         <div class="card full-width">
           <div class="card-header">
             <div>
-              <h3>Connected Applications &amp; Consumer Ecosystem</h3>
+              <h3>External Applications &amp; Ecosystem Integration Roadmap</h3>
               <p style="font-size:0.85rem; color:var(--text-secondary); margin-top:0.25rem;">
-                External enterprise systems consuming AI Operating Platform strictly through public REST contracts (<code>/api/v1</code>). Zero domain coupling.
+                External enterprise systems designed to consume AI Operating Platform strictly through public REST contracts (<code>/api/v1</code>). Zero domain coupling.
               </p>
             </div>
             <div style="display:flex; gap:0.75rem; align-items:center;">
-              <span class="badge badge-success" id="apps-count-badge">3 applications</span>
+              <span class="source-badge source-badge-ext">Source: External Contract</span>
+              <span class="badge badge-info" id="apps-count-badge">3 applications</span>
             </div>
           </div>
           <div class="card-body">
@@ -1215,8 +1216,8 @@
                 <label for="apps-status-filter">Integration Status</label>
                 <select id="apps-status-filter" class="form-control">
                   <option value="ALL">All Statuses</option>
-                  <option value="CONNECTED">Connected / Live</option>
-                  <option value="PLANNED">Planned</option>
+                  <option value="PLANNED">Planned / Designed</option>
+                  <option value="CONNECTED">Connected (Active Session)</option>
                 </select>
               </div>
               <button id="apps-clear-filter-btn" class="btn btn-sm btn-secondary" style="align-self:flex-end;">Clear Filters</button>
@@ -1261,13 +1262,13 @@
             <!-- Tentaciones Simulation Runner (Contextual) -->
             <div id="app-simulation-card" class="card" style="background:var(--bg-elevated); border:1px solid var(--border-color); margin-top:1rem;">
               <div class="card-header">
-                <h4>Run Application Integration Simulation</h4>
+                <h4>Run Orchestration Contract Test (Simulation via Platform API)</h4>
               </div>
               <div class="card-body">
                 <p style="font-size:0.875rem; color:var(--text-secondary); margin-bottom:1rem;">
-                  Dispatch a real order calculation workflow through <code>POST /api/v1/orchestrate</code> using authorized platform tools and deterministic inference.
+                  Dispatch a real multi-step order calculation request through <code>POST /api/v1/orchestrate</code> to test platform capabilities using authorized tools and deterministic inference.
                 </p>
-                <button id="run-commerce-simulation-btn" class="btn btn-primary">Dispatch Order Calculation</button>
+                <button id="run-commerce-simulation-btn" class="btn btn-primary">Dispatch Orchestration Test</button>
                 <div id="commerce-sim-output" style="display:none; margin-top:1rem;">
                   <span id="commerce-sim-badge" class="badge"></span>
                   <pre id="commerce-sim-json" class="json-display" style="margin-top:0.5rem; max-height:200px;"></pre>
@@ -1386,17 +1387,17 @@
               <div class="blueprint-tier">
                 <div class="blueprint-tier-label">
                   <span>1. External Applications &amp; Consumer Ecosystem</span>
-                  <span class="status-pill status-pill-connected" id="bp-status-apps">1 Connected · 2 Planned</span>
+                  <span class="status-pill status-pill-designed" id="bp-status-apps">Planned Integrations</span>
                 </div>
                 <div class="blueprint-nodes-row">
                   <div class="blueprint-node" data-nav-target="applications" tabindex="0" role="button" aria-label="View Tentaciones AI Commerce Application">
                     <div class="blueprint-node-header">
                       <span class="blueprint-node-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg> Tentaciones AI Commerce</span>
-                      <span class="status-pill status-pill-connected">Connected</span>
+                      <span class="status-pill status-pill-designed">Planned Integration</span>
                     </div>
-                    <div class="blueprint-node-desc">AI Fashion &amp; Footwear commerce consuming platform intelligence for catalog search, outfit styling, and virtual AR fitting room.</div>
+                    <div class="blueprint-node-desc">AI Fashion &amp; Footwear commerce designed to consume platform intelligence for catalog search, outfit styling, and virtual AR fitting room.</div>
                     <div class="blueprint-node-meta">
-                      <span>Target: /api/v1/*</span>
+                      <span>Contract: /api/v1/*</span>
                       <span>Click to inspect &rarr;</span>
                     </div>
                   </div>
@@ -1407,7 +1408,7 @@
                     </div>
                     <div class="blueprint-node-desc">Industrial automotive &amp; machinery diagnostics platform consuming governed task execution.</div>
                     <div class="blueprint-node-meta">
-                      <span>Target: /api/v1/tasks</span>
+                      <span>Contract: /api/v1/tasks</span>
                       <span>Click to inspect &rarr;</span>
                     </div>
                   </div>
@@ -1562,15 +1563,17 @@
             <!-- 2. Platform Build & Capability Subsystems Status Table -->
             <div class="card" style="background:var(--bg-elevated); margin-bottom:1.5rem; border:1px solid var(--border-color);">
               <div class="card-header">
-                <h4>Platform Subsystems Operational Build Status</h4>
+                <h4>Platform Subsystems Architectural &amp; Operational Truth Matrix</h4>
               </div>
               <div class="card-body">
                 <table class="build-status-table">
                   <thead>
                     <tr>
                       <th>Platform Subsystem</th>
-                      <th>Phase / Milestone</th>
-                      <th>Operational Status</th>
+                      <th>Phase</th>
+                      <th>Implementation</th>
+                      <th>Runtime Status</th>
+                      <th>Source of Truth</th>
                       <th>Architecture &amp; Guarantees</th>
                     </tr>
                   </thead>
@@ -1578,61 +1581,81 @@
                     <tr>
                       <td><strong>Core Engine &amp; Hexagonal Ports</strong></td>
                       <td>Phase 1–14</td>
-                      <td><span class="status-pill status-pill-operational">Operational</span></td>
+                      <td><span class="status-pill status-pill-implemented">IMPLEMENTED</span></td>
+                      <td><span class="status-pill status-pill-operational">HEALTHY</span></td>
+                      <td><span class="source-badge source-badge-api">Core Engine</span></td>
                       <td>Zero domain leakage, deterministic test doubles, clean ports &amp; adapters.</td>
                     </tr>
                     <tr>
                       <td><strong>Platform REST API Gateway</strong></td>
                       <td>Phase 15–16</td>
-                      <td><span class="status-pill status-pill-operational">Operational</span></td>
+                      <td><span class="status-pill status-pill-implemented">IMPLEMENTED</span></td>
+                      <td><span class="status-pill status-pill-operational">HEALTHY</span></td>
+                      <td><span class="source-badge source-badge-api">Platform API</span></td>
                       <td>Loopback HTTP REST contracts (/api/v1), typed DTO envelopes, 1MB payload limits.</td>
                     </tr>
                     <tr>
                       <td><strong>Fail-Closed Security &amp; RBAC</strong></td>
                       <td>Phase 15</td>
-                      <td><span class="status-pill status-pill-operational">Operational</span></td>
+                      <td><span class="status-pill status-pill-implemented">IMPLEMENTED</span></td>
+                      <td><span class="status-pill status-pill-operational">ENFORCED</span></td>
+                      <td><span class="source-badge source-badge-api">Security Gateway</span></td>
                       <td>Principal-aware token authentication, role evaluators, prompt injection guards.</td>
                     </tr>
                     <tr>
                       <td><strong>First-Class AI Agents Subsystem</strong></td>
                       <td>Phase 15–16</td>
-                      <td><span class="status-pill status-pill-operational">Operational</span></td>
+                      <td><span class="status-pill status-pill-implemented">IMPLEMENTED</span></td>
+                      <td><span class="status-pill status-pill-operational">AVAILABLE</span></td>
+                      <td><span class="source-badge source-badge-api">Platform API</span></td>
                       <td>Optimistic concurrency control, versioned state, tool whitelists, memory scopes.</td>
                     </tr>
                     <tr>
                       <td><strong>Dynamic Tool Registry &amp; Invocation</strong></td>
                       <td>Phase 15–16</td>
-                      <td><span class="status-pill status-pill-operational">Operational</span></td>
+                      <td><span class="status-pill status-pill-implemented">IMPLEMENTED</span></td>
+                      <td><span class="status-pill status-pill-operational">AVAILABLE</span></td>
+                      <td><span class="source-badge source-badge-api">Tool Registry</span></td>
                       <td>Risk-bounded tool execution (LOW to CRITICAL), parameter validation, prototype shields.</td>
                     </tr>
                     <tr>
                       <td><strong>Model Gateway &amp; Router</strong></td>
                       <td>Phase 15–16</td>
-                      <td><span class="status-pill status-pill-operational">Operational</span></td>
+                      <td><span class="status-pill status-pill-implemented">IMPLEMENTED</span></td>
+                      <td><span class="status-pill status-pill-operational">AVAILABLE</span></td>
+                      <td><span class="source-badge source-badge-api">Model Gateway</span></td>
                       <td>Provider-neutral routing, structured output formatting, latency &amp; availability tracking.</td>
                     </tr>
                     <tr>
                       <td><strong>Durable WAL Persistence &amp; Recovery</strong></td>
                       <td>Phase 14–15</td>
-                      <td><span class="status-pill status-pill-operational">Operational</span></td>
+                      <td><span class="status-pill status-pill-implemented">IMPLEMENTED</span></td>
+                      <td><span class="status-pill status-pill-operational">WAL ACTIVE</span></td>
+                      <td><span class="source-badge source-badge-api">SQLite WAL</span></td>
                       <td>SQLite WAL engine, monotonic event store, restart reconciliation service.</td>
                     </tr>
                     <tr>
                       <td><strong>Web Control Center Console</strong></td>
                       <td>Phase 16</td>
-                      <td><span class="status-pill status-pill-operational">Operational</span></td>
+                      <td><span class="status-pill status-pill-implemented">IMPLEMENTED</span></td>
+                      <td><span class="status-pill status-pill-operational">OPERATIONAL</span></td>
+                      <td><span class="source-badge source-badge-api">Web Console</span></td>
                       <td>Zero innerHTML XSS prevention, reactive telemetry, interactive system map.</td>
                     </tr>
                     <tr>
-                      <td><strong>Tentaciones AI Commerce Integration</strong></td>
+                      <td><strong>Tentaciones AI Commerce</strong></td>
                       <td>Phase 16</td>
-                      <td><span class="status-pill status-pill-connected">Connected</span></td>
-                      <td>External consumer adapter executing tasks &amp; orchestrations through PlatformClient.</td>
+                      <td><span class="status-pill status-pill-designed">DESIGNED</span></td>
+                      <td><span class="status-pill status-pill-not-connected">PLANNED</span></td>
+                      <td><span class="source-badge source-badge-ext">External Contract</span></td>
+                      <td>External consumer adapter designed to execute tasks &amp; orchestrations via PlatformClient.</td>
                     </tr>
                     <tr>
                       <td><strong>Vehicle Diagnostics &amp; Future Apps</strong></td>
                       <td>Future Roadmap</td>
-                      <td><span class="status-pill status-pill-planned">Planned</span></td>
+                      <td><span class="status-pill status-pill-designed">DESIGNED</span></td>
+                      <td><span class="status-pill status-pill-planned">PLANNED</span></td>
+                      <td><span class="source-badge source-badge-arch">Architectural Spec</span></td>
                       <td>Designed to consume public Platform API without core engine modifications.</td>
                     </tr>
                   </tbody>
