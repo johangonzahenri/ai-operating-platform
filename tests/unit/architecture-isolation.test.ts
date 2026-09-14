@@ -135,4 +135,14 @@ test("Architectural Invariant: Domain and Application Runtime have ZERO imports 
   }
 });
 
+test("Architectural Invariant: LLMPlanner has ZERO imports from database, sqlite, or direct tool execution", async () => {
+  const fs = await import("node:fs");
+  const plannerContent = fs.readFileSync("src/infrastructure/autonomy/llm-planner.ts", "utf8");
+  assert.equal(plannerContent.includes("sqlite"), false, "LLMPlanner must not import sqlite directly");
+  assert.equal(plannerContent.includes("node:sqlite"), false, "LLMPlanner must not import node:sqlite");
+  assert.equal(plannerContent.includes("CoreRuntime"), false, "LLMPlanner must not import CoreRuntime");
+  assert.equal(plannerContent.includes("ToolRegistry"), false, "LLMPlanner must not import ToolRegistry directly");
+});
+
+
 

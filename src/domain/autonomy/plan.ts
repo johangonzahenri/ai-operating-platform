@@ -1,4 +1,5 @@
 export class InvalidPlanError extends Error {
+  readonly code: string = "INVALID_PLAN";
   constructor(message: string) {
     super(message);
     this.name = "InvalidPlanError";
@@ -6,11 +7,53 @@ export class InvalidPlanError extends Error {
 }
 
 export class PlanStepValidationError extends Error {
+  readonly code = "PLAN_STEP_VALIDATION_ERROR";
   constructor(message: string) {
     super(message);
     this.name = "PlanStepValidationError";
   }
 }
+
+import { PolicyDeniedError } from "../policy/policy.js";
+
+export class PlanCycleDetectedError extends Error {
+  readonly code = "PLAN_CYCLE_DETECTED";
+  constructor(message: string) {
+    super(message);
+    this.name = "PlanCycleDetectedError";
+  }
+}
+
+export class PlanPolicyRejectedError extends PolicyDeniedError {
+  readonly planStepId?: string | undefined;
+  constructor(message: string, policyId = "plan-policy-denied", stepId?: string) {
+    super(policyId, stepId ?? "unknown", message);
+    this.name = "PlanPolicyRejectedError";
+    this.planStepId = stepId;
+  }
+}
+
+export class PlanLimitExceededError extends InvalidPlanError {
+  override readonly code = "PLAN_LIMIT_EXCEEDED";
+  constructor(message: string) {
+    super(message);
+    this.name = "PlanLimitExceededError";
+  }
+}
+
+export class PlanUnsupportedActionError extends Error {
+  readonly code = "PLAN_UNSUPPORTED_ACTION";
+  constructor(readonly action: string, message?: string) {
+    super(message ?? `Action '${action}' is not supported or authorized`);
+    this.name = "PlanUnsupportedActionError";
+  }
+}
+
+export const MAX_PLAN_STEPS = 50;
+export const MAX_PLAN_DEPTH = 10;
+export const MAX_DEPENDENCIES = 10;
+export const MAX_STEP_INPUT_SIZE = 65536; // 64KB
+export const MAX_PLAN_METADATA_SIZE = 16384; // 16KB
 
 const ID_REGEX = /^[a-zA-Z0-9_-]{1,128}$/;
 
@@ -50,6 +93,9 @@ export interface PlanStepProps {
   readonly order: number;
   readonly action: string;
   readonly input: Readonly<Record<string, unknown>>;
+  readonly toolId?: string | undefined;
+  readonly dependencies?: readonly string[] | undefined;
+  readonly constraints?: readonly string[] | undefined;
   readonly metadata?: Readonly<Record<string, unknown>> | undefined;
 }
 
@@ -58,18 +104,24 @@ export interface PlanStepSnapshot {
   readonly order: number;
   readonly action: string;
   readonly input: Readonly<Record<string, unknown>>;
+  readonly toolId?: string | undefined;
+  readonly dependencies?: readonly string[] | undefined;
+  readonly constraints?: readonly string[] | undefined;
   readonly metadata?: Readonly<Record<string, unknown>> | undefined;
 }
 
 /**
  * PlanStep represents an immutable, declarative atomic step within an operational Plan.
- * Contains purely serializable data (id, order, action, input, metadata) with zero executable callbacks.
+ * Contains purely serializable data with zero executable callbacks.
  */
 export class PlanStep {
   readonly id: string;
   readonly order: number;
   readonly action: string;
   readonly input: Readonly<Record<string, unknown>>;
+  readonly toolId?: string | undefined;
+  readonly dependencies: readonly string[];
+  readonly constraints: readonly string[];
   readonly metadata?: Readonly<Record<string, unknown>> | undefined;
 
   private constructor(
@@ -77,12 +129,18 @@ export class PlanStep {
     order: number,
     action: string,
     input: Readonly<Record<string, unknown>>,
+    toolId?: string | undefined,
+    dependencies: readonly string[] = [],
+    constraints: readonly string[] = [],
     metadata?: Readonly<Record<string, unknown>> | undefined
   ) {
     this.id = id;
     this.order = order;
     this.action = action;
     this.input = input;
+    this.toolId = toolId;
+    this.dependencies = Object.freeze([...dependencies]);
+    this.constraints = Object.freeze([...constraints]);
     this.metadata = metadata;
     Object.freeze(this);
   }
@@ -114,7 +172,29 @@ export class PlanStep {
       throw new PlanStepValidationError("PlanStep input must be a plain object");
     }
     assertNoFunctions(props.input, "PlanStep input", true);
+    
+    // Check input size limit
+    const inputSize = JSON.stringify(props.input).length;
+    if (inputSize > MAX_STEP_INPUT_SIZE) {
+      throw new PlanLimitExceededError(
+        `PlanStep '${id}' input size (${inputSize} bytes) exceeds limit of ${MAX_STEP_INPUT_SIZE} bytes`
+      );
+    }
     const frozenInput = Object.freeze({ ...props.input });
+
+    const dependencies = Array.isArray(props.dependencies)
+      ? props.dependencies.map((d) => validateIdentifier(d, "dependencyStepId", true))
+      : [];
+
+    if (dependencies.length > MAX_DEPENDENCIES) {
+      throw new PlanLimitExceededError(
+        `PlanStep '${id}' specifies ${dependencies.length} dependencies, exceeding maximum limit of ${MAX_DEPENDENCIES}`
+      );
+    }
+
+    const constraints = Array.isArray(props.constraints)
+      ? props.constraints.map((c) => String(c).trim()).filter(Boolean)
+      : [];
 
     let frozenMetadata: Readonly<Record<string, unknown>> | undefined;
     if (props.metadata !== undefined) {
@@ -122,10 +202,25 @@ export class PlanStep {
         throw new PlanStepValidationError("PlanStep metadata must be a plain object when provided");
       }
       assertNoFunctions(props.metadata, "PlanStep metadata", true);
+      const metaSize = JSON.stringify(props.metadata).length;
+      if (metaSize > MAX_PLAN_METADATA_SIZE) {
+        throw new PlanLimitExceededError(
+          `PlanStep '${id}' metadata size (${metaSize} bytes) exceeds limit of ${MAX_PLAN_METADATA_SIZE} bytes`
+        );
+      }
       frozenMetadata = Object.freeze({ ...props.metadata });
     }
 
-    return new PlanStep(id, props.order, trimmedAction, frozenInput, frozenMetadata);
+    return new PlanStep(
+      id,
+      props.order,
+      trimmedAction,
+      frozenInput,
+      props.toolId?.trim(),
+      dependencies,
+      constraints,
+      frozenMetadata
+    );
   }
 
   snapshot(): PlanStepSnapshot {
@@ -134,17 +229,23 @@ export class PlanStep {
       order: this.order,
       action: this.action,
       input: Object.freeze({ ...this.input }),
+      ...(this.toolId !== undefined ? { toolId: this.toolId } : {}),
+      dependencies: Object.freeze([...this.dependencies]),
+      constraints: Object.freeze([...this.constraints]),
       ...(this.metadata !== undefined ? { metadata: Object.freeze({ ...this.metadata }) } : {}),
     });
   }
 }
 
-export const MAX_PLAN_STEPS = 50;
-
 export interface PlanProps {
   readonly id: string;
   readonly operationId: string;
   readonly steps: readonly PlanStep[];
+  readonly schemaVersion?: number | undefined;
+  readonly version?: number | undefined;
+  readonly goal?: string | undefined;
+  readonly constraints?: readonly string[] | undefined;
+  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
   readonly createdAt?: Date | undefined;
 }
 
@@ -152,6 +253,11 @@ export interface PlanSnapshot {
   readonly id: string;
   readonly operationId: string;
   readonly steps: readonly PlanStepSnapshot[];
+  readonly schemaVersion: number;
+  readonly version: number;
+  readonly goal?: string | undefined;
+  readonly constraints?: readonly string[] | undefined;
+  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
   readonly createdAt: Date;
 }
 
@@ -163,17 +269,32 @@ export class Plan {
   readonly id: string;
   readonly operationId: string;
   readonly steps: readonly PlanStep[];
+  readonly schemaVersion: number;
+  readonly version: number;
+  readonly goal?: string | undefined;
+  readonly constraints: readonly string[];
+  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
   readonly createdAt: Date;
 
   private constructor(
     id: string,
     operationId: string,
     steps: readonly PlanStep[],
-    createdAt: Date
+    schemaVersion: number,
+    version: number,
+    goal?: string | undefined,
+    constraints: readonly string[] = [],
+    metadata?: Readonly<Record<string, unknown>> | undefined,
+    createdAt: Date = new Date()
   ) {
     this.id = id;
     this.operationId = operationId;
     this.steps = steps;
+    this.schemaVersion = schemaVersion;
+    this.version = version;
+    this.goal = goal;
+    this.constraints = Object.freeze([...constraints]);
+    this.metadata = metadata;
     this.createdAt = createdAt;
     Object.freeze(this);
   }
@@ -185,6 +306,8 @@ export class Plan {
 
     const id = validateIdentifier(props.id, "planId");
     const operationId = validateIdentifier(props.operationId, "operationId");
+    const schemaVersion = props.schemaVersion ?? 1;
+    const version = props.version ?? 1;
 
     if (!Array.isArray(props.steps)) {
       throw new InvalidPlanError("Plan steps must be an array");
@@ -195,7 +318,7 @@ export class Plan {
     }
 
     if (props.steps.length > MAX_PLAN_STEPS) {
-      throw new InvalidPlanError(
+      throw new PlanLimitExceededError(
         `Plan exceeds maximum allowed steps limit of ${MAX_PLAN_STEPS} (received: ${props.steps.length})`
       );
     }
@@ -230,9 +353,31 @@ export class Plan {
       createdAt = new Date();
     }
 
-    const frozenSteps: readonly PlanStep[] = Object.freeze([...props.steps]);
+    let frozenMetadata: Readonly<Record<string, unknown>> | undefined;
+    if (props.metadata !== undefined) {
+      if (!isPlainObject(props.metadata)) {
+        throw new InvalidPlanError("Plan metadata must be a plain object when provided");
+      }
+      assertNoFunctions(props.metadata, "Plan metadata");
+      frozenMetadata = Object.freeze({ ...props.metadata });
+    }
 
-    return new Plan(id, operationId, frozenSteps, createdAt);
+    const frozenSteps: readonly PlanStep[] = Object.freeze([...props.steps]);
+    const constraints = Array.isArray(props.constraints)
+      ? props.constraints.map((c) => String(c).trim()).filter(Boolean)
+      : [];
+
+    return new Plan(
+      id,
+      operationId,
+      frozenSteps,
+      schemaVersion,
+      version,
+      props.goal?.trim(),
+      constraints,
+      frozenMetadata,
+      createdAt
+    );
   }
 
   get totalSteps(): number {
@@ -259,6 +404,11 @@ export class Plan {
       id: this.id,
       operationId: this.operationId,
       steps: Object.freeze(this.steps.map((s) => s.snapshot())),
+      schemaVersion: this.schemaVersion,
+      version: this.version,
+      ...(this.goal !== undefined ? { goal: this.goal } : {}),
+      constraints: Object.freeze([...this.constraints]),
+      ...(this.metadata !== undefined ? { metadata: Object.freeze({ ...this.metadata }) } : {}),
       createdAt: new Date(this.createdAt.getTime()),
     });
   }

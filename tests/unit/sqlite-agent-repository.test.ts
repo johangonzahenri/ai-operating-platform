@@ -194,11 +194,12 @@ test("SqliteAgentRepository Unit, OCC & Durability Suite", async (t) => {
     try {
       // Process A
       const repoA = new SqliteAgentRepository({ dbPath });
-      const agent = createSampleAgent("agent-durable-1").update({
+      const initial = createSampleAgent("agent-durable-1");
+      repoA.register(initial);
+      const agent = initial.update({
         name: "Persisted Agent",
         tools: ["custom-tool", "calc"],
-      });
-      repoA.register(createSampleAgent("agent-durable-1"));
+      }, new Date(initial.createdAt.getTime() + 10));
       repoA.update(agent);
       repoA.close();
 

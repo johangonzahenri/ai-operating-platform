@@ -64,3 +64,13 @@ flowchart TD
 - **Zero Core Bypass**: No external client or HTTP handler may invoke `CoreRuntime` directly without passing through `AuthenticationService`, `RbacAuthorizationEvaluator`, and `PlatformService`.
 - **Zero Framework Leakage in Domain**: Domain entities (`Task`, `Agent`, `Principal`, `Plan`) have zero imports from HTTP or Express libraries.
 - **Tenant Isolation**: Cross-tenant requests are denied fail-closed with `404 Not Found` responses to prevent ID enumeration attacks.
+
+---
+
+## 6. LLM Planner & Structured Planning (Prompt 53)
+
+The LLM Planner architecture adheres to strict deterministic separation of concerns:
+- **Proposal-Only LLM**: The model generates declarative plans via `ModelGateway.generateStructured` against `PLAN_JSON_SCHEMA`.
+- **Deterministic Validation**: `PlanValidator` uses Kahn's algorithm to enforce DAG properties, topological order, and lack of cycles, while rejecting prototype pollution and forbidden security keys.
+- **Pre-execution Policy Gate**: `PlanPolicyValidator` confirms that all steps, tools, and actions are authorized for the calling agent fail-closed before execution starts.
+

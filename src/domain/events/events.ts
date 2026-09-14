@@ -17,8 +17,9 @@ export type EventType =
   | "coordination.handoff.accepted" | "coordination.handoff.rejected"
   | "coordination.agent.completed" | "coordination.agent.failed"
   | "coordination.completed" | "coordination.failed"
-  | "auth.succeeded" | "auth.failed" | "auth.revoked" | "auth.expired"
-  | "authorization.allowed" | "authorization.denied";
+    | "auth.succeeded" | "auth.failed" | "auth.revoked" | "auth.expired"
+  | "authorization.allowed" | "authorization.denied"
+  | "plan.requested" | "plan.generated" | "plan.validated" | "plan.rejected" | "plan.accepted" | "plan.execution_started";
 
 export interface DomainEvent {
   readonly id: string;
