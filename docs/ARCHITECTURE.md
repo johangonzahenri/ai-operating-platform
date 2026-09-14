@@ -84,4 +84,14 @@ The LLM Planner architecture adheres to strict deterministic separation of conce
 - **Human Approval Barrier**: `CRITICAL` risk tools strictly enforce human-in-the-loop approval tokens.
 - **Topological Plan Execution**: `PlanExecutionEngine` schedules DAG steps topologically, passes output dependencies, handles cancellation tokens, and cascades failure states (`SKIPPED`) safely.
 
+---
+
+## 8. Platform Product / Web Console Architecture (Prompt 56)
+
+- **Strict Tier Decoupling**: Governed by `CORE ENGINE ≠ PLATFORM PRODUCT ≠ APPLICATIONS`. The Web Platform is purely a client consumer of the public Platform API (`/api/v1`) via `PlatformClient`.
+- **Zero Internal Imports**: Web assets and client controllers contain zero direct dependencies on domain, application runtime, or persistence layers.
+- **Enterprise Navigation & Observability**: Integrated Web Console encompassing Platform Operations, Dashboard, Agents, Operations, Executions, Models, Tools, Governance, and Applications.
+- **Native Design System & Security**: Light theme by default (`--bg-primary: #f8fafc`) with dark mode support; strict XSS prevention through direct DOM construction (`document.createElement` / `textContent`) with zero unsafe `innerHTML` evaluation.
+
+
 
