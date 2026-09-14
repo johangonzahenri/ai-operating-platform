@@ -94,6 +94,7 @@ export interface PlanStepProps {
   readonly action: string;
   readonly input: Readonly<Record<string, unknown>>;
   readonly toolId?: string | undefined;
+  readonly toolVersion?: string | undefined;
   readonly dependencies?: readonly string[] | undefined;
   readonly constraints?: readonly string[] | undefined;
   readonly metadata?: Readonly<Record<string, unknown>> | undefined;
@@ -105,6 +106,7 @@ export interface PlanStepSnapshot {
   readonly action: string;
   readonly input: Readonly<Record<string, unknown>>;
   readonly toolId?: string | undefined;
+  readonly toolVersion?: string | undefined;
   readonly dependencies?: readonly string[] | undefined;
   readonly constraints?: readonly string[] | undefined;
   readonly metadata?: Readonly<Record<string, unknown>> | undefined;
@@ -120,6 +122,7 @@ export class PlanStep {
   readonly action: string;
   readonly input: Readonly<Record<string, unknown>>;
   readonly toolId?: string | undefined;
+  readonly toolVersion?: string | undefined;
   readonly dependencies: readonly string[];
   readonly constraints: readonly string[];
   readonly metadata?: Readonly<Record<string, unknown>> | undefined;
@@ -130,6 +133,7 @@ export class PlanStep {
     action: string,
     input: Readonly<Record<string, unknown>>,
     toolId?: string | undefined,
+    toolVersion?: string | undefined,
     dependencies: readonly string[] = [],
     constraints: readonly string[] = [],
     metadata?: Readonly<Record<string, unknown>> | undefined
@@ -139,6 +143,7 @@ export class PlanStep {
     this.action = action;
     this.input = input;
     this.toolId = toolId;
+    this.toolVersion = toolVersion;
     this.dependencies = Object.freeze([...dependencies]);
     this.constraints = Object.freeze([...constraints]);
     this.metadata = metadata;
@@ -217,6 +222,7 @@ export class PlanStep {
       trimmedAction,
       frozenInput,
       props.toolId?.trim(),
+      props.toolVersion?.trim(),
       dependencies,
       constraints,
       frozenMetadata
@@ -230,6 +236,7 @@ export class PlanStep {
       action: this.action,
       input: Object.freeze({ ...this.input }),
       ...(this.toolId !== undefined ? { toolId: this.toolId } : {}),
+      ...(this.toolVersion !== undefined ? { toolVersion: this.toolVersion } : {}),
       dependencies: Object.freeze([...this.dependencies]),
       constraints: Object.freeze([...this.constraints]),
       ...(this.metadata !== undefined ? { metadata: Object.freeze({ ...this.metadata }) } : {}),

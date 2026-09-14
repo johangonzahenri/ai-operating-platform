@@ -47,6 +47,7 @@ export const PLAN_JSON_SCHEMA: Readonly<Record<string, unknown>> = Object.freeze
           action: { type: "string" },
           tool: { type: "string" },
           toolId: { type: "string" },
+          toolVersion: { type: "string" },
           input: { type: "object" },
           dependencies: {
             type: "array",

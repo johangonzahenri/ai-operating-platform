@@ -13,7 +13,8 @@ import { Agent } from "../domain/agent/agent.js";
 import { AgentRegistry } from "../domain/agent/agent-registry.js";
 import { InMemoryAgentRegistry } from "../infrastructure/agent/in-memory-agent-registry.js";
 import { MemoryService } from "../application/memory/memory-service.js";
-import { RegistryToolGateway } from "../application/tools/tool-gateway.js";
+import { RegistryToolGateway, ToolInvocationRuntime } from "../application/tools/tool-gateway.js";
+import { PlanExecutionEngine } from "../application/autonomy/plan-execution-engine.js";
 import { PolicyGateway } from "../domain/policy/policy.js";
 import { InMemoryPolicyGateway } from "../infrastructure/policy/in-memory-policy-gateway.js";
 import { InMemoryEventPublisher } from "../infrastructure/events/in-memory-event-publisher.js";
@@ -172,7 +173,13 @@ export const createPlatform = (
 
   const tools = new InMemoryToolRegistry();
   tools.register(new CalculatorTool());
-  const toolGateway = new RegistryToolGateway(tools, events);
+  const toolInvocationRuntime = new ToolInvocationRuntime({
+    registry: tools,
+    events,
+    policyGateway: policy,
+  });
+  const toolGateway = new RegistryToolGateway(tools, events, policy);
+  const planExecutionEngine = new PlanExecutionEngine();
   const modelConfig = modelProviderConfigFromEnvironment();
   const providerFactory = createDefaultProviderFactory();
   const modelRouter = new DefaultModelRouter({ defaultProvider: modelConfig.provider });
@@ -292,6 +299,8 @@ export const createPlatform = (
     memoryService,
     tools,
     toolGateway,
+    toolInvocationRuntime,
+    planExecutionEngine,
     models,
     modelRegistry,
     agents,

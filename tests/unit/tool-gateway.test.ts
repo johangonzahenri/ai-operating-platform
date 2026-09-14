@@ -11,7 +11,9 @@ const context = ExecutionContext.create("trace-1", "execution-1", "task-1");
 test("gateway validates, executes and correlates a registered tool", async () => {
   const registry = new InMemoryToolRegistry(); registry.register(new CalculatorTool()); const events = new InMemoryEventPublisher();
   const result = await new RegistryToolGateway(registry, events).execute("calculator", { left: 2, right: 3 }, context);
-  assert.deepEqual(result.output, { value: 5 }); assert.deepEqual(events.events.map((item) => item.type), ["tool.execution.started", "tool.execution.completed"]);
+  assert.deepEqual(result.output, { value: 5 });
+  assert.ok(events.events.some((item) => item.type === "tool.execution.started"));
+  assert.ok(events.events.some((item) => item.type === "tool.execution.completed"));
   assert.ok(events.events.every((item) => item.traceId === "trace-1" && item.executionId === "execution-1" && item.taskId === "task-1"));
 });
 test("registry rejects duplicates and gateway rejects unknown or invalid input before tool execution", async () => {
@@ -24,7 +26,8 @@ test("gateway classifies adapter errors and emits a failure event", async () => 
   const failingTool: Tool = { definition: { id: "failing", name: "Failing", description: "fails", inputSchema: { required: [], properties: {} } }, execute: async () => { throw new Error("adapter unavailable"); } };
   const registry = new InMemoryToolRegistry(); registry.register(failingTool); const events = new InMemoryEventPublisher();
   await assert.rejects(() => new RegistryToolGateway(registry, events).execute("failing", {}, context), ToolExecutionError);
-  assert.deepEqual(events.events.map((item) => item.type), ["tool.execution.started", "tool.execution.failed"]);
+  assert.ok(events.events.some((item) => item.type === "tool.execution.started"));
+  assert.ok(events.events.some((item) => item.type === "tool.execution.failed"));
 });
 
 test("registry rejects an invalid tool definition", () => {

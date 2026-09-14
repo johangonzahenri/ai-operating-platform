@@ -144,5 +144,19 @@ test("Architectural Invariant: LLMPlanner has ZERO imports from database, sqlite
   assert.equal(plannerContent.includes("ToolRegistry"), false, "LLMPlanner must not import ToolRegistry directly");
 });
 
+test("Architectural Invariant: Tool domain has ZERO imports from application or infrastructure", async () => {
+  const fs = await import("node:fs");
+  const toolDomainContent = fs.readFileSync("src/domain/tools/tool-registry.ts", "utf8");
+  assert.equal(toolDomainContent.includes("../../application/"), false, "Tool domain cannot import application layer");
+  assert.equal(toolDomainContent.includes("../../infrastructure/"), false, "Tool domain cannot import infrastructure layer");
+});
+
+test("Architectural Invariant: PlanExecutionEngine delegates to ToolGateway and does NOT import concrete tool implementations", async () => {
+  const fs = await import("node:fs");
+  const engineContent = fs.readFileSync("src/application/autonomy/plan-execution-engine.ts", "utf8");
+  assert.equal(engineContent.includes("CalculatorTool"), false, "PlanExecutionEngine must not import concrete tools");
+  assert.equal(engineContent.includes("sqlite"), false, "PlanExecutionEngine must not import sqlite");
+});
+
 
 

@@ -11,6 +11,8 @@ export type EventType =
   | "model.requested" | "model.completed" | "model.failed"
   | "tool.execution.started" | "tool.execution.completed" | "tool.execution.failed"
   | "tool.requested" | "tool.started" | "tool.completed" | "tool.failed"
+  | "tool.registered" | "tool.unregistered" | "tool.invocation.requested" | "tool.authorized" | "tool.rejected"
+  | "tool.execution.timed_out" | "tool.execution.cancelled" | "tool.approval_required"
   | "model.tool.call.requested" | "model.tool.call.authorized" | "model.tool.call.rejected"
   | "model.tool.result.returned" | "model.final.response"
   | "coordination.started" | "coordination.agent.selected" | "coordination.handoff.requested"

@@ -74,3 +74,14 @@ The LLM Planner architecture adheres to strict deterministic separation of conce
 - **Deterministic Validation**: `PlanValidator` uses Kahn's algorithm to enforce DAG properties, topological order, and lack of cycles, while rejecting prototype pollution and forbidden security keys.
 - **Pre-execution Policy Gate**: `PlanPolicyValidator` confirms that all steps, tools, and actions are authorized for the calling agent fail-closed before execution starts.
 
+---
+
+## 7. Dynamic Tool Registry & Tool Invocation Runtime (Prompt 54)
+
+- **Zero-Bypass Execution**: The model proposes, the validator verifies, the policy authorizes, and the runtime executes. Models cannot execute tools directly.
+- **Dynamic & Versioned Registry**: `InMemoryToolRegistry` provides semantic versioning (`toolId@version`), duplicate collision prevention, and public safe discovery (redacting sensitive secrets).
+- **Security & Authorization Preflight**: `ToolInvocationRuntime` evaluates RBAC permissions, SecurityBoundaries, and PolicyGateway rules before dispatching execution.
+- **Human Approval Barrier**: `CRITICAL` risk tools strictly enforce human-in-the-loop approval tokens.
+- **Topological Plan Execution**: `PlanExecutionEngine` schedules DAG steps topologically, passes output dependencies, handles cancellation tokens, and cascades failure states (`SKIPPED`) safely.
+
+
