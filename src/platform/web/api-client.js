@@ -228,10 +228,26 @@ export async function getTaskDiagnostics(taskId) {
   return request(`/diagnostics/tasks/${encodeURIComponent(taskId)}/timeline`);
 }
 
+export async function cancelPlatformTask(taskId, reason) {
+  return platformRequest(`/tasks/${encodeURIComponent(taskId)}/cancel`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ reason }),
+  });
+}
+
 export async function getTasks() {
   return request("/tasks");
 }
 
 export async function getTask(id) {
   return request(`/tasks/${encodeURIComponent(id)}`);
+}
+
+export async function cancelTask(taskId, reason) {
+  return request(`/tasks/${encodeURIComponent(taskId)}/cancel`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ reason }),
+  });
 }

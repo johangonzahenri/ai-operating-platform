@@ -687,6 +687,31 @@ class PlatformApp {
     document.getElementById("refresh-btn")?.addEventListener("click", () => {
       this.loadData();
     });
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        this.stopAutoRefresh();
+      } else {
+        this.loadData();
+        this.startAutoRefresh();
+      }
+    });
+  }
+
+  startAutoRefresh(intervalMs = 5000) {
+    this.stopAutoRefresh();
+    this.refreshInterval = setInterval(() => {
+      if (!document.hidden) {
+        this.loadData();
+      }
+    }, intervalMs);
+  }
+
+  stopAutoRefresh() {
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
+      this.refreshInterval = null;
+    }
   }
 
   setupPlatformOperations() {
@@ -2330,7 +2355,11 @@ class PlatformApp {
   }
 }
 
-// Instantiate on DOM load
-window.addEventListener("DOMContentLoaded", () => {
-  new PlatformApp();
-});
+export { PlatformApp };
+
+// Instantiate on DOM load when running in browser
+if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
+  window.addEventListener("DOMContentLoaded", () => {
+    new PlatformApp();
+  });
+}
