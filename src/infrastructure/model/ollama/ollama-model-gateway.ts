@@ -1,4 +1,6 @@
 import {
+  ModelCapability,
+  ModelDefinition,
   ModelGateway,
   ModelRequest,
   ModelResponse,
@@ -7,8 +9,11 @@ import {
   ModelInvalidRequestError,
   ModelInvalidResponseError,
   ModelProviderError,
+  ModelStructuredOutputError,
+  StructuredResult,
   validateModelRequest,
 } from "../../../domain/model/model-gateway.js";
+import { ModelProviderAdapter } from "../../../application/ports/model-provider-port.js";
 import { ModelProviderConfig, validateProviderConfig } from "../model-provider-config.js";
 
 export type HttpFetchFn = (
@@ -23,10 +28,38 @@ function toJsonSchema(schema: Readonly<Record<string, unknown>>): Readonly<Recor
   return schema;
 }
 
-export class OllamaModelGateway implements ModelGateway {
+export class OllamaModelGateway implements ModelGateway, ModelProviderAdapter {
   readonly provider = "ollama";
+  readonly providerId = "ollama";
   private readonly config: ModelProviderConfig;
   private readonly fetchFn: HttpFetchFn;
+
+  private readonly knownModels: readonly ModelDefinition[] = [
+    {
+      id: "llama3",
+      provider: "ollama",
+      name: "Llama 3",
+      capabilities: ["TEXT_GENERATION", "STRUCTURED_OUTPUT", "TOOL_CALLING"],
+      contextWindow: 8192,
+      maxOutputTokens: 4096,
+    },
+    {
+      id: "mistral",
+      provider: "ollama",
+      name: "Mistral",
+      capabilities: ["TEXT_GENERATION", "STRUCTURED_OUTPUT", "TOOL_CALLING"],
+      contextWindow: 32768,
+      maxOutputTokens: 4096,
+    },
+    {
+      id: "qwen2.5",
+      provider: "ollama",
+      name: "Qwen 2.5",
+      capabilities: ["TEXT_GENERATION", "STRUCTURED_OUTPUT", "TOOL_CALLING"],
+      contextWindow: 32768,
+      maxOutputTokens: 8192,
+    },
+  ];
 
   constructor(config: ModelProviderConfig, customFetch?: HttpFetchFn) {
     validateProviderConfig(config);
@@ -234,4 +267,46 @@ export class OllamaModelGateway implements ModelGateway {
       },
     };
   }
+
+  async generateStructured<T = Record<string, unknown>>(
+    request: ModelRequest,
+    _schema: Readonly<Record<string, unknown>>
+  ): Promise<StructuredResult<T>> {
+    const raw = await this.generate({ ...request, requestedFormat: "json_object" });
+    let output: unknown = raw.output;
+    if (typeof raw.content === "string") {
+      try {
+        output = JSON.parse(raw.content);
+      } catch {
+        // use output
+      }
+    }
+    if (!output || typeof output !== "object") {
+      throw new ModelStructuredOutputError("Ollama output failed structured schema parsing", raw.content);
+    }
+    return { output: output as T, raw };
+  }
+
+  async getModel(modelId: string): Promise<ModelDefinition | undefined> {
+    return this.knownModels.find((m) => m.id === modelId);
+  }
+
+  async listModels(): Promise<readonly ModelDefinition[]> {
+    return this.knownModels;
+  }
+
+  async listSupportedModels(): Promise<readonly ModelDefinition[]> {
+    return this.knownModels;
+  }
+
+  async getCapabilities(modelId: string): Promise<readonly ModelCapability[]> {
+    const model = await this.getModel(modelId);
+    return model ? model.capabilities : ["TEXT_GENERATION"];
+  }
+
+  async supports(modelId: string, capability: ModelCapability): Promise<boolean> {
+    const caps = await this.getCapabilities(modelId);
+    return caps.includes(capability);
+  }
 }
+

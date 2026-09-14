@@ -132,8 +132,68 @@ export class ModelProviderError extends ModelExecutionError {
   }
 }
 
+export type ModelCapability =
+  | "TEXT_GENERATION"
+  | "STRUCTURED_OUTPUT"
+  | "TOOL_CALLING"
+  | "VISION"
+  | "EMBEDDINGS"
+  | "STREAMING";
+
+export interface ModelDefinition {
+  readonly id: string;
+  readonly provider: string;
+  readonly name: string;
+  readonly capabilities: readonly ModelCapability[];
+  readonly contextWindow?: number | undefined;
+  readonly maxOutputTokens?: number | undefined;
+}
+
+export interface ModelStreamEvent {
+  readonly type: "token" | "tool_call" | "finish" | "error";
+  readonly delta?: string | undefined;
+  readonly toolCall?: ModelToolCall | undefined;
+  readonly finishReason?: ModelFinishReason | undefined;
+  readonly error?: string | undefined;
+}
+
+export class ModelCapabilityUnsupportedError extends Error {
+  readonly code = "CAPABILITY_UNSUPPORTED";
+  constructor(readonly modelId: string, readonly capability: ModelCapability) {
+    super(`Model '${modelId}' does not support required capability '${capability}'`);
+    this.name = "ModelCapabilityUnsupportedError";
+  }
+}
+
+export class ModelNotFoundError extends Error {
+  readonly code = "MODEL_NOT_FOUND";
+  constructor(readonly modelId: string) {
+    super(`Model '${modelId}' was not found in registry`);
+    this.name = "ModelNotFoundError";
+  }
+}
+
+export class ModelSecurityViolationError extends Error {
+  readonly code = "SECURITY_MODEL_VIOLATION";
+  constructor(message: string) {
+    super(message);
+    this.name = "ModelSecurityViolationError";
+  }
+}
+
+export class ModelStructuredOutputError extends Error {
+  readonly code = "OUTPUT_INVALID";
+  constructor(message: string, readonly rawContent?: string | undefined) {
+    super(message);
+    this.name = "ModelStructuredOutputError";
+  }
+}
+
 export const validateModelRequest = (request: ModelRequest): void => {
-  if (typeof request?.traceId !== "string" || request.traceId.trim() === "") {
+  if (!request || typeof request !== "object") {
+    throw new ModelValidationError("Model request must be a valid object");
+  }
+  if (typeof request.traceId !== "string" || request.traceId.trim() === "") {
     throw new ModelValidationError("Model request requires a trace id");
   }
   if (typeof request.model !== "string" || request.model.trim() === "") {
@@ -142,8 +202,27 @@ export const validateModelRequest = (request: ModelRequest): void => {
   if (request.input === null || typeof request.input !== "object" || Object.keys(request.input).length === 0) {
     throw new ModelValidationError("Model request requires non-empty input");
   }
+  // Bounded check for excessive payload size (1MB limit)
+  const estimatedSize = JSON.stringify(request.input).length;
+  if (estimatedSize > 1048576) {
+    throw new ModelValidationError("Model request payload exceeds 1MB limit");
+  }
 };
+
+export interface StructuredResult<T> {
+  readonly output: T;
+  readonly raw: ModelResponse;
+}
 
 export interface ModelGateway {
   generate(request: ModelRequest): Promise<ModelResponse>;
+  generateStructured?<T = Record<string, unknown>>(
+    request: ModelRequest,
+    schema: Readonly<Record<string, unknown>>
+  ): Promise<StructuredResult<T>>;
+  getModel?(modelId: string): Promise<ModelDefinition | undefined>;
+  listModels?(): Promise<readonly ModelDefinition[]>;
+  getCapabilities?(modelId: string): Promise<readonly ModelCapability[]>;
+  supports?(modelId: string, capability: ModelCapability): Promise<boolean>;
+  stream?(request: ModelRequest): AsyncIterable<ModelStreamEvent>;
 }

@@ -109,3 +109,30 @@ test("Architectural Invariant: Domain files have ZERO imports from HTTP or Expre
   }
 });
 
+test("Architectural Invariant: Domain and Application Runtime have ZERO imports of concrete ModelProviderAdapters", async () => {
+  const fs = await import("node:fs");
+  const path = await import("node:path");
+
+  function scanDir(dir: string): string[] {
+    let files: string[] = [];
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        files = files.concat(scanDir(full));
+      } else if (entry.name.endsWith(".ts")) {
+        files.push(full);
+      }
+    }
+    return files;
+  }
+
+  const guardedFiles = [...scanDir("src/domain"), ...scanDir("src/application/runtime")];
+  for (const file of guardedFiles) {
+    const content = fs.readFileSync(file, "utf8");
+    assert.equal(content.includes("OpenAIModelGateway"), false, `${file} must not import OpenAIModelGateway`);
+    assert.equal(content.includes("AnthropicModelGateway"), false, `${file} must not import AnthropicModelGateway`);
+    assert.equal(content.includes("OllamaModelGateway"), false, `${file} must not import OllamaModelGateway`);
+  }
+});
+
+

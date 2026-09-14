@@ -17,7 +17,9 @@ import { RegistryToolGateway } from "../application/tools/tool-gateway.js";
 import { PolicyGateway } from "../domain/policy/policy.js";
 import { InMemoryPolicyGateway } from "../infrastructure/policy/in-memory-policy-gateway.js";
 import { InMemoryEventPublisher } from "../infrastructure/events/in-memory-event-publisher.js";
-import { createModelGateway } from "../infrastructure/model/provider-factory.js";
+import { createModelGateway, createDefaultProviderFactory } from "../infrastructure/model/provider-factory.js";
+import { DefaultModelRouter } from "../application/model/default-model-router.js";
+import { DefaultModelGateway } from "../application/model/default-model-gateway.js";
 import { modelProviderConfigFromEnvironment } from "../infrastructure/model/model-provider-config.js";
 import { InMemoryModelRegistry } from "../infrastructure/model/in-memory-model-registry.js";
 import { StructuredEventLogger, StructuredLogger } from "../infrastructure/observability/structured-event-logger.js";
@@ -172,7 +174,12 @@ export const createPlatform = (
   tools.register(new CalculatorTool());
   const toolGateway = new RegistryToolGateway(tools, events);
   const modelConfig = modelProviderConfigFromEnvironment();
-  const models = createModelGateway();
+  const providerFactory = createDefaultProviderFactory();
+  const modelRouter = new DefaultModelRouter({ defaultProvider: modelConfig.provider });
+  const models = new DefaultModelGateway({
+    router: modelRouter,
+    providerFactory,
+  });
 
   const modelRegistry: ModelQueryPort = (!isLogger && (optionsOrLogger as CreatePlatformOptions).modelRegistry)
     ? (optionsOrLogger as CreatePlatformOptions).modelRegistry!
