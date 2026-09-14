@@ -598,33 +598,57 @@
         </div>
       </section>
 
-      <!-- 2. View: Agents (Full Management in v0.8) -->
+      <!-- 2. View: Agents (Management Console) -->
       <section id="tab-agents" class="tab-view">
         <div class="card full-width">
           <div class="card-header">
-            <h3>Registered AI Agents</h3>
+            <div>
+              <h3>Registered AI Agents</h3>
+              <p style="font-size:0.85rem; color:var(--text-secondary); margin-top:0.25rem;">
+                First-class AI Agents configured with declared models, memory scopes, and tool whitelists
+              </p>
+            </div>
             <div style="display:flex; gap:0.75rem; align-items:center;">
               <span class="badge badge-info" id="agents-count-badge">0 agents</span>
               <button id="open-create-agent-btn" class="btn btn-sm btn-primary">+ New Agent</button>
             </div>
           </div>
           <div class="card-body">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Agent Name &amp; ID</th>
-                  <th>Status</th>
-                  <th>Version</th>
-                  <th>Model</th>
-                  <th>Tools</th>
-                  <th>Memory Scope</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="agents-tbody">
-                <tr><td colspan="7" class="empty-state">Loading registered agents...</td></tr>
-              </tbody>
-            </table>
+            <!-- Search and Filter Bar -->
+            <div class="filter-bar">
+              <div class="filter-group" style="flex: 1; min-width: 200px;">
+                <label for="agents-search-input">Search Agents</label>
+                <input type="text" id="agents-search-input" class="form-control" placeholder="Search by name, ID, model, or scope...">
+              </div>
+              <div class="filter-group">
+                <label for="agents-status-filter">Status</label>
+                <select id="agents-status-filter" class="form-control">
+                  <option value="ALL">All Statuses</option>
+                  <option value="ACTIVE">Active Only</option>
+                  <option value="INACTIVE">Inactive Only</option>
+                </select>
+              </div>
+              <button id="agents-clear-filter-btn" class="btn btn-sm btn-secondary" style="align-self:flex-end;">Clear Filters</button>
+            </div>
+
+            <div style="overflow-x:auto;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Agent Name &amp; ID</th>
+                    <th>Status</th>
+                    <th>Version</th>
+                    <th>Model Gateway</th>
+                    <th>Authorized Tools</th>
+                    <th>Memory Scope</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="agents-tbody">
+                  <tr><td colspan="7" class="empty-state">Loading registered agents...</td></tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
@@ -682,7 +706,7 @@
           </div>
         </div>
 
-        <!-- Agent Detail & Runner Panel -->
+        <!-- Agent Detail & Capability Inspector Panel -->
         <div class="card full-width" id="agent-detail-panel" style="display:none; margin-top:1.5rem;">
           <div class="card-header">
             <h3>Agent Detail: <span id="agent-detail-title" class="code-text"></span></h3>
@@ -690,6 +714,12 @@
           </div>
           <div class="card-body">
             <div id="agent-detail-summary" style="margin-bottom:1.5rem;"></div>
+
+            <!-- Agent Tool Relationship & Capabilities Breakdown -->
+            <div id="agent-detail-tools-matrix" style="margin-bottom:1.5rem;"></div>
+
+            <!-- Recent Tasks for this Agent -->
+            <div id="agent-detail-tasks-section" style="margin-bottom:1.5rem;"></div>
 
             <div class="card" style="background:var(--bg-tertiary);">
               <div class="card-header">
@@ -740,20 +770,136 @@
         </div>
       </section>
 
-      <!-- 4. View: Tools -->
+      <!-- 4. View: Tools (Management & Catalog Console) -->
       <section id="tab-tools" class="tab-view">
         <div class="card full-width">
           <div class="card-header">
-            <h3>Registered Tools &amp; Capabilities</h3>
-            <span class="badge badge-info" id="tools-count-badge">0</span>
+            <div>
+              <h3>Tool Catalog &amp; Operational Capabilities</h3>
+              <p style="font-size:0.85rem; color:var(--text-secondary); margin-top:0.25rem;">
+                Registered capabilities, parameter contracts, risk levels, and human approval gates
+              </p>
+            </div>
+            <div style="display:flex; gap:0.75rem; align-items:center;">
+              <span class="badge badge-info" id="tools-count-badge">0 tools</span>
+            </div>
           </div>
           <div class="card-body">
+            <!-- Search and Filter Bar -->
+            <div class="filter-bar">
+              <div class="filter-group" style="flex: 1; min-width: 200px;">
+                <label for="tools-search-input">Search Tools</label>
+                <input type="text" id="tools-search-input" class="form-control" placeholder="Search by name, ID, description, or version...">
+              </div>
+              <div class="filter-group">
+                <label for="tools-risk-filter">Risk Level</label>
+                <select id="tools-risk-filter" class="form-control">
+                  <option value="ALL">All Risk Levels</option>
+                  <option value="LOW">LOW</option>
+                  <option value="MEDIUM">MEDIUM</option>
+                  <option value="HIGH">HIGH</option>
+                  <option value="CRITICAL">CRITICAL</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label for="tools-mode-filter">Execution Mode</label>
+                <select id="tools-mode-filter" class="form-control">
+                  <option value="ALL">All Modes</option>
+                  <option value="READ_ONLY">READ_ONLY</option>
+                  <option value="IDEMPOTENT">IDEMPOTENT</option>
+                  <option value="SIDE_EFFECTING">SIDE_EFFECTING</option>
+                  <option value="DESTRUCTIVE">DESTRUCTIVE</option>
+                </select>
+              </div>
+              <button id="tools-clear-filter-btn" class="btn btn-sm btn-secondary" style="align-self:flex-end;">Clear Filters</button>
+            </div>
+
+            <!-- Tools Table -->
+            <div style="overflow-x:auto; margin-bottom:1.5rem;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Tool ID &amp; Name</th>
+                    <th>Version</th>
+                    <th>Risk Level</th>
+                    <th>Execution Mode</th>
+                    <th>Approval Required</th>
+                    <th>Description</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="tools-tbody">
+                  <tr><td colspan="7" class="empty-state">Loading registered tools...</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Card Grid View -->
             <div id="tools-list" class="tool-cards">
               <!-- Injected via JS -->
             </div>
           </div>
         </div>
+
+        <!-- Tool Detail & Schema Inspector Panel -->
+        <div class="card full-width" id="tool-detail-panel" style="display:none; margin-top:1.5rem;">
+          <div class="card-header">
+            <h3>Tool Detail: <span id="tool-detail-title" class="code-text"></span></h3>
+            <button id="close-tool-detail-btn" class="btn btn-sm btn-secondary">Close</button>
+          </div>
+          <div class="card-body">
+            <div id="tool-detail-summary" style="margin-bottom:1.5rem;"></div>
+
+            <!-- Schema Viewer Sections -->
+            <div class="two-col-grid" style="margin-bottom:1.5rem;">
+              <div class="card" style="margin-bottom:0;">
+                <div class="card-header">
+                  <h4>Input Schema (Read-Only)</h4>
+                </div>
+                <div class="card-body">
+                  <div id="tool-input-schema-summary" style="margin-bottom:0.75rem; font-size:0.82rem;"></div>
+                  <pre id="tool-input-schema-json" class="json-display" style="max-height:220px;"></pre>
+                </div>
+              </div>
+
+              <div class="card" style="margin-bottom:0;">
+                <div class="card-header">
+                  <h4>Output Schema (Read-Only)</h4>
+                </div>
+                <div class="card-body">
+                  <div id="tool-output-schema-summary" style="margin-bottom:0.75rem; font-size:0.82rem;"></div>
+                  <pre id="tool-output-schema-json" class="json-display" style="max-height:220px;"></pre>
+                </div>
+              </div>
+            </div>
+
+            <!-- Invocations Activity -->
+            <div id="tool-detail-activity" style="margin-top:1.5rem;"></div>
+
+            <div class="ops-muted" style="margin-top:1rem; font-size:0.8rem; padding:0.75rem; background:var(--bg-tertiary); border-radius:var(--radius-sm);">
+              🔒 <strong>Administrative Notice:</strong> Tool schemas and execution contracts are strictly enforced by the Core Runtime. Tools are invoked deterministically by authorized agents under fail-closed RBAC policies and cannot be executed directly from this management console.
+            </div>
+          </div>
+        </div>
       </section>
+
+      <!-- Confirmation Modal Dialog -->
+      <div id="confirm-action-modal" class="modal-backdrop" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="modal-confirm-title">
+        <div class="modal-dialog">
+          <div class="modal-header">
+            <h3 id="modal-confirm-title">Confirm Administrative Action</h3>
+            <button id="close-confirm-modal-btn" class="modal-close-btn" aria-label="Close modal">&times;</button>
+          </div>
+          <div class="modal-body">
+            <p id="modal-confirm-message" style="margin-bottom:1rem; color:var(--text-secondary);"></p>
+            <div id="modal-confirm-warning" style="display:none; margin-bottom:1rem; padding:0.75rem; border-radius:var(--radius-sm); background:rgba(220,38,38,0.1); border:1px solid rgba(220,38,38,0.3); color:var(--accent-red); font-size:0.82rem;"></div>
+            <div style="display:flex; justify-content:flex-end; gap:0.75rem;">
+              <button id="cancel-confirm-btn" class="btn btn-secondary">Cancel</button>
+              <button id="execute-confirm-btn" class="btn btn-danger">Confirm</button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- 5. View: Executions -->
       <section id="tab-executions" class="tab-view">

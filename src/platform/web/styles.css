@@ -685,6 +685,44 @@ body {
   font-size: 0.72rem;
 }
 
+.badge-risk-low {
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--accent-green);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.badge-risk-medium {
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--accent-amber);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.badge-risk-high {
+  background: rgba(234, 88, 12, 0.15);
+  color: #ea580c;
+  border: 1px solid rgba(234, 88, 12, 0.35);
+}
+
+.badge-risk-critical {
+  background: rgba(220, 38, 38, 0.18);
+  color: var(--accent-red);
+  border: 1px solid rgba(220, 38, 38, 0.4);
+  font-weight: 700;
+  box-shadow: 0 0 8px rgba(220, 38, 38, 0.2);
+}
+
+.badge-mode {
+  background: rgba(99, 102, 241, 0.12);
+  color: var(--accent-indigo);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+}
+
+.badge-approval {
+  background: rgba(217, 70, 239, 0.12);
+  color: #d946ef;
+  border: 1px solid rgba(217, 70, 239, 0.3);
+}
+
 /* =======================================================
    FILTER BAR & FORM CONTROLS
    ======================================================= */

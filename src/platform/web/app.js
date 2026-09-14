@@ -53,10 +53,18 @@ class PlatformApp {
     this.refreshInterval = null;
     this.selectedAgentId = null;
     this.selectedOperationId = null;
+    this.selectedToolId = null;
     this.cachedModels = [];
     this.cachedTools = [];
     this.cachedAgents = [];
+    this.cachedTasks = [];
     this.cachedEvents = [];
+    this.agentsSearchQuery = "";
+    this.agentsStatusFilter = "ALL";
+    this.toolsSearchQuery = "";
+    this.toolsRiskFilter = "ALL";
+    this.toolsModeFilter = "ALL";
+    this.pendingConfirmCallback = null;
     this.currentEventFilter = { limit: 50 };
     this.eventsCursorStack = [0]; // Stack of afterSequence cursors
     this.eventsCurrentPageIndex = 0;
@@ -71,6 +79,10 @@ class PlatformApp {
     this.setupForms();
     this.setupRefresh();
     this.setupAgentManagement();
+    this.setupAgentFilters();
+    this.setupToolFilters();
+    this.setupToolDetail();
+    this.setupConfirmationModal();
     this.setupDetailLookup();
     this.setupApplicationsSimulation();
     this.setupOperations();
@@ -520,6 +532,191 @@ class PlatformApp {
         }
       });
     }
+  }
+
+  setupAgentFilters() {
+    const searchInput = document.getElementById("agents-search-input");
+    const statusSelect = document.getElementById("agents-status-filter");
+    const clearBtn = document.getElementById("agents-clear-filter-btn");
+
+    if (searchInput) {
+      searchInput.addEventListener("input", () => {
+        this.agentsSearchQuery = searchInput.value.trim().toLowerCase();
+        this.renderAgents(this.getFilteredAgents());
+      });
+    }
+
+    if (statusSelect) {
+      statusSelect.addEventListener("change", () => {
+        this.agentsStatusFilter = statusSelect.value;
+        this.renderAgents(this.getFilteredAgents());
+      });
+    }
+
+    if (clearBtn) {
+      clearBtn.addEventListener("click", () => {
+        this.agentsSearchQuery = "";
+        this.agentsStatusFilter = "ALL";
+        if (searchInput) searchInput.value = "";
+        if (statusSelect) statusSelect.value = "ALL";
+        this.renderAgents(this.getFilteredAgents());
+      });
+    }
+  }
+
+  getFilteredAgents() {
+    return this.cachedAgents.filter((agent) => {
+      if (this.agentsStatusFilter !== "ALL" && agent.status !== this.agentsStatusFilter) {
+        return false;
+      }
+      if (this.agentsSearchQuery) {
+        const query = this.agentsSearchQuery;
+        const nameMatch = String(agent.name || "").toLowerCase().includes(query);
+        const idMatch = String(agent.id || "").toLowerCase().includes(query);
+        const modelMatch = String(agent.model || "").toLowerCase().includes(query);
+        const scopeMatch = String(agent.memoryScope || "").toLowerCase().includes(query);
+        const descMatch = String(agent.description || "").toLowerCase().includes(query);
+        if (!nameMatch && !idMatch && !modelMatch && !scopeMatch && !descMatch) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }
+
+  setupToolFilters() {
+    const searchInput = document.getElementById("tools-search-input");
+    const riskSelect = document.getElementById("tools-risk-filter");
+    const modeSelect = document.getElementById("tools-mode-filter");
+    const clearBtn = document.getElementById("tools-clear-filter-btn");
+
+    if (searchInput) {
+      searchInput.addEventListener("input", () => {
+        this.toolsSearchQuery = searchInput.value.trim().toLowerCase();
+        this.renderTools(this.getFilteredTools());
+      });
+    }
+
+    if (riskSelect) {
+      riskSelect.addEventListener("change", () => {
+        this.toolsRiskFilter = riskSelect.value;
+        this.renderTools(this.getFilteredTools());
+      });
+    }
+
+    if (modeSelect) {
+      modeSelect.addEventListener("change", () => {
+        this.toolsModeFilter = modeSelect.value;
+        this.renderTools(this.getFilteredTools());
+      });
+    }
+
+    if (clearBtn) {
+      clearBtn.addEventListener("click", () => {
+        this.toolsSearchQuery = "";
+        this.toolsRiskFilter = "ALL";
+        this.toolsModeFilter = "ALL";
+        if (searchInput) searchInput.value = "";
+        if (riskSelect) riskSelect.value = "ALL";
+        if (modeSelect) modeSelect.value = "ALL";
+        this.renderTools(this.getFilteredTools());
+      });
+    }
+  }
+
+  getFilteredTools() {
+    return this.cachedTools.filter((tool) => {
+      const risk = tool.riskLevel || (tool.id === "calculator" ? "LOW" : "MEDIUM");
+      if (this.toolsRiskFilter !== "ALL" && risk !== this.toolsRiskFilter) {
+        return false;
+      }
+      const mode = tool.executionMode || "READ_ONLY";
+      if (this.toolsModeFilter !== "ALL" && mode !== this.toolsModeFilter) {
+        return false;
+      }
+      if (this.toolsSearchQuery) {
+        const query = this.toolsSearchQuery;
+        const nameMatch = String(tool.name || "").toLowerCase().includes(query);
+        const idMatch = String(tool.id || "").toLowerCase().includes(query);
+        const descMatch = String(tool.description || "").toLowerCase().includes(query);
+        const verMatch = String(tool.version || "").toLowerCase().includes(query);
+        if (!nameMatch && !idMatch && !descMatch && !verMatch) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }
+
+  setupToolDetail() {
+    const closeBtn = document.getElementById("close-tool-detail-btn");
+    const panel = document.getElementById("tool-detail-panel");
+    if (closeBtn && panel) {
+      closeBtn.addEventListener("click", () => {
+        panel.style.display = "none";
+      });
+    }
+  }
+
+  setupConfirmationModal() {
+    const modal = document.getElementById("confirm-action-modal");
+    const closeBtn = document.getElementById("close-confirm-modal-btn");
+    const cancelBtn = document.getElementById("cancel-confirm-btn");
+    const executeBtn = document.getElementById("execute-confirm-btn");
+
+    const closeModal = () => {
+      if (modal) modal.style.display = "none";
+      this.pendingConfirmCallback = null;
+    };
+
+    if (closeBtn) closeBtn.addEventListener("click", closeModal);
+    if (cancelBtn) cancelBtn.addEventListener("click", closeModal);
+    if (modal) {
+      modal.addEventListener("click", (e) => {
+        if (e.target === modal) closeModal();
+      });
+    }
+
+    if (executeBtn) {
+      executeBtn.addEventListener("click", async () => {
+        const callback = this.pendingConfirmCallback;
+        closeModal();
+        if (typeof callback === "function") {
+          await callback();
+        }
+      });
+    }
+  }
+
+  openConfirmationModal(options) {
+    const modal = document.getElementById("confirm-action-modal");
+    const titleEl = document.getElementById("modal-confirm-title");
+    const msgEl = document.getElementById("modal-confirm-message");
+    const warnEl = document.getElementById("modal-confirm-warning");
+    const executeBtn = document.getElementById("execute-confirm-btn");
+
+    if (!modal) return;
+
+    if (titleEl) titleEl.textContent = options.title || "Confirm Administrative Action";
+    if (msgEl) msgEl.textContent = options.message || "Are you sure you want to perform this action?";
+
+    if (warnEl) {
+      if (options.warning) {
+        warnEl.style.display = "block";
+        warnEl.textContent = options.warning;
+      } else {
+        warnEl.style.display = "none";
+        warnEl.textContent = "";
+      }
+    }
+
+    if (executeBtn) {
+      executeBtn.className = options.isDestructive ? "btn btn-danger" : "btn btn-primary";
+      executeBtn.textContent = options.confirmText || "Confirm";
+    }
+
+    this.pendingConfirmCallback = options.onConfirm;
+    modal.style.display = "flex";
   }
 
   setupDetailLookup() {
@@ -1291,7 +1488,7 @@ class PlatformApp {
     }
 
     try {
-      const [status, execs, audit, tools, models, agents, operations] = await Promise.all([
+      const [status, execs, audit, tools, models, agents, operations, tasks] = await Promise.all([
         api.getStatus().catch(() => null),
         api.getExecutions().catch(() => []),
         api.getAuditLogs().catch(() => []),
@@ -1299,6 +1496,7 @@ class PlatformApp {
         api.getModels().catch(() => []),
         api.getAgents().catch(() => []),
         api.getOperations().catch(() => []),
+        api.getTasks().catch(() => []),
       ]);
 
       if (status) {
@@ -1310,9 +1508,12 @@ class PlatformApp {
       if (Array.isArray(audit)) {
         this.renderAudit(audit);
       }
+      if (Array.isArray(tasks)) {
+        this.cachedTasks = tasks;
+      }
       if (Array.isArray(tools)) {
         this.cachedTools = tools;
-        this.renderTools(tools);
+        this.renderTools(this.getFilteredTools());
         this.populateToolCheckboxes(tools);
       }
       if (Array.isArray(models)) {
@@ -1322,7 +1523,7 @@ class PlatformApp {
       }
       if (Array.isArray(agents)) {
         this.cachedAgents = agents;
-        this.renderAgents(agents);
+        this.renderAgents(this.getFilteredAgents());
         this.populatePlaygroundAgentSelect(agents);
         this.populateOperationAgentSelect(agents);
       }
@@ -1396,9 +1597,10 @@ class PlatformApp {
     }
   }
 
-  renderAgents(agents) {
+  renderAgents(agentsToRender) {
+    const agents = Array.isArray(agentsToRender) ? agentsToRender : this.getFilteredAgents();
     const badge = document.getElementById("agents-count-badge");
-    if (badge) badge.textContent = `${agents.length} agent${agents.length === 1 ? "" : "s"}`;
+    if (badge) badge.textContent = `${agents.length} of ${this.cachedAgents.length} agent${this.cachedAgents.length === 1 ? "" : "s"}`;
 
     const tbody = document.getElementById("agents-tbody");
     if (!tbody) return;
@@ -1409,7 +1611,9 @@ class PlatformApp {
       const td = document.createElement("td");
       td.colSpan = 7;
       td.className = "empty-state";
-      td.textContent = "No agents registered. Click '+ New Agent' to create one!";
+      td.textContent = this.cachedAgents.length === 0
+        ? "No agents registered. Click '+ New Agent' to create one!"
+        : "No agents match the current search or filter criteria.";
       tr.appendChild(td);
       tbody.appendChild(tr);
       return;
@@ -1417,6 +1621,7 @@ class PlatformApp {
 
     for (const agent of agents) {
       const tr = document.createElement("tr");
+      tr.className = "clickable-row";
 
       // Name & ID
       const tdName = document.createElement("td");
@@ -1438,7 +1643,7 @@ class PlatformApp {
 
       // Version
       const tdVersion = document.createElement("td");
-      tdVersion.textContent = `v${agent.version}`;
+      tdVersion.textContent = `v${agent.version || 1}`;
 
       // Model
       const tdModel = document.createElement("td");
@@ -1449,15 +1654,27 @@ class PlatformApp {
       // Tools
       const tdTools = document.createElement("td");
       if (Array.isArray(agent.tools) && agent.tools.length > 0) {
-        for (const tool of agent.tools) {
+        const countSpan = document.createElement("span");
+        countSpan.className = "badge badge-info";
+        countSpan.style.marginRight = "6px";
+        countSpan.textContent = `${agent.tools.length} tool${agent.tools.length === 1 ? "" : "s"}`;
+        tdTools.appendChild(countSpan);
+        for (const tool of agent.tools.slice(0, 3)) {
           const tBadge = document.createElement("span");
           tBadge.className = "badge";
           tBadge.style.marginRight = "4px";
           tBadge.textContent = tool;
           tdTools.appendChild(tBadge);
         }
+        if (agent.tools.length > 3) {
+          const moreSpan = document.createElement("span");
+          moreSpan.style.fontSize = "0.75rem";
+          moreSpan.style.color = "var(--text-muted)";
+          moreSpan.textContent = `+${agent.tools.length - 3} more`;
+          tdTools.appendChild(moreSpan);
+        }
       } else {
-        tdTools.textContent = "-";
+        tdTools.textContent = "None (No tools assigned)";
       }
 
       // Memory Scope
@@ -1472,7 +1689,8 @@ class PlatformApp {
       const viewBtn = document.createElement("button");
       viewBtn.className = "btn btn-sm btn-secondary";
       viewBtn.textContent = "View Detail";
-      viewBtn.addEventListener("click", () => {
+      viewBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
         this.showAgentDetail(agent.id);
       });
       tdActions.appendChild(viewBtn);
@@ -1480,17 +1698,30 @@ class PlatformApp {
       const toggleBtn = document.createElement("button");
       toggleBtn.className = `btn btn-sm btn-${agent.status === "ACTIVE" ? "danger" : "secondary"}`;
       toggleBtn.textContent = agent.status === "ACTIVE" ? "Deactivate" : "Activate";
-      toggleBtn.addEventListener("click", async () => {
-        try {
-          if (agent.status === "ACTIVE") {
-            await api.deactivateAgent(agent.id);
-          } else {
-            await api.activateAgent(agent.id);
-          }
-          this.loadData();
-        } catch (err) {
-          alert(`Failed to update status: ${err.message}`);
-        }
+      toggleBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const isDeactivating = agent.status === "ACTIVE";
+        this.openConfirmationModal({
+          title: isDeactivating ? `Deactivate Agent: ${agent.name}` : `Activate Agent: ${agent.name}`,
+          message: isDeactivating
+            ? `Are you sure you want to deactivate agent '${agent.id}'? Deactivating this agent will prevent new task execution dispatches to it.`
+            : `Are you sure you want to activate agent '${agent.id}' for platform execution?`,
+          warning: isDeactivating ? "⚠️ Deactivation takes effect immediately across all active tenant dispatches." : undefined,
+          isDestructive: isDeactivating,
+          confirmText: isDeactivating ? "Deactivate Agent" : "Activate Agent",
+          onConfirm: async () => {
+            try {
+              if (isDeactivating) {
+                await api.deactivateAgent(agent.id);
+              } else {
+                await api.activateAgent(agent.id);
+              }
+              await this.loadData();
+            } catch (err) {
+              alert(`Failed to update agent status: ${err.message}`);
+            }
+          },
+        });
       });
       tdActions.appendChild(toggleBtn);
 
@@ -1501,6 +1732,11 @@ class PlatformApp {
       tr.appendChild(tdTools);
       tr.appendChild(tdMem);
       tr.appendChild(tdActions);
+
+      tr.addEventListener("click", () => {
+        this.showAgentDetail(agent.id);
+      });
+
       tbody.appendChild(tr);
     }
   }
@@ -1510,10 +1746,15 @@ class PlatformApp {
     const panel = document.getElementById("agent-detail-panel");
     const title = document.getElementById("agent-detail-title");
     const summary = document.getElementById("agent-detail-summary");
+    const toolsMatrix = document.getElementById("agent-detail-tools-matrix");
+    const tasksSection = document.getElementById("agent-detail-tasks-section");
 
     if (!panel || !title || !summary) return;
 
     clearChildren(summary);
+    if (toolsMatrix) clearChildren(toolsMatrix);
+    if (tasksSection) clearChildren(tasksSection);
+
     title.textContent = id;
     panel.style.display = "block";
     panel.scrollIntoView({ behavior: "smooth" });
@@ -1554,10 +1795,10 @@ class PlatformApp {
 
       grid.appendChild(createBox("NAME", agent.name));
       grid.appendChild(createBox("STATUS", agent.status, true));
-      grid.appendChild(createBox("VERSION", `v${agent.version}`));
-      grid.appendChild(createBox("MODEL", agent.model));
-      grid.appendChild(createBox("MEMORY SCOPE", agent.memoryScope || "None"));
-      grid.appendChild(createBox("TOOLS", Array.isArray(agent.tools) && agent.tools.length > 0 ? agent.tools.join(", ") : "None"));
+      grid.appendChild(createBox("VERSION", `v${agent.version || 1}`));
+      grid.appendChild(createBox("MODEL GATEWAY", agent.model));
+      grid.appendChild(createBox("MEMORY SCOPE", agent.memoryScope || "None (Stateless)"));
+      grid.appendChild(createBox("CREATED", agent.createdAt ? new Date(agent.createdAt).toLocaleString() : "-"));
 
       summary.appendChild(grid);
 
@@ -1579,6 +1820,110 @@ class PlatformApp {
         pre.textContent = agent.instructions;
         summary.appendChild(h5);
         summary.appendChild(pre);
+      }
+
+      // 1. Capabilities & Authorized Tools Relationship Matrix
+      if (toolsMatrix) {
+        const matrixCard = document.createElement("div");
+        matrixCard.className = "card";
+        matrixCard.style.padding = "1rem";
+        matrixCard.style.border = "1px solid var(--border-color)";
+
+        const mTitle = document.createElement("h4");
+        mTitle.textContent = "Agent ↔ Tool Authorization & Capability Matrix";
+        mTitle.style.marginBottom = "0.5rem";
+        matrixCard.appendChild(mTitle);
+
+        const mDesc = document.createElement("p");
+        mDesc.style.fontSize = "0.82rem";
+        mDesc.style.color = "var(--text-secondary)";
+        mDesc.style.marginBottom = "1rem";
+        mDesc.textContent = "Comparison of tools authorized for this agent versus all registered platform capabilities.";
+        matrixCard.appendChild(mDesc);
+
+        const assignedToolIds = new Set(agent.tools || []);
+        const allTools = this.cachedTools.length > 0 ? this.cachedTools : [{ id: "calculator", name: "Calculator", version: "1.0.0" }];
+
+        const chipsContainer = document.createElement("div");
+        chipsContainer.style.display = "flex";
+        chipsContainer.style.flexWrap = "wrap";
+        chipsContainer.style.gap = "0.5rem";
+
+        for (const t of allTools) {
+          const isAuth = assignedToolIds.has(t.id);
+          const chip = document.createElement("span");
+          chip.className = `badge ${isAuth ? "badge-success" : "badge-offline"}`;
+          chip.style.padding = "4px 10px";
+          chip.style.fontSize = "0.78rem";
+          chip.textContent = `${isAuth ? "✓ Authorized: " : "✕ Unauthorized: "} ${t.name || t.id} (${t.id})`;
+          chipsContainer.appendChild(chip);
+        }
+
+        matrixCard.appendChild(chipsContainer);
+        toolsMatrix.appendChild(matrixCard);
+      }
+
+      // 2. Recent Tasks for this Agent
+      if (tasksSection) {
+        const tasksCard = document.createElement("div");
+        tasksCard.className = "card";
+        tasksCard.style.padding = "1rem";
+        tasksCard.style.border = "1px solid var(--border-color)";
+
+        const tTitle = document.createElement("h4");
+        tTitle.textContent = "Recent Tasks for this Agent";
+        tTitle.style.marginBottom = "0.75rem";
+        tasksCard.appendChild(tTitle);
+
+        const agentTasks = (this.cachedTasks || []).filter((t) => t.agentId === agent.id).slice(-5).reverse();
+
+        if (agentTasks.length === 0) {
+          const empty = document.createElement("p");
+          empty.className = "empty-state";
+          empty.textContent = "No execution tasks recorded for this agent yet. Use the dispatch form below to run a task!";
+          tasksCard.appendChild(empty);
+        } else {
+          const tTable = document.createElement("table");
+          tTable.className = "data-table";
+          const thead = document.createElement("thead");
+          const trHead = document.createElement("tr");
+          for (const title of ["Task ID", "Status", "Objective", "Created At"]) {
+            const th = document.createElement("th");
+            th.textContent = title;
+            trHead.appendChild(th);
+          }
+          thead.appendChild(trHead);
+          tTable.appendChild(thead);
+
+          const tb = document.createElement("tbody");
+          for (const task of agentTasks) {
+            const tr = document.createElement("tr");
+            const tdId = document.createElement("td");
+            const code = document.createElement("code");
+            code.textContent = task.id;
+            tdId.appendChild(code);
+
+            const tdStatus = document.createElement("td");
+            const badge = document.createElement("span");
+            badge.className = `badge badge-${task.status === "COMPLETED" ? "success" : task.status === "FAILED" ? "danger" : "warning"}`;
+            badge.textContent = task.status;
+            tdStatus.appendChild(badge);
+
+            const tdObj = document.createElement("td");
+            const objText = task.input?.objective || task.input?.prompt || JSON.stringify(task.input || {});
+            tdObj.textContent = String(objText).length > 40 ? String(objText).substring(0, 37) + "..." : String(objText);
+
+            const tdTime = document.createElement("td");
+            tdTime.textContent = task.createdAt ? new Date(task.createdAt).toLocaleString() : "-";
+
+            tr.append(tdId, tdStatus, tdObj, tdTime);
+            tb.appendChild(tr);
+          }
+          tTable.appendChild(tb);
+          tasksCard.appendChild(tTable);
+        }
+
+        tasksSection.appendChild(tasksCard);
       }
     } catch (err) {
       summary.textContent = `Failed to load details: ${err.message}`;
@@ -2077,10 +2422,110 @@ class PlatformApp {
     }
   }
 
-  renderTools(tools) {
+  renderTools(toolsToRender) {
+    const tools = Array.isArray(toolsToRender) ? toolsToRender : this.getFilteredTools();
     const badge = document.getElementById("tools-count-badge");
-    if (badge) badge.textContent = String(tools.length);
+    if (badge) {
+      badge.textContent = `${tools.length} of ${this.cachedTools.length} tool${this.cachedTools.length === 1 ? "" : "s"}`;
+    }
 
+    // 1. Render Table View (#tools-tbody)
+    const tbody = document.getElementById("tools-tbody");
+    if (tbody) {
+      clearChildren(tbody);
+
+      if (tools.length === 0) {
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = 7;
+        td.className = "empty-state";
+        td.textContent = this.cachedTools.length === 0
+          ? "No tools registered in the platform runtime."
+          : "No tools match the current search or risk/mode filter criteria.";
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+      } else {
+        for (const tool of tools) {
+          const tr = document.createElement("tr");
+          tr.className = "clickable-row";
+
+          // Tool ID & Name
+          const tdName = document.createElement("td");
+          const strong = document.createElement("strong");
+          strong.textContent = tool.name;
+          const idDiv = document.createElement("div");
+          const codeId = document.createElement("code");
+          codeId.textContent = tool.id;
+          idDiv.appendChild(codeId);
+          tdName.appendChild(strong);
+          tdName.appendChild(idDiv);
+
+          // Version
+          const tdVersion = document.createElement("td");
+          tdVersion.textContent = `v${tool.version || "1.0.0"}`;
+
+          // Risk Level
+          const tdRisk = document.createElement("td");
+          const riskBadge = document.createElement("span");
+          const riskLower = (tool.riskLevel || "LOW").toLowerCase();
+          riskBadge.className = `badge badge-risk-${riskLower}`;
+          riskBadge.textContent = tool.riskLevel || "LOW";
+          tdRisk.appendChild(riskBadge);
+
+          // Execution Mode
+          const tdMode = document.createElement("td");
+          const modeBadge = document.createElement("span");
+          modeBadge.className = "badge badge-mode";
+          modeBadge.textContent = tool.executionMode || "READ_ONLY";
+          tdMode.appendChild(modeBadge);
+
+          // Approval Required
+          const tdApproval = document.createElement("td");
+          const appBadge = document.createElement("span");
+          if (tool.requiresApproval) {
+            appBadge.className = "badge badge-approval";
+            appBadge.textContent = "Required";
+          } else {
+            appBadge.className = "badge badge-offline";
+            appBadge.textContent = "Autonomous";
+          }
+          tdApproval.appendChild(appBadge);
+
+          // Description
+          const tdDesc = document.createElement("td");
+          const descText = tool.description || "-";
+          tdDesc.textContent = descText.length > 60 ? `${descText.substring(0, 57)}...` : descText;
+          tdDesc.title = descText;
+
+          // Actions
+          const tdActions = document.createElement("td");
+          const viewBtn = document.createElement("button");
+          viewBtn.className = "btn btn-sm btn-secondary";
+          viewBtn.textContent = "View Detail";
+          viewBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            this.showToolDetail(tool.id);
+          });
+          tdActions.appendChild(viewBtn);
+
+          tr.appendChild(tdName);
+          tr.appendChild(tdVersion);
+          tr.appendChild(tdRisk);
+          tr.appendChild(tdMode);
+          tr.appendChild(tdApproval);
+          tr.appendChild(tdDesc);
+          tr.appendChild(tdActions);
+
+          tr.addEventListener("click", () => {
+            this.showToolDetail(tool.id);
+          });
+
+          tbody.appendChild(tr);
+        }
+      }
+    }
+
+    // 2. Render Card Grid View (#tools-list)
     const container = document.getElementById("tools-list");
     if (!container) return;
     clearChildren(container);
@@ -2088,7 +2533,7 @@ class PlatformApp {
     if (tools.length === 0) {
       const empty = document.createElement("div");
       empty.className = "empty-state";
-      empty.textContent = "No tools registered";
+      empty.textContent = this.cachedTools.length === 0 ? "No tools registered" : "No tools match the selected filters";
       container.appendChild(empty);
       return;
     }
@@ -2103,20 +2548,252 @@ class PlatformApp {
       const title = document.createElement("h4");
       title.textContent = tool.name;
 
-      const badge = document.createElement("span");
-      badge.className = "badge";
-      badge.textContent = tool.id;
+      const badgeGroup = document.createElement("div");
+      badgeGroup.style.display = "flex";
+      badgeGroup.style.gap = "0.35rem";
+      badgeGroup.style.alignItems = "center";
+
+      const riskLower = (tool.riskLevel || "LOW").toLowerCase();
+      const riskBadge = document.createElement("span");
+      riskBadge.className = `badge badge-risk-${riskLower}`;
+      riskBadge.textContent = tool.riskLevel || "LOW";
+      badgeGroup.appendChild(riskBadge);
+
+      const idBadge = document.createElement("span");
+      idBadge.className = "badge";
+      idBadge.textContent = tool.id;
+      badgeGroup.appendChild(idBadge);
 
       header.appendChild(title);
-      header.appendChild(badge);
+      header.appendChild(badgeGroup);
 
       const desc = document.createElement("p");
       desc.className = "tool-desc";
-      desc.textContent = tool.description;
+      desc.textContent = tool.description || "No description provided.";
+
+      // Metadata tags
+      const metaRow = document.createElement("div");
+      metaRow.style.display = "flex";
+      metaRow.style.gap = "0.5rem";
+      metaRow.style.marginTop = "0.75rem";
+      metaRow.style.alignItems = "center";
+      metaRow.style.flexWrap = "wrap";
+
+      const modeSpan = document.createElement("span");
+      modeSpan.className = "badge badge-mode";
+      modeSpan.textContent = `Mode: ${tool.executionMode || "READ_ONLY"}`;
+      metaRow.appendChild(modeSpan);
+
+      const verSpan = document.createElement("span");
+      verSpan.className = "badge badge-info";
+      verSpan.textContent = `v${tool.version || "1.0.0"}`;
+      metaRow.appendChild(verSpan);
+
+      if (tool.requiresApproval) {
+        const appSpan = document.createElement("span");
+        appSpan.className = "badge badge-approval";
+        appSpan.textContent = "Approval Gate";
+        metaRow.appendChild(appSpan);
+      }
+
+      const viewBtn = document.createElement("button");
+      viewBtn.className = "btn btn-sm btn-secondary";
+      viewBtn.style.marginTop = "0.75rem";
+      viewBtn.style.width = "100%";
+      viewBtn.textContent = "Inspect Schema & Contract";
+      viewBtn.addEventListener("click", () => this.showToolDetail(tool.id));
 
       card.appendChild(header);
       card.appendChild(desc);
+      card.appendChild(metaRow);
+      card.appendChild(viewBtn);
       container.appendChild(card);
+    }
+  }
+
+  showToolDetail(id) {
+    this.selectedToolId = id;
+    const panel = document.getElementById("tool-detail-panel");
+    const title = document.getElementById("tool-detail-title");
+    const summary = document.getElementById("tool-detail-summary");
+    const inputSchemaSummary = document.getElementById("tool-input-schema-summary");
+    const inputSchemaJson = document.getElementById("tool-input-schema-json");
+    const outputSchemaSummary = document.getElementById("tool-output-schema-summary");
+    const outputSchemaJson = document.getElementById("tool-output-schema-json");
+    const activity = document.getElementById("tool-detail-activity");
+
+    if (!panel || !title || !summary) return;
+
+    clearChildren(summary);
+    if (inputSchemaSummary) clearChildren(inputSchemaSummary);
+    if (outputSchemaSummary) clearChildren(outputSchemaSummary);
+    if (activity) clearChildren(activity);
+
+    const tool = this.cachedTools.find((t) => t.id === id) || {
+      id,
+      name: id,
+      version: "1.0.0",
+      description: "Tool capability",
+      riskLevel: "LOW",
+      executionMode: "READ_ONLY",
+      requiresApproval: false,
+    };
+
+    title.textContent = `${tool.name} (${tool.id})`;
+    panel.style.display = "block";
+    panel.scrollIntoView({ behavior: "smooth" });
+
+    // 1. Tool Summary Grid
+    const grid = document.createElement("div");
+    grid.style.display = "grid";
+    grid.style.gridTemplateColumns = "repeat(auto-fit, minmax(180px, 1fr))";
+    grid.style.gap = "1rem";
+    grid.style.marginBottom = "1rem";
+
+    const createBox = (label, val, badgeClass = null) => {
+      const box = document.createElement("div");
+      box.style.background = "var(--bg-secondary)";
+      box.style.padding = "0.75rem 1rem";
+      box.style.borderRadius = "var(--radius-sm)";
+      const l = document.createElement("div");
+      l.style.fontSize = "0.75rem";
+      l.style.color = "var(--text-secondary)";
+      l.textContent = label;
+      const v = document.createElement("div");
+      v.style.fontWeight = "bold";
+      v.style.marginTop = "0.25rem";
+      if (badgeClass) {
+        const badge = document.createElement("span");
+        badge.className = `badge ${badgeClass}`;
+        badge.textContent = String(val);
+        v.appendChild(badge);
+      } else {
+        v.textContent = String(val);
+      }
+      box.appendChild(l);
+      box.appendChild(v);
+      return box;
+    };
+
+    const riskLower = (tool.riskLevel || "LOW").toLowerCase();
+    grid.appendChild(createBox("TOOL ID", tool.id));
+    grid.appendChild(createBox("NAME", tool.name));
+    grid.appendChild(createBox("VERSION", `v${tool.version || "1.0.0"}`));
+    grid.appendChild(createBox("RISK LEVEL", tool.riskLevel || "LOW", `badge-risk-${riskLower}`));
+    grid.appendChild(createBox("EXECUTION MODE", tool.executionMode || "READ_ONLY", "badge-mode"));
+    grid.appendChild(
+      createBox(
+        "HUMAN APPROVAL",
+        tool.requiresApproval ? "Required" : "Autonomous",
+        tool.requiresApproval ? "badge-approval" : "badge-offline"
+      )
+    );
+    if (tool.timeoutMs) {
+      grid.appendChild(createBox("TIMEOUT", `${tool.timeoutMs}ms`));
+    }
+
+    summary.appendChild(grid);
+
+    if (tool.description) {
+      const descP = document.createElement("p");
+      descP.style.color = "var(--text-secondary)";
+      descP.style.marginBottom = "0.75rem";
+      descP.textContent = `Description: ${tool.description}`;
+      summary.appendChild(descP);
+    }
+
+    // 2. Input Schema Breakdown & Safe Viewer
+    const inSchema = tool.inputSchema || tool.parameters || { type: "object", properties: {} };
+    if (inputSchemaJson) {
+      inputSchemaJson.textContent = JSON.stringify(inSchema, null, 2);
+    }
+    if (inputSchemaSummary) {
+      const props = inSchema.properties || {};
+      const propKeys = Object.keys(props);
+      const reqList = Array.isArray(inSchema.required) ? inSchema.required : [];
+
+      if (propKeys.length === 0) {
+        const p = document.createElement("p");
+        p.style.color = "var(--text-muted)";
+        p.textContent = "No required input parameters specified.";
+        inputSchemaSummary.appendChild(p);
+      } else {
+        const propTable = document.createElement("table");
+        propTable.className = "data-table";
+        propTable.style.fontSize = "0.8rem";
+
+        const thead = document.createElement("thead");
+        const trHead = document.createElement("tr");
+        for (const h of ["Parameter", "Type", "Required", "Description"]) {
+          const th = document.createElement("th");
+          th.textContent = h;
+          trHead.appendChild(th);
+        }
+        thead.appendChild(trHead);
+        propTable.appendChild(thead);
+
+        const tb = document.createElement("tbody");
+        for (const key of propKeys) {
+          const pDef = props[key] || {};
+          const tr = document.createElement("tr");
+
+          const tdKey = document.createElement("td");
+          const codeK = document.createElement("code");
+          codeK.textContent = key;
+          tdKey.appendChild(codeK);
+
+          const tdType = document.createElement("td");
+          tdType.textContent = pDef.type || (typeof pDef === "string" ? pDef : "any");
+
+          const tdReq = document.createElement("td");
+          const isReq = reqList.includes(key);
+          const reqBadge = document.createElement("span");
+          reqBadge.className = `badge ${isReq ? "badge-danger" : "badge-offline"}`;
+          reqBadge.textContent = isReq ? "Required" : "Optional";
+          tdReq.appendChild(reqBadge);
+
+          const tdDesc = document.createElement("td");
+          tdDesc.textContent = pDef.description || "-";
+
+          tr.append(tdKey, tdType, tdReq, tdDesc);
+          tb.appendChild(tr);
+        }
+        propTable.appendChild(tb);
+        inputSchemaSummary.appendChild(propTable);
+      }
+    }
+
+    // 3. Output Schema Breakdown & Safe Viewer
+    const outSchema = tool.outputSchema || { type: "object", description: "Deterministic result payload" };
+    if (outputSchemaJson) {
+      outputSchemaJson.textContent = JSON.stringify(outSchema, null, 2);
+    }
+    if (outputSchemaSummary) {
+      const p = document.createElement("p");
+      p.style.color = "var(--text-secondary)";
+      p.textContent = outSchema.description || `Output Contract: ${outSchema.type || "object"}`;
+      outputSchemaSummary.appendChild(p);
+    }
+
+    // 4. Activity & Governance Ledger
+    if (activity) {
+      const actCard = document.createElement("div");
+      actCard.className = "card";
+      actCard.style.padding = "1rem";
+      actCard.style.border = "1px solid var(--border-color)";
+
+      const actHeader = document.createElement("h4");
+      actHeader.textContent = "Tool Invocation Governance & Audit Stream";
+      actHeader.style.marginBottom = "0.5rem";
+      actCard.appendChild(actHeader);
+
+      const actP = document.createElement("p");
+      actP.style.fontSize = "0.82rem";
+      actP.style.color = "var(--text-secondary)";
+      actP.textContent = `Tool '${tool.id}' is monitored under fail-closed governance. Every invocation is persisted immutably in SQLite WAL ledger with monotonic sequence numbers and correlation trace IDs.`;
+      actCard.appendChild(actP);
+
+      activity.appendChild(actCard);
     }
   }
 

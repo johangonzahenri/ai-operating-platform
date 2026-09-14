@@ -80,3 +80,10 @@ The Web Platform shell provides an enterprise navigation model organized into fo
 ## 5. Applications Boundary (Tentaciones Integration)
 
 Domain-specific business logic (such as Tentaciones E-Commerce catalog, cart, and fitting room) resides in the Applications tier. The Platform Web Console only provides management and observability over platform-level entities (Tasks, Agents, Tools, Health), maintaining complete architectural isolation.
+
+---
+
+## 6. Management Consoles Reference
+
+For deep technical specifications, capability matrices, and schema inspectors of specific consoles:
+- **Agent & Tool Management Console**: See [`docs/AGENT_TOOL_CONSOLE.md`](AGENT_TOOL_CONSOLE.md) for full documentation of agent lifecycle management, authorized capability matrices, risk level models, execution modes, human approval gates, and safe read-only JSON schema inspectors.
