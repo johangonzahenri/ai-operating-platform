@@ -132,39 +132,58 @@ export class PlanValidator {
         );
       }
 
-      // Security check: ensure no dangerous privilege escalation attempts or prototype pollution in input keys
-      const checkedKeys = new Set([
-        ...Object.keys(step.input),
-        ...Object.getOwnPropertyNames(step.input),
-      ]);
-
-      // Untrusted claim checking: LLM plan cannot inject security context or system elevation
+      // Security check: ensure no dangerous privilege escalation attempts or prototype pollution in input keys (recursive)
       const forbiddenSecurityKeys = ["principal", "roles", "permissions", "tenantId", "securityLevel", "principalId"];
-      for (const fKey of forbiddenSecurityKeys) {
-        if (checkedKeys.has(fKey)) {
-          violations.push(
-            `Step ${step.order} attempts forbidden security property injection '${fKey}'`
-          );
+      
+      const checkDeepSafety = (target: unknown, path: string, depth = 0): void => {
+        if (depth > 32 || target === null || typeof target !== "object") return;
+        if (Array.isArray(target)) {
+          for (let idx = 0; idx < target.length; idx++) {
+            checkDeepSafety(target[idx], `${path}[${idx}]`, depth + 1);
+          }
+          return;
         }
-      }
+        const targetObj = target as Record<string, unknown>;
+        const checkedKeys = new Set([
+          ...Object.keys(targetObj),
+          ...Object.getOwnPropertyNames(targetObj),
+        ]);
 
-      for (const kw of disallowedKeywords) {
-        if (
-          Object.prototype.hasOwnProperty.call(step.input, kw) ||
-          (kw.toLowerCase() === "__proto__" &&
-            Object.getPrototypeOf(step.input) !== Object.prototype &&
-            Object.getPrototypeOf(step.input) !== null)
-        ) {
-          checkedKeys.add(kw);
+        for (const fKey of forbiddenSecurityKeys) {
+          if (checkedKeys.has(fKey)) {
+            violations.push(
+              `Step ${step.order} attempts forbidden security property injection '${fKey}' at ${path}`
+            );
+          }
         }
-      }
 
-      for (const key of checkedKeys) {
-        if (disallowedKeywords.includes(key.toLowerCase())) {
-          violations.push(
-            `Step ${step.order} contains disallowed input property '${key}'`
-          );
+        for (const kw of disallowedKeywords) {
+          if (
+            Object.prototype.hasOwnProperty.call(targetObj, kw) ||
+            (kw.toLowerCase() === "__proto__" &&
+              Object.getPrototypeOf(targetObj) !== Object.prototype &&
+              Object.getPrototypeOf(targetObj) !== null)
+          ) {
+            checkedKeys.add(kw);
+          }
         }
+
+        for (const key of checkedKeys) {
+          if (disallowedKeywords.includes(key.toLowerCase())) {
+            violations.push(
+              `Step ${step.order} contains disallowed input property '${key}' at ${path}`
+            );
+          }
+        }
+
+        for (const [k, v] of Object.entries(targetObj)) {
+          checkDeepSafety(v, `${path}.${k}`, depth + 1);
+        }
+      };
+
+      checkDeepSafety(step.input, "input");
+      if (step.metadata) {
+        checkDeepSafety(step.metadata, "metadata");
       }
     }
 

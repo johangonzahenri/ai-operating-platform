@@ -12,6 +12,7 @@ import {
   ToolExecutionMode,
   MAX_TOOL_TIMEOUT_MS,
 } from "../../domain/tools/tool-registry.js";
+import { SecurityContext } from "../../domain/security/security.js";
 
 const DEFAULT_TOOL_VERSION = "1.0.0";
 const VALID_RISKS: readonly ToolRiskLevel[] = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
@@ -202,17 +203,31 @@ export class InMemoryToolRegistry implements ToolRegistry {
   /**
    * Safe discovery: returns public schema metadata filtered from internal properties and secrets.
    */
-  discoverSafeDefinitions(options?: ToolDiscoveryOptions): readonly ToolDefinition[] {
+  discoverSafeDefinitions(options?: ToolDiscoveryOptions | SecurityContext): readonly ToolDefinition[] {
+    const secCtx = options instanceof SecurityContext ? options : options?.securityContext;
     const tools = this.list();
     const result: ToolDefinition[] = [];
 
     for (const tool of tools) {
       // Filter if securityContext provided and tool requires permissions
-      if (options?.securityContext) {
-        const grantedPerms = options.securityContext.principal.permissions ?? [];
+      if (secCtx) {
+        const grantedPerms = secCtx.principal.permissions ?? [];
         if (!this.authorize(tool.id, grantedPerms)) {
           continue;
         }
+      }
+
+      // Sanitize metadata to remove any potential secret keys
+      let safeMetadata: Readonly<Record<string, unknown>> | undefined;
+      if (tool.metadata) {
+        const forbiddenKeys = new Set(["apikey", "secret", "token", "password", "credential", "internalpath", "privatekey", "auth"]);
+        const filteredMeta: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(tool.metadata)) {
+          if (!forbiddenKeys.has(k.toLowerCase())) {
+            filteredMeta[k] = v;
+          }
+        }
+        safeMetadata = Object.keys(filteredMeta).length > 0 ? Object.freeze(filteredMeta) : undefined;
       }
 
       // Safe projected definition with zero credentials/executors
@@ -229,7 +244,7 @@ export class InMemoryToolRegistry implements ToolRegistry {
           executionMode: tool.executionMode,
           timeoutMs: tool.timeoutMs,
           requiresApproval: tool.requiresApproval,
-          metadata: tool.metadata,
+          ...(safeMetadata ? { metadata: safeMetadata } : {}),
         })
       );
     }

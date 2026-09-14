@@ -392,24 +392,35 @@ export class ToolInvocationRuntime implements ToolGateway {
 
     const inputObj = input as Record<string, unknown>;
 
-    // Security check: prototype pollution & constructor injection
-    const checkedKeys = new Set([
-      ...Object.keys(inputObj),
-      ...Object.getOwnPropertyNames(inputObj),
-    ]);
-
-    const dangerousKeys = ["__proto__", "constructor", "prototype"];
-    for (const dKey of dangerousKeys) {
-      if (
-        checkedKeys.has(dKey) ||
-        Object.prototype.hasOwnProperty.call(inputObj, dKey)
-      ) {
-        throw new ToolInputValidationError(
-          toolId,
-          `Tool input contains forbidden property '${dKey}' (prototype pollution protection)`
-        );
+    // Security check: recursive prototype pollution & constructor injection
+    const checkDeepPrototypePollution = (target: unknown, depth = 0): void => {
+      if (depth > 32 || target === null || typeof target !== "object") return;
+      if (Array.isArray(target)) {
+        for (const item of target) {
+          checkDeepPrototypePollution(item, depth + 1);
+        }
+        return;
       }
-    }
+      const targetObj = target as Record<string, unknown>;
+      const keys = new Set([
+        ...Object.keys(targetObj),
+        ...Object.getOwnPropertyNames(targetObj),
+      ]);
+      const dangerousKeys = ["__proto__", "constructor", "prototype"];
+      for (const dKey of dangerousKeys) {
+        if (keys.has(dKey) || Object.prototype.hasOwnProperty.call(targetObj, dKey)) {
+          throw new ToolInputValidationError(
+            toolId,
+            `Tool input contains forbidden property '${dKey}' (prototype pollution protection)`
+          );
+        }
+      }
+      for (const val of Object.values(targetObj)) {
+        checkDeepPrototypePollution(val, depth + 1);
+      }
+    };
+
+    checkDeepPrototypePollution(inputObj);
 
     const { required, properties, additionalProperties } = definition.inputSchema;
 

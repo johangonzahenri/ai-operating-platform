@@ -1,4 +1,4 @@
-﻿import crypto from "node:crypto";
+import crypto from "node:crypto";
 import { EventPublisher, DomainEvent } from "../../domain/events/events.js";
 import { SecurityContext, Principal } from "../../domain/security/security.js";
 import {
@@ -288,11 +288,12 @@ export class RbacAuthorizationEvaluator implements AuthorizationEvaluator {
       const permCandidates = new Set<string>();
       if (requiredPermission) {
         permCandidates.add(requiredPermission.trim().toLowerCase());
+      } else {
+        if (resourceType) {
+          permCandidates.add(`${resourceType.toLowerCase()}.${normalizedAction}`);
+        }
+        permCandidates.add(normalizedAction);
       }
-      if (resourceType) {
-        permCandidates.add(`${resourceType.toLowerCase()}.${normalizedAction}`);
-      }
-      permCandidates.add(normalizedAction);
 
       const matchedRoles: string[] = [];
       let isPermitted = false;
