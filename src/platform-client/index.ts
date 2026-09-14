@@ -1,8 +1,12 @@
 import { randomUUID } from "node:crypto";
 import type {
+  ApplicationDTO,
   DurableEventDTO,
   DurableEventListResponseDTO,
   ExecutionDTO,
+  OperationDTO,
+  OrchestrationRequestDTO,
+  OrchestrationResultDTO,
   PlatformHealthDTO,
   PlatformMetadataDTO,
   SafeAgentMetadataDTO,
@@ -204,6 +208,15 @@ export function createPlatformClient(options: PlatformClientOptions) {
     },
   };
 
+  const applications = {
+    async list(): Promise<readonly ApplicationDTO[]> {
+      return request<readonly ApplicationDTO[]>("/applications");
+    },
+    async get(id: string): Promise<ApplicationDTO> {
+      return request<ApplicationDTO>(`/applications/${encodeURIComponent(id)}`);
+    },
+  };
+
   const platform = {
     async get(): Promise<PlatformMetadataContract> {
       return request<PlatformMetadataDTO>("/platform");
@@ -216,25 +229,38 @@ export function createPlatformClient(options: PlatformClientOptions) {
     tasks,
     executions,
     agents,
+    applications,
     platform,
     health: Object.assign(healthGet, { get: healthGet }),
     getPlatformInfo: () => platform.get(),
     listAgents: () => agents.list(),
+    listApplications: () => applications.list(),
+    getApplication: (id: string) => applications.get(id),
     createTask: (input: CreateTaskInput) => tasks.create(input),
     getTask: (taskId: string) => tasks.get(taskId),
     cancelTask: (taskId: string, reason?: string) => tasks.cancel(taskId, reason),
     getTaskEvents: (taskId: string) => tasks.events(taskId),
+    orchestrate: (req: OrchestrationRequestDTO): Promise<OrchestrationResultDTO> =>
+      request<OrchestrationResultDTO>("/orchestrate", {
+        method: "POST",
+        body: JSON.stringify(req),
+      }),
   };
 }
 
 export type PlatformClient = ReturnType<typeof createPlatformClient>;
 export type {
+  ApplicationDTO,
   EventContract,
   ExecutionContract,
   HealthContract,
+  OperationDTO,
+  OrchestrationRequestDTO,
+  OrchestrationResultDTO,
   PlatformMetadataContract,
   SafeAgentMetadataContract,
   TaskCancellationContract,
   TaskContract,
 };
+
 

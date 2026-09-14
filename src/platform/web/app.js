@@ -1766,7 +1766,7 @@ class PlatformApp {
     }
 
     try {
-      const [status, execs, audit, tools, models, agents, operations, tasks] = await Promise.all([
+      const [status, execs, audit, tools, models, agents, operations, tasks, apps] = await Promise.all([
         api.getStatus().catch(() => null),
         api.getExecutions().catch(() => []),
         api.getAuditLogs().catch(() => []),
@@ -1775,6 +1775,7 @@ class PlatformApp {
         api.getAgents().catch(() => []),
         api.getOperations().catch(() => []),
         api.getTasks().catch(() => []),
+        api.getApplications().catch(() => null),
       ]);
 
       if (status) {
@@ -1807,6 +1808,9 @@ class PlatformApp {
       }
       if (Array.isArray(operations)) {
         this.renderOperations(operations);
+      }
+      if (Array.isArray(apps) && apps.length > 0) {
+        this.applications = apps;
       }
       this.renderApplications(this.getFilteredApplications());
       this.updateBlueprintTelemetry(status);

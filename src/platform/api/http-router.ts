@@ -445,6 +445,29 @@ export function createHttpServer(
           return;
         }
 
+        // GET /applications
+        if (subPath === "/applications" && req.method === "GET") {
+          sendJson(200, service.listApplications());
+          return;
+        }
+
+        // GET /applications/:id
+        const appDetailMatch = subPath.match(/^\/applications\/([^/]+)$/);
+        if (appDetailMatch && req.method === "GET") {
+          const id = normalizeId(appDetailMatch[1]);
+          if (!id) {
+            sendError(400, "Bad Request: Invalid application ID format", "INVALID_ID");
+            return;
+          }
+          const app = service.getApplication(id);
+          if (!app) {
+            sendError(404, "Application not found", "APPLICATION_NOT_FOUND");
+            return;
+          }
+          sendJson(200, app);
+          return;
+        }
+
         // GET /agents
         if (subPath === "/agents" && req.method === "GET") {
           const authCheck = await authenticateAndAuthorize("agent.read", "AGENT");

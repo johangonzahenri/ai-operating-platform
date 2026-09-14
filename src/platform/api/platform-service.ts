@@ -8,6 +8,8 @@ import { AutonomousOperationService } from "../../application/autonomy/autonomou
 import {
   AgentProjection,
   AgentQueryPort,
+  ApplicationProjection,
+  ApplicationQueryPort,
   AuditObservationProjection,
   AuditQueryPort,
   ExecutionProjection,
@@ -25,6 +27,7 @@ import {
   ToolQueryPort,
 } from "../../application/ports/query-ports.js";
 import { InMemoryModelRegistry } from "../../infrastructure/model/in-memory-model-registry.js";
+import { InMemoryApplicationRegistry } from "../../infrastructure/application/in-memory-application-registry.js";
 import {
   AuditQueryOptions,
   DurableEvent,
@@ -43,6 +46,7 @@ import { IdempotencyStore } from "../../application/ports/idempotency-port.js";
 import { InMemoryIdempotencyStore } from "../../infrastructure/persistence/in-memory-idempotency-store.js";
 import {
   AgentDTO,
+  ApplicationDTO,
   AuditObservationDTO,
   AutonomousOperationDetailDTO,
   AutonomousOperationDTO,
@@ -84,6 +88,7 @@ export interface PlatformDependencies {
   readonly models?: ModelQueryPort | undefined;
   readonly agents?: AgentQueryPort | undefined;
   readonly agentService?: AgentService | undefined;
+  readonly applications?: ApplicationQueryPort | undefined;
   readonly submitTask: SubmitTask;
   readonly executeOrchestration: ExecuteOrchestration;
   readonly operations?: OperationQueryPort | undefined;
@@ -99,6 +104,7 @@ export class PlatformService {
   private readonly models: ModelQueryPort;
   private readonly agents?: AgentQueryPort | undefined;
   private readonly agentService?: AgentService | undefined;
+  private readonly applications: ApplicationQueryPort;
   private readonly operations?: OperationQueryPort | undefined;
   private readonly operationService?: AutonomousOperationService | undefined;
   private readonly eventStore?: (DurableEventStore & DurableEventQueryPort) | undefined;
@@ -120,6 +126,7 @@ export class PlatformService {
     ]);
     this.agents = deps.agents;
     this.agentService = deps.agentService;
+    this.applications = deps.applications ?? new InMemoryApplicationRegistry();
     this.operations = deps.operations;
     this.operationService = deps.operationService;
     this.eventStore = deps.eventStore;
@@ -162,6 +169,7 @@ export class PlatformService {
     const models = this.models.list();
     const tools = this.deps.tools.list();
     const agents = this.listAgents();
+    const applications = this.listApplications();
 
     return {
       name: "AI Operating Platform",
@@ -591,6 +599,54 @@ export class PlatformService {
       status: m.status,
       capabilities: m.capabilities,
     };
+  }
+
+  // --- External Application Operations ---
+
+  listApplications(): readonly ApplicationDTO[] {
+    return this.applications.list().map((app: ApplicationProjection) => ({
+      id: app.id,
+      name: app.name,
+      description: app.description,
+      category: app.category,
+      role: app.role,
+      implementationStatus: app.implementationStatus,
+      runtimeStatus: app.runtimeStatus,
+      allowedCapabilities: app.allowedCapabilities,
+      authenticationMode: app.authenticationMode,
+      endpoints: app.endpoints,
+      architecture: app.architecture,
+      tags: app.tags,
+      tenantId: app.tenantId,
+      createdAt: app.createdAt.toISOString(),
+      updatedAt: app.updatedAt.toISOString(),
+    }));
+  }
+
+  getApplication(id: string): ApplicationDTO | undefined {
+    const app = this.applications.findById(id);
+    if (!app) return undefined;
+    return {
+      id: app.id,
+      name: app.name,
+      description: app.description,
+      category: app.category,
+      role: app.role,
+      implementationStatus: app.implementationStatus,
+      runtimeStatus: app.runtimeStatus,
+      allowedCapabilities: app.allowedCapabilities,
+      authenticationMode: app.authenticationMode,
+      endpoints: app.endpoints,
+      architecture: app.architecture,
+      tags: app.tags,
+      tenantId: app.tenantId,
+      createdAt: app.createdAt.toISOString(),
+      updatedAt: app.updatedAt.toISOString(),
+    };
+  }
+
+  getApplicationRegistry(): ApplicationQueryPort {
+    return this.applications;
   }
 
   // --- Agent Operations ---

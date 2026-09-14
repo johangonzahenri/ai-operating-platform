@@ -407,3 +407,21 @@ export interface PlatformApiResponse<T> {
   readonly correlationId?: string | undefined;
 }
 
+export interface ApplicationDTO {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+  readonly category: string;
+  readonly role: string;
+  readonly implementationStatus: "IMPLEMENTED" | "PARTIAL" | "DESIGNED" | "PLANNED";
+  readonly runtimeStatus: "HEALTHY" | "OPERATIONAL" | "AVAILABLE" | "ENFORCED" | "WAL_ACTIVE" | "NOT_CONNECTED" | "OFFLINE" | "DEGRADED";
+  readonly allowedCapabilities: readonly string[];
+  readonly authenticationMode: "API_KEY" | "BEARER_TOKEN" | "MUTUAL_TLS";
+  readonly endpoints: readonly string[];
+  readonly architecture: Readonly<Record<string, string>>;
+  readonly tags: readonly string[];
+  readonly tenantId?: string | undefined;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+

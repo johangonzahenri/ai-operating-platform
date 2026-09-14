@@ -251,3 +251,12 @@ export async function cancelTask(taskId, reason) {
     body: JSON.stringify({ reason }),
   });
 }
+
+export async function getApplications() {
+  return request("/applications");
+}
+
+export async function getApplication(id) {
+  return request(`/applications/${encodeURIComponent(id)}`);
+}
+
