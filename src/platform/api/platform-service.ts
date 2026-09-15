@@ -44,6 +44,7 @@ import {
 } from "../../domain/task/task.js";
 import { IdempotencyStore } from "../../application/ports/idempotency-port.js";
 import { InMemoryIdempotencyStore } from "../../infrastructure/persistence/in-memory-idempotency-store.js";
+import { EnterpriseGovernanceService } from "../../application/governance/governance-service.js";
 import {
   AgentDTO,
   ApplicationDTO,
@@ -111,6 +112,7 @@ export class PlatformService {
   private readonly db?: SqliteDatabase | undefined;
   private readonly diagnostics?: RuntimeDiagnosticsService | undefined;
   private readonly idempotencyStore: IdempotencyStore;
+  private readonly governanceService: EnterpriseGovernanceService;
   private readonly startTime: Date;
 
   constructor(deps: PlatformDependencies) {
@@ -133,7 +135,38 @@ export class PlatformService {
     this.db = deps.db;
     this.diagnostics = deps.diagnostics;
     this.idempotencyStore = deps.idempotencyStore ?? new InMemoryIdempotencyStore();
+    this.governanceService = new EnterpriseGovernanceService();
     this.startTime = new Date();
+  }
+
+  getGovernanceService(): EnterpriseGovernanceService {
+    return this.governanceService;
+  }
+
+  getLiveness(): { status: "UP"; uptimeSeconds: number; timestamp: string } {
+    return {
+      status: "UP",
+      uptimeSeconds: Math.floor((Date.now() - this.startTime.getTime()) / 1000),
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  getReadiness(): { status: "READY" | "NOT_READY"; database: string; timestamp: string } {
+    let databaseStatus = "READY";
+    if (this.db) {
+      try {
+        const rawDb = this.db.open();
+        const check = rawDb.prepare("SELECT 1 as alive;").get() as { alive?: number } | undefined;
+        if (check?.alive !== 1) databaseStatus = "NOT_READY";
+      } catch {
+        databaseStatus = "NOT_READY";
+      }
+    }
+    return {
+      status: databaseStatus === "READY" ? "READY" : "NOT_READY",
+      database: databaseStatus,
+      timestamp: new Date().toISOString(),
+    };
   }
 
   getIdempotencyStore(): IdempotencyStore {

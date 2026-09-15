@@ -6,12 +6,15 @@ Welcome to the comprehensive technical documentation for the **AI Operating Plat
 
 ### 1. Architecture & Foundations
 - [Official System Manual](MANUAL_OFICIAL.md)
+- [Production Architecture & Deployment](PRODUCTION_ARCHITECTURE.md)
+- [Scalability & Resilience Engineering](SCALABILITY.md)
 - [System Architecture Overview](../ARCHITECTURE.md)
 - [Architectural Decision Records (ADRs)](decisions/)
 - [Domain Boundaries & Hexagonal Model](architecture/domain-boundaries.md)
 - [Official Architecture Book (Spanish)](../LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md)
 
 ### 2. Security & Governance
+- [Enterprise Governance & Control Plane](ENTERPRISE_GOVERNANCE.md)
 - [Security Architecture & Threat Model](SECURITY_ARCHITECTURE.md)
 - [Authentication & Principal Model](AUTHENTICATION.md)
 - [Authorization & RBAC Controls](AUTHORIZATION.md)

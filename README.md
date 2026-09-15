@@ -23,13 +23,14 @@ $$\text{CORE ENGINE} \neq \text{PLATFORM PRODUCT} \neq \text{APPLICATIONS}$$
 
 | Metric | Verified Value | Source of Truth |
 | :--- | :--- | :--- |
-| **Automated Tests** | **833+ passing** | Node.js native test runner (`npm test`) |
+| **Automated Tests** | **848 passing** | Node.js native test runner (`npm test`) |
 | **Test Failures** | **0** | Continuous test verification |
 | **Regressions** | **0** | Full test suite verification |
 | **Build Status** | **PASS** | Official TypeScript compiler (`tsc`) |
-| **Platform API Endpoints** | **18+ canonical routes** | HTTP Router (`/api/v1/*`, `/api/platform/v1/*`) |
-| **Security Controls** | **Default-Deny + RBAC + Tenant Isolation** | `SecurityContext` & `PolicyGateway` |
-| **Persistence Engine** | **SQLite WAL Mode** | `SqliteEventStore` & `SqliteTaskRepository` |
+| **Platform API Endpoints** | **22+ canonical routes** | HTTP Router (`/api/v1/*`, `/api/platform/v1/*`) |
+| **Security & Governance** | **Default-Deny + RBAC + Risk Tiering + Tenant Isolation** | `SecurityContext` & `EnterpriseGovernanceService` |
+| **Persistence Engine** | **SQLite WAL Mode (V3 Schema)** | `SqliteEventStore` & `SqliteTaskRepository` |
+| **Resilience & Scalability** | **Worker Queues + Rate Limiting + Circuit Breaker** | `InMemoryWorkerQueue` & `RetryPolicy` |
 | **External Consumer** | **Tentaciones AI Commerce** | `TentacionesPlatformAdapter` |
 | **AR Fitting Room Governance** | **URNs + SemVer + 3 Avatars + Size Engine** | `ar-fitting-room.ts` |
 | **DOM Purity** | **0 `innerHTML` / 0 `eval`** | Web Console (`src/platform/web/`) |
@@ -39,12 +40,15 @@ $$\text{CORE ENGINE} \neq \text{PLATFORM PRODUCT} \neq \text{APPLICATIONS}$$
 ## Key Capabilities
 
 1. **Governed Multi-Agent Runtime:** Task decomposition, step planning, and tool execution under strict execution budgets (`maxSteps`, `maxDurationMs`, `maxToolCalls`).
-2. **Provider-Neutral Model Routing:** Decoupled gateways supporting Stub, OpenAI, Anthropic, and Ollama providers without domain coupling.
-3. **Default-Deny Tool Layer:** Strict JSON schema validation, risk classification (`LOW`, `MEDIUM`, `HIGH`, `CRITICAL`), approval gates, and cancellation tokens.
-4. **Durable SQLite WAL Event Store:** Append-only sequence numbers and deterministic `traceId` correlation across all operations.
-5. **Typed Platform API & SDK:** Versioned REST endpoints with typed SDK client (`@ai-platform/client`).
-6. **Operational Web Console:** Live dashboard, execution inspector, system blueprint, truth badges, and enterprise showcase mode.
-7. **AI Commerce & AR Virtual Fitting:** Real-world demonstration with Tentaciones AI Commerce (catalog discovery, recommendations, product comparison, cart assistance, and 3D virtual fitting room sizing).
+2. **Enterprise Governance & Control Plane:** 4-tier risk classification (`LOW`, `MEDIUM`, `HIGH`, `CRITICAL`), human-in-the-loop oversight rules, application onboarding/offboarding lifecycle, and immutable policy versioning.
+3. **Scalability & Resilience Engine:** Bounded worker queue with heartbeat leases, exponential retry policy with full jitter, sliding window rate limiters, backpressure controls, and circuit breakers.
+4. **Hardened Production Architecture:** Multi-stage Docker containerization, structured JSON logging with automatic secret scrubbing, differentiated health probes (`/health/liveness`, `/health/readiness`), and deterministic graceful shutdown (`SIGTERM`/`SIGINT`).
+5. **Provider-Neutral Model Routing:** Decoupled gateways supporting Stub, OpenAI, Anthropic, and Ollama providers without domain coupling.
+6. **Default-Deny Tool Layer:** Strict JSON schema validation, risk classification, approval gates, and cancellation tokens.
+7. **Durable SQLite WAL Event Store:** Append-only sequence numbers and deterministic `traceId` correlation across all operations.
+8. **Typed Platform API & SDK:** Versioned REST endpoints with typed SDK client (`@ai-platform/client`).
+9. **Operational Web Console:** Live dashboard, execution inspector, system blueprint, truth badges, enterprise showcase mode, and governance control plane.
+10. **AI Commerce & AR Virtual Fitting:** Real-world demonstration with Tentaciones AI Commerce (catalog discovery, recommendations, product comparison, cart assistance, and 3D virtual fitting room sizing).
 
 ---
 

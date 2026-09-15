@@ -183,6 +183,7 @@ class PlatformApp {
     this.setupOperations();
     this.setupOperationalConsole();
     this.setupShowcase();
+    this.setupGovernance();
     this.loadData();
     this.startAutoRefresh();
   }
@@ -312,6 +313,105 @@ class PlatformApp {
         if (jsonElem) jsonElem.textContent = JSON.stringify({ error: error?.message || "Execution failed" }, null, 2);
       }
     });
+  }
+
+  setupGovernance() {
+    const rulesTbody = document.getElementById("gov-rules-tbody");
+    if (rulesTbody) {
+      clearChildren(rulesTbody);
+      const rules = [
+        { id: "rule-discovery", target: "commerce.catalog", action: "read", tier: "LOW", oversight: "AUTOMATIC", enforce: "Allow (Audit-exempt)" },
+        { id: "rule-recommendation", target: "commerce.recommendation", action: "generate", tier: "LOW", oversight: "AUTOMATIC_AUDIT", enforce: "Allow & Log" },
+        { id: "rule-ar-fitting", target: "ar.fitting", action: "execute", tier: "MEDIUM", oversight: "AUTOMATIC_AUDIT", enforce: "Allow & Log Trace" },
+        { id: "rule-cart-mutate", target: "commerce.cart", action: "modify", tier: "MEDIUM", oversight: "USER_CONFIRMATION", enforce: "Prompt User Consent" },
+        { id: "rule-order-place", target: "commerce.order", action: "create", tier: "HIGH", oversight: "USER_CONFIRMATION", enforce: "Explicit Checkout Approval" },
+        { id: "rule-admin-policy", target: "governance.policy", action: "modify", tier: "CRITICAL", oversight: "HUMAN_APPROVAL", enforce: "Dual Admin Key Sign" },
+      ];
+      rules.forEach((r) => {
+        const tr = document.createElement("tr");
+
+        const tdId = document.createElement("td");
+        const codeId = document.createElement("code");
+        codeId.textContent = r.id;
+        tdId.appendChild(codeId);
+
+        const tdTarget = document.createElement("td");
+        tdTarget.textContent = r.target;
+
+        const tdAction = document.createElement("td");
+        tdAction.textContent = r.action;
+
+        const tdTier = document.createElement("td");
+        const badgeTier = document.createElement("span");
+        badgeTier.className = `badge badge-${r.tier === "LOW" ? "success" : r.tier === "MEDIUM" ? "info" : r.tier === "HIGH" ? "warning" : "error"}`;
+        badgeTier.textContent = r.tier;
+        tdTier.appendChild(badgeTier);
+
+        const tdOversight = document.createElement("td");
+        tdOversight.textContent = r.oversight;
+
+        const tdEnforce = document.createElement("td");
+        tdEnforce.textContent = r.enforce;
+
+        tr.append(tdId, tdTarget, tdAction, tdTier, tdOversight, tdEnforce);
+        rulesTbody.appendChild(tr);
+      });
+    }
+
+    const appsTbody = document.getElementById("gov-apps-tbody");
+    if (appsTbody) {
+      clearChildren(appsTbody);
+      const apps = [
+        {
+          id: "tentaciones-ai-commerce",
+          name: "Tentaciones AI Commerce",
+          owner: "Commerce Engineering",
+          tier: "MEDIUM",
+          state: "ACTIVE",
+          caps: ["commerce.discovery", "commerce.recommendations", "commerce.fitting_room", "commerce.cart_assistance"],
+        },
+        {
+          id: "vehicle-parts-copilot",
+          name: "Vehicle Parts Copilot",
+          owner: "Automotive Solutions",
+          tier: "HIGH",
+          state: "DRAFT",
+          caps: ["(None granted - Default Deny)"],
+        },
+      ];
+      apps.forEach((a) => {
+        const tr = document.createElement("tr");
+
+        const tdId = document.createElement("td");
+        const codeId = document.createElement("code");
+        codeId.textContent = a.id;
+        tdId.appendChild(codeId);
+
+        const tdName = document.createElement("td");
+        tdName.textContent = a.name;
+
+        const tdOwner = document.createElement("td");
+        tdOwner.textContent = a.owner;
+
+        const tdTier = document.createElement("td");
+        const badgeTier = document.createElement("span");
+        badgeTier.className = `badge badge-${a.tier === "MEDIUM" ? "info" : "warning"}`;
+        badgeTier.textContent = a.tier;
+        tdTier.appendChild(badgeTier);
+
+        const tdState = document.createElement("td");
+        const badgeState = document.createElement("span");
+        badgeState.className = `badge badge-${a.state === "ACTIVE" ? "success" : "neutral"}`;
+        badgeState.textContent = a.state;
+        tdState.appendChild(badgeState);
+
+        const tdCaps = document.createElement("td");
+        tdCaps.textContent = a.caps.join(", ");
+
+        tr.append(tdId, tdName, tdOwner, tdTier, tdState, tdCaps);
+        appsTbody.appendChild(tr);
+      });
+    }
   }
 
   setupOperationalConsole() {

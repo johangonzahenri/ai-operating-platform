@@ -84,34 +84,42 @@ Gobernanza de activos 3D bajo URN `urn:tentaciones:ar:<category>:<productSlug>`,
 Demostración del flujo completo: Intención del usuario -> Búsqueda -> Recomendación -> Probador Virtual AR -> Recomendación de Talla -> Comparación -> Asistencia de Carrito -> Trazabilidad completa en Event Store.
 
 ## 22. Testing & Verification
-Suite automatizada con más de 830 pruebas unitarias, de integración, de límites de seguridad y de pureza arquitectónica (833 passing, 0 failures).
+Suite automatizada con más de 845 pruebas unitarias, de integración, de límites de seguridad y de pureza arquitectónica (**848 passing, 0 failures**).
 
 ## 23. Truth Model
 Gobernanza estricta de la verdad técnica:
 - Estados de Implementación: `IMPLEMENTED`, `PARTIAL`, `DESIGNED`, `PLANNED`.
 - Estados de Runtime: `HEALTHY`, `OPERATIONAL`, `AVAILABLE`, `NOT_CONNECTED`, `OFFLINE`, `DEGRADED`.
 - Badges de Source of Truth: `Platform API`, `Core Engine`, `Architecture Specification`, `External Integration`.
+- Matriz completa en [`docs/PLATFORM_TRUTH_MATRIX.md`](./PLATFORM_TRUTH_MATRIX.md).
 
 ## 24. Development Workflow
 ```bash
 npm run build   # Compilación TypeScript limpia
 npm test        # Ejecución de la suite completa de pruebas
-npm run check   # Verificación integral
+npm run check   # Verificación integral (build + test)
 npm start       # Inicio del servidor Platform API (127.0.0.1:3000)
 ```
 
-## 25. Deployment Architecture
-Diseñado para ejecución local en desarrollo y pruebas, con arquitectura preparada para despliegue modular de servicios Node.js y bases de datos SQLite WAL / PostgreSQL.
+## 25. Deployment Architecture & Production Hardening
+Ver guía detallada en [`docs/PRODUCTION_ARCHITECTURE.md`](./PRODUCTION_ARCHITECTURE.md):
+- Contenerización reproducible multi-stage con imagen mínima Alpine y usuario no privilegiado (`Dockerfile`).
+- Probes de salud diferenciados: Liveness (`/api/health/liveness`) y Readiness (`/api/health/readiness`).
+- Apagado determinista elegante (`SIGTERM`/`SIGINT`) con drenado de peticiones y cierre seguro de SQLite WAL.
+- Modelo de escalabilidad, workers y resiliencia documentado en [`docs/SCALABILITY.md`](./SCALABILITY.md).
+- Control plane empresarial y matriz de riesgo en [`docs/ENTERPRISE_GOVERNANCE.md`](./ENTERPRISE_GOVERNANCE.md).
 
 ## 26. Current Limitations
 - **Model Gateway:** Utiliza `StubModelGateway` para pruebas deterministas locales; los conectores externos a APIs de terceros están diseñados.
 - **Registros:** Registros de aplicaciones y API keys en memoria en modo desarrollo; tareas y eventos persistidos en SQLite duradero.
 - **Catálogo Tentaciones:** Catálogo sintético de prueba para validar la integración de API sin acoplamiento a bases de datos de comercio propietarias.
+- **Workers Distribuidos:** `WorkerQueuePort` implementado en memoria (`InMemoryWorkerQueue`); backend distribuido (Redis/RabbitMQ) en estado `DESIGNED`.
 
 ## 27. Future Roadmap
 - Soporte para streaming de eventos SSE en la Web Console.
 - Integración de conectores en vivo a proveedores de modelos remotos (OpenAI, Anthropic).
 - Conexión de aplicaciones adicionales (Vehicle Parts Diagnostics, Enterprise Support Desk).
+- Evolución a base de datos relacional distribuida (PostgreSQL) y cola de workers distribuidos.
 
 ---
 

@@ -3,16 +3,24 @@ import { createPlatform } from "../interfaces/composition.js";
 import { PlatformService } from "./api/platform-service.js";
 import { createHttpServer } from "./api/http-router.js";
 
-const PORT = parseInt(process.env.PORT ?? "3000", 10);
-const HOST = "127.0.0.1"; // Security: strictly bound to localhost loopback
+import { loadConfig } from "../infrastructure/config/config.js";
+import { ProductionStructuredLogger } from "../infrastructure/observability/structured-logger.js";
 
 async function bootstrap() {
+  const config = loadConfig(process.env);
+  const logger = new ProductionStructuredLogger("control-plane-server", config.logLevel);
+
+  logger.info("Bootstrap", "Startup", "Initializing AI Operating Platform Control Plane...", {
+    env: config.nodeEnv,
+    port: config.port,
+    persistence: config.persistenceDriver,
+  });
+
   // Composition root wires infrastructure to application use cases (defaults to SQLite durable storage in production)
-  const useDurablePersistence = process.env.PERSISTENCE_DRIVER !== "memory";
-  const dbPath = process.env.SQLITE_DB_PATH ?? "data/app.db";
+  const useDurablePersistence = config.persistenceDriver === "sqlite";
   const platform = createPlatform({
     useDurablePersistence,
-    dbPath: useDurablePersistence ? dbPath : undefined,
+    dbPath: useDurablePersistence ? config.sqliteDbPath : undefined,
   });
 
   // PlatformService receives its dependencies explicitly through ports/use cases
@@ -42,27 +50,45 @@ async function bootstrap() {
     apiKeyRepository: platform.apiKeyRepository,
   });
 
-
-  server.listen(PORT, HOST, () => {
-    console.info(`========================================================`);
-    console.info(`  AI OPERATING PLATFORM - CONTROL PLANE v${PLATFORM_VERSION}`);
-    console.info(`  Server running at: http://${HOST}:${PORT}`);
-    console.info(`  REST API available at: http://${HOST}:${PORT}/api/status`);
-    console.info(`  Bound strictly to loopback interface (localhost only)`);
-    console.info(`========================================================`);
+  server.listen(config.port, config.host, () => {
+    logger.info("Server", "Listening", `Server running at http://${config.host}:${config.port}`, {
+      version: PLATFORM_VERSION,
+      host: config.host,
+      port: config.port,
+      apiDocs: `http://${config.host}:${config.port}/api/status`,
+    });
   });
 
-  const shutdown = () => {
-    console.info("\nShutting down Platform server...");
-    const repoWithClose = platform.operationRepository as unknown as { close?: () => void };
-    if (typeof repoWithClose?.close === "function") {
-      repoWithClose.close();
-    }
-    server.close(() => process.exit(0));
+  let isShuttingDown = false;
+  const shutdown = (signal: string) => {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
+    logger.info("Server", "Shutdown", `Received \${signal}. Initiating graceful shutdown...`);
+
+    const forceExitTimer = setTimeout(() => {
+      logger.error("Server", "ShutdownTimeout", "Graceful shutdown period expired. Forcing exit.");
+      process.exit(1);
+    }, config.shutdownTimeoutMs);
+
+    server.close(() => {
+      logger.info("Server", "Closed", "HTTP server stopped accepting new connections.");
+      const repoWithClose = platform.operationRepository as unknown as { close?: () => void };
+      if (typeof repoWithClose?.close === "function") {
+        try {
+          repoWithClose.close();
+          logger.info("Persistence", "Closed", "Database connection cleanly closed.");
+        } catch (err) {
+          logger.error("Persistence", "CloseError", "Error closing database", { error: String(err) });
+        }
+      }
+      clearTimeout(forceExitTimer);
+      logger.info("Server", "Completed", "Platform shutdown successfully completed.");
+      process.exit(0);
+    });
   };
 
-  process.on("SIGINT", shutdown);
-  process.on("SIGTERM", shutdown);
+  process.on("SIGINT", () => shutdown("SIGINT"));
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
 }
 
 bootstrap().catch((err) => {

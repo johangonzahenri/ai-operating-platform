@@ -284,6 +284,51 @@ export function createHttpServer(
           return;
         }
 
+        // GET /health/liveness (Public)
+        if ((subPath === "/health/liveness" || subPath === "/liveness") && req.method === "GET") {
+          sendJson(200, service.getLiveness());
+          return;
+        }
+
+        // GET /health/readiness (Public)
+        if ((subPath === "/health/readiness" || subPath === "/readiness") && req.method === "GET") {
+          sendJson(200, service.getReadiness());
+          return;
+        }
+
+        // GET /governance/policies (Protected)
+        if (subPath === "/governance/policies" && req.method === "GET") {
+          const authCheck = await authenticateAndAuthorize("security.read", "SYSTEM", undefined, undefined, false);
+          if (!authCheck.ok) {
+            sendError(authCheck.status, authCheck.message, authCheck.code);
+            return;
+          }
+          sendJson(200, { policies: service.getGovernanceService().getPolicies() });
+          return;
+        }
+
+        // GET /governance/applications (Protected)
+        if (subPath === "/governance/applications" && req.method === "GET") {
+          const authCheck = await authenticateAndAuthorize("applications.read", "SYSTEM", undefined, undefined, false);
+          if (!authCheck.ok) {
+            sendError(authCheck.status, authCheck.message, authCheck.code);
+            return;
+          }
+          sendJson(200, { applications: service.getGovernanceService().getApplications() });
+          return;
+        }
+
+        // GET /governance/audit (Protected)
+        if (subPath === "/governance/audit" && req.method === "GET") {
+          const authCheck = await authenticateAndAuthorize("security.read", "SYSTEM", undefined, undefined, false);
+          if (!authCheck.ok) {
+            sendError(authCheck.status, authCheck.message, authCheck.code);
+            return;
+          }
+          sendJson(200, { auditTrail: service.getGovernanceService().getAuditTrail() });
+          return;
+        }
+
         // GET /platform (Protected)
         if (subPath === "/platform" && req.method === "GET") {
           const authCheck = await authenticateAndAuthorize("public.read", undefined, undefined, undefined, true);
