@@ -27,7 +27,7 @@ test("PlatformClient: communicates via public API contract (/api/v1) and unrolls
         success: true,
         data: {
           status: "HEALTHY",
-          version: "0.8.0",
+          version: "1.0.0",
           uptimeSeconds: 120,
           timestamp: new Date().toISOString(),
           components: {
@@ -57,7 +57,7 @@ test("PlatformClient: communicates via public API contract (/api/v1) and unrolls
 
   const health = await client.health.get();
   assert.equal(health.status, "HEALTHY");
-  assert.equal(health.version, "0.8.0");
+  assert.equal(health.version, "1.0.0");
 
   const agents = await client.agents.list();
   assert.equal(agents.length, 1);
