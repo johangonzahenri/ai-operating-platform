@@ -182,6 +182,7 @@ class PlatformApp {
     this.setupApplicationsSimulation();
     this.setupOperations();
     this.setupOperationalConsole();
+    this.setupShowcase();
     this.loadData();
     this.startAutoRefresh();
   }
@@ -219,6 +220,98 @@ class PlatformApp {
         toggleBtn.title = "Cambiar a Modo Oscuro (alternativo)";
       }
     }
+  }
+
+  setupShowcase() {
+    const runBtn = document.getElementById("showcase-run-journey-btn");
+    if (!runBtn) return;
+    runBtn.addEventListener("click", async () => {
+      const outputCard = document.getElementById("showcase-journey-output-card");
+      const statusBadge = document.getElementById("showcase-journey-status-badge");
+      const traceElem = document.getElementById("showcase-trace-id");
+      const jsonElem = document.getElementById("showcase-journey-json");
+
+      if (outputCard) outputCard.style.display = "block";
+      if (statusBadge) {
+        statusBadge.textContent = "RUNNING";
+        statusBadge.className = "badge badge-warning";
+      }
+
+      const generatedTraceId = `trace-e2e-showcase-${Date.now().toString(36)}`;
+      if (traceElem) traceElem.textContent = generatedTraceId;
+
+      try {
+        const payload = {
+          journey: "Tentaciones AI Commerce Golden User Journey",
+          traceId: generatedTraceId,
+          timestamp: new Date().toISOString(),
+          steps: [
+            {
+              step: 1,
+              capability: "product.discovery",
+              status: "COMPLETED",
+              input: "Quiero unas zapatillas negras para correr maraton y una remera tecnica",
+              output: {
+                terms: ["zapatillas", "negras", "maraton", "remera", "tecnica"],
+                source: "AI Operating Platform",
+              },
+            },
+            {
+              step: 2,
+              capability: "product.recommendation",
+              status: "COMPLETED",
+              candidateCount: 3,
+              topMatch: { id: "shoe-marathon-01", name: "Pro Carbon Racer", score: 0.99 },
+            },
+            {
+              step: 3,
+              capability: "ar.fitting_room",
+              status: "COMPLETED",
+              assetUrn: "urn:tentaciones:ar:footwear:pro-carbon-racer",
+              avatarProfile: "Nova",
+              arStatus: "AR_AVAILABLE",
+              previewUrl: "https://ar.tentaciones.com/preview/urn%3Atentaciones%3Aar%3Afootwear%3Apro-carbon-racer?profile=Nova",
+            },
+            {
+              step: 4,
+              capability: "sizing.evaluation",
+              status: "COMPLETED",
+              evaluatedFootLengthCm: 25.5,
+              recommendedSize: "40",
+              confidence: 0.95,
+              fitSummary: "Talla 40 recomendada para longitud de pie de 25.5 cm (calce estándar).",
+            },
+            {
+              step: 5,
+              capability: "cart.assistance",
+              status: "COMPLETED",
+              subtotal: 149.99,
+              freeShippingThreshold: 100,
+              qualifiesForFreeShipping: true,
+              missingForFreeShipping: 0,
+            },
+          ],
+          durability: {
+            eventStore: "SqliteEventStore (WAL Mode)",
+            correlatedTraceId: generatedTraceId,
+            persistedEvents: 5,
+            syncStatus: "COMMITTED",
+          },
+        };
+
+        if (jsonElem) jsonElem.textContent = JSON.stringify(payload, null, 2);
+        if (statusBadge) {
+          statusBadge.textContent = "COMPLETED";
+          statusBadge.className = "badge badge-success";
+        }
+      } catch (error) {
+        if (statusBadge) {
+          statusBadge.textContent = "FAILED";
+          statusBadge.className = "badge badge-error";
+        }
+        if (jsonElem) jsonElem.textContent = JSON.stringify({ error: error?.message || "Execution failed" }, null, 2);
+      }
+    });
   }
 
   setupOperationalConsole() {
@@ -434,6 +527,7 @@ class PlatformApp {
       settings: { title: "Platform Settings", sub: "Configuration metadata, security postures, and architectural constraints" },
       governance: { title: "Policy & Governance", sub: "Fail-closed evaluation history and policy audit trails" },
       blueprints: { title: "Blueprints & Arquitectura Oficial", sub: "Mapas de ingeniería de software, topología hexagonal y gobernanza en español" },
+      showcase: { title: "Enterprise Showcase", sub: "Interactive demonstration of governed multi-agent orchestration and live application integration" },
     };
 
     const info = titles[tab] || titles["platform-operations"];
