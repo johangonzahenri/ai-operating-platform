@@ -1,0 +1,47 @@
+{
+  "auditVersion": "1.1.0",
+  "auditTimestamp": "2026-09-14T22:00:00.000Z",
+  "environment": "local_verification",
+  "securityPurity": "PASSED_ZERO_SECRETS",
+  "evidenceRecords": [
+    {
+      "provider": "openai",
+      "model": "gpt-4o",
+      "status": "NOT_CONFIGURED",
+      "verificationMethod": "runtime_env_lookup",
+      "credentialPresent": false,
+      "latencyMs": 0,
+      "traceId": "trace-audit-openai-mock"
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-3-5-sonnet",
+      "status": "NOT_CONFIGURED",
+      "verificationMethod": "runtime_env_lookup",
+      "credentialPresent": false,
+      "latencyMs": 0,
+      "traceId": "trace-audit-anthropic-mock"
+    },
+    {
+      "provider": "ollama",
+      "model": "llama3.2",
+      "status": "NOT_CONFIGURED",
+      "verificationMethod": "localhost_port_probe",
+      "endpoint": "http://localhost:11434",
+      "traceId": "trace-audit-ollama-local"
+    },
+    {
+      "provider": "n8n",
+      "status": "DESIGNED",
+      "manifest": "n8n-nodes-ai-operating-platform",
+      "traceId": "trace-audit-n8n-connector"
+    },
+    {
+      "provider": "stub-model",
+      "status": "OPERATIONAL",
+      "verificationMethod": "in_memory_deterministic_engine",
+      "latencyMs": 1,
+      "traceId": "trace-audit-stub-pass"
+    }
+  ]
+}

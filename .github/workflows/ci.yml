@@ -1,0 +1,43 @@
+name: Platform Quality & Security Gate
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  verify:
+    name: Verify, Test & Security Audit
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [20.x, 22.x]
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Typecheck & Build
+        run: npm run build
+
+      - name: Execute Full Test Suite (Unit, Contract & Integration)
+        run: npm test
+
+      - name: Comprehensive Quality & Purity Check
+        run: npm run check
+
+      - name: Container Build Test (Dry Run)
+        if: matrix.node-version == '22.x'
+        run: |
+          docker build -t ai-operating-platform:test .

@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  platform-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ai-operating-platform:1.1.0
+    container_name: aiy-platform-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOST=0.0.0.0
+      - PERSISTENCE_DRIVER=sqlite
+      - SQLITE_DB_PATH=/app/data/platform.db
+      - LOG_LEVEL=info
+    volumes:
+      - platform-data:/app/data
+      - platform-logs:/app/logs
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/v1/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: aiy-platform-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=ai_operating_platform
+      - POSTGRES_USER=platform_user
+      - POSTGRES_PASSWORD=platform_secure_password_123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U platform_user -d ai_operating_platform"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.95.0
+    container_name: aiy-platform-otel
+    restart: unless-stopped
+    ports:
+      - "4317:4317" # OTLP gRPC receiver
+      - "4318:4318" # OTLP HTTP receiver
+      - "8889:8889" # Prometheus metrics exporter
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./config/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+
+volumes:
+  platform-data:
+  platform-logs:
+  postgres-data:

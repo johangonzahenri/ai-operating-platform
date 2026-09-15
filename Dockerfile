@@ -1,44 +1,60 @@
-# Multi-stage reproducible container build for AI Operating Platform
-# Build stage
+# ==========================================
+# Stage 1: Build & Typecheck
+# ==========================================
 FROM node:22-alpine AS builder
 
-WORKDIR /usr/src/app
+WORKDIR /app
 
-COPY package*.json ./
-COPY tsconfig.json ./
+# Install build dependencies
+COPY package.json package-lock.json* tsconfig.json ./
 RUN npm ci
 
-COPY src/ ./src/
-COPY scripts/ ./scripts/
-COPY tests/ ./tests/
-RUN npm run build
-RUN npm test
+# Copy source code and test files
+COPY src ./src
+COPY tests ./tests
+COPY scripts ./scripts
 
-# Production Runtime stage
+# Build TypeScript to dist
+RUN npm run build
+
+# ==========================================
+# Stage 2: Minimal Production Runtime
+# ==========================================
 FROM node:22-alpine AS runner
 
-WORKDIR /usr/src/app
-ENV NODE_ENV=production
-ENV PORT=3000
-ENV HOST=127.0.0.1
-ENV PERSISTENCE_DRIVER=sqlite
-ENV SQLITE_DB_PATH=data/platform.db
+WORKDIR /app
 
-# Create non-root unprivileged service account
-RUN addgroup -S aiplatform && adduser -S aiplatform -G aiplatform
-RUN mkdir -p data && chown -R aiplatform:aiplatform /usr/src/app
+# Security: Non-root user
+RUN addgroup -S -g 1001 nodejs && \
+    adduser -S -u 1001 -G nodejs nodejs
 
-COPY --chown=aiplatform:aiplatform package*.json ./
-RUN npm ci --omit=dev
+# Set production environment variables
+ENV NODE_ENV=production \
+    PORT=3000 \
+    HOST=0.0.0.0 \
+    PERSISTENCE_DRIVER=sqlite \
+    SQLITE_DB_PATH=/app/data/platform.db
 
-COPY --chown=aiplatform:aiplatform --from=builder /usr/src/app/dist ./dist
-COPY --chown=aiplatform:aiplatform src/platform/web ./src/platform/web
+# Copy package descriptors & production dependencies only
+COPY package.json package-lock.json* ./
+RUN npm ci --omit=dev && npm cache clean --force
 
-USER aiplatform
+# Copy compiled artifacts & web assets from builder
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/src/platform/web ./dist/src/platform/web
+COPY --from=builder /app/src/platform/web ./src/platform/web
+
+# Create persistent data & logs directory owned by non-root user
+RUN mkdir -p /app/data /app/logs && \
+    chown -R nodejs:nodejs /app
+
+USER nodejs
 
 EXPOSE 3000
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://127.0.0.1:3000/api/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); });"
+# Healthcheck for container orchestration (Kubernetes / ECS / Docker Swarm)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:3000/api/v1/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"
 
+# Start Platform Control Plane Server
 CMD ["node", "dist/src/platform/server.js"]
