@@ -1,0 +1,13 @@
+{
+  "traceId": "trace-verify-cloud-1f12435e",
+  "provider": "cloud",
+  "environment": "production",
+  "verifiedAt": "2026-09-15T12:06:42.968Z",
+  "status": "HEALTHY",
+  "latencyMs": 1,
+  "metadata": {
+    "livenessCheck": "READY",
+    "readinessCheck": "READY",
+    "memoryPersistence": "SQLITE_WAL_V3"
+  }
+}

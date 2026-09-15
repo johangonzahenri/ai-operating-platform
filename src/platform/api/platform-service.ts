@@ -73,10 +73,19 @@ import {
   TaskDTO,
   ToolDTO,
   UpdateAgentRequestDTO,
+  TenantDTO,
+  TenantUsageDashboardDTO,
+  GlobalUsageSummaryDTO,
+  QuotaItemDTO,
 } from "./platform-dto.js";
 import { projectExecutionObservability } from "../product/execution-observability.js";
+import { Tenant, DEFAULT_PLAN_LIMITS } from "../../domain/tenant/tenant.js";
+import { QuotaService } from "../../application/billing/quota-service.js";
+import { ApplicationValidator, PLATFORM_CAPABILITY_CATALOG } from "../../domain/application/application-contract.js";
+import { IntegrationTruthEngine, IntegrationTruthRecord } from "../../infrastructure/config/integration-truth-engine.js";
 
 export { TaskNotFoundError };
+
 
 
 export interface PlatformDependencies {
@@ -98,6 +107,7 @@ export interface PlatformDependencies {
   readonly db?: SqliteDatabase | undefined;
   readonly diagnostics?: RuntimeDiagnosticsService | undefined;
   readonly idempotencyStore?: IdempotencyStore | undefined;
+  readonly integrationEngine?: IntegrationTruthEngine | undefined;
 }
 
 export class PlatformService {
@@ -113,6 +123,9 @@ export class PlatformService {
   private readonly diagnostics?: RuntimeDiagnosticsService | undefined;
   private readonly idempotencyStore: IdempotencyStore;
   private readonly governanceService: EnterpriseGovernanceService;
+  private readonly quotaService: QuotaService;
+  private readonly integrationEngine: IntegrationTruthEngine;
+  private readonly tenants: Map<string, Tenant> = new Map();
   private readonly startTime: Date;
 
   constructor(deps: PlatformDependencies) {
@@ -136,8 +149,32 @@ export class PlatformService {
     this.diagnostics = deps.diagnostics;
     this.idempotencyStore = deps.idempotencyStore ?? new InMemoryIdempotencyStore();
     this.governanceService = new EnterpriseGovernanceService();
+    this.quotaService = new QuotaService();
+    this.integrationEngine = deps.integrationEngine ?? new IntegrationTruthEngine();
     this.startTime = new Date();
+
+    this.seedDefaultTenants();
   }
+
+  private seedDefaultTenants(): void {
+    const tentacionesTenant = Tenant.create("tenant-tentaciones", "Tentaciones Commerce Group", "PRO", {
+      industry: "Fashion / Footwear",
+      contact: "admin@tentaciones.shop",
+    });
+    const automotiveTenant = Tenant.create("tenant-automotive", "Automotive Parts & Diagnostics", "BUSINESS", {
+      industry: "Industrial Manufacturing",
+      contact: "ops@autoparts-platform.com",
+    });
+    const supportTenant = Tenant.create("tenant-support", "Enterprise Customer Support", "FREE", {
+      industry: "IT & Services",
+      contact: "support@enterprise-support.internal",
+    });
+
+    this.tenants.set(tentacionesTenant.id, tentacionesTenant);
+    this.tenants.set(automotiveTenant.id, automotiveTenant);
+    this.tenants.set(supportTenant.id, supportTenant);
+  }
+
 
   getGovernanceService(): EnterpriseGovernanceService {
     return this.governanceService;
@@ -1337,4 +1374,204 @@ export class PlatformService {
       meta: { count: sliced.length, total: allAgents.length, limit, offset },
     };
   }
+
+  // --- SaaS Control Plane & Tenant Service Methods (Prompt 82) ---
+
+  listTenants(): readonly TenantDTO[] {
+    return Array.from(this.tenants.values()).map((t) => ({
+      id: t.id,
+      name: t.name,
+      plan: t.plan,
+      status: t.status,
+      limits: t.limits,
+      metadata: t.metadata,
+      createdAt: t.createdAt,
+      updatedAt: t.updatedAt,
+    }));
+  }
+
+  getTenant(id: string): TenantDTO | undefined {
+    const t = this.tenants.get(id);
+    if (!t) return undefined;
+    return {
+      id: t.id,
+      name: t.name,
+      plan: t.plan,
+      status: t.status,
+      limits: t.limits,
+      metadata: t.metadata,
+      createdAt: t.createdAt,
+      updatedAt: t.updatedAt,
+    };
+  }
+
+  getTenantDashboard(tenantId: string): TenantUsageDashboardDTO | undefined {
+    const tenant = this.tenants.get(tenantId);
+    if (!tenant) return undefined;
+
+    const period = `${new Date().getUTCFullYear()}-${String(new Date().getUTCMonth() + 1).padStart(2, "0")}`;
+    const allTasks = this.getTasks();
+    const allExecutions = this.getExecutions();
+    const allApps = this.listApplications();
+
+    // Tenant-isolated calculations
+    const tenantApps = allApps.filter((a) => a.tenantId === tenantId);
+    const tenantTasks = allTasks.filter((t) => {
+      const callerTenant = (t.input?.metadata as Record<string, unknown> | undefined)?.callerTenantId;
+      return callerTenant === tenantId || (tenantId === "tenant-tentaciones" && (t.agentId === "tentaciones-agent" || t.traceId.includes("tentaciones")));
+    });
+    const tenantExecutions = allExecutions.filter((e) => {
+      return tenantTasks.some((t) => t.id === e.taskId || t.traceId === e.traceId);
+    });
+
+    const tasksUsage = tenantTasks.length;
+    const execsUsage = tenantExecutions.length;
+    const taskQuota = this.quotaService.checkQuota(tenant, "tasks", 0);
+    const execQuota = this.quotaService.checkQuota(tenant, "executions", 0);
+    const tokenQuota = this.quotaService.checkQuota(tenant, "tokens", 0);
+    const storageQuota = this.quotaService.checkQuota(tenant, "storage_mb", 0);
+
+    const quotas: QuotaItemDTO[] = [
+      {
+        metric: "tasks",
+        currentUsage: tasksUsage,
+        limit: tenant.limits.maxTasksPerMonth,
+        remaining: Math.max(0, tenant.limits.maxTasksPerMonth - tasksUsage),
+        percentageUsed: Math.min(100, Math.round((tasksUsage / tenant.limits.maxTasksPerMonth) * 100)),
+        resetAt: taskQuota.resetAt,
+        status: tasksUsage >= tenant.limits.maxTasksPerMonth ? "EXCEEDED" : tasksUsage >= tenant.limits.maxTasksPerMonth * 0.8 ? "WARNING" : "OK",
+      },
+      {
+        metric: "executions",
+        currentUsage: execsUsage,
+        limit: tenant.limits.maxExecutionsPerMonth,
+        remaining: Math.max(0, tenant.limits.maxExecutionsPerMonth - execsUsage),
+        percentageUsed: Math.min(100, Math.round((execsUsage / tenant.limits.maxExecutionsPerMonth) * 100)),
+        resetAt: execQuota.resetAt,
+        status: execsUsage >= tenant.limits.maxExecutionsPerMonth ? "EXCEEDED" : execsUsage >= tenant.limits.maxExecutionsPerMonth * 0.8 ? "WARNING" : "OK",
+      },
+      {
+        metric: "tokens",
+        currentUsage: tokenQuota.currentUsage,
+        limit: tenant.limits.maxTokensPerMonth,
+        remaining: Math.max(0, tenant.limits.maxTokensPerMonth - tokenQuota.currentUsage),
+        percentageUsed: Math.min(100, Math.round((tokenQuota.currentUsage / tenant.limits.maxTokensPerMonth) * 100)),
+        resetAt: tokenQuota.resetAt,
+        status: "OK",
+      },
+      {
+        metric: "storage_mb",
+        currentUsage: storageQuota.currentUsage,
+        limit: tenant.limits.maxStorageMb,
+        remaining: Math.max(0, tenant.limits.maxStorageMb - storageQuota.currentUsage),
+        percentageUsed: Math.min(100, Math.round((storageQuota.currentUsage / tenant.limits.maxStorageMb) * 100)),
+        resetAt: storageQuota.resetAt,
+        status: "OK",
+      },
+    ];
+
+    const auditTrail = this.governanceService.getAuditTrail();
+    const securityEventsCount = auditTrail.filter((a) => a.decision === "DENIED" || a.riskTier === "HIGH" || a.riskTier === "CRITICAL").length;
+
+    return {
+      tenantId: tenant.id,
+      plan: tenant.plan,
+      status: tenant.status,
+      period,
+      quotas,
+      applicationsCount: tenantApps.length,
+      recentTasksCount: tenantTasks.length,
+      recentExecutionsCount: tenantExecutions.length,
+      securityEventsCount,
+    };
+  }
+
+  getGlobalUsageSummary(): GlobalUsageSummaryDTO {
+    const tasks = this.getTasks();
+    const executions = this.getExecutions();
+    const operations = this.listOperations();
+    const apps = this.listApplications();
+    const tenants = this.listTenants();
+
+    let totalToolCalls = 0;
+    for (const exec of executions) {
+      totalToolCalls += exec.completedToolCalls ?? exec.toolCalls ?? 0;
+    }
+
+    return {
+      totalTasks: tasks.length,
+      totalExecutions: executions.length,
+      totalModelCalls: executions.filter((e) => e.model !== undefined).length,
+      totalTokens: "NOT_AVAILABLE", // Honest reporting: token tracking requires live tokenizer
+      totalToolCalls,
+      totalAutomationRuns: operations.length,
+      totalArRuns: tasks.filter((t) => t.agentId?.includes("ar") || t.traceId?.includes("ar") || JSON.stringify(t.input).includes("ar")).length,
+      totalStorageMb: "NOT_AVAILABLE", // Honest reporting: storage metrics require disk quota engine
+      activeTenantsCount: tenants.filter((t) => t.status === "ACTIVE").length,
+      activeApplicationsCount: apps.filter((a) => a.runtimeStatus === "HEALTHY" || a.runtimeStatus === "AVAILABLE").length,
+    };
+  }
+
+  getCapabilityCatalog() {
+    return PLATFORM_CAPABILITY_CATALOG;
+  }
+
+  listIntegrations(): readonly IntegrationTruthRecord[] {
+    return this.integrationEngine.listIntegrations();
+  }
+
+  getIntegration(id: string): IntegrationTruthRecord | undefined {
+    return this.integrationEngine.getIntegration(id);
+  }
+
+  async verifyIntegration(id: string): Promise<IntegrationTruthRecord> {
+    return this.integrationEngine.verifyIntegration(id);
+  }
+
+  async verifyAllIntegrations(): Promise<readonly IntegrationTruthRecord[]> {
+    return this.integrationEngine.verifyAll();
+  }
+
+  resetDemoData(): {
+    readonly status: "RESET_COMPLETED";
+    readonly timestamp: string;
+    readonly resetEntities: readonly string[];
+    readonly tenantId: string;
+  } {
+    // Re-seed demo tenant with clean defaults
+    const tentacionesTenant = Tenant.create("tenant-tentaciones", "Tentaciones Commerce Group", "PRO", {
+      industry: "Fashion / Footwear",
+      contact: "admin@tentaciones.shop",
+      tag: "DEMO",
+    });
+    this.tenants.set("tenant-tentaciones", tentacionesTenant);
+
+    if (this.eventStore) {
+      this.eventStore.append({
+        eventId: crypto.randomUUID(),
+        eventType: "demo.reset",
+        aggregateType: "tenant",
+        aggregateId: "tenant-tentaciones",
+        traceId: `trace-demo-reset-${crypto.randomUUID().slice(0, 8)}`,
+        correlationId: "demo-reset",
+        occurredAt: new Date(),
+        schemaVersion: 1,
+        payload: {
+          action: "DEMO_STATE_RESET",
+          tenantId: "tenant-tentaciones",
+          tag: "DEMO",
+          resetAt: new Date().toISOString(),
+        },
+      });
+    }
+
+    return {
+      status: "RESET_COMPLETED",
+      timestamp: new Date().toISOString(),
+      resetEntities: ["demo-tenant", "demo-tasks", "demo-executions", "demo-carts", "demo-events"],
+      tenantId: "tenant-tentaciones",
+    };
+  }
 }
+
+

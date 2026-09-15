@@ -1,0 +1,17 @@
+{
+  "traceId": "trace-verify-ar-6286041c",
+  "provider": "ar-provider",
+  "environment": "production",
+  "verifiedAt": "2026-09-15T12:06:42.966Z",
+  "status": "OPERATIONAL",
+  "latencyMs": 2,
+  "metadata": {
+    "localAvatarEngine": true,
+    "supportedProfiles": [
+      "Nova",
+      "Sora",
+      "Mateo"
+    ],
+    "assetUrnResolver": "parseAndValidateUrn"
+  }
+}

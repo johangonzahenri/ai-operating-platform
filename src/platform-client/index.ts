@@ -217,20 +217,91 @@ export function createPlatformClient(options: PlatformClientOptions) {
     },
   };
 
-  const platform = {
-    async get(): Promise<PlatformMetadataContract> {
-      return request<PlatformMetadataDTO>("/platform");
+  const tenants = {
+    async list(): Promise<readonly import("../platform/api/platform-dto.js").TenantDTO[]> {
+      return request<readonly import("../platform/api/platform-dto.js").TenantDTO[]>("/tenants");
+    },
+    async get(id: string): Promise<import("../platform/api/platform-dto.js").TenantDTO> {
+      return request<import("../platform/api/platform-dto.js").TenantDTO>(`/tenants/${encodeURIComponent(id)}`);
+    },
+    async dashboard(id: string): Promise<import("../platform/api/platform-dto.js").TenantUsageDashboardDTO> {
+      return request<import("../platform/api/platform-dto.js").TenantUsageDashboardDTO>(`/tenants/${encodeURIComponent(id)}/dashboard`);
     },
   };
 
-  const healthGet = async (): Promise<HealthContract> => toHealthDTO(await request<PlatformHealthDTO>("/health"));
+  const usage = {
+    async get(): Promise<import("../platform/api/platform-dto.js").GlobalUsageSummaryDTO> {
+      return request<import("../platform/api/platform-dto.js").GlobalUsageSummaryDTO>("/usage");
+    },
+  };
+
+  const capabilities = {
+    async list(): Promise<readonly import("../domain/application/application-contract.js").PlatformCapabilityDefinition[]> {
+      return request<readonly import("../domain/application/application-contract.js").PlatformCapabilityDefinition[]>("/capabilities");
+    },
+  };
+
+  const events = {
+    async list(query?: Record<string, string>): Promise<DurableEventListResponseDTO> {
+      const q = query ? "?" + new URLSearchParams(query).toString() : "";
+      return request<DurableEventListResponseDTO>(`/events${q}`);
+    },
+  };
+
+  const integrations = {
+    async list(): Promise<readonly import("../infrastructure/config/integration-truth-engine.js").IntegrationTruthRecord[]> {
+      return request<readonly import("../infrastructure/config/integration-truth-engine.js").IntegrationTruthRecord[]>("/integrations");
+    },
+    async get(id: string): Promise<import("../infrastructure/config/integration-truth-engine.js").IntegrationTruthRecord> {
+      return request<import("../infrastructure/config/integration-truth-engine.js").IntegrationTruthRecord>(`/integrations/${encodeURIComponent(id)}`);
+    },
+    async verify(id: string): Promise<import("../infrastructure/config/integration-truth-engine.js").IntegrationTruthRecord> {
+      return request<import("../infrastructure/config/integration-truth-engine.js").IntegrationTruthRecord>(`/integrations/${encodeURIComponent(id)}/verify`, { method: "POST" });
+    },
+    async verifyAll(): Promise<readonly import("../infrastructure/config/integration-truth-engine.js").IntegrationTruthRecord[]> {
+      return request<readonly import("../infrastructure/config/integration-truth-engine.js").IntegrationTruthRecord[]>("/integrations/verify-all", { method: "POST" });
+    },
+  };
+
+  const demo = {
+    async reset(): Promise<{
+      readonly status: "RESET_COMPLETED";
+      readonly timestamp: string;
+      readonly resetEntities: readonly string[];
+      readonly tenantId: string;
+    }> {
+      return request<{
+        readonly status: "RESET_COMPLETED";
+        readonly timestamp: string;
+        readonly resetEntities: readonly string[];
+        readonly tenantId: string;
+      }>("/demo/reset", { method: "POST" });
+    },
+  };
+
+  const healthGet = async (): Promise<HealthContract> => {
+    return request<HealthContract>("/health");
+  };
+
+  const platform = {
+    async get(): Promise<PlatformMetadataContract> {
+      return request<PlatformMetadataContract>("/platform");
+    },
+  };
 
   return {
     tasks,
     executions,
     agents,
     applications,
+    tenants,
+    usage,
+    capabilities,
+    integrations,
+    demo,
+    events,
     platform,
+    connect: () => healthGet(),
     health: Object.assign(healthGet, { get: healthGet }),
     getPlatformInfo: () => platform.get(),
     listAgents: () => agents.list(),
@@ -262,5 +333,6 @@ export type {
   TaskCancellationContract,
   TaskContract,
 };
+
 
 

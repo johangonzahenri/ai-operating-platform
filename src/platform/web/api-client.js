@@ -260,3 +260,67 @@ export async function getApplication(id) {
   return request(`/applications/${encodeURIComponent(id)}`);
 }
 
+// --- SaaS Control Plane & Tenant API Methods (Prompt 82) ---
+
+export async function getTenants() {
+  return request("/tenants");
+}
+
+export async function getTenant(id) {
+  return request(`/tenants/${encodeURIComponent(id)}`);
+}
+
+export async function getTenantDashboard(id) {
+  return request(`/tenants/${encodeURIComponent(id)}/dashboard`);
+}
+
+export async function getUsageSummary() {
+  return request("/usage");
+}
+
+export async function getCapabilities() {
+  return request("/capabilities");
+}
+
+export async function getGovernancePolicies() {
+  return request("/governance/policies");
+}
+
+export async function getGovernanceApplications() {
+  return request("/governance/applications");
+}
+
+export async function getGovernanceAuditTrail() {
+  return request("/governance/audit");
+}
+
+// --- Integrations & Truth API Methods (Prompt 85 & 87) ---
+
+export async function getIntegrations() {
+  return request("/integrations");
+}
+
+export async function getIntegration(id) {
+  return request(`/integrations/${encodeURIComponent(id)}`);
+}
+
+export async function verifyIntegration(id) {
+  return request(`/integrations/${encodeURIComponent(id)}/verify`, {
+    method: "POST",
+  });
+}
+
+export async function verifyAllIntegrations() {
+  return request("/integrations/verify-all", {
+    method: "POST",
+  });
+}
+
+export async function resetDemo() {
+  return request("/demo/reset", {
+    method: "POST",
+  });
+}
+
+
+

@@ -1,0 +1,14 @@
+{
+  "traceId": "trace-verify-webxr-739a4b83",
+  "provider": "webxr",
+  "environment": "browser_client",
+  "verifiedAt": "2026-09-15T12:06:50.393Z",
+  "status": "STANDBY",
+  "latencyMs": 1,
+  "metadata": {
+    "clientDetection": {
+      "supported": true,
+      "permission": "prompt"
+    }
+  }
+}

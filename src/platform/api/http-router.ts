@@ -46,13 +46,14 @@ const WEB_DIR = fs.existsSync(path.resolve(process.cwd(), "src/platform/web"))
   ? path.resolve(process.cwd(), "src/platform/web")
   : path.resolve(__dirname, "../web");
 
-const ID_REGEX = /^[a-zA-Z0-9_-]{1,128}$/;
+const ID_REGEX = /^[a-zA-Z0-9_.-]{1,128}$/;
 
 export function normalizeId(val: unknown): string | undefined {
   if (typeof val !== "string") return undefined;
   const trimmed = val.trim();
   return ID_REGEX.test(trimmed) ? trimmed : undefined;
 }
+
 
 type JsonBodyResult =
   | { ok: true; body: Record<string, unknown> }
@@ -339,6 +340,116 @@ export function createHttpServer(
           sendJson(200, service.getPlatformMetadata());
           return;
         }
+
+        // --- SaaS Control Plane Endpoints (Prompt 82) ---
+
+        // GET /tenants
+        if (subPath === "/tenants" && req.method === "GET") {
+          sendJson(200, service.listTenants());
+          return;
+        }
+
+        // GET /tenants/:id
+        const tenantDetailMatch = subPath.match(/^\/tenants\/([^/]+)$/);
+        if (tenantDetailMatch && req.method === "GET") {
+          const id = normalizeId(tenantDetailMatch[1]);
+          if (!id) {
+            sendError(400, "Bad Request: Invalid tenant ID format", "INVALID_ID");
+            return;
+          }
+          const tenant = service.getTenant(id);
+          if (!tenant) {
+            sendError(404, "Tenant not found", "TENANT_NOT_FOUND");
+            return;
+          }
+          sendJson(200, tenant);
+          return;
+        }
+
+        // GET /tenants/:id/dashboard
+        const tenantDashboardMatch = subPath.match(/^\/tenants\/([^/]+)\/dashboard$/);
+        if (tenantDashboardMatch && req.method === "GET") {
+          const id = normalizeId(tenantDashboardMatch[1]);
+          if (!id) {
+            sendError(400, "Bad Request: Invalid tenant ID format", "INVALID_ID");
+            return;
+          }
+          const dashboard = service.getTenantDashboard(id);
+          if (!dashboard) {
+            sendError(404, "Tenant not found", "TENANT_NOT_FOUND");
+            return;
+          }
+          sendJson(200, dashboard);
+          return;
+        }
+
+        // GET /usage
+        if (subPath === "/usage" && req.method === "GET") {
+          sendJson(200, service.getGlobalUsageSummary());
+          return;
+        }
+
+        // GET /capabilities
+        if (subPath === "/capabilities" && req.method === "GET") {
+          sendJson(200, service.getCapabilityCatalog());
+          return;
+        }
+
+        // GET /integrations (Prompt 85)
+        if (subPath === "/integrations" && req.method === "GET") {
+          sendJson(200, service.listIntegrations());
+          return;
+        }
+
+        // POST /integrations/verify-all (Prompt 85)
+        if (subPath === "/integrations/verify-all" && req.method === "POST") {
+          const results = await service.verifyAllIntegrations();
+          sendJson(200, results);
+          return;
+        }
+
+        // GET /integrations/:id (Prompt 85)
+        const integrationDetailMatch = subPath.match(/^\/integrations\/([^/]+)$/);
+        if (integrationDetailMatch && req.method === "GET") {
+          const id = normalizeId(integrationDetailMatch[1]);
+          if (!id) {
+            sendError(400, "Bad Request: Invalid integration ID format", "INVALID_ID");
+            return;
+          }
+          const item = service.getIntegration(id);
+          if (!item) {
+            sendError(404, "Integration not found", "NOT_FOUND");
+            return;
+          }
+          sendJson(200, item);
+          return;
+        }
+
+        // POST /integrations/:id/verify (Prompt 85)
+        const integrationVerifyMatch = subPath.match(/^\/integrations\/([^/]+)\/verify$/);
+        if (integrationVerifyMatch && req.method === "POST") {
+          const id = normalizeId(integrationVerifyMatch[1]);
+          if (!id) {
+            sendError(400, "Bad Request: Invalid integration ID format", "INVALID_ID");
+            return;
+          }
+          try {
+            const verified = await service.verifyIntegration(id);
+            sendJson(200, verified);
+            return;
+          } catch (err: any) {
+            sendError(400, err.message || "Failed to verify integration", "VERIFICATION_ERROR");
+            return;
+          }
+        }
+
+        // POST /demo/reset (Prompt 87)
+        if (subPath === "/demo/reset" && req.method === "POST") {
+          const resetReport = service.resetDemoData();
+          sendJson(200, resetReport);
+          return;
+        }
+
 
 
         // GET /events

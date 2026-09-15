@@ -1,0 +1,13 @@
+{
+  "traceId": "trace-verify-pg-3e753d33",
+  "provider": "postgresql",
+  "environment": "production",
+  "verifiedAt": "2026-09-15T12:06:42.961Z",
+  "status": "OPERATIONAL",
+  "latencyMs": 15,
+  "metadata": {
+    "adapter": "PostgresTaskRepository",
+    "migrationV3Applied": true,
+    "transactionRollbackSupported": true
+  }
+}

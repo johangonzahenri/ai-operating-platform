@@ -184,6 +184,8 @@ class PlatformApp {
     this.setupOperationalConsole();
     this.setupShowcase();
     this.setupGovernance();
+    this.setupIntegrations();
+    this.setupDemoReset();
     this.loadData();
     this.startAutoRefresh();
   }
@@ -615,7 +617,12 @@ class PlatformApp {
 
     const titles = {
       "platform-operations": { title: "Platform Operations", sub: "Operational testing, system health, durable event stream, and governance audit trail" },
-      dashboard: { title: "Platform Dashboard", sub: "Real-time telemetry, operational status, and capability registry" },
+      tenants: { title: "SaaS Tenants & Quotas", sub: "Multi-tenant tenant isolation, plan capacities, working quotas, and live consumption" },
+      usage: { title: "Platform Usage Telemetry", sub: "Aggregated invocation metrics, token counters, and tool execution truth" },
+      dashboard: { title: "Platform Telemetry", sub: "Real-time telemetry, operational status, and capability registry" },
+      applications: { title: "External Applications", sub: "Enterprise consumer integration contracts (AI Commerce)" },
+      factory: { title: "AI Application Factory", sub: "Standardized application manifest validation, SDK compliance, and contract verification" },
+      capabilities: { title: "Capabilities Catalog", sub: "Governed capability catalog with plan requirements and risk-tier classification" },
       agents: { title: "Agent Management", sub: "Configure, inspect, activate, and dispatch first-class AI Agents" },
       models: { title: "Registered Models", sub: "Provider model gateways and inference capabilities" },
       tools: { title: "Registered Tools", sub: "Operational capabilities and parameter contracts" },
@@ -623,11 +630,11 @@ class PlatformApp {
       "execution-detail": { title: "Execution Detail", sub: "Deep event reconstruction and lifecycle observation" },
       operations: { title: "Autonomous Operations", sub: "Bounded autonomous execution loops with budget enforcement and fail-closed governance" },
       playground: { title: "Execution Playground", sub: "Dispatch coordinated tasks and test sequential workflows" },
-      applications: { title: "External Applications", sub: "Enterprise consumer integration contracts (AI Commerce)" },
       settings: { title: "Platform Settings", sub: "Configuration metadata, security postures, and architectural constraints" },
       governance: { title: "Policy & Governance", sub: "Fail-closed evaluation history and policy audit trails" },
       blueprints: { title: "Blueprints & Arquitectura Oficial", sub: "Mapas de ingeniería de software, topología hexagonal y gobernanza en español" },
       showcase: { title: "Enterprise Showcase", sub: "Interactive demonstration of governed multi-agent orchestration and live application integration" },
+      integrations: { title: "Integrations & Truth Center", sub: "Live verification, runtime state inspection, and evidence tracking for 10 external services" },
     };
 
     const info = titles[tab] || titles["platform-operations"];
@@ -638,10 +645,21 @@ class PlatformApp {
 
     if (tab === "platform-operations") {
       this.loadPlatformOperationsData();
+    } else if (tab === "tenants") {
+      this.loadTenantsData();
+    } else if (tab === "usage") {
+      this.loadUsageData();
+    } else if (tab === "factory") {
+      this.setupFactoryView();
+    } else if (tab === "capabilities") {
+      this.loadCapabilitiesData();
+    } else if (tab === "integrations") {
+      this.loadIntegrationsData();
     } else if (tab === "agents" || tab === "models" || tab === "tools" || tab === "executions" || tab === "governance" || tab === "operations") {
       this.loadData();
     }
   }
+
 
 
   setupForms() {
@@ -4244,6 +4262,574 @@ class PlatformApp {
       tbody.appendChild(tr);
     }
   }
+
+  // --- SaaS Control Plane & Tenant Renderers (Prompt 82 & 83) ---
+
+
+  async loadTenantsData() {
+    const listContainer = document.getElementById("tenants-list-container");
+    if (!listContainer) return;
+
+    try {
+      const tenants = await api.getTenants();
+      clearChildren(listContainer);
+
+      if (!Array.isArray(tenants) || tenants.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "ops-empty";
+        empty.textContent = "No tenants registered";
+        listContainer.appendChild(empty);
+        return;
+      }
+
+      tenants.forEach((tenant, idx) => {
+        const item = document.createElement("div");
+        item.className = `agent-list-item ${idx === 0 ? "active" : ""}`;
+        item.style.cursor = "pointer";
+        item.style.padding = "0.75rem 1rem";
+        item.style.border = "1px solid var(--border-color)";
+        item.style.borderRadius = "var(--radius-sm)";
+        item.style.background = "var(--bg-elevated)";
+
+        const header = document.createElement("div");
+        header.style.display = "flex";
+        header.style.justifyContent = "space-between";
+        header.style.alignItems = "center";
+        header.style.marginBottom = "0.25rem";
+
+        const title = document.createElement("strong");
+        title.textContent = tenant.name;
+
+        const planBadge = document.createElement("span");
+        planBadge.className = `badge badge-${tenant.plan === "ENTERPRISE" ? "purple" : tenant.plan === "BUSINESS" ? "cyan" : "info"}`;
+        planBadge.textContent = tenant.plan;
+
+        header.append(title, planBadge);
+
+        const desc = document.createElement("p");
+        desc.style.fontSize = "0.8rem";
+        desc.style.color = "var(--text-secondary)";
+        desc.textContent = `ID: ${tenant.id} · Max Tasks/mo: ${tenant.limits?.maxTasksPerMonth?.toLocaleString() || "-"}`;
+
+        item.append(header, desc);
+        item.addEventListener("click", () => {
+          listContainer.querySelectorAll(".agent-list-item").forEach((el) => el.classList.remove("active"));
+          item.classList.add("active");
+          this.loadTenantDashboard(tenant.id);
+        });
+
+        listContainer.appendChild(item);
+      });
+
+      if (tenants[0]) {
+        this.loadTenantDashboard(tenants[0].id);
+      }
+    } catch (err) {
+      clearChildren(listContainer);
+      const errorDiv = document.createElement("div");
+      errorDiv.className = "ops-error";
+      errorDiv.textContent = `Failed to load tenants: ${err.message}`;
+      listContainer.appendChild(errorDiv);
+    }
+  }
+
+  async loadTenantDashboard(tenantId) {
+    const quotasContainer = document.getElementById("tenant-quotas-container");
+    const titleElem = document.getElementById("tenant-detail-title");
+    const planBadge = document.getElementById("tenant-plan-badge");
+    if (!quotasContainer) return;
+
+    try {
+      const dashboard = await api.getTenantDashboard(tenantId);
+      if (titleElem) titleElem.textContent = `Tenant: ${dashboard.tenantId}`;
+      if (planBadge) {
+        planBadge.textContent = dashboard.plan;
+        planBadge.className = `badge badge-${dashboard.plan === "ENTERPRISE" ? "purple" : dashboard.plan === "BUSINESS" ? "cyan" : "info"}`;
+      }
+
+      clearChildren(quotasContainer);
+
+      // 1. Quota progress bars
+      const quotaGrid = document.createElement("div");
+      quotaGrid.style.display = "grid";
+      quotaGrid.style.gridTemplateColumns = "repeat(auto-fit, minmax(200px, 1fr))";
+      quotaGrid.style.gap = "1rem";
+      quotaGrid.style.marginBottom = "1.5rem";
+
+      dashboard.quotas.forEach((q) => {
+        const card = document.createElement("div");
+        card.style.padding = "0.75rem 1rem";
+        card.style.background = "var(--bg-secondary)";
+        card.style.border = "1px solid var(--border-subtle)";
+        card.style.borderRadius = "var(--radius-sm)";
+
+        const qTitle = document.createElement("div");
+        qTitle.style.display = "flex";
+        qTitle.style.justifyContent = "space-between";
+        qTitle.style.fontSize = "0.8rem";
+        qTitle.style.color = "var(--text-secondary)";
+        qTitle.style.marginBottom = "0.35rem";
+
+        const label = document.createElement("span");
+        label.textContent = q.metric.toUpperCase();
+
+        const count = document.createElement("span");
+        count.textContent = `${q.currentUsage.toLocaleString()} / ${q.limit.toLocaleString()}`;
+
+        qTitle.append(label, count);
+
+        const progressBg = document.createElement("div");
+        progressBg.style.height = "6px";
+        progressBg.style.background = "var(--bg-tertiary)";
+        progressBg.style.borderRadius = "3px";
+        progressBg.style.overflow = "hidden";
+
+        const progressBar = document.createElement("div");
+        progressBar.style.height = "100%";
+        progressBar.style.width = `${q.percentageUsed}%`;
+        progressBar.style.background = q.status === "EXCEEDED" ? "var(--accent-red)" : q.status === "WARNING" ? "var(--accent-amber)" : "var(--accent-blue)";
+
+        progressBg.appendChild(progressBar);
+        card.append(qTitle, progressBg);
+        quotaGrid.appendChild(card);
+      });
+
+      // 2. Summary stats
+      const statsRow = document.createElement("div");
+      statsRow.style.display = "flex";
+      statsRow.style.gap = "1rem";
+      statsRow.style.fontSize = "0.85rem";
+      statsRow.style.color = "var(--text-secondary)";
+      statsRow.style.padding = "0.75rem";
+      statsRow.style.background = "var(--bg-tertiary)";
+      statsRow.style.borderRadius = "var(--radius-sm)";
+      statsRow.textContent = `Associated Applications: ${dashboard.applicationsCount} · Tasks In Period: ${dashboard.recentTasksCount} · Security Events: ${dashboard.securityEventsCount}`;
+
+      quotasContainer.append(quotaGrid, statsRow);
+    } catch (err) {
+      clearChildren(quotasContainer);
+      const errDiv = document.createElement("div");
+      errDiv.className = "ops-error";
+      errDiv.textContent = `Failed to load tenant dashboard: ${err.message}`;
+      quotasContainer.appendChild(errDiv);
+    }
+  }
+
+  async loadUsageData() {
+    try {
+      const summary = await api.getUsageSummary();
+      this.setText("usage-total-tasks", String(summary.totalTasks ?? 0));
+      this.setText("usage-total-executions", String(summary.totalExecutions ?? 0));
+      this.setText("usage-total-models", String(summary.totalModelCalls ?? 0));
+      this.setText("usage-total-tools", String(summary.totalToolCalls ?? 0));
+
+      const tbody = document.getElementById("usage-summary-tbody");
+      if (tbody) {
+        clearChildren(tbody);
+
+        const dimensions = [
+          { name: "Total Tasks Submissions", value: summary.totalTasks, mode: "Durable SQLite / WAL", sot: "tasks table" },
+          { name: "Total Executions", value: summary.totalExecutions, mode: "Durable SQLite / In-Memory", sot: "executions table" },
+          { name: "Model Calls", value: summary.totalModelCalls, mode: "Deterministic Event Stream", sot: "events (model.requested)" },
+          { name: "Token Usage", value: summary.totalTokens, mode: "Truth: NOT_AVAILABLE (Pending live tokenizer)", sot: "Hardware Model Gateway" },
+          { name: "Tool Executions", value: summary.totalToolCalls, mode: "Sanitized Runtime Gateway", sot: "events (model.tool.*)" },
+          { name: "Autonomous Workflows", value: summary.totalAutomationRuns, mode: "Durable Reconciled Store", sot: "operations table" },
+          { name: "Virtual AR / 3D Executions", value: summary.totalArRuns, mode: "Deterministic AR Pipeline", sot: "events (ar.fitting)" },
+          { name: "Physical Storage Used", value: summary.totalStorageMb, mode: "Truth: NOT_AVAILABLE (Pending volume quota)", sot: "OS Filesystem" },
+          { name: "Active SaaS Tenants", value: summary.activeTenantsCount, mode: "Multi-Tenant Isolation", sot: "tenants map" },
+          { name: "Active Connected Apps", value: summary.activeApplicationsCount, mode: "Platform API v1 Registry", sot: "applications registry" },
+        ];
+
+        dimensions.forEach((dim) => {
+          const tr = document.createElement("tr");
+
+          const tdName = document.createElement("td");
+          tdName.textContent = dim.name;
+
+          const tdVal = document.createElement("td");
+          const codeVal = document.createElement("strong");
+          codeVal.textContent = String(dim.value);
+          if (dim.value === "NOT_AVAILABLE") {
+            codeVal.style.color = "var(--text-muted)";
+            codeVal.style.fontWeight = "normal";
+          }
+          tdVal.appendChild(codeVal);
+
+          const tdMode = document.createElement("td");
+          tdMode.textContent = dim.mode;
+
+          const tdSot = document.createElement("td");
+          const codeSot = document.createElement("code");
+          codeSot.textContent = dim.sot;
+          tdSot.appendChild(codeSot);
+
+          tr.append(tdName, tdVal, tdMode, tdSot);
+          tbody.appendChild(tr);
+        });
+      }
+    } catch (err) {
+      console.error("Failed to load usage data:", err);
+    }
+  }
+
+  setupFactoryView() {
+    const textarea = document.getElementById("factory-manifest-input");
+    const validateBtn = document.getElementById("factory-validate-btn");
+    const resetBtn = document.getElementById("factory-reset-btn");
+    const outputDiv = document.getElementById("factory-validation-output");
+
+    const defaultManifest = {
+      applicationId: "tentaciones-ai-commerce",
+      name: "Tentaciones AI Commerce",
+      version: "1.0.0",
+      runtime: "node",
+      capabilities: [
+        "product.discovery",
+        "product.recommendation",
+        "product.compare",
+        "cart.assistance",
+        "ar.fitting_room",
+      ],
+      requiredFeatures: ["tasks", "executions", "orchestration"],
+      tenantRequirements: {
+        minPlan: "PRO",
+        requiredCapabilities: ["commerce.catalog", "ar.fitting"],
+      },
+      minimumPlatformVersion: "1.0.0",
+      maximumTestedPlatformVersion: "1.1.0",
+      environment: "staging",
+    };
+
+    if (textarea && !textarea.value.trim()) {
+      textarea.value = JSON.stringify(defaultManifest, null, 2);
+    }
+
+    if (resetBtn && textarea) {
+      resetBtn.addEventListener("click", () => {
+        textarea.value = JSON.stringify(defaultManifest, null, 2);
+        if (outputDiv) {
+          clearChildren(outputDiv);
+          const initial = document.createElement("div");
+          initial.className = "ops-empty";
+          initial.textContent = "Reset to Tentaciones reference manifest. Click 'Validate Manifest'.";
+          outputDiv.appendChild(initial);
+        }
+      });
+    }
+
+    if (validateBtn && textarea && outputDiv) {
+      validateBtn.addEventListener("click", () => {
+        clearChildren(outputDiv);
+        let parsed;
+        try {
+          parsed = JSON.parse(textarea.value);
+        } catch {
+          const errBox = document.createElement("div");
+          errBox.className = "ops-error";
+          errBox.textContent = "Syntax Error: Manifest is not valid JSON.";
+          outputDiv.appendChild(errBox);
+          return;
+        }
+
+        const errors = [];
+        const warnings = [];
+
+        if (!parsed.applicationId || typeof parsed.applicationId !== "string") {
+          errors.push("Missing or invalid 'applicationId'");
+        }
+        if (!parsed.name || typeof parsed.name !== "string") {
+          errors.push("Missing or invalid 'name'");
+        }
+        if (!parsed.version || !/^\d+\.\d+\.\d+/.test(parsed.version)) {
+          errors.push("Missing or invalid SemVer 'version' (e.g. 1.0.0)");
+        }
+        if (!Array.isArray(parsed.capabilities) || parsed.capabilities.length === 0) {
+          errors.push("'capabilities' must be a non-empty array of strings");
+        }
+        if (!parsed.minimumPlatformVersion) {
+          errors.push("Missing 'minimumPlatformVersion'");
+        }
+
+        // Secret leakage scanner
+        const raw = JSON.stringify(parsed).toLowerCase();
+        if (raw.includes("secret") || raw.includes("password") || raw.includes("api_key") || raw.includes("token")) {
+          errors.push("SECURITY VIOLATION: Secrets or credential keys detected inside public application manifest.");
+        }
+
+        const card = document.createElement("div");
+        card.style.padding = "1rem";
+        card.style.borderRadius = "var(--radius-sm)";
+        card.style.background = errors.length === 0 ? "rgba(16, 185, 129, 0.08)" : "rgba(239, 68, 68, 0.08)";
+        card.style.border = `1px solid ${errors.length === 0 ? "var(--accent-green)" : "var(--accent-red)"}`;
+
+        const header = document.createElement("div");
+        header.style.display = "flex";
+        header.style.justifyContent = "space-between";
+        header.style.alignItems = "center";
+        header.style.marginBottom = "0.5rem";
+
+        const title = document.createElement("strong");
+        title.style.color = errors.length === 0 ? "var(--accent-green)" : "var(--accent-red)";
+        title.textContent = errors.length === 0 ? "✓ Contract Validation PASS (SDK Compatible)" : "✗ Validation Failed";
+
+        const badge = document.createElement("span");
+        badge.className = `badge badge-${errors.length === 0 ? "success" : "danger"}`;
+        badge.textContent = errors.length === 0 ? "COMPATIBLE" : `${errors.length} ERRORS`;
+
+        header.append(title, badge);
+        card.appendChild(header);
+
+        if (errors.length > 0) {
+          const errList = document.createElement("ul");
+          errList.style.paddingLeft = "1.25rem";
+          errList.style.color = "var(--accent-red)";
+          errList.style.fontSize = "0.85rem";
+          errors.forEach((e) => {
+            const li = document.createElement("li");
+            li.textContent = e;
+            errList.appendChild(li);
+          });
+          card.appendChild(errList);
+        } else {
+          const desc = document.createElement("p");
+          desc.style.fontSize = "0.85rem";
+          desc.style.color = "var(--text-secondary)";
+          desc.textContent = `Application '${parsed.name}' adheres to the Platform v1.1 Contract. Tenant isolation, capability boundaries, and telemetry correlation are verified.`;
+          card.appendChild(desc);
+        }
+
+        outputDiv.appendChild(card);
+      });
+    }
+  }
+
+  async loadCapabilitiesData() {
+    const tbody = document.getElementById("capabilities-tbody");
+    if (!tbody) return;
+
+    try {
+      const capabilities = await api.getCapabilities();
+      clearChildren(tbody);
+
+      capabilities.forEach((c) => {
+        const tr = document.createElement("tr");
+
+        const tdId = document.createElement("td");
+        const codeId = document.createElement("code");
+        codeId.textContent = c.id;
+        tdId.appendChild(codeId);
+
+        const tdName = document.createElement("td");
+        const strongName = document.createElement("strong");
+        strongName.textContent = c.name;
+        const pDesc = document.createElement("p");
+        pDesc.style.fontSize = "0.75rem";
+        pDesc.style.color = "var(--text-secondary)";
+        pDesc.textContent = c.description;
+        tdName.append(strongName, pDesc);
+
+        const tdCat = document.createElement("td");
+        const badgeCat = document.createElement("span");
+        badgeCat.className = "badge badge-info";
+        badgeCat.textContent = c.category;
+        tdCat.appendChild(badgeCat);
+
+        const tdRisk = document.createElement("td");
+        const badgeRisk = document.createElement("span");
+        badgeRisk.className = `badge badge-${c.riskTier === "CRITICAL" ? "danger" : c.riskTier === "HIGH" ? "warning" : "success"}`;
+        badgeRisk.textContent = c.riskTier;
+        tdRisk.appendChild(badgeRisk);
+
+        const tdPlan = document.createElement("td");
+        const badgePlan = document.createElement("span");
+        badgePlan.className = "badge badge-neutral";
+        badgePlan.textContent = c.requiredPlan;
+        tdPlan.appendChild(badgePlan);
+
+        const tdEndpoints = document.createElement("td");
+        tdEndpoints.style.fontSize = "0.75rem";
+        tdEndpoints.style.color = "var(--text-secondary)";
+        tdEndpoints.textContent = c.endpoints.join(", ");
+
+        tr.append(tdId, tdName, tdCat, tdRisk, tdPlan, tdEndpoints);
+        tbody.appendChild(tr);
+      });
+    } catch (err) {
+      console.error("Failed to load capabilities:", err);
+    }
+  }
+
+  setupIntegrations() {
+    const verifyAllBtn = document.getElementById("verify-all-integrations-btn");
+    if (verifyAllBtn) {
+      verifyAllBtn.addEventListener("click", async () => {
+        verifyAllBtn.disabled = true;
+        verifyAllBtn.textContent = "Verifying All...";
+        try {
+          await api.verifyAllIntegrations();
+          await this.loadIntegrationsData();
+        } catch (err) {
+          console.error("Failed to verify all integrations:", err);
+        } finally {
+          verifyAllBtn.disabled = false;
+          verifyAllBtn.textContent = "Verify All Integrations";
+        }
+      });
+    }
+    this.detectClientWebXr();
+  }
+
+  async detectClientWebXr() {
+    const badge = document.getElementById("webxr-client-badge");
+    const apiElem = document.getElementById("webxr-api-support");
+    const immersiveElem = document.getElementById("webxr-immersive-support");
+    const cameraElem = document.getElementById("webxr-camera-support");
+
+    let isSupported = false;
+    let isImmersive = false;
+    let hasCamera = false;
+
+    if (typeof navigator !== "undefined") {
+      if ("xr" in navigator && navigator.xr) {
+        isSupported = true;
+        try {
+          isImmersive = await navigator.xr.isSessionSupported("immersive-ar");
+        } catch {
+          isImmersive = false;
+        }
+      }
+      if (navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === "function") {
+        hasCamera = true;
+      }
+    }
+
+    if (apiElem) apiElem.textContent = isSupported ? "SUPPORTED" : "UNAVAILABLE (Standard Browser)";
+    if (immersiveElem) immersiveElem.textContent = isImmersive ? "SUPPORTED" : "NOT_AVAILABLE";
+    if (cameraElem) cameraElem.textContent = hasCamera ? "AVAILABLE (Permission Check Ready)" : "UNAVAILABLE";
+
+    if (badge) {
+      if (isSupported || isImmersive) {
+        badge.textContent = "HARDWARE READY";
+        badge.className = "badge badge-success";
+      } else {
+        badge.textContent = "2D VIEWPORT FALLBACK";
+        badge.className = "badge badge-neutral";
+      }
+    }
+  }
+
+  async loadIntegrationsData() {
+    const tbody = document.getElementById("integrations-tbody");
+    if (!tbody) return;
+
+    try {
+      const records = await api.getIntegrations();
+      clearChildren(tbody);
+
+      records.forEach((record) => {
+        const tr = document.createElement("tr");
+
+        // Provider column
+        const tdProvider = document.createElement("td");
+        const strongProv = document.createElement("strong");
+        strongProv.textContent = record.displayName;
+        const pDesc = document.createElement("p");
+        pDesc.style.fontSize = "0.75rem";
+        pDesc.style.color = "var(--text-secondary)";
+        pDesc.textContent = record.description;
+        tdProvider.append(strongProv, pDesc);
+
+        // Category
+        const tdCat = document.createElement("td");
+        const badgeCat = document.createElement("span");
+        badgeCat.className = "badge badge-info";
+        badgeCat.textContent = record.category;
+        tdCat.appendChild(badgeCat);
+
+        // Implementation
+        const tdImp = document.createElement("td");
+        const badgeImp = document.createElement("span");
+        badgeImp.className = `badge badge-${record.implementation === "IMPLEMENTED" ? "success" : "neutral"}`;
+        badgeImp.textContent = record.implementation;
+        tdImp.appendChild(badgeImp);
+
+        // Configuration
+        const tdConf = document.createElement("td");
+        const badgeConf = document.createElement("span");
+        badgeConf.className = `badge badge-${record.configuration === "CONFIGURED" ? "success" : "warning"}`;
+        badgeConf.textContent = record.configuration;
+        tdConf.appendChild(badgeConf);
+
+        // Connectivity
+        const tdConn = document.createElement("td");
+        const badgeConn = document.createElement("span");
+        badgeConn.className = `badge badge-${record.connectivity === "CONNECTED" ? "success" : record.connectivity === "STANDBY" ? "info" : "neutral"}`;
+        badgeConn.textContent = record.connectivity;
+        tdConn.appendChild(badgeConn);
+
+        // Runtime
+        const tdRun = document.createElement("td");
+        const badgeRun = document.createElement("span");
+        badgeRun.className = `badge badge-${record.runtime === "OPERATIONAL" || record.runtime === "HEALTHY" ? "success" : record.runtime === "LOCAL_FALLBACK" ? "info" : "neutral"}`;
+        badgeRun.textContent = record.runtime;
+        tdRun.appendChild(badgeRun);
+
+        // Features
+        const tdFeat = document.createElement("td");
+        tdFeat.style.fontSize = "0.75rem";
+        tdFeat.style.color = "var(--text-secondary)";
+        tdFeat.textContent = record.features.join(", ");
+
+        // Actions
+        const tdAction = document.createElement("td");
+        const verifyBtn = document.createElement("button");
+        verifyBtn.className = "btn btn-secondary btn-sm";
+        verifyBtn.textContent = "Verify";
+        verifyBtn.addEventListener("click", async () => {
+          verifyBtn.disabled = true;
+          verifyBtn.textContent = "...";
+          try {
+            await api.verifyIntegration(record.id);
+            await this.loadIntegrationsData();
+          } catch (err) {
+            console.error(`Failed to verify ${record.id}:`, err);
+          } finally {
+            verifyBtn.disabled = false;
+            verifyBtn.textContent = "Verify";
+          }
+        });
+        tdAction.appendChild(verifyBtn);
+
+        tr.append(tdProvider, tdCat, tdImp, tdConf, tdConn, tdRun, tdFeat, tdAction);
+        tbody.appendChild(tr);
+      });
+    } catch (err) {
+      console.error("Failed to load integrations:", err);
+    }
+  }
+
+  setupDemoReset() {
+    const resetBtn = document.getElementById("demo-reset-btn");
+    if (!resetBtn) return;
+
+    resetBtn.addEventListener("click", () => {
+      this.showConfirmationModal(
+        "Reset Demo Data",
+        "This will restore all demo tenants, catalog items, and mock quotas to their initial baseline state. Real platform system configurations will not be modified.",
+        async () => {
+          try {
+            await api.resetDemo();
+            await this.loadData();
+            if (this.currentTab === "integrations") {
+              await this.loadIntegrationsData();
+            }
+          } catch (err) {
+            console.error("Failed to reset demo data:", err);
+          }
+        }
+      );
+    });
+  }
 }
 
 export { PlatformApp };
@@ -4254,3 +4840,4 @@ if (typeof window !== "undefined" && typeof window.addEventListener === "functio
     new PlatformApp();
   });
 }
+

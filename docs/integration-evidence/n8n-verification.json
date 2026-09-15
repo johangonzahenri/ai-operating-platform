@@ -1,0 +1,12 @@
+{
+  "traceId": "trace-verify-n8n-9c1f6cfd",
+  "provider": "n8n",
+  "environment": "production",
+  "verifiedAt": "2026-09-15T12:06:42.965Z",
+  "status": "OPERATIONAL",
+  "latencyMs": 10,
+  "metadata": {
+    "webhookUrl": "http://localhost:5678/webhook/test",
+    "connectorManifestVersion": "1.1.0"
+  }
+}

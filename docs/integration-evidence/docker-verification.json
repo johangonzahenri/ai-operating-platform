@@ -1,0 +1,13 @@
+{
+  "traceId": "trace-verify-docker-c1579daa",
+  "provider": "docker",
+  "environment": "production",
+  "verifiedAt": "2026-09-15T12:06:42.963Z",
+  "status": "HEALTHY",
+  "latencyMs": 5,
+  "metadata": {
+    "dockerfile": true,
+    "dockerCompose": true,
+    "containerProfile": "node:20-alpine"
+  }
+}

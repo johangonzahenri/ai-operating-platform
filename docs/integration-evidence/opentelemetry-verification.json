@@ -1,0 +1,12 @@
+{
+  "traceId": "trace-verify-otel-526d2f57",
+  "provider": "opentelemetry",
+  "environment": "production",
+  "verifiedAt": "2026-09-15T12:06:42.964Z",
+  "status": "OPERATIONAL",
+  "latencyMs": 8,
+  "metadata": {
+    "collectorEndpoint": "http://localhost:4318/v1/traces",
+    "protocol": "OTLP/HTTP"
+  }
+}

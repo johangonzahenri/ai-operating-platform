@@ -425,3 +425,62 @@ export interface ApplicationDTO {
   readonly updatedAt: string;
 }
 
+// --- SaaS Control Plane & Tenant DTOs (Prompt 82) ---
+
+export interface TenantQuotaLimitDTO {
+  readonly maxTasksPerMonth: number;
+  readonly maxExecutionsPerMonth: number;
+  readonly maxTokensPerMonth: number;
+  readonly maxApplications: number;
+  readonly maxUsers: number;
+  readonly allowedCapabilities: readonly string[];
+  readonly maxStorageMb: number;
+}
+
+export interface TenantDTO {
+  readonly id: string;
+  readonly name: string;
+  readonly plan: "FREE" | "PRO" | "BUSINESS" | "ENTERPRISE";
+  readonly status: "ACTIVE" | "SUSPENDED" | "ARCHIVED";
+  readonly limits: TenantQuotaLimitDTO;
+  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+  readonly createdAt: string;
+  readonly updatedAt?: string | undefined;
+}
+
+export interface QuotaItemDTO {
+  readonly metric: string;
+  readonly currentUsage: number;
+  readonly limit: number;
+  readonly remaining: number;
+  readonly percentageUsed: number;
+  readonly resetAt: string;
+  readonly status: "OK" | "WARNING" | "EXCEEDED";
+}
+
+export interface TenantUsageDashboardDTO {
+  readonly tenantId: string;
+  readonly plan: string;
+  readonly status: string;
+  readonly period: string;
+  readonly quotas: readonly QuotaItemDTO[];
+  readonly applicationsCount: number;
+  readonly recentTasksCount: number;
+  readonly recentExecutionsCount: number;
+  readonly securityEventsCount: number;
+}
+
+export interface GlobalUsageSummaryDTO {
+  readonly totalTasks: number;
+  readonly totalExecutions: number;
+  readonly totalModelCalls: number;
+  readonly totalTokens: number | "NOT_AVAILABLE";
+  readonly totalToolCalls: number;
+  readonly totalAutomationRuns: number;
+  readonly totalArRuns: number;
+  readonly totalStorageMb: number | "NOT_AVAILABLE";
+  readonly activeTenantsCount: number;
+  readonly activeApplicationsCount: number;
+}
+
+

@@ -14,19 +14,45 @@
         <div class="logo-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 22 22 22 12 2"/></svg></div>
         <div class="brand-text">
           <h2>AI Operating Platform</h2>
-          <span class="version-badge">v1.0.0 Control Plane</span>
+          <span class="version-badge">v1.1.0 Control Plane</span>
         </div>
       </div>
 
       <nav class="nav-menu">
-        <div class="nav-section-label">Control &amp; Observability</div>
+        <div class="nav-section-label">SaaS Control Plane</div>
         <button class="nav-item active" data-tab="platform-operations">
           <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
-          <span>Platform Operations</span>
+          <span>Overview / Ops</span>
+        </button>
+        <button class="nav-item" data-tab="tenants">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+          <span>Tenants &amp; Quotas</span>
+        </button>
+        <button class="nav-item" data-tab="usage">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
+          <span>Usage Dashboard</span>
+        </button>
+        <button class="nav-item" data-tab="integrations">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span>
+          <span>Integrations &amp; Truth</span>
         </button>
         <button class="nav-item" data-tab="dashboard">
-          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
-          <span>Dashboard</span>
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg></span>
+          <span>Telemetry</span>
+        </button>
+
+        <div class="nav-section-label">AI Application Factory</div>
+        <button class="nav-item" data-tab="applications">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span>
+          <span>Applications</span>
+        </button>
+        <button class="nav-item" data-tab="factory">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+          <span>App Factory &amp; Manifest</span>
+        </button>
+        <button class="nav-item" data-tab="capabilities">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></span>
+          <span>Capabilities Catalog</span>
         </button>
 
         <div class="nav-section-label">Autonomous Engine</div>
@@ -34,20 +60,6 @@
           <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8.01" y2="16"/><line x1="16" y1="16" x2="16.01" y2="16"/></svg></span>
           <span>Agents</span>
         </button>
-        <button class="nav-item" data-tab="operations">
-          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-2.05 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12l2 2"/></svg></span>
-          <span>Operations</span>
-        </button>
-        <button class="nav-item" data-tab="executions">
-          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span>
-          <span>Executions</span>
-        </button>
-        <button class="nav-item" data-tab="execution-detail">
-          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-          <span>Execution Detail</span>
-        </button>
-
-        <div class="nav-section-label">Runtime &amp; Intelligence</div>
         <button class="nav-item" data-tab="models">
           <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-2.04z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-2.04z"/></svg></span>
           <span>Models</span>
@@ -56,35 +68,27 @@
           <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span>
           <span>Tools</span>
         </button>
-        <button class="nav-item" data-tab="playground">
-          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.31M14 2v7.31M8.5 2h7M14 9.3a6.5 6.5 0 1 1-4 0"/></svg></span>
-          <span>Playground</span>
+        <button class="nav-item" data-tab="operations">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-2.05 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12l2 2"/></svg></span>
+          <span>Operations &amp; Automation</span>
+        </button>
+        <button class="nav-item" data-tab="executions">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span>
+          <span>Executions &amp; Traces</span>
         </button>
 
-        <div class="nav-section-label">Applications &amp; Ecosystem</div>
-        <button class="nav-item" data-tab="applications">
-          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span>
-          <span>Applications</span>
-        </button>
-
-        <div class="nav-section-label">Enterprise Showcase</div>
-        <button class="nav-item" data-tab="showcase">
-          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
-          <span>Enterprise Showcase</span>
-        </button>
-
-        <div class="nav-section-label">Architecture &amp; Governance</div>
-        <button class="nav-item" data-tab="blueprints">
-          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/><line x1="12" y1="22" x2="12" y2="12"/><polyline points="2 8.5 12 12 22 8.5"/></svg></span>
-          <span>Blueprint &amp; System Map</span>
-        </button>
+        <div class="nav-section-label">Governance &amp; Security</div>
         <button class="nav-item" data-tab="governance">
           <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
-          <span>Governance</span>
+          <span>Policies &amp; Audit</span>
         </button>
-        <button class="nav-item" data-tab="settings">
-          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
-          <span>Settings</span>
+        <button class="nav-item" data-tab="blueprints">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/><line x1="12" y1="22" x2="12" y2="12"/><polyline points="2 8.5 12 12 22 8.5"/></svg></span>
+          <span>System Blueprint</span>
+        </button>
+        <button class="nav-item" data-tab="showcase">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
+          <span>v1.1 Product Tour &amp; Demo</span>
         </button>
       </nav>
 
@@ -105,6 +109,9 @@
           <p id="view-subtitle">Real-time telemetry, operational status, and capability registry</p>
         </div>
         <div class="header-actions">
+          <button id="demo-reset-btn" class="btn btn-secondary" title="Reset Demo Tenant &amp; Ephemeral Events">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg> Reset Demo
+          </button>
           <button id="theme-toggle-btn" class="btn btn-secondary" title="Cambiar a Tema Oscuro (Alternativo) o Claro (Por Defecto)">
             <span id="theme-toggle-icon">🌙</span> <span id="theme-toggle-text">Oscuro</span>
           </button>
@@ -1996,9 +2003,259 @@
           </div>
         </div>
       </section>
+
+      <!-- SaaS Control Plane: Tenants & Quotas View (Prompt 82) -->
+      <section id="tab-tenants" class="tab-view">
+        <div class="card full-width" style="margin-bottom: 1.5rem; background: linear-gradient(135deg, rgba(37,99,235,0.08), rgba(15,23,42,0.6)); border: 1px solid var(--accent-blue);">
+          <div class="card-header">
+            <div>
+              <span class="badge badge-info" style="margin-bottom: 0.5rem;">SAAS CONTROL PLANE</span>
+              <h2 style="font-size: 1.3rem;">Tenant Isolation &amp; Quota Governance</h2>
+              <p style="color: var(--text-secondary); margin-top: 0.25rem;">
+                Manage multi-tenant boundaries, subscription tiers, capacity limits, and real-time usage consumption.
+              </p>
+            </div>
+            <div style="display:flex; gap:0.5rem; align-items:center;">
+              <span class="badge badge-success">3 Active Tenants</span>
+              <span class="badge source-badge-api">Hard Quotas Enforced</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="two-col-grid" style="gap: 1.5rem;">
+          <!-- Tenants List -->
+          <div class="card">
+            <div class="card-header">
+              <h3>Registered Tenants</h3>
+            </div>
+            <div class="card-body">
+              <div id="tenants-list-container" class="agent-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <!-- Populated dynamically by app.js -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Tenant Dashboard Details & Quotas -->
+          <div class="card" id="tenant-detail-card">
+            <div class="card-header" style="justify-content: space-between;">
+              <h3 id="tenant-detail-title">Tenant Quota &amp; Usage</h3>
+              <span id="tenant-plan-badge" class="badge badge-info">PRO</span>
+            </div>
+            <div class="card-body">
+              <div id="tenant-quotas-container">
+                <p class="ops-muted">Select a tenant to view quota metrics, active applications, and consumption.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SaaS Control Plane: Global Usage View (Prompt 82) -->
+      <section id="tab-usage" class="tab-view">
+        <div class="metrics-grid" id="usage-metrics-grid">
+          <div class="metric-card">
+            <span class="metric-title">Total Tasks</span>
+            <span class="metric-value" id="usage-total-tasks">—</span>
+            <span class="metric-trend success">Durable Store</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-title">Total Executions</span>
+            <span class="metric-value" id="usage-total-executions">—</span>
+            <span class="metric-trend success">Audited</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-title">Model Invocations</span>
+            <span class="metric-value" id="usage-total-models">—</span>
+            <span class="metric-trend success">LLM Gateway</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-title">Tool Invocations</span>
+            <span class="metric-value" id="usage-total-tools">—</span>
+            <span class="metric-trend success">Sanitized</span>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top: 1.5rem;">
+          <div class="card-header">
+            <h3>Platform Resource Telemetry (Truth Mode)</h3>
+          </div>
+          <div class="card-body">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Resource Dimension</th>
+                  <th>Observed Value</th>
+                  <th>Collection Mode</th>
+                  <th>Source of Truth</th>
+                </tr>
+              </thead>
+              <tbody id="usage-summary-tbody">
+                <!-- Populated dynamically by app.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- AI Application Factory View (Prompt 83) -->
+      <section id="tab-factory" class="tab-view">
+        <div class="card full-width" style="margin-bottom: 1.5rem; background: linear-gradient(135deg, rgba(147,51,234,0.08), rgba(15,23,42,0.6)); border: 1px solid var(--accent-purple);">
+          <div class="card-header">
+            <div>
+              <span class="badge badge-info" style="margin-bottom: 0.5rem;">APPLICATION FACTORY</span>
+              <h2 style="font-size: 1.3rem;">AI Application Blueprint &amp; Manifest Validator</h2>
+              <p style="color: var(--text-secondary); margin-top: 0.25rem;">
+                Standardized platform contract: SDK compliance, identity isolation, capability catalog, and zero secret leakage.
+              </p>
+            </div>
+            <div style="display:flex; gap:0.5rem; align-items:center;">
+              <span class="badge badge-success">Platform v1.1 Contract</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="two-col-grid" style="gap: 1.5rem;">
+          <!-- Manifest Template Generator -->
+          <div class="card">
+            <div class="card-header">
+              <h3>Application Manifest (<code>application.json</code>)</h3>
+            </div>
+            <div class="card-body">
+              <label for="factory-manifest-input" style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:0.5rem; display:block;">
+                Paste or edit application manifest to validate contract compatibility:
+              </label>
+              <textarea id="factory-manifest-input" rows="14" style="width:100%; font-family:var(--font-mono); font-size:0.85rem; padding:0.75rem; background:var(--bg-input); color:var(--text-primary); border:1px solid var(--border-color); border-radius:var(--radius-sm); margin-bottom:1rem;"></textarea>
+              <div style="display:flex; gap:0.75rem;">
+                <button class="btn btn-primary" id="factory-validate-btn">Validate Manifest</button>
+                <button class="btn btn-secondary" id="factory-reset-btn">Reset to Reference App (Tentaciones)</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Validation Report -->
+          <div class="card">
+            <div class="card-header">
+              <h3>Contract Compliance &amp; Verification</h3>
+            </div>
+            <div class="card-body">
+              <div id="factory-validation-output">
+                <div class="ops-empty">Click 'Validate Manifest' to evaluate the application contract.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Platform Capabilities Catalog View (Prompt 83) -->
+      <section id="tab-capabilities" class="tab-view">
+        <div class="card full-width">
+          <div class="card-header">
+            <div>
+              <h3>Official Platform Capabilities Catalog</h3>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem;">
+                Governed capability primitives consumable by external applications via Platform API and SDK.
+              </p>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Capability ID</th>
+                    <th>Name</th>
+                    <th>Domain Category</th>
+                    <th>Risk Tier</th>
+                    <th>Required Plan</th>
+                    <th>Authorized Endpoints</th>
+                  </tr>
+                </thead>
+                <tbody id="capabilities-tbody">
+                  <!-- Populated dynamically by app.js -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Integration Truth Console View (Prompt 85) -->
+      <section id="tab-integrations" class="tab-view">
+        <div class="card full-width" style="margin-bottom: 1.5rem; background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(15,23,42,0.6)); border: 1px solid var(--accent-green);">
+          <div class="card-header">
+            <div>
+              <span class="badge badge-success" style="margin-bottom: 0.5rem;">RUNTIME ACTIVATION &amp; INTEGRATION TRUTH</span>
+              <h2 style="font-size: 1.3rem;">External Adapters &amp; Provider Verification</h2>
+              <p style="color: var(--text-secondary); margin-top: 0.25rem;">
+                Dual-state classification across 10 core external providers: Implementation, Configuration, Connectivity, and Operational Runtime.
+              </p>
+            </div>
+            <div style="display:flex; gap:0.5rem; align-items:center;">
+              <button id="verify-all-integrations-btn" class="btn btn-primary">Verify All Integrations</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card full-width" style="margin-bottom: 1.5rem;">
+          <div class="card-header">
+            <h3>Verified Integrations Matrix</h3>
+            <span class="badge source-badge-api">Truth Mode</span>
+          </div>
+          <div class="card-body">
+            <div class="table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Provider</th>
+                    <th>Category</th>
+                    <th>Implementation</th>
+                    <th>Configuration</th>
+                    <th>Connectivity</th>
+                    <th>Runtime Status</th>
+                    <th>Supported Features</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="integrations-tbody">
+                  <!-- Populated dynamically by app.js -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Client-side WebXR Sensor Diagnostics Card -->
+        <div class="card full-width">
+          <div class="card-header">
+            <h3>Client Browser WebXR &amp; Camera Sensor Detection</h3>
+            <span id="webxr-client-badge" class="badge badge-info">DETECTING</span>
+          </div>
+          <div class="card-body">
+            <div class="detail-grid">
+              <div class="detail-item">
+                <span class="detail-label">WebXR API Support</span>
+                <span class="detail-value code-text" id="webxr-api-support">—</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Immersive AR Session</span>
+                <span class="detail-value code-text" id="webxr-immersive-support">—</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Camera Media Devices</span>
+                <span class="detail-value code-text" id="webxr-camera-support">—</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Evaluation Mode</span>
+                <span class="detail-value">Client Browser Hardware Probe</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
   </div>
 
   <script type="module" src="app.js"></script>
 </body>
 </html>
+

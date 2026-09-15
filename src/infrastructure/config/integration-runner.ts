@@ -1,4 +1,16 @@
-export type IntegrationStatus = "NOT_CONFIGURED" | "CONFIGURED_OFFLINE" | "OPERATIONAL" | "DESIGNED";
+import {
+  IntegrationTruthEngine,
+  IntegrationEngineConfig,
+  IntegrationTruthRecord,
+} from "./integration-truth-engine.js";
+
+export type IntegrationStatus =
+  | "NOT_CONFIGURED"
+  | "CONFIGURED_OFFLINE"
+  | "OPERATIONAL"
+  | "DESIGNED"
+  | "CONNECTED"
+  | "HEALTHY";
 
 export interface IntegrationCheckResult {
   readonly integration: string;
@@ -8,125 +20,79 @@ export interface IntegrationCheckResult {
   readonly details: Readonly<Record<string, unknown>>;
 }
 
-export interface IntegrationRunnerConfig {
-  readonly openaiApiKey?: string | undefined;
-  readonly anthropicApiKey?: string | undefined;
-  readonly ollamaBaseUrl?: string | undefined;
-  readonly n8nWebhookUrl?: string | undefined;
-  readonly otelEndpoint?: string | undefined;
-  readonly fetchFn?: typeof fetch | undefined;
-}
+export type IntegrationRunnerConfig = IntegrationEngineConfig;
 
 export class IntegrationRunner {
-  private readonly fetchFn: typeof fetch;
+  private readonly truthEngine: IntegrationTruthEngine;
+  private readonly config: IntegrationRunnerConfig;
 
-  constructor(private readonly config: IntegrationRunnerConfig = {}) {
-    this.fetchFn = config.fetchFn || globalThis.fetch;
+  constructor(config: IntegrationRunnerConfig = {}) {
+    this.config = config;
+    this.truthEngine = new IntegrationTruthEngine(config);
+  }
+
+  getTruthEngine(): IntegrationTruthEngine {
+    return this.truthEngine;
   }
 
   async checkOpenAi(): Promise<IntegrationCheckResult> {
-    const key = this.config.openaiApiKey || process.env.OPENAI_API_KEY;
-    if (!key) {
-      return {
-        integration: "OpenAI",
-        status: "NOT_CONFIGURED",
-        details: { reason: "OPENAI_API_KEY environment variable is not set." },
-      };
-    }
+    const record = await this.truthEngine.verifyOpenAi();
+    let status: IntegrationStatus = "NOT_CONFIGURED";
+    if (record.runtime === "OPERATIONAL") status = "OPERATIONAL";
+    else if (record.configuration === "CONFIGURED") status = "CONFIGURED_OFFLINE";
 
-    const startTime = Date.now();
-    try {
-      const res = await this.fetchFn("https://api.openai.com/v1/models", {
-        headers: { Authorization: `Bearer ${key}` },
-      });
-      const latencyMs = Date.now() - startTime;
-      if (res.ok) {
-        return {
-          integration: "OpenAI",
-          status: "OPERATIONAL",
-          latencyMs,
-          details: { verifiedModels: ["gpt-4o", "gpt-4o-mini"] },
-        };
-      }
-      return {
-        integration: "OpenAI",
-        status: "CONFIGURED_OFFLINE",
-        latencyMs,
-        error: `HTTP ${res.status}: ${await res.text().catch(() => "")}`,
-        details: {},
-      };
-    } catch (err: any) {
-      return {
-        integration: "OpenAI",
-        status: "CONFIGURED_OFFLINE",
-        latencyMs: Date.now() - startTime,
-        error: err.message || String(err),
-        details: {},
-      };
-    }
+    return {
+      integration: "OpenAI",
+      status,
+      latencyMs: record.latencyMs,
+      error: record.error,
+      details: record.evidence?.metadata ?? (record.error ? { reason: record.error } : {}),
+    };
   }
 
   async checkAnthropic(): Promise<IntegrationCheckResult> {
-    const key = this.config.anthropicApiKey || process.env.ANTHROPIC_API_KEY;
-    if (!key) {
-      return {
-        integration: "Anthropic",
-        status: "NOT_CONFIGURED",
-        details: { reason: "ANTHROPIC_API_KEY environment variable is not set." },
-      };
-    }
+    const record = await this.truthEngine.verifyAnthropic();
+    let status: IntegrationStatus = "NOT_CONFIGURED";
+    if (record.runtime === "OPERATIONAL") status = "OPERATIONAL";
+    else if (record.configuration === "CONFIGURED") status = "CONFIGURED_OFFLINE";
 
     return {
       integration: "Anthropic",
-      status: "OPERATIONAL",
-      details: { supportedModels: ["claude-3-5-sonnet", "claude-3-haiku"] },
+      status,
+      latencyMs: record.latencyMs,
+      error: record.error,
+      details: record.evidence?.metadata ?? (record.error ? { reason: record.error } : {}),
     };
   }
 
   async checkOllama(): Promise<IntegrationCheckResult> {
-    const baseUrl = (this.config.ollamaBaseUrl || process.env.OLLAMA_BASE_URL || "http://localhost:11434").replace(/\/+$/, "");
-    const startTime = Date.now();
-    try {
-      const res = await this.fetchFn(`${baseUrl}/api/tags`);
-      const latencyMs = Date.now() - startTime;
-      if (res.ok) {
-        return {
-          integration: "Ollama",
-          status: "OPERATIONAL",
-          latencyMs,
-          details: { baseUrl },
-        };
-      }
-      return {
-        integration: "Ollama",
-        status: "CONFIGURED_OFFLINE",
-        latencyMs,
-        error: `HTTP ${res.status}`,
-        details: { baseUrl },
-      };
-    } catch (err: any) {
-      return {
-        integration: "Ollama",
-        status: "NOT_CONFIGURED",
-        error: "Ollama local daemon is not running.",
-        details: { baseUrl },
-      };
-    }
+    const record = await this.truthEngine.verifyOllama();
+    let status: IntegrationStatus = "NOT_CONFIGURED";
+    if (record.runtime === "OPERATIONAL") status = "OPERATIONAL";
+    else if (record.connectivity === "NOT_RUNNING") status = "NOT_CONFIGURED";
+    else if (record.configuration === "CONFIGURED") status = "CONFIGURED_OFFLINE";
+
+    return {
+      integration: "Ollama",
+      status,
+      latencyMs: record.latencyMs,
+      error: record.error,
+      details: record.evidence?.metadata ?? { baseUrl: this.config.ollamaBaseUrl || "http://localhost:11434" },
+    };
   }
 
   async checkN8n(): Promise<IntegrationCheckResult> {
-    const webhookUrl = this.config.n8nWebhookUrl || process.env.N8N_WEBHOOK_URL;
-    if (!webhookUrl) {
-      return {
-        integration: "n8n",
-        status: "DESIGNED",
-        details: { manifestVersion: "1.1.0", connectorStatus: "Manifest Registered" },
-      };
-    }
+    const record = await this.truthEngine.verifyN8n();
+    let status: IntegrationStatus = "DESIGNED";
+    if (record.runtime === "OPERATIONAL") status = "OPERATIONAL";
+    else if (record.configuration === "NOT_CONFIGURED") status = "DESIGNED";
+
     return {
       integration: "n8n",
-      status: "OPERATIONAL",
-      details: { webhookUrl },
+      status,
+      latencyMs: record.latencyMs,
+      error: record.error,
+      details: record.evidence?.metadata ?? { manifestVersion: "1.1.0", connectorStatus: "Manifest Registered" },
     };
   }
 
