@@ -343,6 +343,185 @@ test("${input.name} Health Contract Verification", () => {
     };
   }
 
+  /**
+   * Factory 2.0: Official Application Templates
+   */
+  public static getFactoryTemplates(): readonly {
+    readonly id: string;
+    readonly name: string;
+    readonly description: string;
+    readonly defaultCategory: string;
+    readonly recommendedCapabilities: readonly string[];
+    readonly defaultRuntime: string;
+  }[] {
+    return [
+      {
+        id: "generic-ai-app",
+        name: "Generic AI Application",
+        description: "Standard starter template for multi-turn task orchestration and structured output.",
+        defaultCategory: "Custom",
+        recommendedCapabilities: ["product.discovery", "report.generate"],
+        defaultRuntime: "node",
+      },
+      {
+        id: "commerce-ai-app",
+        name: "Commerce AI Application",
+        description: "E-commerce focused starter template with catalog search, recommendations, and cart assistance.",
+        defaultCategory: "Commerce",
+        recommendedCapabilities: ["product.discovery", "product.recommendation", "product.compare", "cart.assistance"],
+        defaultRuntime: "universal",
+      },
+      {
+        id: "support-ai-app",
+        name: "Enterprise Support AI",
+        description: "Customer service assistant template with durable event logging and ticket routing.",
+        defaultCategory: "Support",
+        recommendedCapabilities: ["report.generate", "automation.execute"],
+        defaultRuntime: "node",
+      },
+      {
+        id: "automation-ai-app",
+        name: "Data & Automation AI",
+        description: "Automated event-driven execution template with webhook triggers and scheduled operations.",
+        defaultCategory: "Automation",
+        recommendedCapabilities: ["automation.execute", "report.generate"],
+        defaultRuntime: "edge",
+      },
+    ];
+  }
+
+  /**
+   * Factory 2.0: Capability Dependency Graph
+   */
+  public static getCapabilityDependencyGraph(capabilities: readonly string[]): readonly {
+    readonly capabilityId: string;
+    readonly requiredFeatures: readonly string[];
+    readonly platformComponents: readonly string[];
+  }[] {
+    const dependencyMap: Record<string, { readonly features: readonly string[]; readonly components: readonly string[] }> = {
+      "product.discovery": {
+        features: ["Semantic & Keyword Search", "Catalog Projection"],
+        components: ["Model Gateway", "Tool Registry"],
+      },
+      "product.recommendation": {
+        features: ["Attribute Matching", "History Embeddings"],
+        components: ["Model Gateway", "Memory Subsystem"],
+      },
+      "product.compare": {
+        features: ["Attribute Differential", "Multi-Item Extraction"],
+        components: ["Model Gateway", "Tool Registry"],
+      },
+      "cart.assistance": {
+        features: ["Stateful Cart Memory", "Stock Mutation Rules"],
+        components: ["Core Runtime", "Security Boundary"],
+      },
+      "ar.fitting_room": {
+        features: ["WebXR / Model3D Pipeline", "Avatar Silhouette Projection"],
+        components: ["AR Pipeline Subsystem", "Media Gateway"],
+      },
+      "automation.execute": {
+        features: ["Webhook Ingestion", "Autonomous Planner Loop"],
+        components: ["Autonomous Operation Engine", "Durable Event Store"],
+      },
+      "report.generate": {
+        features: ["Telemetry Aggregation", "Markdown / HTML Rendering"],
+        components: ["Observability Engine", "Model Gateway"],
+      },
+    };
+
+    return capabilities.map((capId) => {
+      const entry = dependencyMap[capId] ?? {
+        features: ["Generic Task Invocation"],
+        components: ["Core Runtime"],
+      };
+      return {
+        capabilityId: capId,
+        requiredFeatures: entry.features,
+        platformComponents: entry.components,
+      };
+    });
+  }
+
+  /**
+   * Factory 2.0: Application Repair
+   */
+  public static repairConfiguration(
+    manifest: ApplicationManifest,
+    tenant: Tenant
+  ): {
+    readonly repaired: boolean;
+    readonly originalManifest: ApplicationManifest;
+    readonly repairedManifest: ApplicationManifest;
+    readonly actionsTaken: readonly string[];
+  } {
+    const actions: string[] = [];
+    let repairedId = manifest.applicationId.toLowerCase().trim().replace(/[^a-z0-9-]/g, "-");
+    if (repairedId !== manifest.applicationId) {
+      actions.push(`Normalized applicationId format to '${repairedId}'`);
+    }
+
+    const entitlement = this.checkEntitlements(manifest.capabilities, tenant);
+    let allowedCaps = [...manifest.capabilities];
+    if (entitlement.rejectedCapabilities.length > 0) {
+      allowedCaps = allowedCaps.filter(
+        (c) => !entitlement.rejectedCapabilities.some((r) => r.capabilityId === c)
+      );
+      actions.push(
+        `Pruned unentitled capabilities for ${tenant.plan} plan: ${entitlement.rejectedCapabilities.map((r) => r.capabilityId).join(", ")}`
+      );
+    }
+
+    const repairedManifest: ApplicationManifest = {
+      ...manifest,
+      applicationId: repairedId,
+      capabilities: allowedCaps,
+      version: manifest.version?.match(/^\d+\.\d+\.\d+/) ? manifest.version : "1.0.0",
+    };
+
+    return {
+      repaired: actions.length > 0,
+      originalManifest: manifest,
+      repairedManifest,
+      actionsTaken: actions,
+    };
+  }
+
+  /**
+   * Factory 2.0: Export Application Bundle (credentials excluded)
+   */
+  public static exportApplicationBundle(result: GeneratedApplicationResult): {
+    readonly applicationId: string;
+    readonly exportedAt: string;
+    readonly manifest: ApplicationManifest;
+    readonly files: readonly GeneratedFile[];
+    readonly integrationGuide: string;
+  } {
+    const integrationGuide = [
+      `# Integration Guide: ${result.manifest.name}`,
+      `Application ID: ${result.manifest.applicationId}`,
+      `Target Tenant: ${(result.manifest as any).tenantId ?? "tenant-default"}`,
+      `Lifecycle State: ${result.lifecycle}`,
+      "",
+      "## Quick Start",
+      "1. Install the official Platform SDK in your project:",
+      "   `npm install @ai-platform/sdk`",
+      "2. Initialize the adapter with your base URL and API Key in environment variables.",
+      "3. Call `adapter.checkPlatformHealth()` to verify connectivity.",
+      "",
+      "## Security & Compliance",
+      "- Do NOT commit API keys to source repositories.",
+      "- All requests propagate tenant and correlation telemetry.",
+    ].join("\n");
+
+    return {
+      applicationId: result.manifest.applicationId,
+      exportedAt: new Date().toISOString(),
+      manifest: result.manifest,
+      files: result.files,
+      integrationGuide,
+    };
+  }
+
   private static toPascalCase(str: string): string {
     return str
       .replace(/[-_](\w)/g, (_, c) => c.toUpperCase())

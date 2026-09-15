@@ -1,0 +1,22 @@
+{
+  "applicationId": "hello-ai-application",
+  "name": "Hello AI Application",
+  "version": "1.0.0",
+  "runtime": "node",
+  "tenantId": "tenant-default",
+  "capabilities": [
+    "product.discovery",
+    "report.generate"
+  ],
+  "securityRequirements": {
+    "networkIsolation": true,
+    "auditTrail": true,
+    "defaultDeny": true
+  },
+  "metadata": {
+    "description": "Minimal reference application demonstrating official PlatformClient integration and governed capability consumption.",
+    "category": "Custom",
+    "owner": "Developer Platform Engineering",
+    "trustLevel": "VALIDATED"
+  }
+}
