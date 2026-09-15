@@ -322,5 +322,36 @@ export async function resetDemo() {
   });
 }
 
+// --- Application Factory & Ecosystem API Methods (Prompts 91-93) ---
 
+export async function getApplicationAnalytics(id) {
+  return request(`/applications/${encodeURIComponent(id)}/analytics`);
+}
 
+export async function updateApplicationLifecycle(id, state, reason) {
+  return request(`/applications/${encodeURIComponent(id)}/lifecycle`, {
+    method: "POST",
+    body: JSON.stringify({ state, reason }),
+  });
+}
+
+export async function generateApplication(input) {
+  return request("/factory/generate", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function validateApplication(manifest, tenantId) {
+  return request("/factory/validate", {
+    method: "POST",
+    body: JSON.stringify({ manifest, tenantId }),
+  });
+}
+
+export async function registerApplication(manifest, tenantId) {
+  return request("/factory/register", {
+    method: "POST",
+    body: JSON.stringify({ manifest, tenantId }),
+  });
+}

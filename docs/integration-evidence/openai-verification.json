@@ -1,10 +1,10 @@
 {
-  "traceId": "trace-verify-openai-c2dc3818",
+  "traceId": "trace-verify-openai-2f43544f",
   "provider": "openai",
   "environment": "production",
-  "verifiedAt": "2026-09-15T12:06:42.970Z",
+  "verifiedAt": "2026-09-15T16:14:13.245Z",
   "status": "OPERATIONAL",
-  "latencyMs": 10,
+  "latencyMs": 7,
   "metadata": {
     "verifiedModels": [
       "gpt-4o",

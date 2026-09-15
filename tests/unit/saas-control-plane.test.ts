@@ -39,7 +39,7 @@ test("Prompt 82 - SaaS Control Plane: Tenant Dashboard & Working Set Quotas", as
   assert.ok(Array.isArray(dashboard.quotas));
   assert.equal(dashboard.quotas.length, 4);
 
-  const taskQuota = dashboard.quotas.find((q) => q.metric === "tasks");
+  const taskQuota = dashboard.quotas.find((q: any) => q.metric === "tasks");
   assert.ok(taskQuota);
   assert.equal(taskQuota.limit, 5000);
   assert.equal(taskQuota.status, "OK");

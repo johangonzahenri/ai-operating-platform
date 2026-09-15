@@ -73,16 +73,26 @@ import {
   TaskDTO,
   ToolDTO,
   UpdateAgentRequestDTO,
-  TenantDTO,
-  TenantUsageDashboardDTO,
   GlobalUsageSummaryDTO,
   QuotaItemDTO,
+  TenantDTO,
+  TenantUsageDashboardDTO,
+  ApplicationAnalyticsDTO,
+  ApplicationLifecycleUpdateDTO,
 } from "./platform-dto.js";
 import { projectExecutionObservability } from "../product/execution-observability.js";
 import { Tenant, DEFAULT_PLAN_LIMITS } from "../../domain/tenant/tenant.js";
 import { QuotaService } from "../../application/billing/quota-service.js";
-import { ApplicationValidator, PLATFORM_CAPABILITY_CATALOG } from "../../domain/application/application-contract.js";
+import { ApplicationValidator, PLATFORM_CAPABILITY_CATALOG, ApplicationManifest, ApplicationValidationResult } from "../../domain/application/application-contract.js";
 import { IntegrationTruthEngine, IntegrationTruthRecord } from "../../infrastructure/config/integration-truth-engine.js";
+import {
+  ApplicationFactoryEngine,
+  GenerateApplicationInput,
+  GeneratedApplicationResult,
+  ApplicationLifecycleState,
+  ApplicationHarnessResult,
+} from "../../application/factory/application-generator.js";
+import { ExternalApplication } from "../../domain/application/external-application.js";
 
 export { TaskNotFoundError };
 
@@ -1410,18 +1420,20 @@ export class PlatformService {
     if (!tenant) return undefined;
 
     const period = `${new Date().getUTCFullYear()}-${String(new Date().getUTCMonth() + 1).padStart(2, "0")}`;
-    const allTasks = this.getTasks();
-    const allExecutions = this.getExecutions();
+    const allTasks = this.deps.tasks.list();
+    const allExecutions = this.deps.executions.list();
     const allApps = this.listApplications();
 
     // Tenant-isolated calculations
     const tenantApps = allApps.filter((a) => a.tenantId === tenantId);
-    const tenantTasks = allTasks.filter((t) => {
-      const callerTenant = (t.input?.metadata as Record<string, unknown> | undefined)?.callerTenantId;
-      return callerTenant === tenantId || (tenantId === "tenant-tentaciones" && (t.agentId === "tentaciones-agent" || t.traceId.includes("tentaciones")));
+    const tenantTasks = allTasks.filter((t: any) => {
+      const callerTenant = (t.request?.input?.metadata as Record<string, unknown> | undefined)?.callerTenantId ?? (t.input?.metadata as Record<string, unknown> | undefined)?.callerTenantId;
+      const agent = t.request?.agentId ?? t.agentId;
+      const trace = t.traceId ?? "";
+      return callerTenant === tenantId || (tenantId === "tenant-tentaciones" && (agent === "tentaciones-agent" || trace.includes("tentaciones")));
     });
-    const tenantExecutions = allExecutions.filter((e) => {
-      return tenantTasks.some((t) => t.id === e.taskId || t.traceId === e.traceId);
+    const tenantExecutions = allExecutions.filter((e: any) => {
+      return tenantTasks.some((t: any) => t.id === e.taskId || t.traceId === e.traceId);
     });
 
     const tasksUsage = tenantTasks.length;
@@ -1487,25 +1499,31 @@ export class PlatformService {
   }
 
   getGlobalUsageSummary(): GlobalUsageSummaryDTO {
-    const tasks = this.getTasks();
-    const executions = this.getExecutions();
+    const tasks = this.deps.tasks.list();
+    const executions = this.deps.executions.list();
     const operations = this.listOperations();
     const apps = this.listApplications();
     const tenants = this.listTenants();
 
     let totalToolCalls = 0;
     for (const exec of executions) {
-      totalToolCalls += exec.completedToolCalls ?? exec.toolCalls ?? 0;
+      const execAny = exec as any;
+      totalToolCalls += execAny.completedToolCalls ?? execAny.toolCalls ?? 0;
     }
 
     return {
       totalTasks: tasks.length,
       totalExecutions: executions.length,
-      totalModelCalls: executions.filter((e) => e.model !== undefined).length,
+      totalModelCalls: executions.filter((e: any) => (e as any).model !== undefined).length,
       totalTokens: "NOT_AVAILABLE", // Honest reporting: token tracking requires live tokenizer
       totalToolCalls,
       totalAutomationRuns: operations.length,
-      totalArRuns: tasks.filter((t) => t.agentId?.includes("ar") || t.traceId?.includes("ar") || JSON.stringify(t.input).includes("ar")).length,
+      totalArRuns: tasks.filter((t: any) => {
+        const agent = t.request?.agentId ?? t.agentId ?? "";
+        const trace = t.traceId ?? "";
+        const inputStr = JSON.stringify(t.request?.input ?? t.input ?? {});
+        return agent.includes("ar") || trace.includes("ar") || inputStr.includes("ar");
+      }).length,
       totalStorageMb: "NOT_AVAILABLE", // Honest reporting: storage metrics require disk quota engine
       activeTenantsCount: tenants.filter((t) => t.status === "ACTIVE").length,
       activeApplicationsCount: apps.filter((a) => a.runtimeStatus === "HEALTHY" || a.runtimeStatus === "AVAILABLE").length,
@@ -1570,6 +1588,190 @@ export class PlatformService {
       timestamp: new Date().toISOString(),
       resetEntities: ["demo-tenant", "demo-tasks", "demo-executions", "demo-carts", "demo-events"],
       tenantId: "tenant-tentaciones",
+    };
+  }
+
+  generateApplication(input: GenerateApplicationInput): GeneratedApplicationResult {
+    const tenant = this.tenants.get(input.tenantId);
+    return ApplicationFactoryEngine.generateSkeleton(input, tenant);
+  }
+
+  validateApplicationManifest(manifest: unknown, tenantId?: string): {
+    readonly validation: ApplicationValidationResult;
+    readonly entitlement?: import("../../application/factory/application-generator.js").CapabilityEntitlementResult | undefined;
+    readonly harness?: ApplicationHarnessResult | undefined;
+  } {
+    const validation = ApplicationValidator.validateManifest(manifest);
+    const tenant = tenantId ? this.tenants.get(tenantId) : undefined;
+    let entitlement = undefined;
+    let harness = undefined;
+
+    if (validation.valid && typeof manifest === "object" && manifest !== null) {
+      const m = manifest as ApplicationManifest;
+      if (tenant) {
+        entitlement = ApplicationFactoryEngine.checkEntitlements(m.capabilities, tenant);
+      }
+      harness = ApplicationFactoryEngine.runHarness(m, tenant, true);
+    }
+
+    return { validation, entitlement, harness };
+  }
+
+  registerApplication(manifest: ApplicationManifest, tenantId: string): ExternalApplication {
+    const tenant = this.tenants.get(tenantId);
+    if (!tenant) {
+      throw new Error(`Tenant '${tenantId}' not found for application registration.`);
+    }
+
+    const validation = ApplicationValidator.validateManifest(manifest);
+    if (!validation.valid) {
+      throw new Error(`Manifest validation failed: ${validation.errors.join(", ")}`);
+    }
+
+    const entitlement = ApplicationFactoryEngine.checkEntitlements(manifest.capabilities, tenant);
+    if (!entitlement.entitled) {
+      throw new Error(`Entitlement check failed: ${entitlement.rejectedCapabilities.map((r) => r.reason).join("; ")}`);
+    }
+
+    const appEntity = ExternalApplication.create({
+      id: manifest.applicationId,
+      name: manifest.name,
+      category: "Custom AI Application",
+      role: "External Consumer",
+      implementationStatus: "IMPLEMENTED",
+      runtimeStatus: "HEALTHY",
+      authenticationMode: "API_KEY",
+      sourceOfTruth: "Platform API",
+      allowedCapabilities: manifest.capabilities,
+      endpoints: ["POST /api/v1/tasks", "GET /api/v1/health"],
+      description: `Generated application '${manifest.name}' registered via AI Application Factory.`,
+      tags: ["Factory", "Generated", "External Consumer"],
+      tenantId,
+    });
+
+    (this.applications as any).register(appEntity);
+
+    if (this.eventStore) {
+      this.eventStore.append({
+        eventId: crypto.randomUUID(),
+        eventType: "application.registered",
+        aggregateType: "application",
+        aggregateId: manifest.applicationId,
+        traceId: `trace-app-reg-${manifest.applicationId}`,
+        correlationId: manifest.applicationId,
+        occurredAt: new Date(),
+        schemaVersion: 1,
+        payload: {
+          applicationId: manifest.applicationId,
+          name: manifest.name,
+          version: manifest.version,
+          tenantId,
+          capabilities: manifest.capabilities,
+        },
+      });
+    }
+
+    return appEntity;
+  }
+
+  updateApplicationLifecycle(
+    appId: string,
+    state: ApplicationLifecycleState,
+    reason?: string
+  ): ExternalApplication {
+    const existing = (this.applications as any).findEntityById
+      ? (this.applications as any).findEntityById(appId)
+      : (this.applications as any).findById(appId);
+    if (!existing) {
+      throw new Error(`Application '${appId}' not found.`);
+    }
+
+    const runtimeStatus =
+      state === "OPERATIONAL" || state === "CONNECTED" || state === "REGISTERED"
+        ? "HEALTHY"
+        : state === "SUSPENDED"
+        ? "DEGRADED"
+        : "NOT_CONNECTED";
+
+    const updated = ExternalApplication.create({
+      id: existing.id,
+      name: existing.name,
+      category: existing.category,
+      role: existing.role,
+      implementationStatus: existing.implementationStatus,
+      runtimeStatus,
+      authenticationMode: existing.authenticationMode,
+      sourceOfTruth: existing.sourceOfTruth,
+      allowedCapabilities: state === "SUSPENDED" || state === "RETIRED" ? [] : existing.allowedCapabilities,
+      endpoints: existing.endpoints,
+      description: existing.description,
+      tags: existing.tags,
+      architecture: existing.architecture,
+      tenantId: existing.tenantId,
+    });
+
+    (this.applications as any).update(updated);
+
+    if (this.eventStore) {
+      this.eventStore.append({
+        eventId: crypto.randomUUID(),
+        eventType: state === "SUSPENDED" ? "application.suspended" : state === "RETIRED" ? "application.revoked" : "application.connected",
+        aggregateType: "application",
+        aggregateId: appId,
+        traceId: `trace-app-lifecycle-${appId}`,
+        correlationId: appId,
+        occurredAt: new Date(),
+        schemaVersion: 1,
+        payload: {
+          applicationId: appId,
+          previousRuntimeStatus: existing.runtimeStatus,
+          newRuntimeStatus: runtimeStatus,
+          lifecycleState: state,
+          reason: reason ?? "Lifecycle state update",
+        },
+      });
+    }
+
+    return updated;
+  }
+
+  getApplicationAnalytics(appId: string): ApplicationAnalyticsDTO {
+    const app = this.applications.findById(appId);
+    if (!app) {
+      throw new Error(`Application '${appId}' not found.`);
+    }
+
+    const tasks = this.deps.tasks.list().filter((t: any) => {
+      const inputStr = JSON.stringify(t.request?.input ?? t.input ?? {});
+      return inputStr.includes(appId) || (t.metadata && (t.metadata as any).applicationId === appId);
+    });
+
+    const taskIds = new Set(tasks.map((t: any) => t.id));
+    const executions = this.deps.executions.list().filter((e: any) => taskIds.has(e.taskId));
+    const successfulExecutions = executions.filter((e: any) => e.status === "COMPLETED").length;
+    const failedExecutions = executions.filter((e: any) => e.status === "FAILED").length;
+    const totalExecs = executions.length;
+    const errorRate = totalExecs > 0 ? Math.round((failedExecutions / totalExecs) * 1000) / 1000 : 0;
+
+    return {
+      applicationId: app.id,
+      name: app.name,
+      tenantId: app.tenantId ?? "tenant-default",
+      totalTasks: tasks.length,
+      totalExecutions: totalExecs,
+      totalModelCalls: executions.filter((e: any) => (e as any).model !== undefined).length,
+      totalToolCalls: executions.reduce((acc: number, e: any) => acc + ((e as any).toolCallObservations?.length ?? 0), 0),
+      successfulExecutions,
+      failedExecutions,
+      errorRate,
+      grantedCapabilities: app.allowedCapabilities,
+      lifecycleStatus: app.runtimeStatus,
+      lastActivityAt:
+        tasks.length > 0
+          ? tasks[tasks.length - 1]?.createdAt instanceof Date
+            ? tasks[tasks.length - 1]?.createdAt.toISOString()
+            : String(tasks[tasks.length - 1]?.createdAt)
+          : undefined,
     };
   }
 }

@@ -483,4 +483,25 @@ export interface GlobalUsageSummaryDTO {
   readonly activeApplicationsCount: number;
 }
 
+export interface ApplicationAnalyticsDTO {
+  readonly applicationId: string;
+  readonly name: string;
+  readonly tenantId: string;
+  readonly totalTasks: number;
+  readonly totalExecutions: number;
+  readonly totalModelCalls: number;
+  readonly totalToolCalls: number;
+  readonly successfulExecutions: number;
+  readonly failedExecutions: number;
+  readonly errorRate: number;
+  readonly grantedCapabilities: readonly string[];
+  readonly lifecycleStatus: string;
+  readonly lastActivityAt?: string | undefined;
+}
+
+export interface ApplicationLifecycleUpdateDTO {
+  readonly state: "DRAFT" | "VALIDATED" | "REGISTERED" | "CONNECTED" | "OPERATIONAL" | "SUSPENDED" | "RETIRED";
+  readonly reason?: string | undefined;
+}
+
 

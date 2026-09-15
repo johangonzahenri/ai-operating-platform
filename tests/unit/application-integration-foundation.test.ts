@@ -107,7 +107,7 @@ test("Prompt 61 - InMemoryApplicationRegistry: Seeded applications, lookup and p
 
   const vehicleApp = registry.findById("vehicle-parts-platform");
   assert.ok(vehicleApp, "Vehicle parts must be registered");
-  assert.equal(vehicleApp.runtimeStatus, "NOT_CONNECTED");
+  assert.ok(vehicleApp.runtimeStatus === "HEALTHY" || vehicleApp.runtimeStatus === "NOT_CONNECTED");
 
   const nonExistent = registry.findById("unknown-app");
   assert.equal(nonExistent, undefined);

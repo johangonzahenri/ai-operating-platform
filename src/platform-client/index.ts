@@ -215,6 +215,44 @@ export function createPlatformClient(options: PlatformClientOptions) {
     async get(id: string): Promise<ApplicationDTO> {
       return request<ApplicationDTO>(`/applications/${encodeURIComponent(id)}`);
     },
+    async analytics(id: string): Promise<import("../platform/api/platform-dto.js").ApplicationAnalyticsDTO> {
+      return request<import("../platform/api/platform-dto.js").ApplicationAnalyticsDTO>(`/applications/${encodeURIComponent(id)}/analytics`);
+    },
+    async updateLifecycle(
+      id: string,
+      state: "DRAFT" | "VALIDATED" | "REGISTERED" | "CONNECTED" | "OPERATIONAL" | "SUSPENDED" | "RETIRED",
+      reason?: string
+    ): Promise<ApplicationDTO> {
+      return request<ApplicationDTO>(`/applications/${encodeURIComponent(id)}/lifecycle`, {
+        method: "POST",
+        body: JSON.stringify({ state, reason }),
+      });
+    },
+  };
+
+  const factory = {
+    async generate(input: unknown): Promise<import("../application/factory/application-generator.js").GeneratedApplicationResult> {
+      return request<import("../application/factory/application-generator.js").GeneratedApplicationResult>("/factory/generate", {
+        method: "POST",
+        body: JSON.stringify(input),
+      });
+    },
+    async validate(manifest: unknown, tenantId?: string): Promise<{
+      readonly validation: import("../domain/application/application-contract.js").ApplicationValidationResult;
+      readonly entitlement?: import("../application/factory/application-generator.js").CapabilityEntitlementResult;
+      readonly harness?: import("../application/factory/application-generator.js").ApplicationHarnessResult;
+    }> {
+      return request("/factory/validate", {
+        method: "POST",
+        body: JSON.stringify({ manifest, tenantId }),
+      });
+    },
+    async register(manifest: unknown, tenantId: string): Promise<ApplicationDTO> {
+      return request<ApplicationDTO>("/factory/register", {
+        method: "POST",
+        body: JSON.stringify({ manifest, tenantId }),
+      });
+    },
   };
 
   const tenants = {
@@ -294,6 +332,7 @@ export function createPlatformClient(options: PlatformClientOptions) {
     executions,
     agents,
     applications,
+    factory,
     tenants,
     usage,
     capabilities,

@@ -624,6 +624,102 @@ export function createHttpServer(
           return;
         }
 
+        // GET /applications/:id/analytics
+        const appAnalyticsMatch = subPath.match(/^\/applications\/([^/]+)\/analytics$/);
+        if (appAnalyticsMatch && req.method === "GET") {
+          const id = normalizeId(appAnalyticsMatch[1]);
+          if (!id) {
+            sendError(400, "Bad Request: Invalid application ID format", "INVALID_ID");
+            return;
+          }
+          try {
+            const analytics = service.getApplicationAnalytics(id);
+            sendJson(200, analytics);
+            return;
+          } catch (err: any) {
+            sendError(404, err.message, "APPLICATION_NOT_FOUND");
+            return;
+          }
+        }
+
+        // POST /applications/:id/lifecycle
+        const appLifecycleMatch = subPath.match(/^\/applications\/([^/]+)\/lifecycle$/);
+        if (appLifecycleMatch && req.method === "POST") {
+          const id = normalizeId(appLifecycleMatch[1]);
+          if (!id) {
+            sendError(400, "Bad Request: Invalid application ID format", "INVALID_ID");
+            return;
+          }
+          const bodyResult = await readJsonBody();
+          if (!bodyResult.ok) {
+            sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+            return;
+          }
+          try {
+            const body = bodyResult.body as { state: any; reason?: string };
+            const updated = service.updateApplicationLifecycle(id, body.state, body.reason);
+            sendJson(200, updated);
+            return;
+          } catch (err: any) {
+            sendError(400, err.message, "LIFECYCLE_UPDATE_FAILED");
+            return;
+          }
+        }
+
+        // POST /factory/generate
+        if (subPath === "/factory/generate" && req.method === "POST") {
+          const bodyResult = await readJsonBody();
+          if (!bodyResult.ok) {
+            sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+            return;
+          }
+          try {
+            const generated = service.generateApplication(bodyResult.body as any);
+            sendJson(201, generated);
+            return;
+          } catch (err: any) {
+            sendError(400, err.message, "FACTORY_GENERATION_FAILED");
+            return;
+          }
+        }
+
+        // POST /factory/validate
+        if (subPath === "/factory/validate" && req.method === "POST") {
+          const bodyResult = await readJsonBody();
+          if (!bodyResult.ok) {
+            sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+            return;
+          }
+          const body = bodyResult.body as { manifest?: any; tenantId?: string };
+          const validationResult = service.validateApplicationManifest(
+            body.manifest ?? body,
+            body.tenantId
+          );
+          sendJson(200, validationResult);
+          return;
+        }
+
+        // POST /factory/register
+        if (subPath === "/factory/register" && req.method === "POST") {
+          const bodyResult = await readJsonBody();
+          if (!bodyResult.ok) {
+            sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+            return;
+          }
+          try {
+            const body = bodyResult.body as { manifest?: any; tenantId?: string };
+            const registered = service.registerApplication(
+              body.manifest ?? body,
+              body.tenantId ?? "tenant-default"
+            );
+            sendJson(201, registered);
+            return;
+          } catch (err: any) {
+            sendError(400, err.message, "FACTORY_REGISTRATION_FAILED");
+            return;
+          }
+        }
+
         // GET /agents
         if (subPath === "/agents" && req.method === "GET") {
           const authCheck = await authenticateAndAuthorize("agent.read", "AGENT");
