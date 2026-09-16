@@ -1,50 +1,39 @@
-# Standard API Error Contract
+# Standard API Error Contract (Contrato de Errores de API)
+## Estructura Uniforme de Respuestas de Error y Códigos Canónicos (v1.1.0)
 
-## 1. Overview
-
-The **Enterprise API Gateway** enforces a deterministic, uniform error contract across all endpoints. Errors are sanitized to prevent secret leaks, internal filesystem disclosure, and stack trace exposure.
+Todas las respuestas de error emitidas por la **Platform API** se ajustan estrictamente al estándar RFC 7807 (Problem Details for HTTP APIs).
 
 ---
 
-## 2. Standard Error Payload Schema
-
-Every error response (`4xx` and `5xx`) adheres to the JSON schema:
+## 1. Esquema JSON de Error
 
 ```json
 {
   "error": {
-    "code": "VALIDATION | AUTHENTICATION | AUTHORIZATION | NOT_FOUND | CONFLICT | RATE_LIMITED | DEPENDENCY_UNAVAILABLE | DEVICE_UNAVAILABLE | CAPABILITY_UNSUPPORTED | INTERNAL",
-    "message": "Human-readable sanitized error description.",
-    "requestId": "req-9b8c-4f12",
-    "correlationId": "corr-req-9b8c-4f12",
+    "code": "POLICY_VIOLATION",
+    "message": "La operación solicitada viola la política de seguridad default-deny.",
+    "statusCode": 403,
     "details": {
-      "field": "Optional sanitized metadata without secrets"
-    }
-  },
-  "status": 400
+      "policyId": "allow-only-whitelisted-tools",
+      "requiredPermission": "tools:execute:write"
+    },
+    "traceId": "trace-err-771a",
+    "timestamp": "2026-09-16T18:40:00.000Z"
+  }
 }
 ```
 
-For backwards compatibility with v1 clients, top-level `error`, `status`, and `code` properties are maintained in HTTP JSON bodies.
-
 ---
 
-## 3. Error Codes & HTTP Status Mapping
+## 2. Códigos de Error Canónicos
 
-| Error Code | HTTP Status | Description |
-|---|---|---|
-| `VALIDATION` | 400 | Malformed JSON, invalid identifier format, missing required parameters |
-| `AUTHENTICATION` | 401 | Missing or invalid API key, bearer token, or expired credentials |
-| `AUTHORIZATION` | 403 | Insufficient RBAC permissions or tenant boundary violation |
-| `NOT_FOUND` | 404 | Requested entity, task, device, application, or route does not exist |
-| `CONFLICT` | 409 | Resource state conflict or idempotency key mismatch |
-| `RATE_LIMITED` | 429 | Request rate exceeded tier limit (Global, Tenant, App, Principal, Device) |
-| `DEVICE_UNAVAILABLE` | 503 | Hardware device is disconnected or offline |
-| `CAPABILITY_UNSUPPORTED`| 400 | Requested capability is not supported by target hardware |
-| `INTERNAL` | 500 | Unhandled server exception (stack trace omitted in production) |
-
----
-
-## 4. Secret Scrubbing Guarantee
-
-The gateway automatically intercepts error detail objects and scrubs sensitive parameters matching `/(secret|password|key|token|auth|bearer|private)/i`, replacing them with `[REDACTED]` to ensure zero token leakage in logs or responses.
+| Código de Error | HTTP Status | Racional Técnico |
+| :--- | :--- | :--- |
+| `VALIDATION_FAILED` | 400 | El esquema de entrada no cumple con la especificación JSON Schema / Zod. |
+| `UNAUTHORIZED` | 401 | Credenciales de autenticación ausentes, inválidas o expiradas. |
+| `POLICY_VIOLATION` | 403 | La política de seguridad *default-deny* denegó la operación solicitada. |
+| `TASK_NOT_FOUND` | 404 | El `taskId` provisto no existe en el repositorio durable. |
+| `OPTIMISTIC_CONCURRENCY_ERROR` | 409 | Colisión de versión OCC al intentar actualizar un registro con versión obsoleta. |
+| `QUOTA_EXHAUSTED` | 429 | El inquilino ha superado su presupuesto mensual de tokens o llamadas. |
+| `CRASH_RECOVERY_RECONCILED` | 500 | Tarea reconciliada como fallida tras un reinicio inesperado del servidor. |
+| `INTERNAL_ERROR` | 500 | Excepción no contemplada en la infraestructura del servidor. |

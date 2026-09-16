@@ -1,3 +1,4 @@
+import { i18n } from "./i18n/index.js";
 // Web Platform Client Application (Strictly typed DOM construction, zero innerHTML, consumes api-client.js)
 import * as api from "./api-client.js";
 
@@ -165,6 +166,7 @@ class PlatformApp {
   }
 
   init() {
+    this.setupI18n();
     this.setupTheme();
     this.setupTabs();
     this.setupPlatformOperations();
@@ -652,11 +654,7 @@ class PlatformApp {
       "device-detail": { title: "Device Identity & Capabilities", sub: "Deep hardware diagnostics, declared capabilities, and print queue inspection" },
     };
 
-    const info = titles[tab] || titles["platform-operations"];
-    const titleElem = document.getElementById("view-title");
-    const subElem = document.getElementById("view-subtitle");
-    if (titleElem) titleElem.textContent = info.title;
-    if (subElem) subElem.textContent = info.sub;
+    this.updateViewHeader(tab);
 
     if (tab === "platform-operations") {
       this.loadPlatformOperationsData();

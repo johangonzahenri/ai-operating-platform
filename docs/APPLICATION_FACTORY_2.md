@@ -1,67 +1,17 @@
-# Application Factory 2.0 Specification
+# Application Factory 2.0 (Fábrica de Aplicaciones)
+## Generación Declarativa de Micro-Frontends y Backends de Agentes (v1.1.0)
 
-## 1. Architectural Role
-The **Application Factory 2.0** automates the generation, validation, capability entitlement checking, test harness execution, and packaging of external applications consuming the AI Operating Platform.
+La **Application Factory** (Fábrica de Aplicaciones) es el motor generativo de la plataforma que automatiza la creación de aplicaciones gobernadas a partir de especificaciones declarativas.
 
 ---
 
-## 2. 8-Step Creation Wizard
+## 1. Arquitectura de Generación
 
 ```text
-1. Identity (applicationId, name, version, category)
-2. Runtime (node, browser, edge, universal)
-3. Tenant (tenant-tentaciones, tenant-automotive, tenant-support, custom)
-4. Capabilities (product.discovery, cart.assistance, automation.execute, etc.)
-5. Security Requirements (networkIsolation, auditTrail, defaultDeny)
-6. Templates (Generic, Commerce, Support, Automation)
-7. Review & Dependency Graph (live entitlement & dependency validation)
-8. Generate & Export (project skeleton & manifest generation)
+[Manifiesto JSON] ──► [Application Factory Engine] ──► [Micro-Frontend + Agentes + Configuración de API]
 ```
 
----
-
-## 3. Official Templates
-
-1. **Generic AI Application (`generic-ai-app`)**:
-   - Capabilities: `product.discovery`, `report.generate`
-   - Runtime: `node`
-2. **Commerce AI Application (`commerce-ai-app`)**:
-   - Capabilities: `product.discovery`, `product.recommendation`, `product.compare`, `cart.assistance`
-   - Runtime: `universal`
-3. **Enterprise Support AI (`support-ai-app`)**:
-   - Capabilities: `report.generate`, `automation.execute`
-   - Runtime: `node`
-4. **Data & Automation AI (`automation-ai-app`)**:
-   - Capabilities: `automation.execute`, `report.generate`
-   - Runtime: `edge`
-
----
-
-## 4. Capability Dependency Graph
-
-```text
-ar.fitting_room
-  ├── Requires: WebXR / Model3D Pipeline, Avatar Silhouette Projection
-  └── Components: AR Pipeline Subsystem, Media Gateway
-
-automation.execute
-  ├── Requires: Webhook Ingestion, Autonomous Planner Loop
-  └── Components: Autonomous Operation Engine, Durable Event Store
-
-product.discovery
-  ├── Requires: Semantic & Keyword Search, Catalog Projection
-  └── Components: Model Gateway, Tool Registry
-```
-
----
-
-## 5. 7-Criteria Test Harness & Verification
-
-Every generated application must pass:
-1. **Identity**: Valid slug format and semantic versioning.
-2. **Authentication**: Rejection of unauthenticated requests fail-closed.
-3. **Authorization**: Tenant-level capability entitlement checks.
-4. **Capabilities**: Conformance to platform capability registry.
-5. **Health**: Live HTTP/SDK connectivity verification.
-6. **Version**: Compatibility against target platform version.
-7. **Observability**: Consistent trace propagation across requests.
+### Capacidades del Motor 2.0:
+* **Validación Previa:** Verificación automática de que las capacidades solicitadas existen en el `ToolRegistry` y que el inquilino posee presupuesto suficiente.
+* **Generación de UI Reactiva:** Ensamblaje de componentes visuales optimizados y accesibles con estilos consistentes y soporte para internacionalización.
+* **Gobernanza Nativa:** Las aplicaciones generadas nacen automáticamente vinculadas a las políticas *default-deny* y al sistema de observabilidad de la plataforma.

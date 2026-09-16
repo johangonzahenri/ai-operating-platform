@@ -1,49 +1,85 @@
-# AI Operating Platform — Documentation Index
+# Índice Canónico de Documentación Oficial
+## AI Operating Platform — Versión 1.1.0 Enterprise
 
-Welcome to the comprehensive technical documentation for the **AI Operating Platform**.
+Bienvenido al centro documental de la **AI Operating Platform**. La documentación oficial está estructurada en 16 categorías maestras para facilitar la navegación técnica y operacional:
 
-## Documentation Categories
+---
 
-### 1. Architecture & Foundations
-- [Official System Manual](MANUAL_OFICIAL.md)
-- [Production Architecture & Deployment](PRODUCTION_ARCHITECTURE.md)
-- [Scalability & Resilience Engineering](SCALABILITY.md)
-- [System Architecture Overview](../ARCHITECTURE.md)
-- [Architectural Decision Records (ADRs)](decisions/)
-- [Domain Boundaries & Hexagonal Model](architecture/domain-boundaries.md)
-- [Official Architecture Book (Spanish)](../LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md)
+### 01 — Fundamentos & Visión
+* [Manual Oficial de la Plataforma (Índice Maestro)](MANUAL_OFICIAL.md)
+* [Resumen Técnico de Portafolio de Ingeniería](PORTFOLIO_OVERVIEW.md)
+* [Guía de Estilo Documental y Políticas de Idioma](DOCUMENTATION_STYLE_GUIDE.md)
 
-### 2. Security & Governance
-- [Enterprise Governance & Control Plane](ENTERPRISE_GOVERNANCE.md)
-- [Security Architecture & Threat Model](SECURITY_ARCHITECTURE.md)
-- [Authentication & Principal Model](AUTHENTICATION.md)
-- [Authorization & RBAC Controls](AUTHORIZATION.md)
-- [Security Control Matrix](SECURITY_CONTROL_MATRIX.md)
-- [Repository Security Policy](../SECURITY.md)
+### 02 — Arquitectura Canónica & Decisiones
+* [Manual de Arquitectura (Topología Hexagonal & Reglas)](MANUAL_ARQUITECTURA.md)
+* [Arquitectura del Motor y Separación de Capas](ARCHITECTURE.md)
+* [Registros de Decisiones Arquitectónicas (ADRs)](decisions/)
+* [Matriz de Verdad de la Plataforma](PLATFORM_TRUTH_MATRIX.md)
 
-### 3. Core Engine & Runtime
-- [Core Runtime & Lifecycle](PLATFORM_RUNTIME.md)
-- [Agent Architecture](architecture/agents.md)
-- [LLM Planner](LLM_PLANNER.md)
-- [Model Gateway](MODEL_GATEWAY.md)
-- [Tool Registry & Governance](TOOL_REGISTRY.md)
-- [Memory & Context Architecture Audit](MEMORY_CONTEXT_ARCHITECTURE_AUDIT.md)
+### 03 — API de Plataforma & Contratos
+* [Referencia Oficial de la Platform API](API_REFERENCE.md)
+* [Operaciones y Endpoints de Runtime](API_OPERATIONS.md)
+* [Contrato de Errores Estandarizado](ERROR_CONTRACT.md)
+* [Versionado de API y Compatibilidad](API_VERSIONING.md)
 
-### 4. Platform API & Product
-- [Platform API v1 Specification](PLATFORM_API_V1.md)
-- [Platform Client SDK](PLATFORM_CLIENT.md)
-- [Web Console & Dashboard](PLATFORM_DASHBOARD.md)
-- [Platform Truth Matrix & SOT Badges](PLATFORM_TRUTH_MATRIX.md)
+### 04 — Seguridad & Gobernanza
+* [Arquitectura de Seguridad Empresarial](SECURITY_ARCHITECTURE.md)
+* [Matriz de Controles de Seguridad](SECURITY_CONTROL_MATRIX.md)
+* [Modelo de Amenazas (STRIDE Threat Model)](THREAT_MODEL.md)
+* [Autenticación e Identidad](AUTHENTICATION.md)
+* [Autorización y Roles RBAC](AUTHORIZATION.md)
+* [Gobernanza Empresarial y Cumplimiento](ENTERPRISE_GOVERNANCE.md)
 
-### 5. Applications & External Integration
-- [External Application Integration Guide](APPLICATION_INTEGRATION.md)
-- [Tentaciones AI Commerce Live Integration](TENTACIONES_PLATFORM_INTEGRATION.md)
-- [AI Commerce Intelligence Architecture](AI_COMMERCE.md)
-- [AR & 3D Virtual Fitting Room Governance](AR_VIRTUAL_FITTING.md)
-- [End-to-End Golden Journey Verification](END_TO_END_ARCHITECTURE.md)
-- [Tentaciones Case Study](case-study-tentaciones.md)
+### 05 — Observabilidad & Telemetría
+* [Arquitectura de Observabilidad & OpenTelemetry](OBSERVABILITY.md)
+* [Eventos Durables e Infraestructura de Auditoría](decisions/0021-durable-events-and-audit-infrastructure.md)
+* [Diagnósticos de Runtime y Métricas de Ejecución](EXECUTION_OBSERVABILITY.md)
 
-### 6. Portfolio & Freelancer
-- [Freelancer Project Portfolio Package](PORTFOLIO_FREELANCER.md)
-- [Contributing Guidelines](../CONTRIBUTING.md)
-- [Developer Guide](../DEVELOPMENT.md)
+### 06 — Desarrollo & SDK
+* [Manual para Desarrolladores](MANUAL_DESARROLLADOR.md)
+* [Plataforma para Desarrolladores & Especificación de SDK](DEVELOPER_PLATFORM.md)
+* [Cliente de Plataforma en TypeScript](PLATFORM_CLIENT.md)
+
+### 07 — Aplicaciones Gobernadas
+* [Fundación de Integración de Aplicaciones Externas](APPLICATION_INTEGRATION.md)
+* [Caso de Estudio: Tentaciones AI Commerce](case-study-tentaciones.md)
+* [Integración de Tentaciones con la Plataforma](TENTACIONES_PLATFORM_INTEGRATION.md)
+* [Aplicación de Referencia de Repuestos de Vehículos](VEHICLE_PARTS_REFERENCE.md)
+* [Probador Virtual 3D & Realidad Aumentada (AR)](AR_VIRTUAL_FITTING.md)
+
+### 08 — Fábrica de Aplicaciones (Application Factory)
+* [Arquitectura de la Fábrica de Aplicaciones](APPLICATION_FACTORY.md)
+* [Application Factory 2.0 (Micro-Frontends & Generación)](APPLICATION_FACTORY_2.md)
+
+### 09 — Ecosistema & Confianza (Ecosystem)
+* [Ecosistema de Aplicaciones y Marketplace](APPLICATION_ECOSYSTEM.md)
+* [Ecosistema Multi-Aplicación](MULTI_APPLICATION_ECOSYSTEM.md)
+
+### 10 — Plano de Control & Consola Web (Control Plane)
+* [Especificación del Enterprise Control Plane](CONTROL_PLANE.md)
+* [Consola de Inteligencia Operacional](OPERATIONAL_CONSOLE.md)
+* [Dashboard de Plataforma & Monitoreo en Tiempo Real](PLATFORM_DASHBOARD.md)
+* [Consola Visual de Agentes y Herramientas](AGENT_TOOL_CONSOLE.md)
+
+### 11 — Dispositivos Empresariales (Business Devices)
+* [Registro de Dispositivos Empresariales](BUSINESS_DEVICES.md)
+
+### 12 — Impresión & Adaptador Brother (Printing)
+* [Operaciones de Impresión y Spooler Local](PRINT_OPERATIONS.md)
+
+### 13 — Automatización & Flujos Externos (Automation)
+* [Integración de Automatizaciones & n8n](AUTOMATION_INTEGRATION.md)
+* [Ecosistema de Automatización](AUTOMATION_ECOSYSTEM.md)
+
+### 14 — Operaciones & Mantenimiento
+* [Manual Operacional (19 Procedimientos Canónicos)](MANUAL_OPERACIONAL.md)
+* [Guía de Despliegue en Producción (Docker / Cloud)](PRODUCTION_READINESS.md)
+* [Arquitectura de Alta Disponibilidad & Recuperación](PRODUCTION_ARCHITECTURE.md)
+* [Escalabilidad y Workers Asíncronos](SCALABILITY.md)
+
+### 15 — Roadmap & Limitaciones
+* [Roadmap Oficial de la Plataforma](ROADMAP_OFICIAL.md)
+* [Limitaciones Conocidas del Sistema](KNOWN_LIMITATIONS.md)
+
+### 16 — Glosario Oficial
+* [Glosario Oficial de Términos y Código](GLOSARIO.md)

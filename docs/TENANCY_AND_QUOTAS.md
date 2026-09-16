@@ -9,7 +9,7 @@
 
 ## 2. Motor de Evaluación de Cuotas (Quota Engine)
 
-El [`QuotaService`](file:///c:/Users/Johan/OneDrive/Documentos/IA_Work/src/application/billing/quota-service.ts) evalúa el consumo en ventanas mensuales:
+El [`QuotaService`](../src/application/billing/quota-service.ts) evalúa el consumo en ventanas mensuales:
 
 $$\text{Remaining} = \max(0, \text{Limit} - \text{CurrentUsage})$$
 

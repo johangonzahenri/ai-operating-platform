@@ -1,227 +1,132 @@
 # AI OPERATING PLATFORM (v1.1.0)
+## Plataforma Operacional de IA para la Habilitación, Gobernanza y Observabilidad Multiplataforma
 
-> **Governed multi-agent orchestration platform for real external AI applications.**
->
-> *Orchestration · Agents · Model Routing · Tools · Security · Memory · Durable Execution · Observability · Platform API · SaaS Control Plane · AI Application Factory*
+> **Principio de Ingeniería:**
+> *"Infraestructura operacional de IA sobre la cual se construyen, gobiernan y observan aplicaciones, automatizaciones y dispositivos empresariales."*
 
----
-
-## 1. What is this?
-
-The **AI Operating Platform** is an enterprise-grade software foundation engineered to govern, orchestrate, persist, and observe autonomous multi-agent AI systems executing tasks for external business applications.
-
-### Fundamental Architectural Invariant
-$$\text{CORE ENGINE} \neq \text{PLATFORM PRODUCT} \neq \text{APPLICATIONS} \neq \text{EXTERNAL SERVICES}$$
-
-- **Core Engine:** Owns task lifecycles, autonomous loops (FSM), deterministic planning, model routing, tool dispatching, and fail-closed security enforcement with **zero external runtime npm dependencies**.
-- **Platform Layer & SaaS Control Plane:** Exposes typed REST endpoints (`/api/v1/*`), client SDK (`@ai-platform/client`), multi-tenant quota meters, capability catalogues, and operational telemetry.
-- **AI Application Factory:** Standardized application manifest contract (`application.json`), capability gating, and identity isolation.
-- **External Consumer Applications:** Independent applications (such as *Tentaciones AI Commerce*) that retain complete domain ownership of their catalog, inventory, and cart state, consuming platform capabilities strictly via authenticated APIs.
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
+[![Test Suite](https://img.shields.io/badge/tests-955%20passing-success.svg)]()
+[![Production Dependencies](https://img.shields.io/badge/npm%20dependencies-0%20runtime-blue.svg)]()
+[![Documentation](https://img.shields.io/badge/manual-oficial%20es--419-indigo.svg)](docs/MANUAL_OFICIAL.md)
 
 ---
 
-## 2. Why does it matter?
+## 1. Descripción del Proyecto
 
-1. **Eliminates Vendor Lock-In & Domain Entanglement:** AI prompts and provider SDKs never invade domain models or shopping cart state machines.
-2. **Defeats Model Hallucinations:** Strict validation contracts guarantee AI discovery and recommendations only surface authentic catalog entities.
-3. **Enterprise Defense-in-Depth:** Default-Deny RBAC, prompt injection filters, prototype pollution guards, and multi-tenant isolation.
-4. **Crash Resilient Durability:** Every state mutation and domain observation is written to an append-only SQLite WAL ledger with automatic restart recovery.
-5. **Truth-First Engineering:** Honest dual-state reporting across all 10 external integrations (OpenAI, Anthropic, Ollama, PostgreSQL, Docker, OpenTelemetry, n8n, AR Provider, WebXR, Cloud).
+La **AI Operating Platform** es una infraestructura de ingeniería de software diseñada para coordinar múltiples agentes de Inteligencia Artificial especializados, modelos de lenguaje heterogéneos y herramientas operacionales bajo principios estrictos de determinismo, seguridad *default-deny* y persistencia inmutable.
 
----
-
-## 3. Architecture Overview
-
-```mermaid
-graph TD
-    subgraph External Applications Layer
-        Tentaciones[Tentaciones AI Commerce]
-        AutoDiagnostics[Industrial Automotive - Planned]
-        EnterpriseSupport[Enterprise Support - Planned]
-    end
-
-    subgraph SaaS Platform & API Layer
-        PlatformAPI[Platform REST API v1]
-        ControlPlane[SaaS Control Plane & Quotas]
-        AppFactory[AI Application Factory]
-        WebConsole[Operational Web Console]
-        SDK[@ai-platform/client SDK]
-    end
-
-    subgraph Core Engine Layer
-        Orchestrator[AutonomousOrchestrator]
-        Planner[LLM & Deterministic Planner]
-        ModelRouter[GovernedModelRouter]
-        ToolRegistry[Dynamic Tool Registry & Security]
-        PolicyGateway[Default-Deny RBAC & Autonomy Budget]
-    end
-
-    subgraph Persistence & Durability Layer
-        EventStore[(SQLite WAL Event Store v3)]
-        TaskRepo[(SQLite Task Repository)]
-        PostgresRepo[(PostgreSQL Adapter)]
-    end
-
-    subgraph External Providers Layer
-        OpenAI[OpenAI API]
-        Anthropic[Anthropic API]
-        Ollama[Ollama Local 127.0.0.1:11434]
-        OTel[OpenTelemetry Collector]
-        n8n[n8n Webhook Engine]
-    end
-
-    Tentaciones -->|API Key + Tenant ID| PlatformAPI
-    WebConsole --> PlatformAPI
-    PlatformAPI --> Orchestrator
-    Orchestrator --> PolicyGateway
-    Orchestrator --> Planner
-    Orchestrator --> ModelRouter
-    Orchestrator --> ToolRegistry
-    Orchestrator --> EventStore
-    Orchestrator --> TaskRepo
-    ModelRouter --> OpenAI
-    ModelRouter --> Anthropic
-    ModelRouter --> Ollama
-    EventStore -.-> OTel
+### La Regla de Oro de la Arquitectura
+```text
+CORE ENGINE != PLATFORM PRODUCT != APPLICATIONS
+PLATFORM PRODUCT != APPLICATION
+APPLICATION != EXTERNAL SERVICE
+DEVICE != CORE ENGINE
 ```
 
----
-
-## 4. Demonstration Modes
-
-The platform supports three reproducible execution modes (*Truth Mode*):
-
-| Mode | LLM Ingestion | AR / 3D | Persistence | Network | Target Use Case |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **`DEMO MODE`** | `StubModelGateway` | `Local AR Engine` | SQLite WAL / Memory | Fully Offline | Portfolio review, offline testing |
-| **`LOCAL MODE`** | Ollama (`127.0.0.1:11434`) | `Local AR Engine` | SQLite WAL | Localhost | Private local LLMs (Llama 3.2, Mistral) |
-| **`LIVE MODE`** | OpenAI / Anthropic API | Remote / Local AR | SQLite WAL / PostgreSQL | HTTPS Cloud | Production deployments |
+* **Core Engine (Motor Principal):** Gobierna el ciclo de vida de tareas y ejecuciones mediante una máquina de estados finita determinista con **cero dependencias externas en tiempo de ejecución**.
+* **Platform Product (Producto Plataforma):** Expone la API REST nativa (`/api/v1/*`), el cliente SDK en TypeScript y el plano de control web SPA con soporte bilingüe (**Español Latinoamericano** por defecto / **Inglés**).
+* **Developer Platform & Factory:** Kit de desarrollo, validación declarativa de manifiestos y generación de micro-frontends gobernados.
+* **Aplicaciones Externas Gobernadas:** Aplicaciones de negocio independientes (como *Tentaciones AI Commerce* o *Vehicle Parts Platform*) que conservan la propiedad total de sus inventarios y carritos de compra, consumiendo inteligencia artificial exclusivamente mediante contratos de API autenticados.
+* **Dispositivos Empresariales:** Gestión de hardware físico local y spooler de impresión para impresoras comerciales (Brother DCP-1600 series en puerto `USB001`).
 
 ---
 
-## 5. Reference Application: Tentaciones AI Commerce
-
-Tentaciones demonstrates a production-grade external consumer integration:
-* **Rich Catalog:** Footwear (Pro Carbon Racer, Trail Blazer GTX), Apparel (StormShield Jacket, Silk Evening Dress), Accessories (Merino Socks) with sizes, SKUs, and real stock counts.
-* **AI Product Discovery:** Natural language search in Spanish (*"zapatillas negras para correr"*, *"vestido elegante para una cena"*).
-* **3D / AR Virtual Fitting Room:** Asset URN validation (`urn:tentaciones:ar:...`), anthropometric avatar sizing (*Nova*, *Sora*, *Mateo*), and 3D preview links.
-* **AI Cart Assistance & Stock Integrity:** Evaluates cart questions (*"¿Cuánto me falta para despacho gratis?"*), checks stock before mutation, and completes checkout via Webpay Demo.
-
----
-
-## 6. Security & Governance Standards
-
-* **Default-Deny Access Control:** Unauthenticated calls fail closed (HTTP 401). Unscoped operations fail closed (HTTP 403).
-* **Multi-Tenant Boundary:** Strict tenant isolation (`tenant-tentaciones`, `tenant-automotive`, `tenant-support`) preventing cross-tenant access.
-* **Autonomy Budget Governance:** Upper bounds on `maxSteps`, `maxDurationMs`, and `maxToolCalls`.
-* **Zero DOM Insecurities:** `0 innerHTML`, `0 outerHTML`, `0 eval`, `0 document.write` across all frontend scripts.
-* **Zero Secret Leakage:** Authorization headers, payment keys, and API tokens are sanitized before logging or event persistence.
-
----
-
-## 7. AI Model Gateway & Governed Routing
-
-The `GovernedModelRouter` applies prompt injection detection, input length bounds, and dynamic fallback chains:
-$$\text{Primary Gateway (OpenAI/Anthropic)} \longrightarrow \text{Local Inference (Ollama)} \longrightarrow \text{Deterministic Stub}$$
-*All security violations fail closed immediately without fallback.*
-
----
-
-## 8. AR & Virtual Try-On Capabilities
-
-* **URN Asset Registry:** Validates `urn:<app>:ar:<category>:<slug>` with SemVer compatibility.
-* **Biometric Sizing Engine:** Converts foot length (cm) and chest measurements into recommended apparel/footwear sizes with explainability.
-* **WebXR Client Sensor Probe:** Detects browser WebXR capabilities and camera permissions.
-
----
-
-## 9. Automation & Scheduling
-
-* **Webhook Dispatcher:** Cryptographically signed payloads (HMAC-SHA256) with exponential backoff and jitter.
-* **Scheduler Engine:** Standard 5-field cron expression parser for periodic autonomous execution.
-* **n8n Community Connector:** Standardized trigger and action node manifests.
-
----
-
-## 10. SaaS Control Plane
-
-* **Tenant Plan Limits:** Tiered limits for `FREE`, `PRO`, `BUSINESS`, and `ENTERPRISE`.
-* **Quota Metering:** Real-time monthly tracking of tasks, executions, tokens, and storage with `QuotaExceededError` enforcement.
-* **Live Telemetry:** Global usage dashboards querying durable ledger events.
-
----
-
-## 11. Deployment & Production Operations
-
-* **Docker Multi-Stage Build:** Hardened container using `node:20-alpine` with non-root user execution (`nodejs:10001`).
-* **PostgreSQL Persistence Adapter:** Portable relational schema with atomic transaction rollback support.
-* **Health Probes:** Kubernetes-ready `/api/v1/health/liveness` and `/api/v1/health/readiness`.
-* **Graceful Shutdown:** Deterministic teardown on `SIGTERM` and `SIGINT` completing active transactions before exit.
-
----
-
-## 12. Quick Start & Reproducibility
+## 2. Arquitectura Canónica
 
 ```text
-Suite: 911 passing tests | 0 failing | 0 regressions
-Quality Gate: npm run check (TypeScript build + test suite) PASS
+                         AI OPERATING PLATFORM
+                                  │
+        ┌─────────────────────────┼─────────────────────────┐
+        │                         │                         │
+   CORE ENGINE             PLATFORM PRODUCT          APPLICATIONS
+        │                         │                         │
+        │              ┌──────────┼──────────┐              │
+        │              │          │          │              │
+        │         Developer    Control      API              │
+        │         Platform     Plane      Gateway            │
+        │              │          │          │              │
+        └──────────────┼──────────┼──────────┼──────────────┘
+                       │          │          │
+                  Security   Observability  Automation
+                       │          │          │
+                       └──────────┼──────────┘
+                                  │
+                             AI RUNTIME
+                                  │
+                   ┌──────────────┼──────────────┐
+                   │              │              │
+                 Agents         Models          Tools
+                   │              │              │
+                   └──────────────┼──────────────┘
+                                  │
+                           Durable Events
+                                  │
+              ┌───────────────────┼───────────────────┐
+              │                   │                   │
+        Applications         Automations       Business Devices
+              │                   │                   │
+        Tentaciones              n8n              Brother
+        Vehicle Parts                              Printer
 ```
 
-### Running Tests Locally
+---
+
+## 3. Características Principales
+
+* **Pureza de Dominio & Zero Dependencies:** Motor central sin librerías externas (`npm ls --omit=dev` 100% vacío), asegurando arranques en menos de 50ms y máxima seguridad perimetral.
+* **Persistencia Relacional Durable SQLite WAL:** Base de datos nativa Node.js 22 (`node:sqlite`) con transacciones ACID atómicas, modo WAL y control de concurrencia optimista (OCC).
+* **Fronteras de Rehidratación Formal:** Reconstrucción de agregados de dominio (`Task.rehydrate`, `Execution.rehydrate`, `Agent.rehydrate`) eliminando la reflexión por completo.
+* **Gobernanza Fail-Closed (Default-Deny):** Toda invocación a herramientas o modelos requiere autorización positiva; denegación inmediata ante violaciones de política sin invocar el runtime.
+* **Plano de Control Web Bilingüe:** Interfaz Single-Page Application (SPA) construida en HTML5/Vanilla JS con estricto apego a APIs puras del DOM (0 `innerHTML`, 0 `eval`) con alternancia dinámica entre **Español (Latinoamérica)** e **Inglés**.
+* **Almacén de Eventos Durables (EventStore):** Registro append-only inmutable de cada decisión y cambio de estado, permitiendo trazabilidad y auditoría forense total.
+
+---
+
+## 4. Quick Start & Reproducibility (Inicio Rápido y Reproducibilidad)
+
+### Prerrequisitos
+* Node.js >= 18 (recomendado Node.js 22 o superior para `node:sqlite` nativo).
+* npm >= 9
+
+### Pasos de Ejecución
 ```bash
-# Clone repository
-git clone https://github.com/johangonzahenri/ai-operating-platform.git
+# 1. Clonar el repositorio
+git clone <URL_REPOSITORIO>
 cd ai-operating-platform
 
-# Install dependencies (zero runtime core dependencies)
+# 2. Instalar dependencias de desarrollo
 npm install
 
-# Run TypeScript build and complete test suite
+# 3. Compilar TypeScript en modo estricto
+npm run build
+
+# 4. Ejecutar la suite completa de 955 pruebas automatizadas
+npm test
+
+# 5. Ejecutar la verificación integral de build y pruebas
 npm run check
 
-# Start Platform Server & Web Console
+# 6. Iniciar el servidor del Plano de Control
 npm start
+# O en Windows: Doble clic en INICIAR_PLATAFORMA.bat
 ```
-Console is accessible at `http://127.0.0.1:3000`.
+
+Acceder al plano de control en el navegador:
+👉 **`http://127.0.0.1:3000/`** (Por defecto en Español Latinoamericano).
 
 ---
 
-## 13. Known Limitations
+## 5. Índice de Documentación Oficial
 
-1. **Token Accounting:** Exact token metrics require live LLM tokenizers; local runs report honest `"NOT_AVAILABLE"`.
-2. **Disk Storage Metering:** Storage usage is calculated via tenant quota allocations.
+Para profundizar en la ingeniería del proyecto, consulte los manuales canónicos:
 
----
-
-## 14. Roadmap
-
-- [x] Hexagonal Core Engine & Ports/Adapters
-- [x] SQLite WAL v3 Durable Event Store & Crash Recovery
-- [x] Governed Model Router with Dynamic Fallback
-- [x] Default-Deny RBAC & Tenant Isolation
-- [x] SaaS Control Plane & Multi-Tenant Quotas
-- [x] AI Application Factory & Manifest Validator
-- [x] Tentaciones AI Commerce Reference Application
-- [x] 3D / AR Virtual Fitting Room & Sizing Engine
-- [x] Integration Truth Engine (10 Providers)
-- [ ] Real-time Multi-Agent Collaborative Swarms
-- [ ] Direct WebGPU Local In-Browser Model Inference
-
----
-
-## 15. Documentation Index
-
-- [Official Platform Manual](docs/MANUAL_OFICIAL.md)
-- [Public Demo Guide](docs/PUBLIC_DEMO_GUIDE.md)
-- [Portfolio Release Summary](docs/PORTFOLIO_RELEASE.md)
-- [Technical Architecture Overview](docs/TECHNICAL_OVERVIEW.md)
-- [Interview & Demo Scripts](docs/DEMO_SCRIPT.md)
-- [Freelancer Portfolio Overview](docs/PORTFOLIO_FREELANCER.md)
-- [Tentaciones AI Commerce Case Study](docs/case-study-tentaciones.md)
-- [Platform Truth Matrix](docs/PLATFORM_TRUTH_MATRIX.md)
-- [Security Policy](SECURITY.md)
-
----
-
-## License
-MIT License.
+* 📖 **[Manual Oficial de la Plataforma (Índice Maestro)](docs/MANUAL_OFICIAL.md)**
+* 🏛️ **[Manual de Arquitectura (Topología Hexagonal)](docs/MANUAL_ARQUITECTURA.md)**
+* 🛠️ **[Manual para Desarrolladores & SDK](docs/MANUAL_DESARROLLADOR.md)**
+* ⚙️ **[Manual Operacional (19 Procedimientos Canónicos)](docs/MANUAL_OPERACIONAL.md)**
+* 📚 **[Glosario Oficial de Términos y Código](docs/GLOSARIO.md)**
+* 🗺️ **[Roadmap Oficial de Ingeniería](docs/ROADMAP_OFICIAL.md)**
+* 📐 **[Guía de Estilo Documental y Políticas de Idioma](docs/DOCUMENTATION_STYLE_GUIDE.md)**
+* 💼 **[Resumen Técnico de Portafolio](docs/PORTFOLIO_OVERVIEW.md)**
+* 🌐 **[Referencia de la Platform API REST](docs/API_REFERENCE.md)**
+* 🖨️ **[Dispositivos Empresariales y Spooler de Impresión](docs/BUSINESS_DEVICES.md)**

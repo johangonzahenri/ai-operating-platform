@@ -1,50 +1,26 @@
-# Multi-Application Ecosystem & Marketplace Foundation
+# Application Ecosystem (Ecosistema de Aplicaciones)
+## Directorio de Aplicaciones, Marketplace y Motor de Confianza (v1.1.0)
 
-## 1. Architectural Map
-
-```text
-                               AI OPERATING PLATFORM
-                                         │
-                             ┌───────────┴───────────┐
-                             │     PLATFORM API      │
-                             └───────────┬───────────┘
-                                         │
-              ┌──────────────────────────┼──────────────────────────┐
-              │                          │                          │
-    Tentaciones Commerce        Vehicle Parts Platform     Enterprise Support Agent
-       [IMPLEMENTED]                 [IMPLEMENTED]                [DESIGNED]
-      (Fashion / AR)                 (Automotive)             (Customer Support)
-              │                          │                          │
-       tenant-tentaciones        tenant-automotive            tenant-support
-```
+El **Application Ecosystem** (Ecosistema de Aplicaciones) constituye el catálogo corporativo de soluciones de negocio que operan sobre la infraestructura de la plataforma.
 
 ---
 
-## 2. Application Trust Model
+## 1. Aplicaciones de Referencia Verificadas
 
-| Trust Level | Definition | Verification Requirement |
-| :--- | :--- | :--- |
-| `UNVERIFIED` | Newly drafted application without manifest validation | Manifest submission |
-| `VALIDATED` | Manifest passes schema, slug, and capability constraints | `ApplicationValidator.validate()` |
-| `VERIFIED` | Application passes the 7-step Test Harness | `ApplicationFactoryEngine.runHarness()` |
-| `TRUSTED` | Certified compliant with tenant isolation and security boundaries | Full E2E & security regression test |
-| `SUSPENDED` | Capabilities revoked due to policy violation or offboarding | Administrative action |
-
----
-
-## 3. Deployment Readiness States
-
-- **Development**: Local development, prototype integration, ephemeral mock execution.
-- **Staging**: Validated against isolated staging tenant with mock gateway models.
-- **Production**: Full operational readiness, persistent SQLite WAL / PostgreSQL persistence, and strict rate-limiting.
+1. **Tentaciones AI Commerce:**
+   * **Categoría:** E-Commerce de moda, calzado y probador virtual 3D.
+   * **Estado:** `IMPLEMENTADO` y verificado en producción local.
+   * **Capacidades:** Búsqueda semántica, asistente de compra conversacional y probador WebXR.
+2. **Vehicle Parts & Diagnostics Platform:**
+   * **Categoría:** E-Commerce automotriz y diagnóstico mecánico.
+   * **Estado:** `IMPLEMENTADO` y verificado en producción local.
+   * **Capacidades:** Compatibilidad de piezas multimarca y diagnóstico por síntoma.
 
 ---
 
-## 4. Ecosystem Categories
+## 2. Motor de Confianza (Trust Engine)
 
-1. **Commerce**: Fashion, retail, product recommendation, virtual fitting room (`tentaciones-commerce`).
-2. **Automotive**: Vehicle fitment, mechanical part discovery, OEM cross-referencing (`vehicle-parts-platform`).
-3. **Support**: Customer service routing, automated response generation (`enterprise-support-agent`).
-4. **Automation**: Event-driven pipelines, scheduled operations.
-5. **Analytics**: Real-time operational intelligence, tenant usage aggregation.
-6. **Custom**: User-defined domain applications.
+El ecosistema aplica un modelo de tres niveles de confianza para todas las aplicaciones y extensiones:
+* `VERIFIED`: Certificada por el equipo de ingeniería de la plataforma; acceso a herramientas estándar y de riesgo medio.
+* `COMMUNITY`: Desarrollada por terceros en cumplimiento de contratos; aislada en sandbox estricto.
+* `EXPERIMENTAL`: Entornos de desarrollo previo a certificación; prohibido el acceso a herramientas con nivel de riesgo crítico.

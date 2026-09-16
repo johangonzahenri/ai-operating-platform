@@ -29,7 +29,7 @@ OpenTelemetry Collector (Distributed Traces & Prometheus Metrics)
 ## 3. Contenedores y Docker
 
 ### Multi-Stage Build
-El [`Dockerfile`](file:///c:/Users/Johan/OneDrive/Documentos/IA_Work/Dockerfile) implementa:
+El [`Dockerfile`](../Dockerfile) implementa:
 1. **Stage 1 (Builder)**: Compilación TypeScript, dependencias completas y optimización.
 2. **Stage 2 (Runner)**: Imagen minimalista basada en `node:22-alpine`, usuario sin privilegios de root (`nodejs:1001`), y limpieza de paquetes de desarrollo.
 3. **Healthcheck nativo**: Monitorea `/api/v1/health` cada 30 segundos.

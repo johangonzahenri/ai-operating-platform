@@ -1,66 +1,30 @@
-# Business Devices & Hardware Integration
+# Business Devices & Hardware Integration (Dispositivos Empresariales)
+## Registro de Hardware, Conexiones Locales y Modelo de Capacidades (v1.1.0)
 
-## 1. Overview & Architectural Principle
-
-The **AI Operating Platform** provides a secure, tenant-isolated, capability-governed boundary for physical business hardware, point-of-sale peripherals, and warehouse logistics equipment.
-
-Following the fundamental invariant:
-$$\text{CORE ENGINE} \neq \text{PLATFORM PRODUCT} \neq \text{APPLICATIONS} \neq \text{EXTERNAL SERVICES}$$
-
-Devices are managed at the **Platform & Infrastructure Layer**, never polluting the Core Engine internals. Applications interact with physical hardware exclusively through standard **Platform API v1** contracts and capability grants (`device.print`, `device.manage`).
+La **AI Operating Platform** incluye una capa de abstracción para interactuar con periféricos y dispositivos de hardware presentes en el entorno operativo físico.
 
 ---
 
-## 2. Hardware Truth & Zero Fabrication
+## 1. Arquitectura de Dispositivos
 
-In accordance with strict operational truth standards:
-- Real hardware discovery on the local Windows host discovered a **Brother DCP-1600 series** printer on port `USB001` with driver `Brother DCP-1600 series`.
-- Operational state: `WorkOffline: True` (offline / awaiting physical USB plug-in).
-- Status classification:
-  - **SUPPORTED**: Local raw GDI spooler queue submission via Windows print subsystem.
-  - **UNSUPPORTED**: Remote network SNMP/IPP toner levels querying (local raw GDI devices without vendor proprietary agents do not expose direct toner counters).
-  - **UNAVAILABLE / READY**: Real-time status accurately distinguishing whether the device is physically connected and online or offline.
+```text
+[Flujo de Agente de IA] ──► [DeviceRegistry] ──► [DeviceAdapter] ──► [Hardware Físico / Spooler]
+```
 
----
-
-## 3. Device Domain Model
-
-A `BusinessDevice` is represented by:
-- **`id`**: Unique identifier (e.g. `printer-brother-dcp1600`).
-- **`name`**: Human-readable label (e.g. `Brother DCP-1600 Series Warehouse Printer`).
-- **`type`**: `PRINTER` | `SCANNER` | `PAYMENT_TERMINAL` | `POS_DISPLAY` | `SCALE` | `CAMERA` | `SENSOR`.
-- **`vendor`**: Hardware manufacturer (`Brother`, `Zebra`, `Epson`, etc.).
-- **`model`**: Model designation (`Brother DCP-1600 series`).
-- **`connection`**:
-  - `type`: `USB` | `NETWORK_IP` | `BLUETOOTH` | `SERIAL` | `CLOUD` | `SPOOLER`
-  - `port`: `USB001`
-  - `driverName`: `Brother DCP-1600 series`
-  - `spoolerName`: `winprint`
-- **`capabilities`**: Granular map with support statuses (`SUPPORTED`, `UNSUPPORTED`, `AVAILABLE`, `UNAVAILABLE`).
-- **`tenantId`**: Tenant isolation boundary (e.g. `tenant-tentaciones`).
-- **`status`**: `READY` | `DEGRADED` | `UNAVAILABLE` | `UNCONFIGURED` | `FAILED` | `BUSY`.
+### Principios de Integración:
+1. **Aislamiento del Core Engine:** Los dispositivos de hardware se consideran adaptadores de infraestructura periféricos; un fallo mecánico o de conexión en un dispositivo físico no compromete la ejecución del runtime.
+2. **Descubrimiento Determinado:** Cada dispositivo declara su fabricante, modelo, interfaz de conexión y lista estricta de capacidades soportadas.
 
 ---
 
-## 4. API Endpoints
+## 2. Dispositivo Verificado en Entorno Local
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/api/v1/devices` | List registered business devices for caller tenant |
-| `GET` | `/api/v1/devices/:id` | Get specific device details and connection |
-| `POST` | `/api/v1/devices` | Register a new business device |
-| `PATCH` | `/api/v1/devices/:id` | Update device parameters |
-| `DELETE` | `/api/v1/devices/:id` | Unregister a device |
-| `GET` | `/api/v1/devices/:id/health` | Run an active health probe against the device |
-| `GET` | `/api/v1/devices/:id/capabilities` | Inspect declared device capabilities |
-| `GET` | `/api/v1/devices/:id/status` | Get real-time connection status |
-| `GET` | `/api/v1/devices/:id/consumables` | Query consumable levels (or unsupported disclaimer) |
-
----
-
-## 5. Security & Isolation Invariants
-
-1. **Tenant Isolation**: A tenant cannot query, control, or submit print jobs to another tenant's devices.
-2. **Capability Verification**: An application cannot dispatch print jobs unless granted `device.print`.
-3. **Suspension Block**: Suspended applications or tenants are forbidden from hardware operations.
-4. **Idempotency**: Duplicate job requests with the same `Idempotency-Key` return identical responses without duplicate hardware execution.
+* **Fabricante:** Brother
+* **Modelo:** Brother DCP-1600 series
+* **Conexión:** `USB001` (Host Local Windows)
+* **Estado Actual Reportado:** `Offline / WorkOffline` (Modo trabajo desconectado verificado en hardware del host)
+* **Capacidades Declaradas:**
+  * `device.print`: **SOPORTADO** (Emisión de trabajos de impresión formateados).
+  * `device.health`: **SOPORTADO** (Comprobación de conectividad del spooler).
+  * `device.status`: **SOPORTADO** (Lectura de flags de estado del sistema operativo).
+  * `device.consumables`: **NO SOPORTADO** (La interfaz estándar no reporta porcentaje de tóner).

@@ -1,56 +1,24 @@
-# Operational Console Manual & Architecture
+# Operational Console (Consola Operacional de Inteligencia)
+## Manual de Operaciones y Reconstrucción de Estados de Ejecución (v1.1.0)
 
-The **Operational Console** provides enterprise operators, platform engineers, and developers with real-time operational observability, interactive task execution, diagnostic probing, and policy governance across the **AI Operating Platform**.
-
----
-
-## 1. Access & Interaction
-
-- **URL**: `http://127.0.0.1:3000/`
-- **Protocol**: HTTP/1.1 REST over Platform API v1 (`/api/v1/*` and `/api/platform/v1/*`)
-- **Rendering Model**: Zero-dependency vanilla ES6 modules with strict DOM API manipulation (`document.createElement`, `textContent`).
+La **Operational Console** (Consola Operacional) es el componente central de auditoría y diagnóstico para ingenieros de sistemas y operadores de inteligencia artificial.
 
 ---
 
-## 2. Interactive Operational Workflows
+## 1. Fuente de Verdad y Consumo de APIs
 
-### A. Real-Time Task Execution
-1. Navigate to **Platform Operations** or **Tasks**.
-2. Provide an operational objective (e.g. *"Quiero unas zapatillas negras para correr"*).
-3. Click **Execute Task**. The console invokes `POST /api/platform/v1/tasks` and `POST /api/platform/v1/tasks/:id/execute`.
-4. Observe the live execution lifecycle:
-   - Status transitions: `CREATED` $\rightarrow$ `RUNNING` $\rightarrow$ `COMPLETED`
-   - Model requests and completion tokens
-   - Tool calls and policy evaluations
-   - Correlated trace timeline with monotonic sequence events.
-
-### B. Durable Event Stream Inspection
-1. Navigate to **Events** (`#tab-events`).
-2. Filter events by `eventType` (e.g. `task.completed`, `model.tool.executed`) or `traceId`.
-3. Click **Inspect Payload** to view the full redacted JSON payload in the interactive payload inspector.
-
-### C. System Diagnostics Center
-1. Navigate to **Diagnostics** (`#tab-diagnostics`).
-2. Click **Run Diagnostics Probe**.
-3. Inspect probe results across:
-   - **Platform API Connectivity**
-   - **SQLite WAL Persistence Engine**
-   - **Durable Event Store & Sequencer**
-   - **Model Gateway & Router**
-   - **Tool Execution Layer & Contracts**
-   - **Security Boundaries & Default Deny**
-   - **Reconciliation & Crash Recovery**
-
-### D. Application Ecosystem & Trust Management
-1. Navigate to **Ecosystem** (`#tab-ecosystem`).
-2. Filter by category (`Commerce`, `Automotive`, `Support`, `Analytics`).
-3. Click **Manage & Trust Detail** to inspect the application's manifest, assigned tenant, telemetry metrics, and lifecycle actions (`Connect`, `Suspend`, `Retire`).
+La consola no mantiene un estado secundario ni duplica datos; consume estrictamente el contrato oficial de la Platform API:
+* `GET /api/v1/health`: Telemetría de estado del motor y métricas de concurrencia.
+* `GET /api/v1/events`: Consulta cronológica paginada al almacén de eventos durables (`EventStore`).
+* `GET /api/v1/executions/:id`: Reconstrucción forense del ciclo de vida de una ejecución.
 
 ---
 
-## 3. DOM & Memory Hygiene
+## 2. Flujo de Inspección Forense
 
-The Operational Console is audited against injection and prototype pollution vulnerabilities:
-- **0 `innerHTML` / `outerHTML` calls**
-- **0 `eval()` or dynamic script execution**
-- **0 Secret Leakage in telemetry views**
+```text
+[Selección de Evento] ──► [Apertura de Modal Accesible] ──► [Inspección de JSON Inmutable] ──► [Trazabilidad por traceId]
+```
+
+1. **Correlación de Trazas:** El operador puede copiar el `traceId` de un evento sospechoso o fallido y filtrar el flujo de eventos para reconstruir cada paso desde la solicitud del usuario hasta el resultado durable.
+2. **Preservación de Inmutabilidad:** Los payloads mostrados provienen directamente de registros inmutables congelados en SQLite; no pueden ser alterados por clientes web.
