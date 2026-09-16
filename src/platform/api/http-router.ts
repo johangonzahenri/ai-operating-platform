@@ -37,7 +37,8 @@ import {
 import { InMemoryRoleRepository } from "../../infrastructure/security/in-memory-role-repository.js";
 import { RoleRepository, ResourceType } from "../../domain/security/authorization.js";
 import { SecurityContext } from "../../domain/security/security.js";
-
+import { extractRequestContextFromHeaders } from "../../domain/context/request-context.js";
+import { formatApiError } from "./error-contract.js";
 import { randomUUID } from "node:crypto";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -91,8 +92,13 @@ export function createHttpServer(
   );
 
   return http.createServer(async (req, res) => {
-    const requestId = req.headers["x-request-id"]?.toString().trim() || randomUUID();
+    const reqCtx = extractRequestContextFromHeaders(req.headers, {
+      method: req.method,
+      path: req.url,
+    });
+    const requestId = reqCtx.requestId;
     res.setHeader("X-Request-Id", requestId);
+    res.setHeader("X-Correlation-Id", reqCtx.correlationId);
 
     // 1. Secure CORS: strictly restricted to localhost / 127.0.0.1 origins
     const origin = req.headers.origin;
@@ -110,8 +116,8 @@ export function createHttpServer(
         // Invalid origin URL - do not set header
       }
     }
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Key, X-Request-Id, Idempotency-Key");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Key, X-Request-Id, X-Correlation-Id, X-Tenant-Id, X-Application-Id, Idempotency-Key");
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("X-Frame-Options", "DENY");
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
@@ -130,13 +136,13 @@ export function createHttpServer(
       decodedUrl = decodeURIComponent(rawUrl);
     } catch {
       res.writeHead(400, { "Content-Type": "application/json; charset=utf-8" });
-      res.end(JSON.stringify({ error: "Bad Request: Malformed URL encoding", status: 400, code: "MALFORMED_URL" }));
+      res.end(JSON.stringify({ error: "Bad Request: Malformed URL encoding", status: 400, code: "MALFORMED_URL", requestId, correlationId: reqCtx.correlationId }));
       return;
     }
 
     if (rawUrl.includes("..") || decodedUrl.includes("..")) {
       res.writeHead(403, { "Content-Type": "application/json; charset=utf-8" });
-      res.end(JSON.stringify({ error: "Forbidden: Path traversal prohibited", status: 403, code: "PATH_TRAVERSAL" }));
+      res.end(JSON.stringify({ error: "Forbidden: Path traversal prohibited", status: 403, code: "PATH_TRAVERSAL", requestId, correlationId: reqCtx.correlationId }));
       return;
     }
 
@@ -149,11 +155,27 @@ export function createHttpServer(
     };
 
     const sendError = (statusCode: number, message: string, code?: string, traceId?: string) => {
+      const defaultCode = statusCode === 404 ? "NOT_FOUND"
+        : statusCode === 400 ? "BAD_REQUEST"
+        : statusCode === 401 ? "UNAUTHORIZED"
+        : statusCode === 403 ? "FORBIDDEN"
+        : statusCode === 409 ? "CONFLICT"
+        : statusCode === 429 ? "RATE_LIMIT_EXCEEDED"
+        : "INTERNAL_SERVER_ERROR";
+      const formatted = formatApiError(
+        code ?? defaultCode,
+        message,
+        statusCode,
+        { requestId: reqCtx.requestId, correlationId: reqCtx.correlationId }
+      );
       const payload: Record<string, unknown> = {
-        error: message,
-        status: statusCode,
+        error: formatted.error.message,
+        status: formatted.status,
+        code: formatted.error.code,
+        requestId: formatted.error.requestId,
+        correlationId: formatted.error.correlationId,
+        timestamp: new Date().toISOString(),
       };
-      if (code) payload.code = code;
       if (traceId) payload.traceId = traceId;
       sendJson(statusCode, payload);
     };
@@ -273,6 +295,23 @@ export function createHttpServer(
           ? pathname.substring("/api/v1".length)
           : pathname.substring("/api".length);
 
+        // Server-Side Rate Limiter Check (Enterprise Gateway)
+        const rateLimiter = service.getRateLimiter();
+        const rlDecision = rateLimiter.checkRateLimit({
+          tenantId: reqCtx.tenantId,
+          applicationId: reqCtx.applicationId,
+          principal: reqCtx.principal,
+        });
+        res.setHeader("X-RateLimit-Limit", rlDecision.limit.toString());
+        res.setHeader("X-RateLimit-Remaining", Math.max(0, rlDecision.remaining).toString());
+        res.setHeader("X-RateLimit-Reset", rlDecision.resetAt.toISOString());
+
+        if (!rlDecision.allowed) {
+          res.setHeader("Retry-After", Math.ceil(rlDecision.retryAfterMs / 1000).toString());
+          sendError(429, `Rate limit exceeded. Tier: ${rlDecision.scope}. Retry after ${Math.ceil(rlDecision.retryAfterMs / 1000)}s`, "RATE_LIMIT_EXCEEDED");
+          return;
+        }
+
         // GET /status (Public)
         if (subPath === "/status" && req.method === "GET") {
           sendJson(200, service.getStatus());
@@ -285,15 +324,21 @@ export function createHttpServer(
           return;
         }
 
-        // GET /health/liveness (Public)
-        if ((subPath === "/health/liveness" || subPath === "/liveness") && req.method === "GET") {
+        // GET /health/live or /health/liveness or /liveness (Public)
+        if ((subPath === "/health/live" || subPath === "/health/liveness" || subPath === "/liveness") && req.method === "GET") {
           sendJson(200, service.getLiveness());
           return;
         }
 
-        // GET /health/readiness (Public)
-        if ((subPath === "/health/readiness" || subPath === "/readiness") && req.method === "GET") {
+        // GET /health/ready or /health/readiness or /readiness (Public)
+        if ((subPath === "/health/ready" || subPath === "/health/readiness" || subPath === "/readiness") && req.method === "GET") {
           sendJson(200, service.getReadiness());
+          return;
+        }
+
+        // GET /diagnostics (Public)
+        if (subPath === "/diagnostics" && req.method === "GET") {
+          sendJson(200, service.getDiagnosticsReport());
           return;
         }
 
@@ -1665,6 +1710,365 @@ export function createHttpServer(
             return;
           }
           sendJson(200, service.listAgentsPaginated({ limit, offset, status: statusParam?.trim() || undefined }));
+          return;
+        }
+
+        // --- Observability Endpoints (Prompt 98) ---
+
+        // GET /observability/metrics
+        if (subPath === "/observability/metrics" && req.method === "GET") {
+          sendJson(200, service.getObservabilityService().getMetricsSnapshot());
+          return;
+        }
+
+        // GET /observability/logs
+        if (subPath === "/observability/logs" && req.method === "GET") {
+          const limitParam = url.searchParams.get("limit");
+          const levelParam = url.searchParams.get("level");
+          const limit = limitParam ? parseInt(limitParam, 10) : 100;
+          const level = levelParam as "DEBUG" | "INFO" | "WARN" | "ERROR" | undefined;
+          sendJson(200, service.getObservabilityService().getLogs({ limit: Number.isNaN(limit) ? 100 : limit, level }));
+          return;
+        }
+
+        // GET /observability/dependencies
+        if (subPath === "/observability/dependencies" && req.method === "GET") {
+          sendJson(200, service.checkDependencies());
+          return;
+        }
+
+        // --- Document Generation Endpoint (Prompt 98) ---
+
+        // POST /documents/generate
+        if (subPath === "/documents/generate" && req.method === "POST") {
+          const bodyResult = await readJsonBody();
+          if (!bodyResult.ok) {
+            sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+            return;
+          }
+          const { type, tenantId, title, content, metadata } = bodyResult.body;
+          if (!type || typeof type !== "string" || !title || typeof title !== "string" || !content || typeof content !== "object") {
+            sendError(400, "Bad Request: type, title, and content are required", "INVALID_ARGUMENT");
+            return;
+          }
+          try {
+            const doc = service.getDocumentService().generateDocument({
+              type: type as any,
+              tenantId: typeof tenantId === "string" ? tenantId : reqCtx.tenantId,
+              title,
+              content: content as Record<string, unknown>,
+              metadata: typeof metadata === "object" && metadata !== null ? (metadata as Record<string, unknown>) : undefined,
+            });
+            sendJson(201, doc);
+            return;
+          } catch (err: any) {
+            sendError(400, err.message, "DOCUMENT_GENERATION_FAILED");
+            return;
+          }
+        }
+
+        // --- Business Devices & Printing Endpoints (Prompt 98) ---
+
+        // GET /devices
+        if (subPath === "/devices" && req.method === "GET") {
+          const tenantFilter = url.searchParams.get("tenantId") || reqCtx.tenantId;
+          const typeFilter = url.searchParams.get("type");
+          const statusFilter = url.searchParams.get("status");
+          const devices = service.getDeviceService().listDevices({
+            tenantId: tenantFilter,
+            type: typeFilter as any,
+            status: statusFilter as any,
+          });
+          sendJson(200, { data: devices, count: devices.length });
+          return;
+        }
+
+        // POST /devices
+        if (subPath === "/devices" && req.method === "POST") {
+          const bodyResult = await readJsonBody();
+          if (!bodyResult.ok) {
+            sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+            return;
+          }
+          const b = bodyResult.body;
+          if (!b.id || typeof b.id !== "string" || !b.name || typeof b.name !== "string" || !b.type || typeof b.type !== "string") {
+            sendError(400, "Bad Request: id, name, and type are required", "INVALID_ARGUMENT");
+            return;
+          }
+          try {
+            const registered = service.getDeviceService().registerDevice({
+              id: b.id,
+              name: b.name,
+              type: b.type as any,
+              model: typeof b.model === "string" ? b.model : undefined,
+              tenantId: typeof b.tenantId === "string" ? b.tenantId : reqCtx.tenantId,
+              status: typeof b.status === "string" ? (b.status as any) : "READY",
+              connectivity: typeof b.connectivity === "string" ? (b.connectivity as any) : "LOCAL_USB",
+              portOrAddress: typeof b.portOrAddress === "string" ? b.portOrAddress : undefined,
+              capabilities: Array.isArray(b.capabilities) ? (b.capabilities as any) : ["RAW_PRINT"],
+              metadata: typeof b.metadata === "object" && b.metadata !== null ? (b.metadata as Record<string, unknown>) : undefined,
+            });
+            sendJson(201, registered);
+            return;
+          } catch (err: any) {
+            sendError(400, err.message, "DEVICE_REGISTRATION_FAILED");
+            return;
+          }
+        }
+
+        // GET /devices/:id/health
+        const deviceHealthMatch = subPath.match(/^\/devices\/([^/]+)\/health$/);
+        if (deviceHealthMatch && req.method === "GET") {
+          const devId = normalizeId(deviceHealthMatch[1]);
+          if (!devId) {
+            sendError(400, "Bad Request: Invalid device ID format", "INVALID_ID");
+            return;
+          }
+          try {
+            const health = await service.getDeviceService().checkDeviceHealth(devId, {
+              tenantId: reqCtx.tenantId,
+            });
+            sendJson(200, health);
+            return;
+          } catch (err: any) {
+            sendError(404, err.message, "DEVICE_NOT_FOUND");
+            return;
+          }
+        }
+
+        // GET /devices/:id/capabilities
+        const deviceCapMatch = subPath.match(/^\/devices\/([^/]+)\/capabilities$/);
+        if (deviceCapMatch && req.method === "GET") {
+          const devId = normalizeId(deviceCapMatch[1]);
+          if (!devId) {
+            sendError(400, "Bad Request: Invalid device ID format", "INVALID_ID");
+            return;
+          }
+          const dev = service.getDeviceService().getDevice(devId, { tenantId: reqCtx.tenantId });
+          if (!dev) {
+            sendError(404, `Device ${devId} not found`, "DEVICE_NOT_FOUND");
+            return;
+          }
+          sendJson(200, {
+            deviceId: dev.id,
+            type: dev.type,
+            capabilities: dev.capabilities,
+            connection: dev.connection,
+            model: dev.model,
+          });
+          return;
+        }
+
+        // GET /devices/:id/status
+        const deviceStatusMatch = subPath.match(/^\/devices\/([^/]+)\/status$/);
+        if (deviceStatusMatch && req.method === "GET") {
+          const devId = normalizeId(deviceStatusMatch[1]);
+          if (!devId) {
+            sendError(400, "Bad Request: Invalid device ID format", "INVALID_ID");
+            return;
+          }
+          const dev = service.getDeviceService().getDevice(devId, { tenantId: reqCtx.tenantId });
+          if (!dev) {
+            sendError(404, `Device ${devId} not found`, "DEVICE_NOT_FOUND");
+            return;
+          }
+          sendJson(200, {
+            deviceId: dev.id,
+            status: dev.status,
+            connection: dev.connection,
+            lastSeen: dev.lastSeen,
+          });
+          return;
+        }
+
+        // GET /devices/:id/consumables
+        const deviceConsumablesMatch = subPath.match(/^\/devices\/([^/]+)\/consumables$/);
+        if (deviceConsumablesMatch && req.method === "GET") {
+          const devId = normalizeId(deviceConsumablesMatch[1]);
+          if (!devId) {
+            sendError(400, "Bad Request: Invalid device ID format", "INVALID_ID");
+            return;
+          }
+          const dev = service.getDeviceService().getDevice(devId, { tenantId: reqCtx.tenantId });
+          if (!dev) {
+            sendError(404, `Device ${devId} not found`, "DEVICE_NOT_FOUND");
+            return;
+          }
+          sendJson(200, {
+            deviceId: dev.id,
+            consumablesStatus: "UNSUPPORTED",
+            message: "Consumables querying is unsupported for local raw GDI printer without proprietary vendor drivers.",
+          });
+          return;
+        }
+
+        // POST /devices/:id/print-jobs
+        const devicePrintJobsMatch = subPath.match(/^\/devices\/([^/]+)\/print-jobs$/);
+        if (devicePrintJobsMatch && req.method === "POST") {
+          const devId = normalizeId(devicePrintJobsMatch[1]);
+          if (!devId) {
+            sendError(400, "Bad Request: Invalid device ID format", "INVALID_ID");
+            return;
+          }
+          const bodyResult = await readJsonBody();
+          if (!bodyResult.ok) {
+            sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+            return;
+          }
+          const b = bodyResult.body;
+          const idempotencyKey = (req.headers["idempotency-key"] as string) || (typeof b.idempotencyKey === "string" ? b.idempotencyKey : undefined);
+          const tenantId = typeof b.tenantId === "string" ? b.tenantId : reqCtx.tenantId;
+          const applicationId = typeof b.applicationId === "string" ? b.applicationId : reqCtx.applicationId;
+
+          try {
+            const job = await service.getDeviceService().submitPrintJob({
+              deviceId: devId,
+              tenantId,
+              applicationId,
+              title: typeof b.title === "string" ? b.title : "Print Document",
+              documentType: typeof b.documentType === "string" ? (b.documentType as any) : "CUSTOM",
+              payload: (typeof b.payload === "object" && b.payload !== null) ? (b.payload as Record<string, unknown>) : { content: b.content ?? "" },
+              copies: typeof b.copies === "number" ? b.copies : 1,
+              orientation: typeof b.orientation === "string" ? (b.orientation as any) : "PORTRAIT",
+              idempotencyKey,
+            }, {
+              tenantId,
+              applicationId,
+              principal: reqCtx.principal,
+            });
+            sendJson(201, job);
+            return;
+          } catch (err: any) {
+            if (err.message?.includes("Idempotency conflict")) {
+              sendError(409, err.message, "IDEMPOTENCY_CONFLICT");
+              return;
+            }
+            if (err.message?.includes("not found")) {
+              sendError(404, err.message, "DEVICE_NOT_FOUND");
+              return;
+            }
+            if (err.message?.includes("does not have required capability") || err.message?.includes("Suspended tenant")) {
+              sendError(403, err.message, "FORBIDDEN");
+              return;
+            }
+            sendError(400, err.message, "PRINT_JOB_FAILED");
+            return;
+          }
+        }
+
+        // GET /devices/:id/print-jobs
+        if (devicePrintJobsMatch && req.method === "GET") {
+          const devId = normalizeId(devicePrintJobsMatch[1]);
+          if (!devId) {
+            sendError(400, "Bad Request: Invalid device ID format", "INVALID_ID");
+            return;
+          }
+          const tenantFilter = url.searchParams.get("tenantId") || (reqCtx.tenantId !== "tenant-default" ? reqCtx.tenantId : undefined);
+          const jobs = service.getDeviceService().listPrintJobs({
+            deviceId: devId,
+            tenantId: tenantFilter,
+          });
+          sendJson(200, { data: jobs, count: jobs.length });
+          return;
+        }
+
+        // GET /devices/:id/print-jobs/:jobId
+        const devicePrintJobDetailMatch = subPath.match(/^\/devices\/([^/]+)\/print-jobs\/([^/]+)$/);
+        if (devicePrintJobDetailMatch && req.method === "GET") {
+          const devId = normalizeId(devicePrintJobDetailMatch[1]);
+          const jobId = normalizeId(devicePrintJobDetailMatch[2]);
+          if (!devId || !jobId) {
+            sendError(400, "Bad Request: Invalid ID format", "INVALID_ID");
+            return;
+          }
+          const job = service.getDeviceService().getPrintJob(jobId, { tenantId: reqCtx.tenantId });
+          if (!job || job.deviceId !== devId) {
+            sendError(404, `Print job ${jobId} not found for device ${devId}`, "PRINT_JOB_NOT_FOUND");
+            return;
+          }
+          sendJson(200, job);
+          return;
+        }
+
+        // POST /devices/:id/print-jobs/:jobId/cancel
+        const devicePrintJobCancelMatch = subPath.match(/^\/devices\/([^/]+)\/print-jobs\/([^/]+)\/cancel$/);
+        if (devicePrintJobCancelMatch && req.method === "POST") {
+          const devId = normalizeId(devicePrintJobCancelMatch[1]);
+          const jobId = normalizeId(devicePrintJobCancelMatch[2]);
+          if (!devId || !jobId) {
+            sendError(400, "Bad Request: Invalid ID format", "INVALID_ID");
+            return;
+          }
+          let reason: string | undefined;
+          const contentType = req.headers["content-type"];
+          if (contentType) {
+            const bodyResult = await readJsonBody();
+            if (bodyResult.ok && typeof bodyResult.body.reason === "string") {
+              reason = bodyResult.body.reason;
+            }
+          }
+          try {
+            const cancelled = service.getDeviceService().cancelPrintJob(jobId, reason, { tenantId: reqCtx.tenantId });
+            sendJson(200, cancelled);
+            return;
+          } catch (err: any) {
+            sendError(404, err.message, "PRINT_JOB_NOT_FOUND");
+            return;
+          }
+        }
+
+        // PATCH /devices/:id
+        const devicePatchMatch = subPath.match(/^\/devices\/([^/]+)$/);
+        if (devicePatchMatch && req.method === "PATCH") {
+          const devId = normalizeId(devicePatchMatch[1]);
+          if (!devId) {
+            sendError(400, "Bad Request: Invalid device ID format", "INVALID_ID");
+            return;
+          }
+          const bodyResult = await readJsonBody();
+          if (!bodyResult.ok) {
+            sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+            return;
+          }
+          try {
+            const updated = service.getDeviceService().updateDevice(devId, bodyResult.body, { tenantId: reqCtx.tenantId });
+            sendJson(200, updated);
+            return;
+          } catch (err: any) {
+            sendError(404, err.message, "DEVICE_NOT_FOUND");
+            return;
+          }
+        }
+
+        // DELETE /devices/:id
+        if (devicePatchMatch && req.method === "DELETE") {
+          const devId = normalizeId(devicePatchMatch[1]);
+          if (!devId) {
+            sendError(400, "Bad Request: Invalid device ID format", "INVALID_ID");
+            return;
+          }
+          const removed = service.getDeviceService().unregisterDevice(devId, { tenantId: reqCtx.tenantId });
+          if (!removed) {
+            sendError(404, `Device ${devId} not found`, "DEVICE_NOT_FOUND");
+            return;
+          }
+          sendJson(200, { success: true, message: `Device ${devId} unregistered` });
+          return;
+        }
+
+        // GET /devices/:id
+        if (devicePatchMatch && req.method === "GET") {
+          const devId = normalizeId(devicePatchMatch[1]);
+          if (!devId) {
+            sendError(400, "Bad Request: Invalid device ID format", "INVALID_ID");
+            return;
+          }
+          const dev = service.getDeviceService().getDevice(devId, { tenantId: reqCtx.tenantId });
+          if (!dev) {
+            sendError(404, `Device ${devId} not found`, "DEVICE_NOT_FOUND");
+            return;
+          }
+          sendJson(200, dev);
           return;
         }
 

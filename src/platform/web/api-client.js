@@ -365,3 +365,122 @@ export async function registerApplication(manifest, tenantId) {
     body: JSON.stringify({ manifest, tenantId }),
   });
 }
+
+// --- Enterprise Observability & Diagnostics (Prompt 98) ---
+
+export async function getLiveness() {
+  return request("/health/live");
+}
+
+export async function getReadiness() {
+  return request("/health/ready");
+}
+
+export async function getDiagnostics() {
+  return request("/diagnostics");
+}
+
+export async function getObservabilityMetrics() {
+  return request("/observability/metrics");
+}
+
+export async function getObservabilityLogs(options = {}) {
+  const params = new URLSearchParams();
+  if (options.limit) params.set("limit", String(options.limit));
+  if (options.level) params.set("level", options.level);
+  const qs = params.toString();
+  return request(qs ? `/observability/logs?${qs}` : "/observability/logs");
+}
+
+export async function getObservabilityDependencies() {
+  return request("/observability/dependencies");
+}
+
+// --- Document Generation (Prompt 98) ---
+
+export async function generateDocument(input) {
+  return request("/documents/generate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+}
+
+// --- Business Devices & Print Operations (Prompt 98) ---
+
+export async function getDevices(options = {}) {
+  const params = new URLSearchParams();
+  if (options.tenantId) params.set("tenantId", options.tenantId);
+  if (options.type) params.set("type", options.type);
+  if (options.status) params.set("status", options.status);
+  const qs = params.toString();
+  return request(qs ? `/devices?${qs}` : "/devices");
+}
+
+export async function getDevice(id) {
+  return request(`/devices/${encodeURIComponent(id)}`);
+}
+
+export async function registerDevice(deviceData) {
+  return request("/devices", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(deviceData),
+  });
+}
+
+export async function updateDevice(id, patch) {
+  return request(`/devices/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
+  });
+}
+
+export async function unregisterDevice(id) {
+  return request(`/devices/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
+}
+
+export async function getDeviceHealth(id) {
+  return request(`/devices/${encodeURIComponent(id)}/health`);
+}
+
+export async function getDeviceCapabilities(id) {
+  return request(`/devices/${encodeURIComponent(id)}/capabilities`);
+}
+
+export async function getDeviceStatus(id) {
+  return request(`/devices/${encodeURIComponent(id)}/status`);
+}
+
+export async function getDeviceConsumables(id) {
+  return request(`/devices/${encodeURIComponent(id)}/consumables`);
+}
+
+export async function submitPrintJob(deviceId, input, idempotencyKey) {
+  const headers = { "Content-Type": "application/json" };
+  if (idempotencyKey) headers["Idempotency-Key"] = idempotencyKey;
+  return request(`/devices/${encodeURIComponent(deviceId)}/print-jobs`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(input),
+  });
+}
+
+export async function getPrintJobs(deviceId) {
+  return request(`/devices/${encodeURIComponent(deviceId)}/print-jobs`);
+}
+
+export async function getPrintJob(deviceId, jobId) {
+  return request(`/devices/${encodeURIComponent(deviceId)}/print-jobs/${encodeURIComponent(jobId)}`);
+}
+
+export async function cancelPrintJob(deviceId, jobId, reason) {
+  return request(`/devices/${encodeURIComponent(deviceId)}/print-jobs/${encodeURIComponent(jobId)}/cancel`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ reason }),
+  });
+}

@@ -21,7 +21,9 @@ export type EventType =
   | "coordination.completed" | "coordination.failed"
     | "auth.succeeded" | "auth.failed" | "auth.revoked" | "auth.expired"
   | "authorization.allowed" | "authorization.denied"
-  | "plan.requested" | "plan.generated" | "plan.validated" | "plan.rejected" | "plan.accepted" | "plan.execution_started";
+  | "plan.requested" | "plan.generated" | "plan.validated" | "plan.rejected" | "plan.accepted" | "plan.execution_started"
+  | "device.registered" | "device.unregistered" | "device.health_checked"
+  | "print.job.created" | "print.job.started" | "print.job.completed" | "print.job.failed" | "print.job.cancelled";
 
 export interface DomainEvent {
   readonly id: string;

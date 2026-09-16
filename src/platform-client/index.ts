@@ -327,6 +327,113 @@ export function createPlatformClient(options: PlatformClientOptions) {
     },
   };
 
+  const devices = {
+    async list(options?: { readonly tenantId?: string; readonly type?: string; readonly status?: string }): Promise<{ readonly data: readonly any[]; readonly count: number }> {
+      const params = new URLSearchParams();
+      if (options?.tenantId) params.set("tenantId", options.tenantId);
+      if (options?.type) params.set("type", options.type);
+      if (options?.status) params.set("status", options.status);
+      const qs = params.toString();
+      return request<{ readonly data: readonly any[]; readonly count: number }>(qs ? `/devices?${qs}` : "/devices");
+    },
+    async get(id: string): Promise<any> {
+      return request<any>(`/devices/${encodeURIComponent(id)}`);
+    },
+    async register(deviceData: any): Promise<any> {
+      return request<any>("/devices", {
+        method: "POST",
+        body: JSON.stringify(deviceData),
+      });
+    },
+    async update(id: string, patch: any): Promise<any> {
+      return request<any>(`/devices/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        body: JSON.stringify(patch),
+      });
+    },
+    async unregister(id: string): Promise<{ readonly success: boolean; readonly message: string }> {
+      return request<{ readonly success: boolean; readonly message: string }>(`/devices/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      });
+    },
+    async health(id: string): Promise<any> {
+      return request<any>(`/devices/${encodeURIComponent(id)}/health`);
+    },
+    async capabilities(id: string): Promise<any> {
+      return request<any>(`/devices/${encodeURIComponent(id)}/capabilities`);
+    },
+    async status(id: string): Promise<any> {
+      return request<any>(`/devices/${encodeURIComponent(id)}/status`);
+    },
+    async consumables(id: string): Promise<any> {
+      return request<any>(`/devices/${encodeURIComponent(id)}/consumables`);
+    },
+  };
+
+  const printing = {
+    async submit(deviceId: string, jobInput: any, idempotencyKey?: string): Promise<any> {
+      const headers: Record<string, string> = {};
+      if (idempotencyKey) headers["Idempotency-Key"] = idempotencyKey;
+      return request<any>(`/devices/${encodeURIComponent(deviceId)}/print-jobs`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(jobInput),
+      });
+    },
+    async list(deviceId: string): Promise<{ readonly data: readonly any[]; readonly count: number }> {
+      return request<{ readonly data: readonly any[]; readonly count: number }>(`/devices/${encodeURIComponent(deviceId)}/print-jobs`);
+    },
+    async get(deviceId: string, jobId: string): Promise<any> {
+      return request<any>(`/devices/${encodeURIComponent(deviceId)}/print-jobs/${encodeURIComponent(jobId)}`);
+    },
+    async cancel(deviceId: string, jobId: string, reason?: string): Promise<any> {
+      return request<any>(`/devices/${encodeURIComponent(deviceId)}/print-jobs/${encodeURIComponent(jobId)}/cancel`, {
+        method: "POST",
+        body: JSON.stringify({ reason }),
+      });
+    },
+  };
+
+  const observability = {
+    async metrics(): Promise<any> {
+      return request<any>("/observability/metrics");
+    },
+    async logs(options?: { readonly limit?: number; readonly level?: string }): Promise<any> {
+      const params = new URLSearchParams();
+      if (options?.limit) params.set("limit", String(options.limit));
+      if (options?.level) params.set("level", options.level);
+      const qs = params.toString();
+      return request<any>(qs ? `/observability/logs?${qs}` : "/observability/logs");
+    },
+    async dependencies(): Promise<readonly any[]> {
+      return request<readonly any[]>("/observability/dependencies");
+    },
+    async diagnostics(): Promise<any> {
+      return request<any>("/diagnostics");
+    },
+    async liveness(): Promise<any> {
+      return request<any>("/health/live");
+    },
+    async readiness(): Promise<any> {
+      return request<any>("/health/ready");
+    },
+  };
+
+  const documents = {
+    async generate(input: {
+      readonly type: string;
+      readonly title: string;
+      readonly content: any;
+      readonly tenantId?: string;
+      readonly metadata?: Record<string, unknown>;
+    }): Promise<any> {
+      return request<any>("/documents/generate", {
+        method: "POST",
+        body: JSON.stringify(input),
+      });
+    },
+  };
+
   return {
     tasks,
     executions,
@@ -340,6 +447,10 @@ export function createPlatformClient(options: PlatformClientOptions) {
     demo,
     events,
     platform,
+    devices,
+    printing,
+    observability,
+    documents,
     connect: () => healthGet(),
     health: Object.assign(healthGet, { get: healthGet }),
     getPlatformInfo: () => platform.get(),

@@ -106,6 +106,24 @@ export const PLATFORM_CAPABILITY_CATALOG: readonly PlatformCapabilityDefinition[
     requiredPlan: "BUSINESS",
     endpoints: ["GET /api/v1/metrics", "GET /api/v1/events"],
   },
+  {
+    id: "device.print",
+    name: "Business Device Printing",
+    category: "AUTOMATION",
+    description: "Governed dispatch of printable documents, orders, packing slips, and receipts to hardware devices.",
+    riskTier: "MEDIUM",
+    requiredPlan: "PRO",
+    endpoints: ["POST /api/v1/devices/:id/print-jobs", "GET /api/v1/devices/:id/print-jobs"],
+  },
+  {
+    id: "device.manage",
+    name: "Business Device Management & Probes",
+    category: "CORE",
+    description: "Discover, inspect, probe health, and configure operational business hardware devices.",
+    riskTier: "LOW",
+    requiredPlan: "PRO",
+    endpoints: ["GET /api/v1/devices", "GET /api/v1/devices/:id/health", "GET /api/v1/devices/:id/capabilities"],
+  },
 ]);
 
 export class ApplicationValidator {

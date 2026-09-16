@@ -192,6 +192,7 @@ class PlatformApp {
     this.setupEcosystemView();
     this.setupDiagnosticsView();
     this.setupApplicationDetailView();
+    this.setupDevicesView();
     this.loadData();
     this.startAutoRefresh();
   }
@@ -647,6 +648,8 @@ class PlatformApp {
       ecosystem: { title: "Application Ecosystem & Marketplace", sub: "Ecosystem directory, verified enterprise reference applications, and trust governance" },
       diagnostics: { title: "System Diagnostics & Probes", sub: "Deep health checks, runtime probes, SQLite WAL integrity, and reconciliation telemetry" },
       "application-detail": { title: "Application Detail & Trust", sub: "Deep dive into application manifest, lifecycle state, capabilities, and audit history" },
+      devices: { title: "Business Devices & Hardware Printing", sub: "Enterprise device registry and durable local spooler queue for business hardware" },
+      "device-detail": { title: "Device Identity & Capabilities", sub: "Deep hardware diagnostics, declared capabilities, and print queue inspection" },
     };
 
     const info = titles[tab] || titles["platform-operations"];
@@ -677,6 +680,8 @@ class PlatformApp {
       this.loadEcosystemData();
     } else if (tab === "diagnostics") {
       this.loadDiagnosticsData();
+    } else if (tab === "devices") {
+      this.loadDevicesData();
     } else if (tab === "agents" || tab === "models" || tab === "tools" || tab === "executions" || tab === "governance" || tab === "operations") {
       this.loadData();
     }
@@ -5434,6 +5439,309 @@ class PlatformApp {
     }
 
     this.switchTab("application-detail");
+  }
+
+  setupDevicesView() {
+    const refreshBtn = document.getElementById("devices-refresh-btn");
+    if (refreshBtn) {
+      refreshBtn.addEventListener("click", () => this.loadDevicesData());
+    }
+
+    const backBtn = document.getElementById("device-detail-back-btn");
+    if (backBtn) {
+      backBtn.addEventListener("click", () => this.switchTab("devices"));
+    }
+
+    const probeBtn = document.getElementById("device-detail-probe-btn");
+    if (probeBtn) {
+      probeBtn.addEventListener("click", async () => {
+        if (!this.selectedDeviceId) return;
+        probeBtn.disabled = true;
+        probeBtn.textContent = "Probing Hardware...";
+        try {
+          const health = await api.getDeviceHealth(this.selectedDeviceId);
+          alert(`Health Probe for ${this.selectedDeviceId}:\nStatus: ${health.status}\nReachable: ${health.reachable}\nMessage: ${health.message || "OK"}`);
+          await this.inspectDevice(this.selectedDeviceId);
+        } catch (err) {
+          alert(`Health probe error: ${err.message}`);
+        } finally {
+          probeBtn.disabled = false;
+          probeBtn.textContent = "Run Device Health Probe";
+        }
+      });
+    }
+
+    const printForm = document.getElementById("print-job-form");
+    if (printForm) {
+      printForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const submitBtn = document.getElementById("print-submit-btn");
+        if (submitBtn) submitBtn.disabled = true;
+
+        const deviceId = document.getElementById("print-target-device")?.value || "printer-brother-dcp1600";
+        const docType = document.getElementById("print-doc-type")?.value || "ORDER";
+        const title = document.getElementById("print-doc-title")?.value || "Document";
+        const content = document.getElementById("print-doc-content")?.value || "";
+
+        try {
+          const idempotencyKey = `idem-print-${Date.now().toString(36)}`;
+          await api.submitPrintJob(deviceId, {
+            deviceId,
+            documentType: docType,
+            title,
+            payload: { content },
+            tenantId: "tenant-tentaciones",
+            applicationId: "tentaciones-commerce",
+          }, idempotencyKey);
+          alert("Print job submitted and queued in local spooler!");
+          await this.loadDevicesData();
+        } catch (err) {
+          alert(`Failed to submit print job: ${err.message}`);
+        } finally {
+          if (submitBtn) submitBtn.disabled = false;
+        }
+      });
+    }
+  }
+
+  async loadDevicesData() {
+    try {
+      const devicesRes = await api.getDevices().catch(() => ({ data: [] }));
+      const devices = devicesRes?.data || [];
+      const brother = devices.find((d) => d.id === "printer-brother-dcp1600") || devices[0];
+
+      this.setText("devices-count-total", String(devices.length));
+      if (brother) {
+        const isReady = brother.status === "READY";
+        this.setText("devices-connectivity-status", `${brother.connection?.port || "USB001"} (${brother.status})`);
+        const connElem = document.getElementById("devices-connectivity-status");
+        if (connElem) {
+          connElem.style.color = isReady ? "var(--accent-green)" : "var(--accent-amber)";
+        }
+      }
+
+      // Render device cards
+      const container = document.getElementById("devices-list-container");
+      if (container) {
+        clearChildren(container);
+        if (devices.length === 0) {
+          const empty = document.createElement("p");
+          empty.style.color = "var(--text-secondary)";
+          empty.textContent = "No business devices registered.";
+          container.appendChild(empty);
+        } else {
+          devices.forEach((dev) => {
+            const card = document.createElement("div");
+            card.className = "card";
+            card.style.background = "var(--bg-secondary)";
+            card.style.border = "1px solid var(--border-color)";
+            card.style.padding = "1rem";
+            card.style.borderRadius = "6px";
+
+            const header = document.createElement("div");
+            header.style.display = "flex";
+            header.style.justifyContent = "space-between";
+            header.style.alignItems = "center";
+            header.style.marginBottom = "0.5rem";
+
+            const title = document.createElement("h4");
+            title.style.fontSize = "1rem";
+            title.textContent = dev.name;
+
+            const badge = document.createElement("span");
+            badge.className = `badge badge-${dev.status === "READY" ? "success" : "warning"}`;
+            badge.textContent = dev.status;
+
+            header.append(title, badge);
+
+            const details = document.createElement("div");
+            details.style.fontSize = "0.8rem";
+            details.style.color = "var(--text-secondary)";
+            details.style.marginBottom = "0.75rem";
+
+            const p1 = document.createElement("div");
+            p1.textContent = `Type: ${dev.type} · Vendor: ${dev.vendor} · Model: ${dev.model}`;
+            const p2 = document.createElement("div");
+            p2.textContent = `Connection: ${dev.connection?.type || "USB"} · Port: ${dev.connection?.port || "USB001"} · Driver: ${dev.connection?.driverName || "Standard"}`;
+
+            details.append(p1, p2);
+
+            const actions = document.createElement("div");
+            actions.style.display = "flex";
+            actions.style.gap = "0.5rem";
+
+            const inspectBtn = document.createElement("button");
+            inspectBtn.className = "btn btn-secondary";
+            inspectBtn.style.fontSize = "0.75rem";
+            inspectBtn.style.padding = "0.3rem 0.6rem";
+            inspectBtn.textContent = "Inspect Identity & Capabilities";
+            inspectBtn.addEventListener("click", () => this.inspectDevice(dev.id));
+
+            const probeBtn = document.createElement("button");
+            probeBtn.className = "btn btn-primary";
+            probeBtn.style.fontSize = "0.75rem";
+            probeBtn.style.padding = "0.3rem 0.6rem";
+            probeBtn.textContent = "Check Health";
+            probeBtn.addEventListener("click", async () => {
+              try {
+                const res = await api.getDeviceHealth(dev.id);
+                alert(`Health status for ${dev.name}:\nStatus: ${res.status}\nMessage: ${res.message || "OK"}`);
+                await this.loadDevicesData();
+              } catch (err) {
+                alert(`Health check failed: ${err.message}`);
+              }
+            });
+
+            actions.append(inspectBtn, probeBtn);
+            card.append(header, details, actions);
+            container.appendChild(card);
+          });
+        }
+      }
+
+      // Load print jobs
+      const jobsRes = await api.getPrintJobs("printer-brother-dcp1600").catch(() => ({ data: [] }));
+      const jobs = jobsRes?.data || [];
+      this.setText("devices-jobs-total", String(jobs.length));
+
+      const tbody = document.getElementById("print-jobs-table-body");
+      if (tbody) {
+        clearChildren(tbody);
+        if (jobs.length === 0) {
+          const tr = document.createElement("tr");
+          const td = document.createElement("td");
+          td.colSpan = 7;
+          td.style.padding = "1rem";
+          td.style.textAlign = "center";
+          td.style.color = "var(--text-secondary)";
+          td.textContent = "No print jobs queued or executed yet.";
+          tr.appendChild(td);
+          tbody.appendChild(tr);
+        } else {
+          jobs.forEach((job) => {
+            const tr = document.createElement("tr");
+            tr.style.borderBottom = "1px solid var(--border-color)";
+            tr.style.fontSize = "0.8rem";
+
+            const tdId = document.createElement("td");
+            tdId.style.padding = "0.6rem";
+            const codeId = document.createElement("code");
+            codeId.textContent = job.id;
+            tdId.appendChild(codeId);
+
+            const tdDev = document.createElement("td");
+            tdDev.style.padding = "0.6rem";
+            tdDev.textContent = job.deviceId;
+
+            const tdDoc = document.createElement("td");
+            tdDoc.style.padding = "0.6rem";
+            tdDoc.textContent = `${job.document?.title || "Document"} (${job.document?.type || "CUSTOM"})`;
+
+            const tdTenant = document.createElement("td");
+            tdTenant.style.padding = "0.6rem";
+            tdTenant.textContent = job.tenantId || "default";
+
+            const tdStatus = document.createElement("td");
+            tdStatus.style.padding = "0.6rem";
+            const badge = document.createElement("span");
+            badge.className = `badge badge-${job.status === "COMPLETED" || job.status === "PROCESSING" ? "success" : job.status === "FAILED" || job.status === "UNAVAILABLE" ? "error" : "warning"}`;
+            badge.textContent = job.status;
+            tdStatus.appendChild(badge);
+
+            const tdDate = document.createElement("td");
+            tdDate.style.padding = "0.6rem";
+            tdDate.textContent = job.createdAt ? new Date(job.createdAt).toLocaleTimeString() : "—";
+
+            const tdAction = document.createElement("td");
+            tdAction.style.padding = "0.6rem";
+            if (job.status === "QUEUED" || job.status === "PROCESSING") {
+              const cancelBtn = document.createElement("button");
+              cancelBtn.className = "btn btn-danger";
+              cancelBtn.style.fontSize = "0.7rem";
+              cancelBtn.style.padding = "0.2rem 0.4rem";
+              cancelBtn.textContent = "Cancel";
+              cancelBtn.addEventListener("click", async () => {
+                try {
+                  await api.cancelPrintJob(job.deviceId, job.id, "Cancelled by dashboard operator");
+                  await this.loadDevicesData();
+                } catch (err) {
+                  alert(`Cancel failed: ${err.message}`);
+                }
+              });
+              tdAction.appendChild(cancelBtn);
+            } else {
+              tdAction.textContent = "—";
+            }
+
+            tr.append(tdId, tdDev, tdDoc, tdTenant, tdStatus, tdDate, tdAction);
+            tbody.appendChild(tr);
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load devices data:", err);
+    }
+  }
+
+  async inspectDevice(deviceId) {
+    this.selectedDeviceId = deviceId;
+    try {
+      const dev = await api.getDevice(deviceId);
+      if (!dev) return;
+
+      this.setText("device-detail-name", dev.name);
+      this.setText("device-detail-desc", `${dev.vendor} ${dev.model} (Assigned Tenant: ${dev.tenantId})`);
+      this.setText("device-detail-id", dev.id);
+      this.setText("device-detail-model", `${dev.vendor} ${dev.model}`);
+      this.setText("device-detail-port", `${dev.connection?.type || "USB"} · ${dev.connection?.port || "USB001"}`);
+      this.setText("device-detail-driver", `${dev.connection?.driverName || "Brother DCP-1600 series"} (${dev.connection?.spoolerName || "winprint"})`);
+
+      const badgesElem = document.getElementById("device-detail-header-badges");
+      if (badgesElem) {
+        clearChildren(badgesElem);
+        const typeBadge = document.createElement("span");
+        typeBadge.className = "badge badge-info";
+        typeBadge.textContent = dev.type;
+
+        const stBadge = document.createElement("span");
+        stBadge.className = `badge badge-${dev.status === "READY" ? "success" : "warning"}`;
+        stBadge.textContent = dev.status;
+
+        badgesElem.append(typeBadge, stBadge);
+      }
+
+      const capsContainer = document.getElementById("device-detail-capabilities-container");
+      if (capsContainer) {
+        clearChildren(capsContainer);
+        const caps = dev.capabilities || {};
+        for (const [capName, status] of Object.entries(caps)) {
+          const item = document.createElement("div");
+          item.style.display = "flex";
+          item.style.justifyContent = "space-between";
+          item.style.alignItems = "center";
+          item.style.padding = "0.5rem 0.75rem";
+          item.style.background = "var(--bg-secondary)";
+          item.style.border = "1px solid var(--border-color)";
+          item.style.borderRadius = "4px";
+
+          const nameSpan = document.createElement("span");
+          nameSpan.style.fontFamily = "monospace";
+          nameSpan.style.fontSize = "0.85rem";
+          nameSpan.textContent = capName;
+
+          const stSpan = document.createElement("span");
+          stSpan.className = `badge badge-${status === "SUPPORTED" || status === "AVAILABLE" ? "success" : status === "UNSUPPORTED" ? "neutral" : "warning"}`;
+          stSpan.textContent = status;
+
+          item.append(nameSpan, stSpan);
+          capsContainer.appendChild(item);
+        }
+      }
+
+      this.switchTab("device-detail");
+    } catch (err) {
+      alert(`Failed to inspect device: ${err.message}`);
+    }
   }
 
   setupDemoReset() {
