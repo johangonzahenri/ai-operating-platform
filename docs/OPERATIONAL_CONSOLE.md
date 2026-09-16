@@ -1,40 +1,56 @@
-# Operational Console
+# Operational Console Manual & Architecture
 
-The internal console is a read-and-operate surface for the public platform
-API. It uses the browser HTTP client and does not import Core Engine modules.
+The **Operational Console** provides enterprise operators, platform engineers, and developers with real-time operational observability, interactive task execution, diagnostic probing, and policy governance across the **AI Operating Platform**.
 
-The dashboard shows health and platform status. The operational views expose
-tasks, executions, models, tools, and the correlated event/audit timeline.
-Failures are rendered as API error states rather than replacing backend
-diagnostics with a generic message.
+---
 
-Run it with the normal server command and open `http://127.0.0.1:3000/`.
-The console is intentionally not the external product UI; it demonstrates the
-stable boundary that applications such as Tentaciones AI Commerce will use.
+## 1. Access & Interaction
 
-## Operational Intelligence Console flow
+- **URL**: `http://127.0.0.1:3000/`
+- **Protocol**: HTTP/1.1 REST over Platform API v1 (`/api/v1/*` and `/api/platform/v1/*`)
+- **Rendering Model**: Zero-dependency vanilla ES6 modules with strict DOM API manipulation (`document.createElement`, `textContent`).
 
-The primary operations view is a real Platform API consumer:
+---
 
-1. `GET /api/platform/v1/health` renders platform, runtime, persistence, and
-   event-store status.
-2. `GET /api/platform/v1/agents` selects an active agent.
-3. `POST /api/platform/v1/tasks` creates the objective and returns task,
-   execution, and trace identifiers.
-4. `POST /api/platform/v1/tasks/:taskId/execute` uses the existing idempotent
-   execution contract.
-5. The browser polls
-   `GET /api/platform/v1/executions/:executionId` and
-   `GET /api/platform/v1/executions/:executionId/events` with bounded backoff
-   until a terminal status or finite attempt limit.
+## 2. Interactive Operational Workflows
 
-The timeline is built only from returned event records. Values are assigned
-with `textContent`, so event payloads cannot become markup. Provider
-credentials, headers, filesystem paths, and secrets are never requested by
-the browser. Missing optional execution metadata is displayed as
-`Not reported`, not fabricated.
+### A. Real-Time Task Execution
+1. Navigate to **Platform Operations** or **Tasks**.
+2. Provide an operational objective (e.g. *"Quiero unas zapatillas negras para correr"*).
+3. Click **Execute Task**. The console invokes `POST /api/platform/v1/tasks` and `POST /api/platform/v1/tasks/:id/execute`.
+4. Observe the live execution lifecycle:
+   - Status transitions: `CREATED` $\rightarrow$ `RUNNING` $\rightarrow$ `COMPLETED`
+   - Model requests and completion tokens
+   - Tool calls and policy evaluations
+   - Correlated trace timeline with monotonic sequence events.
 
-The default objective demonstrates the real Tentaciones path without copying
-its catalog. Tentaciones remains the owner of products; the platform only
-coordinates and observes the task, tool call, policy decision, observation,
-and final result.
+### B. Durable Event Stream Inspection
+1. Navigate to **Events** (`#tab-events`).
+2. Filter events by `eventType` (e.g. `task.completed`, `model.tool.executed`) or `traceId`.
+3. Click **Inspect Payload** to view the full redacted JSON payload in the interactive payload inspector.
+
+### C. System Diagnostics Center
+1. Navigate to **Diagnostics** (`#tab-diagnostics`).
+2. Click **Run Diagnostics Probe**.
+3. Inspect probe results across:
+   - **Platform API Connectivity**
+   - **SQLite WAL Persistence Engine**
+   - **Durable Event Store & Sequencer**
+   - **Model Gateway & Router**
+   - **Tool Execution Layer & Contracts**
+   - **Security Boundaries & Default Deny**
+   - **Reconciliation & Crash Recovery**
+
+### D. Application Ecosystem & Trust Management
+1. Navigate to **Ecosystem** (`#tab-ecosystem`).
+2. Filter by category (`Commerce`, `Automotive`, `Support`, `Analytics`).
+3. Click **Manage & Trust Detail** to inspect the application's manifest, assigned tenant, telemetry metrics, and lifecycle actions (`Connect`, `Suspend`, `Retire`).
+
+---
+
+## 3. DOM & Memory Hygiene
+
+The Operational Console is audited against injection and prototype pollution vulnerabilities:
+- **0 `innerHTML` / `outerHTML` calls**
+- **0 `eval()` or dynamic script execution**
+- **0 Secret Leakage in telemetry views**

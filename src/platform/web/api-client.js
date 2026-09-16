@@ -88,6 +88,20 @@ export async function getEvents(options = {}) {
   return request(qs ? `/events?${qs}` : "/events");
 }
 
+export async function getTasks(options = {}) {
+  const params = new URLSearchParams();
+  if (options.limit !== undefined && options.limit !== "") params.set("limit", String(options.limit));
+  if (options.offset !== undefined && options.offset !== "") params.set("offset", String(options.offset));
+  if (options.agentId) params.set("agentId", options.agentId);
+  if (options.status) params.set("status", options.status);
+  const qs = params.toString();
+  return request(qs ? `/tasks?${qs}` : "/tasks");
+}
+
+export async function getTask(id) {
+  return request(`/tasks/${encodeURIComponent(id)}`);
+}
+
 export async function getEvent(id) {
   return request(`/events/${encodeURIComponent(id)}`);
 }
@@ -236,14 +250,6 @@ export async function cancelPlatformTask(taskId, reason) {
   });
 }
 
-export async function getTasks() {
-  return request("/tasks");
-}
-
-export async function getTask(id) {
-  return request(`/tasks/${encodeURIComponent(id)}`);
-}
-
 export async function cancelTask(taskId, reason) {
   return request(`/tasks/${encodeURIComponent(taskId)}/cancel`, {
     method: "POST",
@@ -331,6 +337,7 @@ export async function getApplicationAnalytics(id) {
 export async function updateApplicationLifecycle(id, state, reason) {
   return request(`/applications/${encodeURIComponent(id)}/lifecycle`, {
     method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ state, reason }),
   });
 }
@@ -338,6 +345,7 @@ export async function updateApplicationLifecycle(id, state, reason) {
 export async function generateApplication(input) {
   return request("/factory/generate", {
     method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
   });
 }
@@ -345,6 +353,7 @@ export async function generateApplication(input) {
 export async function validateApplication(manifest, tenantId) {
   return request("/factory/validate", {
     method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ manifest, tenantId }),
   });
 }
@@ -352,6 +361,7 @@ export async function validateApplication(manifest, tenantId) {
 export async function registerApplication(manifest, tenantId) {
   return request("/factory/register", {
     method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ manifest, tenantId }),
   });
 }
