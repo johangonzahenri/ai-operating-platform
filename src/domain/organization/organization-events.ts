@@ -4,6 +4,8 @@ import { Organization } from "./organization.js";
 import { Area } from "./area.js";
 import { Team } from "./team.js";
 import { AgentMembership } from "./agent-membership.js";
+import { TeamResourceBudget, ResourceConsumptionRequest } from "./team-resource-budget.js";
+
 
 export function createOrganizationCreatedEvent(org: Organization, traceId: string = crypto.randomUUID()): DomainEvent {
   return event(
@@ -159,3 +161,128 @@ export function createAgentRemovedFromTeamEvent(
     }
   );
 }
+
+export function createTeamBudgetCreatedEvent(
+  budget: TeamResourceBudget,
+  traceId: string = crypto.randomUUID()
+): DomainEvent {
+  return event(
+    "team.budget.created",
+    traceId,
+    budget.id,
+    {
+      budgetId: budget.id,
+      teamId: budget.teamId,
+      organizationId: budget.organizationId,
+      tenantId: budget.tenantId,
+      limits: budget.limits,
+      window: budget.window,
+      status: budget.status,
+      version: budget.version,
+    }
+  );
+}
+
+export function createTeamBudgetUpdatedEvent(
+  budget: TeamResourceBudget,
+  traceId: string = crypto.randomUUID()
+): DomainEvent {
+  return event(
+    "team.budget.updated",
+    traceId,
+    budget.id,
+    {
+      budgetId: budget.id,
+      teamId: budget.teamId,
+      organizationId: budget.organizationId,
+      tenantId: budget.tenantId,
+      limits: budget.limits,
+      consumed: budget.consumed,
+      window: budget.window,
+      status: budget.status,
+      version: budget.version,
+    }
+  );
+}
+
+export function createTeamBudgetExhaustedEvent(
+  budget: TeamResourceBudget,
+  traceId: string = crypto.randomUUID()
+): DomainEvent {
+  return event(
+    "team.budget.exhausted",
+    traceId,
+    budget.id,
+    {
+      budgetId: budget.id,
+      teamId: budget.teamId,
+      organizationId: budget.organizationId,
+      tenantId: budget.tenantId,
+      consumed: budget.consumed,
+      limits: budget.limits,
+      version: budget.version,
+    }
+  );
+}
+
+export function createTeamBudgetStatusChangedEvent(
+  budget: TeamResourceBudget,
+  previousStatus: string,
+  traceId: string = crypto.randomUUID()
+): DomainEvent {
+  return event(
+    "team.budget.status_changed",
+    traceId,
+    budget.id,
+    {
+      budgetId: budget.id,
+      teamId: budget.teamId,
+      organizationId: budget.organizationId,
+      tenantId: budget.tenantId,
+      previousStatus,
+      newStatus: budget.status,
+      version: budget.version,
+    }
+  );
+}
+
+export function createTeamResourceConsumptionAuthorizedEvent(
+  budget: TeamResourceBudget,
+  requested: ResourceConsumptionRequest,
+  traceId: string = crypto.randomUUID()
+): DomainEvent {
+  return event(
+    "team.resource.consumption.authorized",
+    traceId,
+    budget.id,
+    {
+      budgetId: budget.id,
+      teamId: budget.teamId,
+      tenantId: budget.tenantId,
+      requested,
+      remaining: budget.getRemaining(),
+      version: budget.version,
+    }
+  );
+}
+
+export function createTeamResourceConsumptionDeniedEvent(
+  teamId: string,
+  tenantId: string,
+  requested: ResourceConsumptionRequest,
+  reason: string,
+  traceId: string = crypto.randomUUID()
+): DomainEvent {
+  return event(
+    "team.resource.consumption.denied",
+    traceId,
+    teamId,
+    {
+      teamId,
+      tenantId,
+      requested,
+      reason,
+    }
+  );
+}
+

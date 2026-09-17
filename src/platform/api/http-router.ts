@@ -49,7 +49,13 @@ import {
   InvalidHierarchyError,
   CrossTenantOrganizationError,
   MembershipConflictError,
+  BudgetValidationError,
+  BudgetNotFoundError,
+  BudgetExhaustedError,
+  BudgetSuspendedError,
+  BudgetConcurrencyConflictError,
 } from "../../domain/organization/organization-errors.js";
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -2095,7 +2101,7 @@ export function createHttpServer(
         // ====================================================================
         if (!isPlatformV1) {
           const handleOrgError = (err: any) => {
-            if (err instanceof OrganizationValidationError || err instanceof InvalidHierarchyError) {
+            if (err instanceof OrganizationValidationError || err instanceof InvalidHierarchyError || err instanceof BudgetValidationError) {
               sendError(400, err.message, "VALIDATION_ERROR");
               return;
             }
@@ -2111,6 +2117,18 @@ export function createHttpServer(
               sendError(404, err.message, "TEAM_NOT_FOUND");
               return;
             }
+            if (err instanceof BudgetNotFoundError) {
+              sendError(404, err.message, "BUDGET_NOT_FOUND");
+              return;
+            }
+            if (err instanceof BudgetExhaustedError) {
+              sendError(429, err.message, "BUDGET_EXHAUSTED");
+              return;
+            }
+            if (err instanceof BudgetSuspendedError) {
+              sendError(403, err.message, "BUDGET_SUSPENDED");
+              return;
+            }
             if (err instanceof OrganizationConflictError) {
               sendError(409, err.message, "ORGANIZATION_CONFLICT");
               return;
@@ -2119,12 +2137,17 @@ export function createHttpServer(
               sendError(409, err.message, "MEMBERSHIP_CONFLICT");
               return;
             }
+            if (err instanceof BudgetConcurrencyConflictError) {
+              sendError(409, err.message, "BUDGET_CONCURRENCY_CONFLICT");
+              return;
+            }
             if (err instanceof CrossTenantOrganizationError) {
               sendError(403, err.message, "CROSS_TENANT_FORBIDDEN");
               return;
             }
             sendError(500, err.message || "Internal organization error", "ORGANIZATION_ERROR");
           };
+
 
           // GET /organizations
           if (subPath === "/organizations" && req.method === "GET") {
@@ -2549,7 +2572,152 @@ export function createHttpServer(
               return;
             }
           }
+
+          // GET /teams/:id/budget
+          const teamBudgetMatch = subPath.match(/^\/teams\/([^/]+)\/budget$/);
+          if (teamBudgetMatch && req.method === "GET") {
+            const teamId = normalizeId(teamBudgetMatch[1]);
+            if (!teamId) {
+              sendError(400, "Bad Request: Invalid team ID format", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("organization.read", "API", teamId, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            try {
+              const budget = await service.getTeamResourceBudgetService().getBudget(teamId, tenantId);
+              sendJson(200, service.toTeamResourceBudgetDTO(budget));
+              return;
+            } catch (err: any) {
+              handleOrgError(err);
+              return;
+            }
+          }
+
+          // POST /teams/:id/budget
+          if (teamBudgetMatch && req.method === "POST") {
+            const teamId = normalizeId(teamBudgetMatch[1]);
+            if (!teamId) {
+              sendError(400, "Bad Request: Invalid team ID format", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("organization.update", "API", teamId, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const bodyResult = await readJsonBody();
+            if (!bodyResult.ok) {
+              sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+              return;
+            }
+            const body = bodyResult.body as { id?: string; limits?: any; window?: any };
+            try {
+              const budget = await service.getTeamResourceBudgetService().createBudget({
+                id: body.id,
+                teamId,
+                tenantId,
+                limits: body.limits,
+                window: body.window,
+              });
+              sendJson(201, service.toTeamResourceBudgetDTO(budget));
+              return;
+            } catch (err: any) {
+              handleOrgError(err);
+              return;
+            }
+          }
+
+          // PATCH /teams/:id/budget
+          if (teamBudgetMatch && req.method === "PATCH") {
+            const teamId = normalizeId(teamBudgetMatch[1]);
+            if (!teamId) {
+              sendError(400, "Bad Request: Invalid team ID format", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("organization.update", "API", teamId, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const bodyResult = await readJsonBody();
+            if (!bodyResult.ok) {
+              sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+              return;
+            }
+            const body = bodyResult.body as { limits?: any; status?: "ACTIVE" | "SUSPENDED" };
+            try {
+              if (body.status === "SUSPENDED") {
+                await service.getTeamResourceBudgetService().suspendBudget(teamId, tenantId);
+              } else if (body.status === "ACTIVE") {
+                await service.getTeamResourceBudgetService().reactivateBudget(teamId, tenantId);
+              }
+              let updatedBudget;
+              if (body.limits) {
+                updatedBudget = await service.getTeamResourceBudgetService().updateBudget(teamId, tenantId, body.limits);
+              } else {
+                updatedBudget = await service.getTeamResourceBudgetService().getBudget(teamId, tenantId);
+              }
+              sendJson(200, service.toTeamResourceBudgetDTO(updatedBudget));
+              return;
+            } catch (err: any) {
+              handleOrgError(err);
+              return;
+            }
+          }
+
+          // POST /teams/:id/budget/authorize or /teams/:id/budget/consume
+          const teamBudgetActionMatch = subPath.match(/^\/teams\/([^/]+)\/budget\/(authorize|consume)$/);
+          if (teamBudgetActionMatch && req.method === "POST") {
+            const teamId = normalizeId(teamBudgetActionMatch[1]);
+            if (!teamId) {
+              sendError(400, "Bad Request: Invalid team ID format", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("organization.read", "API", teamId, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const bodyResult = await readJsonBody();
+            if (!bodyResult.ok) {
+              sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+              return;
+            }
+            const body = bodyResult.body as Record<string, unknown>;
+            try {
+              const result = await service.getTeamResourceBudgetService().evaluateAndConsume(
+                teamId,
+                tenantId,
+                body,
+                reqCtx.correlationId
+              );
+              if (result.allowed) {
+                sendJson(200, {
+                  allowed: true,
+                  budget: result.budget ? service.toTeamResourceBudgetDTO(result.budget) : undefined,
+                  remaining: result.remaining,
+                });
+              } else {
+                sendJson(429, {
+                  allowed: false,
+                  reason: result.reason,
+                });
+              }
+              return;
+            } catch (err: any) {
+              handleOrgError(err);
+              return;
+            }
+          }
         }
+
 
         sendError(404, `Endpoint not found: ${req.method} ${pathname}`, "ENDPOINT_NOT_FOUND");
         return;

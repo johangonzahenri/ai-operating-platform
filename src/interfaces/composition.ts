@@ -73,6 +73,10 @@ import { OrganizationHierarchyRepository } from "../application/ports/organizati
 import { InMemoryOrganizationRepository } from "../infrastructure/organization/in-memory-organization-repository.js";
 import { SqliteOrganizationRepository } from "../infrastructure/persistence/sqlite/sqlite-organization-repository.js";
 import { OrganizationService } from "../application/organization/organization-service.js";
+import { TeamResourceBudgetRepositoryPort } from "../application/ports/team-resource-budget-repository-port.js";
+import { InMemoryTeamResourceBudgetRepository } from "../infrastructure/organization/in-memory-team-resource-budget-repository.js";
+import { SqliteTeamResourceBudgetRepository } from "../infrastructure/persistence/sqlite/sqlite-team-resource-budget-repository.js";
+import { TeamResourceBudgetService } from "../application/organization/team-resource-budget-service.js";
 
 export interface CreatePlatformOptions {
   readonly logger?: StructuredLogger | undefined;
@@ -92,7 +96,10 @@ export interface CreatePlatformOptions {
   readonly rbacEvaluator?: RbacAuthorizationEvaluator | undefined;
   readonly organizationRepository?: OrganizationHierarchyRepository | undefined;
   readonly organizationService?: OrganizationService | undefined;
+  readonly teamResourceBudgetRepository?: TeamResourceBudgetRepositoryPort | undefined;
+  readonly teamResourceBudgetService?: TeamResourceBudgetService | undefined;
 }
+
 
 
 /** Composition root: wires domain ports to infrastructure adapters and exposes use cases. */
@@ -307,6 +314,20 @@ export const createPlatform = (
         events,
       });
 
+  const teamResourceBudgetRepository: TeamResourceBudgetRepositoryPort = (!isLogger && (optionsOrLogger as CreatePlatformOptions).teamResourceBudgetRepository)
+    ? (optionsOrLogger as CreatePlatformOptions).teamResourceBudgetRepository!
+    : dbManager
+      ? new SqliteTeamResourceBudgetRepository(dbManager)
+      : new InMemoryTeamResourceBudgetRepository();
+
+  const teamResourceBudgetService: TeamResourceBudgetService = (!isLogger && (optionsOrLogger as CreatePlatformOptions).teamResourceBudgetService)
+    ? (optionsOrLogger as CreatePlatformOptions).teamResourceBudgetService!
+    : new TeamResourceBudgetService({
+        budgetRepository: teamResourceBudgetRepository,
+        organizationRepository,
+        events,
+      });
+
   return {
     tasks,
     taskRepository: tasks as unknown as TaskRepository,
@@ -352,6 +373,9 @@ export const createPlatform = (
     rbacEvaluator,
     organizationRepository,
     organizationService,
+    teamResourceBudgetRepository,
+    teamResourceBudgetService,
   };
 };
+
 

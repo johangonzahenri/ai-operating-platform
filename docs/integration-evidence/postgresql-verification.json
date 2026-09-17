@@ -1,8 +1,8 @@
 {
-  "traceId": "trace-verify-pg-af3d5fcb",
+  "traceId": "trace-verify-pg-2a6cdb58",
   "provider": "postgresql",
   "environment": "production",
-  "verifiedAt": "2026-09-17T11:06:05.265Z",
+  "verifiedAt": "2026-09-17T11:31:35.466Z",
   "status": "OPERATIONAL",
   "latencyMs": 15,
   "metadata": {

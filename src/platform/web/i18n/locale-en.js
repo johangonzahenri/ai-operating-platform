@@ -182,6 +182,30 @@ export default {
     "areaCreated": "Area created successfully",
     "teamCreated": "Team created successfully"
   },
+  "budgets": {
+    "title": "Team Resource Budget & Quotas",
+    "limits": "Operational Limits",
+    "consumed": "Accumulated Consumption",
+    "remaining": "Available Remaining",
+    "maxExecutions": "Max Executions",
+    "maxModelCalls": "Max Model Calls",
+    "maxToolCalls": "Max Tool Calls",
+    "maxAutonomousSteps": "Max Autonomous Steps",
+    "maxDurationMs": "Max Duration (ms)",
+    "maxTokens": "Max Tokens",
+    "window": "Time Window",
+    "windowLifetime": "Lifetime / Permanent",
+    "windowDaily": "Daily",
+    "windowMonthly": "Monthly",
+    "statusActive": "Active",
+    "statusExhausted": "Exhausted",
+    "statusSuspended": "Suspended",
+    "editLimits": "Configure Budget",
+    "noBudget": "This team does not have a resource budget assigned.",
+    "budgetSaved": "Budget updated successfully",
+    "budgetExhaustedWarning": "Budget exhausted. New executions will be rejected under fail-closed policy."
+  },
+
   "actions": {
     "create": "Create",
     "edit": "Edit",

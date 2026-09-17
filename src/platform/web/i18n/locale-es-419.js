@@ -182,6 +182,30 @@ export default {
     "areaCreated": "Área creada exitosamente",
     "teamCreated": "Equipo creado exitosamente"
   },
+  "budgets": {
+    "title": "Presupuesto y Cuotas del Equipo",
+    "limits": "Límites Operacionales",
+    "consumed": "Consumo Acumulado",
+    "remaining": "Remanente Disponible",
+    "maxExecutions": "Máx. Ejecuciones",
+    "maxModelCalls": "Máx. Llamadas a Modelos",
+    "maxToolCalls": "Máx. Invocaciones de Herramientas",
+    "maxAutonomousSteps": "Máx. Pasos Autónomos",
+    "maxDurationMs": "Máx. Duración (ms)",
+    "maxTokens": "Máx. Tokens",
+    "window": "Ventana Temporal",
+    "windowLifetime": "Histórico / Permanente",
+    "windowDaily": "Diario",
+    "windowMonthly": "Mensual",
+    "statusActive": "Activo",
+    "statusExhausted": "Agotado",
+    "statusSuspended": "Suspendido",
+    "editLimits": "Configurar Presupuesto",
+    "noBudget": "Este equipo no tiene un presupuesto de recursos asignado.",
+    "budgetSaved": "Presupuesto actualizado exitosamente",
+    "budgetExhaustedWarning": "Presupuesto agotado. Nuevas ejecuciones serán denegadas por política fail-closed."
+  },
+
   "actions": {
     "create": "Crear",
     "edit": "Editar",

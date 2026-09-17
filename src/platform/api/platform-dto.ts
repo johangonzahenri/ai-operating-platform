@@ -599,4 +599,76 @@ export interface OrganizationHierarchyDTO {
   }[];
 }
 
+// --- Team Resource Governance & Budget DTOs (Prompt 103) ---
+
+export interface BudgetLimitsDTO {
+  readonly maxExecutions: number;
+  readonly maxModelCalls: number;
+  readonly maxToolCalls: number;
+  readonly maxAutonomousSteps: number;
+  readonly maxDurationMs: number;
+  readonly maxTokens?: number | undefined;
+}
+
+export interface BudgetConsumedDTO {
+  readonly executions: number;
+  readonly modelCalls: number;
+  readonly toolCalls: number;
+  readonly autonomousSteps: number;
+  readonly durationMs: number;
+  readonly tokens?: number | undefined;
+}
+
+export interface BudgetRemainingDTO {
+  readonly executions: number;
+  readonly modelCalls: number;
+  readonly toolCalls: number;
+  readonly autonomousSteps: number;
+  readonly durationMs: number;
+  readonly tokens?: number | undefined;
+}
+
+export interface TeamResourceBudgetDTO {
+  readonly id: string;
+  readonly teamId: string;
+  readonly organizationId: string;
+  readonly tenantId: string;
+  readonly limits: BudgetLimitsDTO;
+  readonly consumed: BudgetConsumedDTO;
+  readonly remaining: BudgetRemainingDTO;
+  readonly status: "ACTIVE" | "EXHAUSTED" | "SUSPENDED";
+  readonly window: "LIFETIME" | "DAILY" | "MONTHLY";
+  readonly version: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export interface CreateTeamResourceBudgetRequestDTO {
+  readonly id?: string | undefined;
+  readonly limits: BudgetLimitsDTO;
+  readonly window?: "LIFETIME" | "DAILY" | "MONTHLY" | undefined;
+}
+
+export interface UpdateTeamResourceBudgetRequestDTO {
+  readonly limits?: Partial<BudgetLimitsDTO> | undefined;
+  readonly status?: "ACTIVE" | "SUSPENDED" | undefined;
+}
+
+export interface AuthorizeResourceConsumptionRequestDTO {
+  readonly executions?: number | undefined;
+  readonly modelCalls?: number | undefined;
+  readonly toolCalls?: number | undefined;
+  readonly autonomousSteps?: number | undefined;
+  readonly durationMs?: number | undefined;
+  readonly tokens?: number | undefined;
+}
+
+export interface ConsumptionEvaluationDTO {
+  readonly allowed: boolean;
+  readonly reason?: string | undefined;
+  readonly budget?: TeamResourceBudgetDTO | undefined;
+  readonly remaining?: BudgetRemainingDTO | undefined;
+}
+
+
 

@@ -567,3 +567,36 @@ export async function removeAgentFromTeam(teamId, agentId) {
 export async function getOrganizationHierarchy(orgId) {
   return request(`/organizations/${encodeURIComponent(orgId)}/hierarchy`);
 }
+
+// ============================================================================
+// Team Resource Budget & Quota API (Prompt 103)
+// ============================================================================
+
+export async function getTeamBudget(teamId) {
+  return request(`/teams/${encodeURIComponent(teamId)}/budget`);
+}
+
+export async function createTeamBudget(teamId, data) {
+  return request(`/teams/${encodeURIComponent(teamId)}/budget`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateTeamBudget(teamId, data) {
+  return request(`/teams/${encodeURIComponent(teamId)}/budget`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function authorizeTeamResourceConsumption(teamId, data) {
+  return request(`/teams/${encodeURIComponent(teamId)}/budget/authorize`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+

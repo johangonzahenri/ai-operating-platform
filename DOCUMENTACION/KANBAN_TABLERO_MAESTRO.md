@@ -1,4 +1,4 @@
-﻿# Tablero Maestro Kanban — AI Operating Platform
+# Tablero Maestro Kanban — AI Operating Platform
 ## Seguimiento de Ingeniería, Ciclo de Vida y Roadmap Multi-Proyecto (v1.2.0)
 
 > **Regla Canónica de Verdad (ADR-100-01):**
@@ -14,15 +14,16 @@
   ESTADO DEL TABLERO KANBAN — CONSOLIDADO DE INGENIERÍA
 ===================================================================================
   Iniciativas Totales Catalogadas : 36
-  [DONE]      Completadas & Verificadas : 33 (91.7%)
+  [DONE]      Completadas & Verificadas : 34 (94.4%)
   [REVIEW]    En Revisión / Auditoría   : 1  (2.8%)
-  [TODO]      Planificadas / Listas     : 1  (2.8%)
+  [TODO]      Planificadas / Listas     : 0  (0.0%)
   [BACKLOG]   Backlog Futuro Bounded    : 1  (2.8%)
   ---------------------------------------------------------------------------------
-  Línea Base de Pruebas (Test Suite)    : 1019 PASS / 0 FAIL (11 Suites / 100%)
+  Línea Base de Pruebas (Test Suite)    : 1043 PASS / 0 FAIL (11 Suites / 100%)
   Dependencias de Producción en Runtime : 0 NPM Runtime Dependencies
   Versión Canónica de Plataforma        : v1.1.0 / v1.2.0 Foundation
 ===================================================================================
+
 ```
 
 ---
@@ -112,7 +113,7 @@
 | **ORG-05** | Repositorio Relacional `SqliteOrganizationRepository` | Fase 56 | `DONE` | `sqlite-organization-repository.ts` | 10 tests pass | ADR 0027 |
 | **ORG-06** | Endpoints Canónicos `/api/v1/organizations/*` | Fase 56 | `DONE` | `src/platform/api/http-router.ts` | 8 tests pass | ADR 0027 |
 | **ORG-07** | Consola Interactiva de Organización en Control Plane | Fase 56 | `DONE` | `src/platform/web/app.js` (0 `innerHTML`) | E2E Validado | ADR 0027 |
-| **ORG-08** | Presupuestos y Asignación de Recursos por Equipo | Fase 57 | `TO DO` | Especificado formalmente en backlog v1.2 | 0 tests | ADR 0028 (Plan) |
+| **ORG-08** | Presupuestos y Asignación de Recursos por Equipo | Fase 57 | `DONE` | `src/domain/organization/team-resource-budget.ts`, `sqlite-team-resource-budget-repository.ts` | 24 tests pass | ADR 0028 |
 
 ---
 
@@ -159,7 +160,8 @@
 │ FLUJO DE ACCIÓN INMEDIATA                                                                  │
 ├─────────────────────────────────────────────────────────────────────────────────────────────┤
 │ 1. [IN REVIEW] INF-05: Concluir auditoría de criterios de release formal (V1_EXIT_CRITERIA) │
-│ 2. [TO DO]     ORG-08: Modelado de presupuestos de autonomía a nivel de equipo de trabajo   │
+│ 2. [DONE]      ORG-08: Modelado de presupuestos de recursos a nivel de equipo (Fase 57)     │
 │ 3. [BACKLOG]   COR-08: Especificación de checkpoint distribuido multi-nodo para v2.0        │
 └─────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
+

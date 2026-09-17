@@ -53,3 +53,39 @@ export class MembershipConflictError extends Error {
     this.name = "MembershipConflictError";
   }
 }
+
+export class BudgetValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "BudgetValidationError";
+  }
+}
+
+export class BudgetNotFoundError extends Error {
+  constructor(readonly teamId: string) {
+    super(`Team resource budget not found for team: '${teamId}'`);
+    this.name = "BudgetNotFoundError";
+  }
+}
+
+export class BudgetExhaustedError extends Error {
+  constructor(readonly teamId: string, readonly resourceType?: string) {
+    super(`Team resource budget exhausted for team '${teamId}'${resourceType ? ` on resource '${resourceType}'` : ""}`);
+    this.name = "BudgetExhaustedError";
+  }
+}
+
+export class BudgetSuspendedError extends Error {
+  constructor(readonly teamId: string) {
+    super(`Team resource budget is suspended for team: '${teamId}'`);
+    this.name = "BudgetSuspendedError";
+  }
+}
+
+export class BudgetConcurrencyConflictError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "BudgetConcurrencyConflictError";
+  }
+}
+

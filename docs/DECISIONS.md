@@ -49,6 +49,8 @@ Este documento consolida el índice oficial de los Registros de Decisiones Arqui
 | **ADR 0025** | Asymmetric JWT & Key Rotation | `0025-asymmetric-jwt-and-key-rotation.md` | APROBADO | Verificación criptográfica RS256/ES256 con soporte para rotación dinámica de claves OIDC. |
 | **ADR 0026** | Production Reverse Proxy & TLS | `0026-production-reverse-proxy-and-tls.md` | APROBADO | Manifiestos de Nginx y Caddy con terminación TLS, HSTS, CSP y rate limiting perimetral. |
 | **ADR 0027** | Virtual Organization Foundation | `0027-virtual-organization-foundation.md` | APROBADO | Jerarquía organizativa multinivel (Organización, Áreas, Equipos) y membresía gobernada de agentes con roles. |
+| **ADR 0028** | Team Resource Budget Governance | `0028-team-resource-budget-governance.md` | APROBADO | Cuotas operacionales, límites de consumo por equipo y transacciones atómicas con prevención de carreras. |
+
 
 ---
 

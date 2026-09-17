@@ -14,7 +14,8 @@
 | **Versión Actual** | 1.1.0 Enterprise Baseline |
 | **Idioma Oficial** | Español (Latinoamérica) / es-419 |
 | **Idioma Opcional Web** | Inglés / en |
-| **Línea Base de Pruebas** | 1019 PASS / 0 FAIL (100% Determinista) |
+| **Línea Base de Pruebas** | 1043 PASS / 0 FAIL (100% Determinista) |
+
 | **Libro Oficial Canónico** | [LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md](LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md) |
 | **Fuente de Verdad** | [docs/SOURCE_OF_TRUTH.md](SOURCE_OF_TRUTH.md) |
 | **Arquitectura de Base** | Hexagonal (Ports & Adapters) en TypeScript / Node.js nativo |
@@ -502,3 +503,13 @@ Limitaciones reales documentadas de almacenamiento local, pre-emption inter-paso
 * **Referencia:** [`docs/GLOSARIO.md`](GLOSARIO.md)
 
 Definiciones normativas de todos los conceptos técnicos y de código de la plataforma.
+
+---
+
+## 35. Virtual Organization & Team Resource Governance
+
+* **Ubicación:** `src/domain/organization/`, `src/application/organization/`, `src/infrastructure/persistence/sqlite/`
+* **Referencia:** [`docs/decisions/0027-virtual-organization-foundation.md`](decisions/0027-virtual-organization-foundation.md), [`docs/decisions/0028-team-resource-budget-governance.md`](decisions/0028-team-resource-budget-governance.md)
+
+Modela la jerarquía corporativa multinivel (`Organization` -> `Area` -> `Team`), membresía de agentes con roles (`LEAD`, `SPECIALIST`, `OPERATOR`, `REVIEWER`) y cuotas operacionales explícitas (`TeamResourceBudget`) con transacciones atómicas `BEGIN IMMEDIATE` en SQLite y prevención de carreras concurrentes en la última unidad disponible (Last-Unit Race Condition).
+

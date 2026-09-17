@@ -1,4 +1,4 @@
-﻿# Mapa Maestro de Fases de Ingeniería (Fases 1 a 56)
+# Mapa Maestro de Fases de Ingeniería (Fases 1 a 56)
 ## AI Operating Platform — Registro Factual de Evolución y Madurez Técnica
 
 ---
@@ -16,6 +16,7 @@
 | **v1.1.0** | Fases 36 a 54 | 966 PASS | Ecosistema extendido: Modelos reales (OpenAI, Claude, Ollama), impresora Brother, Vehicle Parts y SPA bilingüe. |
 | **v1.2.0 (Alpha)**| Fase 55 (Prompt 101) | 985 PASS | Cloud Foundation: Google Gemini, SQLite Memory Gateway, JWT asimétrico con rotación y TLS. |
 | **v1.2.0 (Beta)** | Fase 56 (Prompt 102) | 1019 PASS | Virtual Organization Foundation: Organizaciones, Áreas, Equipos y Membresía gobernada de agentes. |
+| **v1.2.0 (RC)**   | Fase 57 (Prompt 103) | 1043 PASS | Team Resource Governance: Presupuestos, cuotas por equipo y transacciones atómicas SQLite. |
 
 ---
 
@@ -61,7 +62,7 @@
 * **Fase 53:** Aplicación de referencia industrial *Vehicle Parts Platform* con compatibilidad mecánica determinista.
 * **Fase 54:** Consola Web bilingüe nativa (`es-419` / `en`) con 0 `innerHTML` y Fábrica de Aplicaciones 2.0.
 
-### Épica 8: Cloud Foundation & Virtual Organization (Fases 55 – 56)
+### Épica 8: Cloud Foundation, Virtual Organization & Resource Governance (Fases 55 – 57)
 * **Fase 55 (Prompt 101):**
   * Adaptador oficial Google Gemini / Vertex AI (`GeminiModelGateway`, ADR 0023).
   * Pasarela duradera de memoria contextual en SQLite WAL (`SqliteMemoryGateway`, ADR 0024).
@@ -75,15 +76,22 @@
   * Repositorio relacional `SqliteOrganizationRepository` con índices compuestos y OCC.
   * API canónica en `/api/v1/organizations/*` y bloqueo estricto en alias legados.
   * Vista interactiva jerárquica en el Web Control Plane (0 `innerHTML`).
-  * Línea base: **1019 tests PASS / 0 FAIL**.
+  * Línea base: 1019 tests PASS.
+* **Fase 57 (Prompt 103):**
+  * Team Resource Governance & Presupuestos (`TeamResourceBudget`, ADR 0028).
+  * Agregado de límites operacionales multidimensionales (`executions`, `modelCalls`, `toolCalls`, `steps`, `durationMs`, `tokens`).
+  * Repositorio `SqliteTeamResourceBudgetRepository` con transacciones atómicas `BEGIN IMMEDIATE`.
+  * Prevención rigurosa de condiciones de carrera concurrentes (Last-Unit Race Condition: exactamente 1 ALLOW y 1 DENY).
+  * Endpoints REST `/api/v1/teams/:id/budget*` y visualización de cuotas en Control Plane SPA (0 `innerHTML`).
+  * Línea base: **1043 tests PASS / 0 FAIL**.
 
 ---
 
-## 3. Backlog Futuro Formal (Fase 57+)
+## 3. Backlog Futuro Formal (Fase 58+)
 
 | Fase Planificada | Título de la Iniciativa | Objetivo Técnico | Estado Kanban |
 | :--- | :--- | :--- | :--- |
-| **Fase 57** | Presupuestos por Equipo de Trabajo | Cuotas de inferencia y presupuestos acotados asignados a nivel de `Team`. | `TO DO` |
 | **Fase 58** | Certificación Final de Criterios de Release | Auditoría de producción masiva y pruebas de estrés (`AOP-V1-EXIT`). | `IN REVIEW` |
 | **Fase 59** | WebSockets Bidireccionales sobre HTTP/2 | Streaming de eventos y telemetría interactiva de baja latencia sin polling. | `BACKLOG` |
 | **Fase 60+** | Checkpoint Distribuido Multi-Nodo | Sincronización multi-región para despliegues federados (v2.0). | `BACKLOG` |
+

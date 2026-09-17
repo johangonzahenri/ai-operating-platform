@@ -89,13 +89,22 @@ import {
   AgentMembershipDTO,
   AssignAgentRequestDTO,
   OrganizationHierarchyDTO,
+  TeamResourceBudgetDTO,
+  CreateTeamResourceBudgetRequestDTO,
+  UpdateTeamResourceBudgetRequestDTO,
+  AuthorizeResourceConsumptionRequestDTO,
+  ConsumptionEvaluationDTO,
 } from "./platform-dto.js";
 import { OrganizationService } from "../../application/organization/organization-service.js";
 import { InMemoryOrganizationRepository } from "../../infrastructure/organization/in-memory-organization-repository.js";
+import { TeamResourceBudgetService } from "../../application/organization/team-resource-budget-service.js";
+import { InMemoryTeamResourceBudgetRepository } from "../../infrastructure/organization/in-memory-team-resource-budget-repository.js";
 import { Organization } from "../../domain/organization/organization.js";
 import { Area } from "../../domain/organization/area.js";
 import { Team } from "../../domain/organization/team.js";
 import { AgentMembership } from "../../domain/organization/agent-membership.js";
+import { TeamResourceBudget } from "../../domain/organization/team-resource-budget.js";
+
 import { projectExecutionObservability } from "../product/execution-observability.js";
 import { Tenant, DEFAULT_PLAN_LIMITS } from "../../domain/tenant/tenant.js";
 import { QuotaService } from "../../application/billing/quota-service.js";
@@ -148,6 +157,7 @@ export interface PlatformDependencies {
   readonly rateLimiter?: ServerRateLimiter | undefined;
   readonly idempotencyEngine?: IdempotencyEngine | undefined;
   readonly organizationService?: OrganizationService | undefined;
+  readonly teamResourceBudgetService?: TeamResourceBudgetService | undefined;
 }
 
 export class PlatformService {
@@ -163,6 +173,7 @@ export class PlatformService {
   private readonly diagnostics?: RuntimeDiagnosticsService | undefined;
   private readonly idempotencyStore: IdempotencyStore;
   private readonly organizationService: OrganizationService;
+  private readonly teamResourceBudgetService: TeamResourceBudgetService;
   private readonly governanceService: EnterpriseGovernanceService;
   private readonly quotaService: QuotaService;
   private readonly integrationEngine: IntegrationTruthEngine;
@@ -194,10 +205,16 @@ export class PlatformService {
     this.db = deps.db;
     this.diagnostics = deps.diagnostics;
     this.idempotencyStore = deps.idempotencyStore ?? new InMemoryIdempotencyStore();
+    const defaultOrgRepo = new InMemoryOrganizationRepository();
     this.organizationService = deps.organizationService ?? new OrganizationService({
-      repository: new InMemoryOrganizationRepository(),
+      repository: defaultOrgRepo,
       agentQuery: this.agents ?? { findById: () => undefined, list: () => [] },
     });
+    this.teamResourceBudgetService = deps.teamResourceBudgetService ?? new TeamResourceBudgetService({
+      budgetRepository: new InMemoryTeamResourceBudgetRepository(),
+      organizationRepository: defaultOrgRepo,
+    });
+
     this.governanceService = new EnterpriseGovernanceService();
     this.quotaService = new QuotaService();
     this.integrationEngine = deps.integrationEngine ?? new IntegrationTruthEngine();
@@ -2095,6 +2112,54 @@ export class PlatformService {
       updatedAt: m.updatedAt.toISOString(),
     };
   }
+
+  // ========================================================================
+  // Team Resource Governance & Budget Methods (Prompt 103)
+  // ========================================================================
+
+  getTeamResourceBudgetService(): TeamResourceBudgetService {
+    return this.teamResourceBudgetService;
+  }
+
+  toTeamResourceBudgetDTO(budget: TeamResourceBudget): TeamResourceBudgetDTO {
+    const remaining = budget.getRemaining();
+    return {
+      id: budget.id,
+      teamId: budget.teamId,
+      organizationId: budget.organizationId,
+      tenantId: budget.tenantId,
+      limits: {
+        maxExecutions: budget.limits.maxExecutions,
+        maxModelCalls: budget.limits.maxModelCalls,
+        maxToolCalls: budget.limits.maxToolCalls,
+        maxAutonomousSteps: budget.limits.maxAutonomousSteps,
+        maxDurationMs: budget.limits.maxDurationMs,
+        ...(budget.limits.maxTokens !== undefined ? { maxTokens: budget.limits.maxTokens } : {}),
+      },
+      consumed: {
+        executions: budget.consumed.executions,
+        modelCalls: budget.consumed.modelCalls,
+        toolCalls: budget.consumed.toolCalls,
+        autonomousSteps: budget.consumed.autonomousSteps,
+        durationMs: budget.consumed.durationMs,
+        ...(budget.consumed.tokens !== undefined ? { tokens: budget.consumed.tokens } : {}),
+      },
+      remaining: {
+        executions: remaining.executions,
+        modelCalls: remaining.modelCalls,
+        toolCalls: remaining.toolCalls,
+        autonomousSteps: remaining.autonomousSteps,
+        durationMs: remaining.durationMs,
+        ...(remaining.tokens !== undefined ? { tokens: remaining.tokens } : {}),
+      },
+      status: budget.status,
+      window: budget.window,
+      version: budget.version,
+      createdAt: budget.createdAt.toISOString(),
+      updatedAt: budget.updatedAt.toISOString(),
+    };
+  }
 }
+
 
 

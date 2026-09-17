@@ -6530,10 +6530,124 @@ class PlatformApp {
 
       assignSection.appendChild(assignForm);
       container.appendChild(assignSection);
+
+      // Team Resource Budget Section (Prompt 103)
+      const budgetSection = document.createElement("div");
+      budgetSection.style.borderTop = "1px solid var(--border-color)";
+      budgetSection.style.paddingTop = "1rem";
+      budgetSection.style.marginTop = "1rem";
+
+      const budgetHeading = document.createElement("h4");
+      budgetHeading.textContent = "Team Resource Budget & Quotas";
+      budgetHeading.style.marginBottom = "0.75rem";
+      budgetSection.appendChild(budgetHeading);
+
+      try {
+        const budget = await api.getTeamBudget(teamId);
+
+        const budgetCard = document.createElement("div");
+        budgetCard.className = "metric-card";
+        budgetCard.style.padding = "1rem";
+        budgetCard.style.marginBottom = "1rem";
+
+        const headerFlex = document.createElement("div");
+        headerFlex.style.display = "flex";
+        headerFlex.style.justifyContent = "space-between";
+        headerFlex.style.alignItems = "center";
+        headerFlex.style.marginBottom = "0.75rem";
+
+        const statusSpan = document.createElement("span");
+        statusSpan.className = `badge badge-${budget.status === "ACTIVE" ? "success" : budget.status === "EXHAUSTED" ? "danger" : "warning"}`;
+        statusSpan.textContent = `Status: ${budget.status} (${budget.window})`;
+
+        const toggleBtn = document.createElement("button");
+        toggleBtn.className = `btn btn-xs ${budget.status === "SUSPENDED" ? "btn-primary" : "btn-warning"}`;
+        toggleBtn.textContent = budget.status === "SUSPENDED" ? "Reactivate Budget" : "Suspend Budget";
+        toggleBtn.addEventListener("click", async () => {
+          try {
+            await api.updateTeamBudget(teamId, {
+              status: budget.status === "SUSPENDED" ? "ACTIVE" : "SUSPENDED",
+            });
+            this.inspectTeam(orgId, areaId, teamId);
+          } catch (err) {
+            alert(`Failed to update budget status: ${err.message}`);
+          }
+        });
+
+        headerFlex.append(statusSpan, toggleBtn);
+        budgetCard.appendChild(headerFlex);
+
+        const grid = document.createElement("div");
+        grid.style.display = "grid";
+        grid.style.gridTemplateColumns = "repeat(auto-fit, minmax(180px, 1fr))";
+        grid.style.gap = "0.75rem";
+
+        const metrics = [
+          { label: "Executions", consumed: budget.consumed.executions, limit: budget.limits.maxExecutions, rem: budget.remaining.executions },
+          { label: "Model Calls", consumed: budget.consumed.modelCalls, limit: budget.limits.maxModelCalls, rem: budget.remaining.modelCalls },
+          { label: "Tool Calls", consumed: budget.consumed.toolCalls, limit: budget.limits.maxToolCalls, rem: budget.remaining.toolCalls },
+          { label: "Autonomous Steps", consumed: budget.consumed.autonomousSteps, limit: budget.limits.maxAutonomousSteps, rem: budget.remaining.autonomousSteps },
+          { label: "Duration", consumed: `${budget.consumed.durationMs}ms`, limit: `${budget.limits.maxDurationMs}ms`, rem: `${budget.remaining.durationMs}ms` },
+        ];
+
+        for (const m of metrics) {
+          const item = document.createElement("div");
+          item.style.padding = "0.5rem";
+          item.style.border = "1px solid var(--border-color)";
+          item.style.borderRadius = "4px";
+
+          const labelDiv = document.createElement("div");
+          labelDiv.style.fontWeight = "bold";
+          labelDiv.style.fontSize = "0.8rem";
+          labelDiv.textContent = m.label;
+
+          const valDiv = document.createElement("div");
+          valDiv.style.fontSize = "0.85rem";
+          valDiv.style.marginTop = "0.25rem";
+          valDiv.textContent = `${m.consumed} / ${m.limit} (rem: ${m.rem})`;
+
+          item.append(labelDiv, valDiv);
+          grid.appendChild(item);
+        }
+
+        budgetCard.appendChild(grid);
+        budgetSection.appendChild(budgetCard);
+      } catch {
+        const noBudgetP = document.createElement("p");
+        noBudgetP.className = "ops-muted";
+        noBudgetP.textContent = "No resource budget assigned. Operates fail-closed.";
+
+        const createBudgetBtn = document.createElement("button");
+        createBudgetBtn.className = "btn btn-xs btn-primary";
+        createBudgetBtn.textContent = "+ Set Team Budget";
+        createBudgetBtn.style.marginTop = "0.5rem";
+        createBudgetBtn.addEventListener("click", async () => {
+          try {
+            await api.createTeamBudget(teamId, {
+              limits: {
+                maxExecutions: 50,
+                maxModelCalls: 100,
+                maxToolCalls: 200,
+                maxAutonomousSteps: 500,
+                maxDurationMs: 600000,
+              },
+              window: "LIFETIME",
+            });
+            this.inspectTeam(orgId, areaId, teamId);
+          } catch (err) {
+            alert(`Failed to create team budget: ${err.message}`);
+          }
+        });
+
+        budgetSection.append(noBudgetP, createBudgetBtn);
+      }
+
+      container.appendChild(budgetSection);
     } catch (err) {
       alert(`Failed to inspect team: ${err.message}`);
     }
   }
+
 
   setupDemoReset() {
     const resetBtn = document.getElementById("demo-reset-btn");
