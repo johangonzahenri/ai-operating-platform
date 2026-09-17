@@ -14,7 +14,9 @@
 | **Versión Actual** | 1.1.0 Enterprise Baseline |
 | **Idioma Oficial** | Español (Latinoamérica) / es-419 |
 | **Idioma Opcional Web** | Inglés / en |
-| **Línea Base de Pruebas** | 955 PASS / 0 FAIL (100% Determinista) |
+| **Línea Base de Pruebas** | 966 PASS / 0 FAIL (100% Determinista) |
+| **Libro Oficial Canónico** | [LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md](LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md) |
+| **Fuente de Verdad** | [docs/SOURCE_OF_TRUTH.md](SOURCE_OF_TRUTH.md) |
 | **Arquitectura de Base** | Hexagonal (Ports & Adapters) en TypeScript / Node.js nativo |
 | **Persistencia Primaria** | SQLite WAL Nativo (`DatabaseSync` de Node.js 22) + OCC |
 | **Políticas de Seguridad** | Default-Deny Fail-Closed (RBAC + Application Context) |

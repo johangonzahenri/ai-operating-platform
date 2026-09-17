@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.0] - 2026-09-17 (v1.1.0 Baseline Auditada & Extended Ecosystem)
+
+### Added
+- **Real AI Model Providers**: `OpenAIModelGateway`, `AnthropicModelGateway`, and `OllamaModelGateway` with streaming, structured JSON output, retry policies, and `ProviderFactory` with deterministic fallback router.
+- **Business Devices & Printing**: `BrotherPrinterAdapter` for Brother DCP-1600 series on local port `USB001`, `PrintJob` management, and spooler health monitoring.
+- **Bilingual Web Control Plane**: Single-Page Application native interface with dynamic internationalization supporting Spanish Latin America (`es-419`, default) and English (`en`), 0 `innerHTML`, and real-time telemetry.
+- **Application Ecosystem**: `TentacionesPlatformAdapter` with AR Virtual Fitting Room and size calculation, plus `Vehicle Parts Platform` reference application with automotive mechanical compatibility engine.
+- **Operational Diagnostics & Hardening**: `RuntimeDiagnosticsService`, `/api/v1/diagnostics` forensic endpoints, and rate limiting per tenant/principal.
+- **Test Baseline**: Verification of 966 deterministic tests passing (0 failures, 11 test suites).
+
+### Changed
+- **Official Documentation Re-synchronization**: Updated `LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md` to v2.0 reflecting actual v1.1.0 architecture, updated ADR traceability matrix, and established `docs/SOURCE_OF_TRUTH.md`.
+
+---
+
+## [1.0.0] - 2026-09-12 (v1.0.0 Baseline Release)
+
+### Added
+- **Platform API Layer**: Native Node.js HTTP server (`src/platform/server.ts`, `src/platform/api/http-router.ts`) exposing REST contracts under `/api/v1/*` and `/api/platform/v1/*`.
+- **Platform Client SDK (`@ai-platform/client`)**: Typed TypeScript SDK for decoupled external consumers with automatic fallback and schema validation.
+- **Tentaciones AI Commerce Integration**: Production-ready platform adapter for AI-assisted product discovery and recommendation.
+- **Security Context & RBAC**: Default-deny security governance, tenant isolation boundaries, and role-based access control.
+
+---
+
+## [0.13.0] - 2026-09-10 (Crash Recovery & Reconciliation)
+
+### Added
+- **Crash Recovery Service (`RestartRecoveryService`)**: Atomic startup reconciliation of stranded active tasks, executions, and autonomous operations into terminal states.
+- **Durable Event Store (`SqliteEventStore`)**: Append-only SQLite event log with correlation indexing by `traceId`, `taskId`, and `executionId`.
+- **Architectural Decision Records**: ADR 0020 (Crash Recovery and Restart Reconciliation), ADR 0021 (Durable Events and Audit Infrastructure), and ADR 0022 (Observability Audit Query and Runtime Diagnostics).
+
+---
+
+## [0.12.0] - 2026-09-09 (Durable Execution Persistence)
+
+### Added
+- **SQLite Task Repository (`SqliteTaskRepository`)**: Durable implementation of `TaskRepository` and `TaskQueryPort` over native SQLite WAL.
+- **SQLite Execution Repository (`SqliteExecutionRepository`)**: Durable implementation of `ExecutionRepository` and `ExecutionQueryPort`.
+- **SQLite Agent Repository (`SqliteAgentRepository`)**: Durable storage and OCC versioning for Agent aggregates.
+- **Architectural Decision Record**: ADR 0019 (Durable SQLite Adapters for Task, Execution, and Agent).
+
+---
+
 ## [0.11.0] - 2026-09-08 (v0.11 Increment #3 — Agent Domain Rehydration Boundary)
 
 ### Added

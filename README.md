@@ -5,9 +5,10 @@
 > *"Infraestructura operacional de IA sobre la cual se construyen, gobiernan y observan aplicaciones, automatizaciones y dispositivos empresariales."*
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
-[![Test Suite](https://img.shields.io/badge/tests-955%20passing-success.svg)]()
+[![Test Suite](https://img.shields.io/badge/tests-966%20passing-success.svg)]()
 [![Production Dependencies](https://img.shields.io/badge/npm%20dependencies-0%20runtime-blue.svg)]()
 [![Documentation](https://img.shields.io/badge/manual-oficial%20es--419-indigo.svg)](docs/MANUAL_OFICIAL.md)
+[![Libro Oficial](https://img.shields.io/badge/libro-oficial%20v2.0-blueviolet.svg)](LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md)
 
 ---
 
@@ -100,10 +101,10 @@ npm install
 # 3. Compilar TypeScript en modo estricto
 npm run build
 
-# 4. Ejecutar la suite completa de 955 pruebas automatizadas
+# 4. Ejecutar la suite completa de 966 pruebas automatizadas
 npm test
 
-# 5. Ejecutar la verificación integral de build y pruebas
+# 5. Ejecutar la verificación integral de build, pruebas y consistencia documental
 npm run check
 
 # 6. Iniciar el servidor del Plano de Control
@@ -118,15 +119,23 @@ Acceder al plano de control en el navegador:
 
 ## 5. Índice de Documentación Oficial
 
-Para profundizar en la ingeniería del proyecto, consulte los manuales canónicos:
+Para profundizar en la ingeniería del proyecto, consulte los manuales y registros canónicos:
 
-* 📖 **[Manual Oficial de la Plataforma (Índice Maestro)](docs/MANUAL_OFICIAL.md)**
-* 🏛️ **[Manual de Arquitectura (Topología Hexagonal)](docs/MANUAL_ARQUITECTURA.md)**
+* 📕 **[Libro Oficial de Arquitectura & Operaciones (v2.0)](LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md)**
+* ⚖️ **[Política Oficial de Fuente de Verdad](docs/SOURCE_OF_TRUTH.md)**
+* 🗺️ **[Roadmap Técnico Maestro](docs/ROADMAP_MASTER.md)**
+* 📑 **[Registro Central de Decisiones Arquitectónicas (ADRs)](docs/DECISIONS.md)**
+* 📋 **[Registro de Documentación Oficial](docs/DOCUMENTATION_REGISTRY.md)**
+* 🏛️ **[Registro de Arquitectura de Capas](docs/ARCHITECTURE_REGISTRY.md)**
+* 📦 **[Registro de Aplicaciones del Ecosistema](docs/APPLICATION_REGISTRY.md)**
+* 🖨️ **[Registro de Dispositivos Empresariales](docs/DEVICE_REGISTRY.md)**
+* 🛡️ **[Registro de Seguridad & RBAC](docs/SECURITY_REGISTRY.md)**
+* 🧪 **[Registro Oficial de Pruebas Automatizadas (966 Tests)](docs/TEST_REGISTRY.md)**
+* ⚠️ **[Registro de Deuda Técnica y Brechas Reales](docs/TECHNICAL_DEBT.md)**
+* 🎯 **[Criterios de Salida para Producción](docs/V1_EXIT_CRITERIA.md)**
+* 📖 **[Manual Oficial de la Plataforma](docs/MANUAL_OFICIAL.md)**
+* 🏛️ **[Manual de Arquitectura Hexagonal](docs/MANUAL_ARQUITECTURA.md)**
 * 🛠️ **[Manual para Desarrolladores & SDK](docs/MANUAL_DESARROLLADOR.md)**
-* ⚙️ **[Manual Operacional (19 Procedimientos Canónicos)](docs/MANUAL_OPERACIONAL.md)**
-* 📚 **[Glosario Oficial de Términos y Código](docs/GLOSARIO.md)**
-* 🗺️ **[Roadmap Oficial de Ingeniería](docs/ROADMAP_OFICIAL.md)**
-* 📐 **[Guía de Estilo Documental y Políticas de Idioma](docs/DOCUMENTATION_STYLE_GUIDE.md)**
-* 💼 **[Resumen Técnico de Portafolio](docs/PORTFOLIO_OVERVIEW.md)**
+* ⚙️ **[Manual Operacional](docs/MANUAL_OPERACIONAL.md)**
+* 📚 **[Glosario Oficial de Términos](docs/GLOSARIO.md)**
 * 🌐 **[Referencia de la Platform API REST](docs/API_REFERENCE.md)**
-* 🖨️ **[Dispositivos Empresariales y Spooler de Impresión](docs/BUSINESS_DEVICES.md)**

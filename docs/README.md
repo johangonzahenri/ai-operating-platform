@@ -5,6 +5,21 @@ Bienvenido al centro documental de la **AI Operating Platform**. La documentaci�
 
 ---
 
+### 00 — Autoridad Canónica & Fuente de Verdad
+* [Libro Oficial de Arquitectura & Operaciones](LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md)
+* [Política Oficial de Fuente de Verdad](SOURCE_OF_TRUTH.md)
+* [Roadmap Técnico Maestro](ROADMAP_MASTER.md)
+* [Registro Central de Decisiones Arquitectónicas (ADRs)](DECISIONS.md)
+* [Registro de Documentación Oficial](DOCUMENTATION_REGISTRY.md)
+* [Registro de Arquitectura](ARCHITECTURE_REGISTRY.md)
+* [Registro de Aplicaciones del Ecosistema](APPLICATION_REGISTRY.md)
+* [Registro de Dispositivos Empresariales](DEVICE_REGISTRY.md)
+* [Registro de Seguridad & RBAC](SECURITY_REGISTRY.md)
+* [Registro de Pruebas Automatizadas (966 Tests)](TEST_REGISTRY.md)
+* [Registro de Deuda Técnica y Brechas Reales](TECHNICAL_DEBT.md)
+* [Criterios de Salida de Producción](V1_EXIT_CRITERIA.md)
+* [Matriz de Trazabilidad de Prompts](PROMPT_TRACEABILITY.md)
+
 ### 01 — Fundamentos & Visión
 * [Manual Oficial de la Plataforma (Índice Maestro)](MANUAL_OFICIAL.md)
 * [Resumen Técnico de Portafolio de Ingeniería](PORTFOLIO_OVERVIEW.md)
