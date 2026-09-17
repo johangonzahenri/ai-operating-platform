@@ -12,6 +12,9 @@ import { Task } from "../../domain/task/task.js";
 import { ModelMessage } from "../../domain/model/model-gateway.js";
 import { executionLimitsFromEnvironment } from "./execution-limits.js";
 import { TaskContext } from "../../domain/context/task-context.js";
+import { TeamResourceBudgetService } from "../organization/team-resource-budget-service.js";
+import { OrganizationHierarchyRepository } from "../ports/organization-repository-port.js";
+import { AgentMembership } from "../../domain/organization/agent-membership.js";
 
 const SENSITIVE_KEY = /(authorization|api[_-]?key|token|secret|password|cookie|credential|header|env|private[_-]?key)/i;
 function safeToolValue(value: unknown, depth = 0): unknown {
@@ -30,11 +33,81 @@ export class AgentExecutionStrategy implements ExecutionStrategy {
     private readonly tools: ToolGateway,
     private readonly memory: MemoryGateway | MemoryService,
     private readonly events: EventPublisher,
-    private readonly policy: PolicyGateway
+    private readonly policy: PolicyGateway,
+    private readonly budgetService?: TeamResourceBudgetService | undefined,
+    private readonly organizationRepo?: OrganizationHierarchyRepository | undefined
   ) {}
+
+  private async resolveActiveMembership(
+    agentId: string,
+    requestedTenantId?: string | undefined,
+    requestedTeamId?: string | undefined
+  ): Promise<AgentMembership | undefined> {
+    if (!this.organizationRepo) return undefined;
+    const memberships = await this.organizationRepo.findMembershipsByAgentId(agentId);
+    const active = memberships.filter((m) => m.status === "ACTIVE");
+    if (active.length === 0) return undefined;
+
+    let membership: AgentMembership | undefined = active[0];
+    if (requestedTenantId) {
+      const matchedTenant = active.filter((m) => m.tenantId === requestedTenantId);
+      if (matchedTenant.length === 0 || !matchedTenant[0]) {
+        throw new PolicyDeniedError(
+          "tenant-mismatch",
+          agentId,
+          `Agent '${agentId}' has no active membership in tenant '${requestedTenantId}'`
+        );
+      }
+      membership = matchedTenant[0];
+    }
+
+    if (requestedTeamId) {
+      if (membership && membership.teamId !== requestedTeamId) {
+        const matchedTeam = active.find((m) => m.teamId === requestedTeamId);
+        if (!matchedTeam) {
+          throw new PolicyDeniedError(
+            "unauthorized-team-context",
+            agentId,
+            `Agent '${agentId}' is not an active member of team '${requestedTeamId}'`
+          );
+        }
+        membership = matchedTeam;
+      }
+    }
+
+    return membership;
+  }
 
   async execute(context: ExecutionContext, task: Task, agent: AgentDefinition): Promise<ExecutionStrategyResult> {
     const refs = { taskId: task.id, executionId: context.executionId };
+    const loopStartedAt = Date.now();
+
+    // 0. Resolve Team Context and Enforce Execution Budget (Fail-Closed)
+    const tenantIdInput = typeof task.request.input.tenantId === "string" ? task.request.input.tenantId : undefined;
+    const teamIdInput = typeof task.request.input.teamId === "string" ? task.request.input.teamId : undefined;
+    const membership = await this.resolveActiveMembership(agent.id, tenantIdInput, teamIdInput);
+
+    if (membership && this.budgetService) {
+      const execEval = await this.budgetService.evaluateAndConsume(
+        membership.teamId,
+        membership.tenantId,
+        { executions: 1 },
+        context.traceId
+      );
+      if (!execEval.allowed) {
+        const reason = execEval.reason ?? `Budget for team '${membership.teamId}' is exhausted or suspended`;
+        this.events.publish(
+          event("policy.denied", context.traceId, context.executionId, {
+            operationId: context.executionId,
+            policyId: "team-resource-budget-exhausted",
+            reason,
+            agentId: agent.id,
+            teamId: membership.teamId,
+          }, undefined, undefined, refs)
+        );
+        throw new PolicyDeniedError("team-resource-budget-exhausted", context.executionId, reason);
+      }
+    }
 
     // 1. Mandatory fail-closed governance check for Agent execution
     await this.authorize(context, task, agent);
@@ -88,11 +161,43 @@ export class AgentExecutionStrategy implements ExecutionStrategy {
         throw new PolicyDeniedError(toolDecision.policyId, context.executionId, reason);
       }
 
+      if (membership && this.budgetService) {
+        const toolEval = await this.budgetService.evaluateAndConsume(
+          membership.teamId,
+          membership.tenantId,
+          { toolCalls: 1 },
+          context.traceId
+        );
+        if (!toolEval.allowed) {
+          const reason = toolEval.reason ?? `Team '${membership.teamId}' tool calls quota exceeded`;
+          this.events.publish(
+            event("policy.denied", context.traceId, context.executionId, {
+              operationId: context.executionId,
+              policyId: "team-tool-calls-exhausted",
+              reason,
+              agentId: agent.id,
+              teamId: membership.teamId,
+            }, undefined, undefined, refs)
+          );
+          throw new PolicyDeniedError("team-tool-calls-exhausted", context.executionId, reason);
+        }
+      }
+
       const toolResult = await this.tools.execute(
         toolRequest,
         (task.request.input.toolInput as Record<string, unknown>) ?? {},
         context
       );
+
+      const elapsedMs = Date.now() - loopStartedAt;
+      if (membership && this.budgetService && elapsedMs > 0) {
+        await this.budgetService.evaluateAndConsume(
+          membership.teamId,
+          membership.tenantId,
+          { durationMs: elapsedMs },
+          context.traceId
+        );
+      }
 
       return {
         output: toolResult.output,
@@ -124,7 +229,6 @@ export class AgentExecutionStrategy implements ExecutionStrategy {
         }));
       const toolResults: ModelToolResult[] = [];
       const limits = executionLimitsFromEnvironment();
-      const loopStartedAt = Date.now();
       const messages: ModelMessage[] = [{ role: "user", content: typeof enrichedInput.objective === "string" ? enrichedInput.objective : JSON.stringify(enrichedInput) }];
       let taskContext = TaskContext.create({
         taskId: task.id,
@@ -138,6 +242,29 @@ export class AgentExecutionStrategy implements ExecutionStrategy {
         messages,
         suppliedContext: memoryContext,
       });
+
+      if (membership && this.budgetService) {
+        const modelEval = await this.budgetService.evaluateAndConsume(
+          membership.teamId,
+          membership.tenantId,
+          { modelCalls: 1 },
+          context.traceId
+        );
+        if (!modelEval.allowed) {
+          const reason = modelEval.reason ?? `Team '${membership.teamId}' model calls quota exceeded`;
+          this.events.publish(
+            event("policy.denied", context.traceId, context.executionId, {
+              operationId: context.executionId,
+              policyId: "team-model-calls-exhausted",
+              reason,
+              agentId: agent.id,
+              teamId: membership.teamId,
+            }, undefined, undefined, refs)
+          );
+          throw new PolicyDeniedError("team-model-calls-exhausted", context.executionId, reason);
+        }
+      }
+
       let response = await this.models.generate({
         traceId: context.traceId,
         model: agent.model,
@@ -145,6 +272,16 @@ export class AgentExecutionStrategy implements ExecutionStrategy {
         messages,
         ...(toolDefinitions.length > 0 ? { tools: toolDefinitions } : {}),
       });
+
+      if (membership && this.budgetService && response.usage?.totalTokens) {
+        await this.budgetService.evaluateAndConsume(
+          membership.teamId,
+          membership.tenantId,
+          { tokens: response.usage.totalTokens },
+          context.traceId
+        );
+      }
+
       let round = 0;
       let callCount = 0;
       while (response.toolCalls && response.toolCalls.length > 0) {
@@ -178,6 +315,25 @@ export class AgentExecutionStrategy implements ExecutionStrategy {
           this.events.publish(event("model.tool.call.authorized", context.traceId, call.id, {
             toolCallId: call.id, toolName: call.name, round,
           }, undefined, undefined, refs));
+
+          if (membership && this.budgetService) {
+            const toolEval = await this.budgetService.evaluateAndConsume(
+              membership.teamId,
+              membership.tenantId,
+              { toolCalls: 1 },
+              context.traceId
+            );
+            if (!toolEval.allowed) {
+              const reason = toolEval.reason ?? `Team '${membership.teamId}' tool calls quota exceeded`;
+              this.events.publish(
+                event("model.tool.call.rejected", context.traceId, call.id, {
+                  toolCallId: call.id, toolName: call.name, round, reason,
+                }, undefined, undefined, refs)
+              );
+              throw new PolicyDeniedError("team-tool-calls-exhausted", call.id, reason);
+            }
+          }
+
           try {
             const result = await this.tools.execute(call.name, call.arguments, context);
             const observation = { toolCallId: call.id, name: call.name, output: result.output, success: true };
@@ -224,10 +380,42 @@ export class AgentExecutionStrategy implements ExecutionStrategy {
             }, undefined, undefined, refs));
           }
         }
+
+        if (membership && this.budgetService) {
+          const modelEval = await this.budgetService.evaluateAndConsume(
+            membership.teamId,
+            membership.tenantId,
+            { modelCalls: 1 },
+            context.traceId
+          );
+          if (!modelEval.allowed) {
+            const reason = modelEval.reason ?? `Team '${membership.teamId}' model calls quota exceeded`;
+            this.events.publish(
+              event("policy.denied", context.traceId, context.executionId, {
+                operationId: context.executionId,
+                policyId: "team-model-calls-exhausted",
+                reason,
+                agentId: agent.id,
+                teamId: membership.teamId,
+              }, undefined, undefined, refs)
+            );
+            throw new PolicyDeniedError("team-model-calls-exhausted", context.executionId, reason);
+          }
+        }
+
         response = await this.models.generate({
           traceId: context.traceId, model: agent.model, input: { ...enrichedInput, taskContext: taskContext.snapshot({ includeMessages: false }) },
           tools: toolDefinitions, messages,
         });
+
+        if (membership && this.budgetService && response.usage?.totalTokens) {
+          await this.budgetService.evaluateAndConsume(
+            membership.teamId,
+            membership.tenantId,
+            { tokens: response.usage.totalTokens },
+            context.traceId
+          );
+        }
       }
       this.events.publish(event("model.final.response", context.traceId, context.executionId, {
         provider: response.provider, model: response.model, rounds: round, toolCalls: callCount, result: response.output,
@@ -256,6 +444,16 @@ export class AgentExecutionStrategy implements ExecutionStrategy {
         } catch {
           // Memory persistence failure does not fail the execution
         }
+      }
+
+      const elapsedMs = Date.now() - loopStartedAt;
+      if (membership && this.budgetService && elapsedMs > 0) {
+        await this.budgetService.evaluateAndConsume(
+          membership.teamId,
+          membership.tenantId,
+          { durationMs: elapsedMs },
+          context.traceId
+        );
       }
 
       return {

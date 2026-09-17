@@ -16,7 +16,7 @@
 | **v1.1.0** | Fases 36 a 54 | 966 PASS | Ecosistema extendido: Modelos reales (OpenAI, Claude, Ollama), impresora Brother, Vehicle Parts y SPA bilingüe. |
 | **v1.2.0 (Alpha)**| Fase 55 (Prompt 101) | 985 PASS | Cloud Foundation: Google Gemini, SQLite Memory Gateway, JWT asimétrico con rotación y TLS. |
 | **v1.2.0 (Beta)** | Fase 56 (Prompt 102) | 1019 PASS | Virtual Organization Foundation: Organizaciones, Áreas, Equipos y Membresía gobernada de agentes. |
-| **v1.2.0 (RC)**   | Fase 57 (Prompt 103) | 1043 PASS | Team Resource Governance: Presupuestos, cuotas por equipo y transacciones atómicas SQLite. |
+| **v1.2.0 (RC)**   | Fase 57 / 57.1 (Prompts 103-104) | 1057 PASS | Team Resource Governance & Budget Enforcement: Presupuestos por equipo e integración fail-closed en el runtime de ejecución. |
 
 ---
 
@@ -83,7 +83,13 @@
   * Repositorio `SqliteTeamResourceBudgetRepository` con transacciones atómicas `BEGIN IMMEDIATE`.
   * Prevención rigurosa de condiciones de carrera concurrentes (Last-Unit Race Condition: exactamente 1 ALLOW y 1 DENY).
   * Endpoints REST `/api/v1/teams/:id/budget*` y visualización de cuotas en Control Plane SPA (0 `innerHTML`).
-  * Línea base: **1043 tests PASS / 0 FAIL**.
+  * Línea base: 1043 tests PASS.
+* **Fase 57.1 (Prompt 104):**
+  * Team Resource Budget Enforcement & Execution Integration.
+  * Verificación y anclaje fail-closed en `AgentExecutionStrategy`, `ToolInvocationRuntime` y `AutonomousOrchestrator`.
+  * Evaluación y consumo en tiempo real de ejecuciones, llamadas a modelo, herramientas, pasos autónomos, duración y tokens.
+  * Bloqueo garantizado de bypass para agentes asignados a equipos suspendidos o agotados.
+  * Línea base: **1057 tests PASS / 0 FAIL**.
 
 ---
 

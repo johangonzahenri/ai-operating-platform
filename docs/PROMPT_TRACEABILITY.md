@@ -92,6 +92,51 @@ Este registro documenta el progreso factual de las fases de ingeniería correspo
   - Resincronización canónica de `LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md`, `README.md`, `ROADMAP.md`, `CHANGELOG.md`
 * **Evidencia:** Archivos de registro en `docs/`, suite de validación `scripts/docs-check.mjs`, hoja `AI_Operating_Platform_Roadmap.xlsx`.
 * **Tests:** 966 tests PASS, 0 FAIL, 11 suites, script `docs-check.mjs` verificado en verde.
-* **Commit:** `docs(phase-54): reconcile project source of truth and official roadmap` (en proceso).
+* **Commit:** `docs(phase-54): reconcile project source of truth and official roadmap`.
 * **Documentación:** Todos los registros en `docs/` y Libro Oficial actualizado.
 * **Estado:** `DONE`
+
+---
+
+### Prompt 101 — Enterprise Cloud Foundation & Real Model Expansion
+* **Objetivo:** Integrar Google Gemini / Vertex AI, pasarela duradera de memoria SQLite WAL, verificación JWT asimétrica (RS256/ES256), topología perimetral con manifiestos TLS y convergencia REST RFC 8594.
+* **Implementado:** `GeminiModelGateway` (ADR 0023), `SqliteMemoryGateway` (ADR 0024), `JwtTokenVerifier` (ADR 0025), manifiestos Caddy/Nginx (ADR 0026), deprecación REST `/api/platform/v1/*`.
+* **Evidencia:** `src/infrastructure/model/gemini-model-gateway.ts`, `src/infrastructure/persistence/sqlite/sqlite-memory-gateway.ts`, `src/infrastructure/security/jwt-token-verifier.ts`, `deploy/`.
+* **Tests:** 985 tests PASS, 0 FAIL, 11 suites.
+* **Commit:** `feat(phase-55): enterprise cloud foundation and real model expansion`.
+* **Documentación:** ADR 0023 a ADR 0026, Libro Oficial v2.1.
+* **Estado:** `DONE`
+
+---
+
+### Prompt 102 — Virtual Organization Foundation: Organization, Area, Team & Agent Membership
+* **Objetivo:** Introducir la jerarquía formal de gobernanza organizativa: agregados `Organization`, entidades `Area` y `Team`, membresía `AgentMembership` con roles y persistencia duradera en SQLite WAL.
+* **Implementado:** Dominio de organización (`src/domain/organization/`), repositorio relacional `SqliteOrganizationRepository`, servicio `OrganizationService`, endpoints REST `/api/v1/*` y vista interactiva en Web Control Plane.
+* **Evidencia:** `src/domain/organization/`, `src/infrastructure/persistence/sqlite/sqlite-organization-repository.ts`, `src/application/organization/organization-service.ts`, ADR 0027.
+* **Tests:** 1019 tests PASS, 0 FAIL, 11 suites.
+* **Commit:** `feat(phase-56): virtual organization foundation`.
+* **Documentación:** ADR 0027, Libro Oficial v2.2.
+* **Estado:** `DONE`
+
+---
+
+### Prompt 103 — Team Resource Governance & Budget Control
+* **Objetivo:** Implementar presupuestos, cuotas multidimensionales y gobernanza de recursos por equipo con invariantes de desacoplamiento, semántica fail-closed y persistencia atómica en SQLite WAL.
+* **Implementado:** Agregado `TeamResourceBudget`, repositorio relacional `SqliteTeamResourceBudgetRepository` con `BEGIN IMMEDIATE`, servicio `TeamResourceBudgetService`, endpoints REST `/api/v1/teams/:id/budget*` y panel Web Control Plane.
+* **Evidencia:** `src/domain/organization/team-resource-budget.ts`, `src/infrastructure/persistence/sqlite/sqlite-team-resource-budget-repository.ts`, `src/application/organization/team-resource-budget-service.ts`, ADR 0028.
+* **Tests:** 1043 tests PASS, 0 FAIL, 11 suites.
+* **Commit:** `feat(phase-57): team resource governance and budget control`.
+* **Documentación:** ADR 0028, Libro Oficial v2.3.
+* **Estado:** `DONE`
+
+---
+
+### Prompt 104 — Team Resource Budget Enforcement & Execution Integration
+* **Objetivo:** Auditar y garantizar el enforcement fail-closed del presupuesto de equipo (`TeamResourceBudget`) en todos los puntos de ejecución del runtime (`AgentExecutionStrategy`, `ToolInvocationRuntime`, `AutonomousOrchestrator`) sin posibilidad de bypass.
+* **Implementado:** Conexión de `TeamResourceBudgetService` y `OrganizationRepository` en el runtime de agentes y herramientas; evaluación y consumo de ejecuciones, llamadas a modelo, llamadas a herramientas, pasos autónomos, duración de reloj y tokens; aislamiento multi-tenant en tiempo de ejecución.
+* **Evidencia:** `src/application/runtime/agent-execution-strategy.ts`, `src/application/tools/tool-invocation-runtime.ts`, `src/application/autonomy/autonomous-orchestrator.ts`, `src/interfaces/composition.ts`, `tests/unit/team-resource-budget-enforcement.test.ts`.
+* **Tests:** 1057 tests PASS, 0 FAIL, 11 suites.
+* **Commit:** `feat(phase-57.1): team resource budget enforcement and execution integration`.
+* **Documentación:** Libro Oficial v2.4, TEST_REGISTRY.md.
+* **Estado:** `DONE`
+

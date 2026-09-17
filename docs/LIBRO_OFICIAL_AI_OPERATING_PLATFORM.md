@@ -5,8 +5,8 @@
 ---
 
 **Documento:** AI Operating Platform — Official Architecture Book
-**Versión del Documento:** 2.3 (Consolidación v1.3.0 Team Resource Governance & Budget Control)
-**Estado del Repositorio:** v1.3.0 Baseline (1043 tests PASS, 0 FAIL — 100% determinismo)
+**Versión del Documento:** 2.4 (Consolidación v1.3.0 Team Resource Budget Enforcement & Execution Integration)
+**Estado del Repositorio:** v1.3.0 Baseline (1057 tests PASS, 0 FAIL — 100% determinismo)
 **Estado Documental:** Oficial / Sincronizado con Fuente de Verdad
 **Fecha de Verificación:** Septiembre de 2026
 **Fuente de Verdad Técnica:** Código fuente (`src/`) + Tests automatizados (`tests/`) + ADRs (`docs/decisions/`)
@@ -24,7 +24,8 @@
 | **2.0** | Septiembre 2026 | v1.1.0 Baseline Auditada | **Auditoría Canónica de Fuente de Verdad y Sincronización Integral:**<br>• Incorporación de persistencia duradera SQLite WAL (`SqliteDatabase`, repositorios de tareas, ejecuciones, agentes y operaciones).<br>• Formalización de fronteras de rehidratación de dominio (v0.11) y servicio de reconciliación post-crash (`RestartRecoveryService`, v0.13).<br>• Integración de adaptadores reales de modelos de IA (OpenAI, Anthropic, Ollama) y router de fallback a Stub determinista.<br>• Integración de aplicaciones satélites gobernadas (*Tentaciones AI Commerce* y *Vehicle Parts Reference App*).<br>• Incorporación del adaptador de dispositivo físico empresarial (Brother DCP-1600 series en USB001).<br>• Soporte bilingüe en el Control Plane Web (`es-419` por defecto / `en`) con 0 `innerHTML`.<br>• Trazabilidad exhaustiva de ADRs (ADR 0001 a 0022 y ADR-001 a ADR-010).<br>• Línea base canónica verificada en **966 tests PASS** (0 FAIL, 11 suites). |
 | **2.1** | Septiembre 2026 | v1.1.0 Cloud Foundation | **Expansión Cloud Foundation y Modelos Reales (Fase 55 / Prompt 101):**<br>• Adaptador oficial para Google Gemini / Vertex AI (`GeminiModelGateway`, ADR 0023).<br>• Pasarela duradera de memoria contextual en SQLite WAL (`SqliteMemoryGateway`, ADR 0024).<br>• Verificación JWT asimétrica (RS256/ES256) con rotación de claves (`JwtTokenVerifier`, ADR 0025).<br>• Topología perimetral de red y manifiestos de producción TLS Nginx/Caddy (ADR 0026).<br>• Convergencia REST `/api/v1/*` con cabeceras RFC 8594 de deprecación en `/api/platform/v1/*`.<br>• Línea base canónica verificada en **985 tests PASS** (0 FAIL, 11 suites). |
 | **2.2** | Septiembre 2026 | v1.2.0 Virtual Org | **Virtual Organization Foundation (Fase 56 / Prompt 102):**<br>• Jerarquía organizativa formal: `Organization` (ciclo de vida activo/inactivo/archivado), `Area` funcional y `Team` de trabajo.<br>• Membresía gobernada de agentes (`AgentMembership`) con roles operativos (`LEAD`, `SPECIALIST`, `OPERATOR`, `REVIEWER`).<br>• Repositorio relacional duradero `SqliteOrganizationRepository` con índices compuestos y OCC.<br>• Endpoints REST canónicos bajo `/api/v1/*` y vista interactiva en el Web Control Plane (0 `innerHTML`).<br>• Línea base canónica verificada en **1019 tests PASS** (0 FAIL, 11 suites). |
-| **2.3** | Septiembre 2026 | v1.3.0 Team Resource Governance | **Team Resource Governance & Budget Control (Fase 57 / Prompt 103):**<br>• Agregado `TeamResourceBudget` con cuotas multidimensionales (`maxExecutions`, `maxModelCalls`, `maxToolCalls`, `maxAutonomousSteps`, `maxDurationMs`, `maxTokens`), contadores `consumed`, control de concurrencia optimista (`version`) y estados (`ACTIVE`, `EXHAUSTED`, `SUSPENDED`).<br>• Invariantes estrictas de desacoplamiento: `Membresía ≠ Permiso`, `Membresía ≠ Presupuesto`, `Presupuesto ≠ Autorización`.<br>• Semántica fail-closed (`NO BUDGET = DENY`).<br>• Persistencia relacional `SqliteTeamResourceBudgetRepository` con aislamiento atómico `BEGIN IMMEDIATE` para prevención de condiciones de carrera de última unidad.<br>• Endpoints REST canónicos `/api/v1/teams/:id/budget*` y panel de gobernanza en Web Control Plane (0 `innerHTML`).<br>• Línea base canónica verificada en **1043 tests PASS** (0 FAIL, 11 suites). |
+| **2.3** | Septiembre 2026 | v1.3.0 Team Resource Governance | **Team Resource Governance & Budget Control (Fase 57 / Prompt 103):**<br>• Agregado `TeamResourceBudget` con cuotas multidimensionales (`maxExecutions`, `maxModelCalls`, `maxToolCalls`, `maxAutonomousSteps`, `maxDurationMs`, `maxTokens`), contadores `consumed`, control de concurrencia optimista (`version`) y estados (`ACTIVE`, `EXHAUSTED`, `SUSPENDED`).<br>• Invariantes estrictas de desacoplamiento: `Membresía ≠ Permiso`, `Membresía ≠ Presupuesto`, `Presupuesto ≠ Autorización` (ADR 0028).<br>• Semántica fail-closed (`NO BUDGET = DENY`).<br>• Persistencia relacional `SqliteTeamResourceBudgetRepository` con aislamiento atómico `BEGIN IMMEDIATE` para prevención de condiciones de carrera de última unidad.<br>• Endpoints REST canónicos `/api/v1/teams/:id/budget*` y panel de gobernanza en Web Control Plane (0 `innerHTML`).<br>• Línea base canónica verificada en **1043 tests PASS** (0 FAIL, 11 suites). |
+| **2.4** | Septiembre 2026 | v1.3.0 Budget Enforcement | **Team Resource Budget Enforcement & Execution Integration (Fase 57.1 / Prompt 104):**<br>• Integración fail-closed y verificación end-to-end de cuotas presupuestarias en el runtime de ejecución (`AgentExecutionStrategy`, `ToolInvocationRuntime`, `AutonomousOrchestrator`).<br>• Enlace en tiempo de ejecución: resolución de equipo por membresía de agente y evaluación previa a la ejecución (`executions: 1`), llamada de modelo (`modelCalls: 1`), invocación de herramienta (`toolCalls: 1`), paso autónomo (`autonomousSteps: 1`) y contabilización de duración (`durationMs`) y tokens (`tokens`).<br>• Bloqueo estricto de bypass para agentes asignados a equipos suspendidos o agotados.<br>• Línea base canónica verificada en **1057 tests PASS** (0 FAIL, 11 suites). |
 
 ---
 
@@ -50,7 +51,7 @@ Para garantizar la honestidad operativa y evitar falsas expectativas, este libro
 │ • Ecosistema distribuido multi-región con clustering y failover activo-activo.  │
 │ • Certificación formal de criterios de salida para producción masiva (AOP-EXIT).│
 ├─────────────────────────────────────────────────────────────────────────────────┤
-│ CAPACIDADES IMPLEMENTADAS & VERIFICADAS (Línea Base Real v1.3.0 — 1043 PASS)    │
+│ CAPACIDADES IMPLEMENTADAS & VERIFICADAS (Línea Base Real v1.3.0 — 1057 PASS)    │
 │ • Motor hexagonal determinista con cero dependencias en runtime (npm ls vacío). │
 │ • Persistencia duradera relacional SQLite WAL (`SqliteDatabase`, `data/app.db`).│
 │ • Memoria contextual duradera en SQLite WAL (`SqliteMemoryGateway`, ADR 0024). │
@@ -61,11 +62,12 @@ Para garantizar la honestidad operativa y evitar falsas expectativas, este libro
 │ • Convergencia REST canónica en /api/v1/* con cabeceras RFC 8594 (Deprecation). │
 │ • Virtual Organization Foundation: Organización, Áreas, Equipos y Agentes (ADR 0027).│
 │ • Team Resource Governance & Budget Control: Cuotas por equipo, fail-closed (ADR 0028).│
+│ • Runtime Budget Enforcement: Integración fail-closed en Core & Tool Runtime.  │
 │ • Integración de Tentaciones AI Commerce con probador virtual AR y fallback.    │
 │ • Aplicación de referencia automotriz Vehicle Parts Platform con compatibilidad.│
 │ • Adaptador de hardware Brother DCP-1600 series (USB001, honestamente offline). │
 │ • Web Control Plane nativo bilingüe (es-419 / en) con 0 innerHTML.             │
-│ • 1043 pruebas automatizadas aprobadas (0 fallos, 11 suites de prueba).         │
+│ • 1057 pruebas automatizadas aprobadas (0 fallos, 11 suites de prueba).         │
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -543,7 +545,7 @@ Esta matriz vincula cada decisión arquitectónica aprobada con su documento ADR
 El roadmap técnico se estructura exclusivamente sobre hechos demostrados en el código y proyecciones futuras debidamente delimitadas:
 
 ```text
-COMPLETADO & VERIFICADO (v1.3.0 BASELINE CANÓNICA — 1043 TESTS PASS)
+COMPLETADO & VERIFICADO (v1.3.0 BASELINE CANÓNICA — 1057 TESTS PASS)
 ──────────────────────────────────────────────────────────────────────────
 • v0.1 a v0.6: Core Engine Primitives (Runtime, Context, Memory, Tools, Models, Policy)
 • v0.7: Platform API Gateway & Web Control Plane SPA (Zero Runtime Dependencies)
@@ -576,7 +578,11 @@ COMPLETADO & VERIFICADO (v1.3.0 BASELINE CANÓNICA — 1043 TESTS PASS)
   - Strict Decoupling Invariants: Membresía ≠ Permiso, Membresía ≠ Presupuesto, Presupuesto ≠ Autorización. Fail-closed (NO BUDGET = DENY).
   - Durable Persistence: SqliteTeamResourceBudgetRepository con transacciones atómicas BEGIN IMMEDIATE contra carreras de última unidad.
   - RESTful API & UI: Endpoints canónicos /api/v1/teams/:id/budget* y panel de métricas de consumo en Web Control Plane.
-  - Test Baseline: 1043 tests passing deterministas (0 fail, 11 suites).
+• v1.3.0 (Fase 57.1 / Prompt 104): Team Resource Budget Enforcement & Execution Integration:
+  - Runtime Fail-Closed Integration: Conexión activa de cuotas de equipo en `AgentExecutionStrategy`, `ToolInvocationRuntime` y `AutonomousOrchestrator`.
+  - Quota Evaluation Points: Comprobación y consumo fail-closed por ejecución, llamadas a modelos, llamadas a herramientas, pasos autónomos, duración y tokens.
+  - Anti-Bypass & Isolation: Bloqueo garantizado sin bypass ante estados EXHAUSTED y SUSPENDED y discrepancias de tenantId.
+  - Test Baseline: 1057 tests passing deterministas (0 fail, 11 suites).
 
 ROADMAP FUTURO (BACKLOG FORMAL v1.3 — DISEÑADO / NO IMPLEMENTADO)
 ──────────────────────────────────────────────────────────────────────────

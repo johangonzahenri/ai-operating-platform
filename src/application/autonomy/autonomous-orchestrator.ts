@@ -15,6 +15,8 @@ import { Runtime, RuntimeResult } from "../../domain/execution/runtime.js";
 import { PolicyGateway } from "../../domain/policy/policy.js";
 import { Task, TaskError } from "../../domain/task/task.js";
 import { IdGenerator } from "../runtime/core-runtime.js";
+import { TeamResourceBudgetService } from "../organization/team-resource-budget-service.js";
+import { OrganizationHierarchyRepository } from "../ports/organization-repository-port.js";
 
 export class AutonomousOrchestratorValidationError extends Error {
   constructor(message: string) {
@@ -67,6 +69,8 @@ export class AutonomousOrchestrator {
     private readonly events: EventPublisher,
     private readonly ids: IdGenerator = { next: () => crypto.randomUUID() },
     private readonly now: () => Date = () => new Date(),
+    private readonly budgetService?: TeamResourceBudgetService | undefined,
+    private readonly organizationRepo?: OrganizationHierarchyRepository | undefined,
   ) {}
 
   async run(request: AutonomousOperationRequest): Promise<AutonomousOperationResult> {
@@ -207,6 +211,30 @@ export class AutonomousOrchestrator {
         operation = operation.exhaustBudget(reason, this.now());
         this.publishEvent("operation.budget_exhausted", operation.id, { reason });
         break;
+      }
+
+      // Pre-execution Team Resource Budget check for autonomousSteps (Fail-Closed)
+      if (this.organizationRepo && this.budgetService) {
+        const memberships = await this.organizationRepo.findMembershipsByAgentId(agent.id);
+        const active = memberships.filter((m) => m.status === "ACTIVE");
+        if (active.length > 0 && active[0]) {
+          const membership = active[0];
+          const stepEval = await this.budgetService.evaluateAndConsume(
+            membership.teamId,
+            membership.tenantId,
+            { autonomousSteps: 1 },
+            operation.id
+          );
+          if (!stepEval.allowed) {
+            operation = operation.exhaustBudget("STEPS_EXHAUSTED", this.now());
+            this.publishEvent("operation.budget_exhausted", operation.id, {
+              reason: "STEPS_EXHAUSTED",
+              teamId: membership.teamId,
+              message: stepEval.reason ?? `Team '${membership.teamId}' autonomous steps budget exhausted`,
+            });
+            break;
+          }
+        }
       }
 
       // Policy Gateway Evaluation (Fail-Closed Governance)

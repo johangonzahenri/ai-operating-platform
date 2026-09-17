@@ -22,7 +22,7 @@ Este registro cataloga todos los documentos oficiales, técnicos y manuales oper
 | `docs/APPLICATION_REGISTRY.md` | Registro de aplicaciones del ecosistema satélite conectadas o integradas. | `es-419` | **SÍ** | VIGENTE | 2026-09-17 | Tentaciones, Vehicle Parts, Support |
 | `docs/DEVICE_REGISTRY.md` | Registro de dispositivos físicos comerciales y adaptadores de hardware. | `es-419` | **SÍ** | VIGENTE | 2026-09-17 | Brother DCP-1600, Spooler |
 | `docs/SECURITY_REGISTRY.md` | Catálogo de controles de seguridad, aislamiento multi-tenant y mitigaciones. | `es-419` | **SÍ** | VIGENTE | 2026-09-17 | RBAC, Default Deny, Secret Redaction |
-| `docs/TEST_REGISTRY.md` | Registro de suites de pruebas automatizadas, contratos y métricas de calidad. | `es-419` | **SÍ** | VIGENTE | 2026-09-17 | `tests/` (1043 tests PASS) |
+| `docs/TEST_REGISTRY.md` | Registro de suites de pruebas automatizadas, contratos y métricas de calidad. | `es-419` | **SÍ** | VIGENTE | 2026-09-17 | `tests/` (1057 tests PASS) |
 | `docs/TECHNICAL_DEBT.md` | Registro explícito de brechas técnicas, limitaciones conocidas y deuda técnica. | `es-419` | **SÍ** | VIGENTE | 2026-09-17 | Gaps de autenticación, red, memoria |
 | `docs/DECISIONS.md` | Índice maestro y consolidación de Registros de Decisiones Arquitectónicas (ADRs). | `es-419` | **SÍ** | VIGENTE | 2026-09-17 | `docs/decisions/` (ADRs 0001-0028) |
 

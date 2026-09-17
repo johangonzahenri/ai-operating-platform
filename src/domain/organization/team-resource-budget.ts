@@ -309,14 +309,6 @@ export class TeamResourceBudget {
       };
     }
 
-    if (this.status === "EXHAUSTED") {
-      return {
-        allowed: false,
-        reason: `Budget for team '${this.teamId}' is EXHAUSTED`,
-        remaining,
-      };
-    }
-
     const reqExec = request.executions ?? 0;
     const reqModel = request.modelCalls ?? 0;
     const reqTool = request.toolCalls ?? 0;

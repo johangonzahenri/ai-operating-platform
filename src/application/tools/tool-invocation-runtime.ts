@@ -34,6 +34,8 @@ import {
   DEFAULT_TOOL_TIMEOUT_MS,
   MAX_TOOL_TIMEOUT_MS,
 } from "../../domain/tools/tool-registry.js";
+import { TeamResourceBudgetService } from "../organization/team-resource-budget-service.js";
+import { OrganizationHierarchyRepository } from "../ports/organization-repository-port.js";
 
 export interface ToolInvocationRuntimeOptions {
   readonly registry: ToolRegistry;
@@ -43,6 +45,8 @@ export interface ToolInvocationRuntimeOptions {
   readonly limits?: BoundedDataLimits | undefined;
   readonly defaultTimeoutMs?: number | undefined;
   readonly now?: (() => Date) | undefined;
+  readonly budgetService?: TeamResourceBudgetService | undefined;
+  readonly organizationRepository?: OrganizationHierarchyRepository | undefined;
 }
 
 export interface CancellationToken {
@@ -73,6 +77,8 @@ export class ToolInvocationRuntime implements ToolGateway {
   private readonly limits: BoundedDataLimits;
   private readonly defaultTimeoutMs: number;
   private readonly now: () => Date;
+  private readonly budgetService?: TeamResourceBudgetService | undefined;
+  private readonly organizationRepository?: OrganizationHierarchyRepository | undefined;
 
   constructor(options: ToolInvocationRuntimeOptions) {
     this.registry = options.registry;
@@ -82,6 +88,8 @@ export class ToolInvocationRuntime implements ToolGateway {
     this.limits = options.limits ?? DEFAULT_BOUNDED_DATA_LIMITS;
     this.defaultTimeoutMs = options.defaultTimeoutMs ?? DEFAULT_TOOL_TIMEOUT_MS;
     this.now = options.now ?? (() => new Date());
+    this.budgetService = options.budgetService;
+    this.organizationRepository = options.organizationRepository;
   }
 
   definition(toolId: string, version?: string): ToolDefinition | undefined {
@@ -249,6 +257,34 @@ export class ToolInvocationRuntime implements ToolGateway {
         riskLevel,
       }, undefined, this.now(), eventRefs)
     );
+
+    // 4.1 Team Resource Budget Check (Fail-Closed)
+    if (this.budgetService && this.organizationRepository && agentId) {
+      const memberships = await this.organizationRepository.findMembershipsByAgentId(agentId);
+      const tenantId = securityContext?.tenantId;
+      const active = memberships.filter((m) => m.status === "ACTIVE" && (!tenantId || m.tenantId === tenantId));
+      if (active.length > 0 && active[0]) {
+        const membership = active[0];
+        const toolEval = await this.budgetService.evaluateAndConsume(
+          membership.teamId,
+          membership.tenantId,
+          { toolCalls: 1 },
+          context.traceId
+        );
+        if (!toolEval.allowed) {
+          const reason = toolEval.reason ?? `Team '${membership.teamId}' tool calls quota exceeded`;
+          this.events.publish(
+            event("tool.rejected", context.traceId, toolId, {
+              toolId,
+              version: toolVersion,
+              reason,
+              policyId: "team-tool-calls-exhausted",
+            }, undefined, this.now(), eventRefs)
+          );
+          throw new ToolPolicyRejectedError(toolId, reason, "team-tool-calls-exhausted");
+        }
+      }
+    }
 
     // 5. Input Validation & Security Boundary Checks
     this.validateInput(toolId, request.input, definition);

@@ -186,12 +186,6 @@ export const createPlatform = (
 
   const tools = new InMemoryToolRegistry();
   tools.register(new CalculatorTool());
-  const toolInvocationRuntime = new ToolInvocationRuntime({
-    registry: tools,
-    events,
-    policyGateway: policy,
-  });
-  const toolGateway = new RegistryToolGateway(tools, events, policy);
   const planExecutionEngine = new PlanExecutionEngine();
   const modelConfig = modelProviderConfigFromEnvironment();
   const providerFactory = createDefaultProviderFactory();
@@ -234,6 +228,44 @@ export const createPlatform = (
     );
   }
 
+  // Organization and Team Budget hierarchy services
+  const organizationRepository: OrganizationHierarchyRepository = (!isLogger && (optionsOrLogger as CreatePlatformOptions).organizationRepository)
+    ? (optionsOrLogger as CreatePlatformOptions).organizationRepository!
+    : dbManager
+      ? new SqliteOrganizationRepository(dbManager)
+      : new InMemoryOrganizationRepository();
+
+  const organizationService: OrganizationService = (!isLogger && (optionsOrLogger as CreatePlatformOptions).organizationService)
+    ? (optionsOrLogger as CreatePlatformOptions).organizationService!
+    : new OrganizationService({
+        repository: organizationRepository,
+        agentQuery: agents,
+        events,
+      });
+
+  const teamResourceBudgetRepository: TeamResourceBudgetRepositoryPort = (!isLogger && (optionsOrLogger as CreatePlatformOptions).teamResourceBudgetRepository)
+    ? (optionsOrLogger as CreatePlatformOptions).teamResourceBudgetRepository!
+    : dbManager
+      ? new SqliteTeamResourceBudgetRepository(dbManager)
+      : new InMemoryTeamResourceBudgetRepository();
+
+  const teamResourceBudgetService: TeamResourceBudgetService = (!isLogger && (optionsOrLogger as CreatePlatformOptions).teamResourceBudgetService)
+    ? (optionsOrLogger as CreatePlatformOptions).teamResourceBudgetService!
+    : new TeamResourceBudgetService({
+        budgetRepository: teamResourceBudgetRepository,
+        organizationRepository,
+        events,
+      });
+
+  const toolInvocationRuntime = new ToolInvocationRuntime({
+    registry: tools,
+    events,
+    policyGateway: policy,
+    budgetService: teamResourceBudgetService,
+    organizationRepository,
+  });
+  const toolGateway = new RegistryToolGateway(tools, events, policy);
+
   // Task execution runtime & use cases
   const modelStrategy = new ModelExecutionStrategy(models, events, policy);
   const runtime = new CoreRuntime(tasks, executions, modelStrategy, events, undefined, undefined, eventStore, transactionRunner);
@@ -241,7 +273,7 @@ export const createPlatform = (
   const submitTask = new SubmitTask(runtime);
 
   // Dedicated Agent execution strategy & runtime
-  const agentStrategy = new AgentExecutionStrategy(models, toolGateway, memoryService, events, policy);
+  const agentStrategy = new AgentExecutionStrategy(models, toolGateway, memoryService, events, policy, teamResourceBudgetService, organizationRepository);
   const agentRuntime = new CoreRuntime(tasks, executions, agentStrategy, events, undefined, undefined, eventStore, transactionRunner);
   const agentService = new AgentService(agents, agentRuntime, modelRegistry, tools);
   const multiAgentCoordinator = new MultiAgentCoordinator(agentRuntime, agents, policy, events);
@@ -270,7 +302,11 @@ export const createPlatform = (
     planner,
     evaluator,
     policy,
-    events
+    events,
+    undefined,
+    undefined,
+    teamResourceBudgetService,
+    organizationRepository
   );
 
   const diagnostics = new RuntimeDiagnosticsService(eventStore);
@@ -299,34 +335,6 @@ export const createPlatform = (
   const rbacEvaluator: RbacAuthorizationEvaluator = (!isLogger && (optionsOrLogger as CreatePlatformOptions).rbacEvaluator)
     ? (optionsOrLogger as CreatePlatformOptions).rbacEvaluator!
     : new RbacAuthorizationEvaluator(roleRepository, events);
-
-  const organizationRepository: OrganizationHierarchyRepository = (!isLogger && (optionsOrLogger as CreatePlatformOptions).organizationRepository)
-    ? (optionsOrLogger as CreatePlatformOptions).organizationRepository!
-    : dbManager
-      ? new SqliteOrganizationRepository(dbManager)
-      : new InMemoryOrganizationRepository();
-
-  const organizationService: OrganizationService = (!isLogger && (optionsOrLogger as CreatePlatformOptions).organizationService)
-    ? (optionsOrLogger as CreatePlatformOptions).organizationService!
-    : new OrganizationService({
-        repository: organizationRepository,
-        agentQuery: agents,
-        events,
-      });
-
-  const teamResourceBudgetRepository: TeamResourceBudgetRepositoryPort = (!isLogger && (optionsOrLogger as CreatePlatformOptions).teamResourceBudgetRepository)
-    ? (optionsOrLogger as CreatePlatformOptions).teamResourceBudgetRepository!
-    : dbManager
-      ? new SqliteTeamResourceBudgetRepository(dbManager)
-      : new InMemoryTeamResourceBudgetRepository();
-
-  const teamResourceBudgetService: TeamResourceBudgetService = (!isLogger && (optionsOrLogger as CreatePlatformOptions).teamResourceBudgetService)
-    ? (optionsOrLogger as CreatePlatformOptions).teamResourceBudgetService!
-    : new TeamResourceBudgetService({
-        budgetRepository: teamResourceBudgetRepository,
-        organizationRepository,
-        events,
-      });
 
   return {
     tasks,
