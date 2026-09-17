@@ -12,6 +12,7 @@ import { AnthropicModelGateway } from "./anthropic/anthropic-model-gateway.js";
 import { modelProviderConfigFromEnvironment, ModelEnvironment, ModelProviderConfig } from "./model-provider-config.js";
 import { OllamaModelGateway } from "./ollama/ollama-model-gateway.js";
 import { OpenAIModelGateway } from "./openai/openai-model-gateway.js";
+import { GeminiModelGateway } from "./gemini/gemini-model-gateway.js";
 import { StubModelGateway } from "./stub-model-gateway.js";
 
 export class ProviderFactory {
@@ -84,6 +85,17 @@ export function createDefaultProviderFactory(environment?: ModelEnvironment): Pr
   };
   factory.registerAdapter(new OllamaModelGateway(ollamaConfig));
 
+  // Register Gemini adapter
+  const geminiConfig: ModelProviderConfig = {
+    provider: "gemini",
+    defaultModel: config.provider === "gemini" ? config.defaultModel : "gemini-1.5-flash",
+    apiKey: environment?.GEMINI_API_KEY,
+    baseUrl: environment?.GEMINI_BASE_URL ?? "https://generativelanguage.googleapis.com/v1beta",
+    timeoutMs: config.timeoutMs,
+    maxRetries: config.maxRetries,
+  };
+  factory.registerAdapter(new GeminiModelGateway(geminiConfig));
+
   return factory;
 }
 
@@ -93,6 +105,7 @@ export function createModelGateway(environment?: ModelEnvironment): ModelGateway
     case "openai": return new OpenAIModelGateway(config);
     case "anthropic": return new AnthropicModelGateway(config);
     case "ollama": return new OllamaModelGateway(config);
+    case "gemini": return new GeminiModelGateway(config);
     case "stub":
     default: return new StubModelGateway();
   }

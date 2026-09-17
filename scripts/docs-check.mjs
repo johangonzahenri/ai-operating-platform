@@ -136,7 +136,7 @@ try {
 // -------------------------------------------------------------
 console.log('\n3. Checking documented test count consistency...');
 
-const CANONICAL_TEST_COUNT = '966';
+const CANONICAL_TEST_COUNT = '985';
 
 try {
   const readme = fs.readFileSync(path.join(ROOT_DIR, 'README.md'), 'utf8');
@@ -187,14 +187,14 @@ if (fs.existsSync(decisionsDir)) {
     console.log(`   ✓ All ${adrFiles.length} ADR files are referenced in docs/DECISIONS.md`);
   }
 
-  // Verify critical ADRs 0015-0022 in Libro Oficial
-  const criticalAdrs = ['ADR 0015', 'ADR 0016', 'ADR 0017', 'ADR 0018', 'ADR 0019', 'ADR 0020', 'ADR 0021', 'ADR 0022'];
+  // Verify critical ADRs 0015-0026 in Libro Oficial
+  const criticalAdrs = ['ADR 0015', 'ADR 0016', 'ADR 0017', 'ADR 0018', 'ADR 0019', 'ADR 0020', 'ADR 0021', 'ADR 0022', 'ADR 0023', 'ADR 0024', 'ADR 0025', 'ADR 0026'];
   for (const adr of criticalAdrs) {
     if (!libroDoc.includes(adr)) {
       error(`Critical decision ${adr} is missing from LIBRO_OFICIAL traceability matrix`);
     }
   }
-  console.log(`   ✓ Critical ADRs 0015-0022 verified in LIBRO_OFICIAL traceability matrix`);
+  console.log(`   ✓ Critical ADRs 0015-0026 verified in LIBRO_OFICIAL traceability matrix`);
 } else {
   error(`docs/decisions directory does not exist!`);
 }

@@ -7,47 +7,42 @@ Este registro documenta de forma honesta, verificada y explícita las limitacion
 ## 1. Brechas Arquitectónicas y Técnicas Factuales
 
 ### GAP-01: Ausencia del Adaptador para Google Gemini / Vertex AI
-* **Severidad:** Media
+* **Severidad:** Resuelta (Fase 55 / Prompt 101)
 * **Área:** Model Gateways / AI Runtime
-* **Descripción:** Aunque existen adaptadores plenamente funcionales para OpenAI, Anthropic y Ollama en `src/infrastructure/model/`, la plataforma no dispone de un adaptador ejecutable para la familia de modelos Google Gemini / Vertex AI.
-* **Impacto:** Las peticiones dirigidas a modelos de Google son rechazadas por `ProviderFactory` o desviadas al Stub determinista.
-* **Resolución Planificada:** Implementar `GeminiModelGateway` en `src/infrastructure/model/gemini/` en la iniciativa `AOP-MODEL-GEMINI` (v1.2).
+* **Descripción:** Aunque existían adaptadores para OpenAI, Anthropic y Ollama, la plataforma carecía de adaptador para la familia de modelos Google Gemini / Vertex AI.
+* **Resolución Ejecutada:** Implementado `GeminiModelGateway` en `src/infrastructure/model/gemini/gemini-model-gateway.ts` bajo la iniciativa `AOP-MODEL-GEMINI` (ADR 0023). 8 tests unitarios validados.
 
 ---
 
 ### GAP-02: Memoria de Agentes Exclusivamente Volátil (In-Memory)
-* **Severidad:** Alta
+* **Severidad:** Resuelta (Fase 55 / Prompt 101)
 * **Área:** Memory & Context
-* **Descripción:** La plataforma cuenta con persistencia duradera en SQLite para tareas, ejecuciones, eventos, agentes y operaciones autónomas, pero el puerto `MemoryGateway` utiliza únicamente la implementación `InMemoryMemoryGateway`. No existe un adaptador `SqliteMemoryGateway` en `src/`.
-* **Impacto:** Si el proceso de la plataforma se reinicia, el historial de memoria contextual por agente (`AgentMemoryScope`) y por sesión se pierde, requiriendo re-inicialización.
-* **Resolución Planificada:** Desarrollar `SqliteMemoryGateway` con almacenamiento relacional duradero indexado en la iniciativa `AOP-MEMORY` (v1.2).
+* **Descripción:** El puerto `MemoryGateway` utilizaba únicamente la implementación en memoria `InMemoryMemoryGateway`.
+* **Resolución Ejecutada:** Implementado `SqliteMemoryGateway` en `src/infrastructure/memory/sqlite-memory-gateway.ts` con tabla duradera `platform_memory` indexada y upsert atómico (ADR 0024). 4 tests unitarios y 2 pruebas de contrato validadas.
 
 ---
 
 ### GAP-03: Servicio de Autenticación Productivo y Rotación de Claves
-* **Severidad:** Alta
+* **Severidad:** Resuelta (Fase 55 / Prompt 101)
 * **Área:** Seguridad / Autenticación
-* **Descripción:** El middleware de seguridad valida API Keys y Bearer Tokens mediante `InMemoryApiKeyRepository` y un adaptador de verificación básico. No existe un proveedor integrado de OpenID Connect (OIDC), OAuth2 o validación criptográfica de firmas asimétricas JWT con rotación automatizada de claves.
-* **Impacto:** Apto para entornos controlados, desarrollo e instalaciones locales; insuficiente para despliegues empresariales expuestos a internet público sin un API Gateway externo.
-* **Resolución Planificada:** Integrar un proveedor de autenticación JWT / OIDC de estándar industrial en la iniciativa `AOP-AUTH` (v1.2).
+* **Descripción:** La validación de Bearer Tokens dependía de un adaptador de andamiaje limitado a firmas simétricas `HS256`.
+* **Resolución Ejecutada:** Implementado `JwtTokenVerifier` en `src/infrastructure/security/jwt-token-verifier.ts` con firmas asimétricas RS256/ES256, soporte de KeyStore con rotación y revocación dinámica de claves (ADR 0025). 4 tests criptográficos validados.
 
 ---
 
 ### GAP-04: Topología de Red y Ausencia de Proxy Reverso con TLS
-* **Severidad:** Media
+* **Severidad:** Resuelta (Fase 55 / Prompt 101)
 * **Área:** Infraestructura / Red
-* **Descripción:** El servidor nativo Node.js (`src/platform/server.ts`) escucha en la dirección loopback local `127.0.0.1:3000` mediante transporte HTTP plano (sin TLS). No incluye certificados SSL nativos ni configuración integrada de proxy reverso (Nginx/Caddy).
-* **Impacto:** El servidor no debe exponerse directamente a internet público en `0.0.0.0` sin una capa de terminación TLS perimetral que gestione cifrado HTTPS y certificados.
-* **Resolución Planificada:** Publicar manifiestos oficiales de Nginx/Caddy y Docker Compose con terminación TLS en la iniciativa `AOP-NETWORK` (v1.2).
+* **Descripción:** El servidor nativo Node.js escucha en loopback local `127.0.0.1:3000` mediante HTTP plano.
+* **Resolución Ejecutada:** Publicados manifiestos oficiales de producción en `deploy/nginx/nginx.conf`, `deploy/caddy/Caddyfile`, `deploy/docker-compose.prod.yml` y guía de arquitectura en `docs/PRODUCTION_NETWORK_TOPOLOGY.md` (ADR 0026).
 
 ---
 
 ### GAP-05: Dualidad en Rutas de API REST (`/api/v1` vs `/api/platform/v1`)
-* **Severidad:** Baja
+* **Severidad:** Resuelta (Fase 55 / Prompt 101)
 * **Área:** Platform API / Gobernanza de Contratos
-* **Descripción:** El enrutador HTTP (`http-router.ts`) atiende de manera indistinta rutas bajo el prefijo canónico `/api/v1/*` y bajo el alias de compatibilidad `/api/platform/v1/*`. Esta duplicidad facilita la compatibilidad histórica pero introduce ambigüedad en la documentación técnica.
-* **Impacto:** Los desarrolladores externos pueden utilizar prefijos discordantes en clientes HTTP directos.
-* **Resolución Planificada:** Establecer `/api/v1/*` como la única superficie canónica y emitir encabezados HTTP `Sunset` y `Deprecation` sobre `/api/platform/v1/*` en la iniciativa `AOP-API-SURFACES` (v1.2).
+* **Descripción:** El enrutador HTTP atendía de manera indistinta rutas bajo el prefijo canónico `/api/v1/*` y bajo el alias de compatibilidad `/api/platform/v1/*`.
+* **Resolución Ejecutada:** Establecido `/api/v1/*` como superficie canónica y configuradas cabeceras RFC 8594 (`Deprecation: true`, `Sunset: Thu, 31 Dec 2026 23:59:59 GMT`, `Link: </api/v1/...>; rel="successor-version"`) sobre `/api/platform/v1/*`. Test unitario validado en `tests/unit/api-surface-deprecation.test.ts`.
 
 ---
 

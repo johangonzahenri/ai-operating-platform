@@ -10,8 +10,8 @@ Este registro documenta el inventario verificado de pruebas automatizadas del pr
 ============================================================
   ESTADO CANÓNICO DE PRUEBAS (TEST EXECUTION BASELINE)
 ============================================================
-  Total Tests Ejecutados : 966
-  Total Tests Aprobados  : 966 (PASS)
+  Total Tests Ejecutados : 985
+  Total Tests Aprobados  : 985 (PASS)
   Total Tests Fallidos   : 0   (FAIL)
   Total Tests Omitidos   : 0   (SKIPPED)
   Total Tests Pendientes : 0   (TODO)
@@ -52,12 +52,14 @@ Este registro documenta el inventario verificado de pruebas automatizadas del pr
   - `tests/unit/sqlite-task-repository.test.ts`
   - `tests/unit/sqlite-event-store.test.ts`
   - `tests/unit/sqlite-schema-migration.test.ts`
+  - `tests/unit/sqlite-memory-gateway.test.ts`
+  - `tests/contract/memory-gateway.contract.test.ts`
   - `tests/integration/sqlite-core-runtime.integration.test.ts`
   - `tests/integration/sqlite-durable-events.integration.test.ts`
   - `tests/integration/sqlite-audit-diagnostics.integration.test.ts`
   - `tests/platform/operations-sqlite.integration.test.ts`
-* **Pruebas Contenidas:** 142 tests pass.
-* **Aspectos Verificados:** Motor SQLite nativo, modo WAL, esquemas relacionales v1/v2, transaccionalidad atómica, control de concurrencia optimista (OCC), integridad de claves foráneas y consultas CQRS.
+* **Pruebas Contenidas:** 148 tests pass.
+* **Aspectos Verificados:** Motor SQLite nativo, modo WAL, memoria duradera indexada (`platform_memory`), esquemas relacionales v1/v2, transaccionalidad atómica, control de concurrencia optimista (OCC), integridad de claves foráneas y consultas CQRS.
 
 ### 2.3 Recuperación post-Crash & Reconciliación (Recovery & Resilience)
 * **Archivos:**
@@ -71,10 +73,11 @@ Este registro documenta el inventario verificado de pruebas automatizadas del pr
 * **Archivos:**
   - `tests/unit/model-gateway-contracts.test.ts`
   - `tests/unit/ollama-model-gateway.test.ts`
+  - `tests/unit/gemini-model-gateway.test.ts`
   - `tests/platform/model-gateway.test.ts`
   - `tests/contract/model-gateway.contract.test.ts`
-* **Pruebas Contenidas:** 56 tests pass.
-* **Aspectos Verificados:** Contratos unificados de entrada y respuesta, adaptadores para OpenAI, Anthropic y Ollama, router de fallback a Stub determinista y streaming de tokens.
+* **Pruebas Contenidas:** 64 tests pass.
+* **Aspectos Verificados:** Contratos unificados de entrada y respuesta, adaptadores para OpenAI, Anthropic, Ollama y Google Gemini (ADR 0023), router de fallback a Stub determinista y streaming de tokens.
 
 ### 2.5 Agentes y Coordinación Multi-Agente (Agents & Coordination)
 * **Archivos:**
@@ -103,11 +106,12 @@ Este registro documenta el inventario verificado de pruebas automatizadas del pr
   - `tests/unit/security-boundaries.test.ts`
   - `tests/unit/security-contracts.test.ts`
   - `tests/unit/authorization-rbac.test.ts`
+  - `tests/unit/jwt-authentication.test.ts`
   - `tests/unit/observability-and-policy.test.ts`
   - `tests/unit/adversarial-phase15-audit.test.ts`
   - `tests/unit/architecture-isolation.test.ts`
-* **Pruebas Contenidas:** 114 tests pass.
-* **Aspectos Verificados:** Gobernanza default-deny, límites multi-tenant, sanitización de credenciales, tokens de aprobación de riesgo crítico, prevención de escalamiento de privilegios y ataques adversarios.
+* **Pruebas Contenidas:** 118 tests pass.
+* **Aspectos Verificados:** Gobernanza default-deny, firmas criptográficas asimétricas RS256/ES256 con rotación de claves (ADR 0025), límites multi-tenant, sanitización de credenciales, tokens de aprobación de riesgo crítico, prevención de escalamiento de privilegios y ataques adversarios.
 
 ### 2.8 Superficie de API & Diagnósticos (Platform API & Diagnostics)
 * **Archivos:**
@@ -118,8 +122,9 @@ Este registro documenta el inventario verificado de pruebas automatizadas del pr
   - `tests/platform/pagination-api.test.ts`
   - `tests/platform/product-layer.test.ts`
   - `tests/platform/runtime-integration-hardening.test.ts`
-* **Pruebas Contenidas:** 122 tests pass.
-* **Aspectos Verificados:** Enrutamiento HTTP nativo, normalización de IDs, control de tamaño de carga (1MB), encabezados de correlación (`X-Request-Id`, `X-Correlation-Id`), rate limiting y endpoints forenses.
+  - `tests/unit/api-surface-deprecation.test.ts`
+* **Pruebas Contenidas:** 123 tests pass.
+* **Aspectos Verificados:** Enrutamiento HTTP nativo, convergencia en `/api/v1/*` con cabeceras RFC 8594 sobre alias legados, normalización de IDs, control de tamaño de carga (1MB), encabezados de correlación (`X-Request-Id`, `X-Correlation-Id`), rate limiting y endpoints forenses.
 
 ### 2.9 Dispositivos Empresariales & Spooler de Impresión (Business Devices)
 * **Archivos:**

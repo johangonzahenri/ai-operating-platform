@@ -86,11 +86,11 @@ INITIATIVES = [
     ("AOP-APP-001", "Tentaciones AI Commerce Integration", "Applications", "Adaptador TentacionesPlatformAdapter con descubrimiento, recomendaciones y probador virtual AR.", "DONE", "HIGH", "v1.0", "AOP-PROD-002", "src/application/platform/tentaciones-platform-adapter.ts", "38 tests", "docs/TENTACIONES_PLATFORM_INTEGRATION.md", "Prompt 62, 86", "tentaciones-commerce", "N/A", "Fallback garantizado"),
     ("AOP-APP-002", "Vehicle Parts Platform Reference App", "Applications", "Aplicación de referencia para compatibilidad mecánica de vehículos y catálogo de autopartes.", "DONE", "MEDIUM", "v1.1", "AOP-PROD-004", "tests/unit/vehicle-parts-reference-app.test.ts", "16 tests", "docs/VEHICLE_PARTS_REFERENCE.md", "Prompt 92, 97", "vehicle-parts-platform", "N/A", "Compatibilidad OEM"),
     ("AOP-DEV-001", "Adaptador de Impresora Brother DCP-1600", "Devices", "BrotherPrinterAdapter para impresión comercial sobre puerto local USB001 con gestión de trabajos.", "DONE", "MEDIUM", "v1.1", "AOP-PROD-001", "src/infrastructure/device/brother-printer-adapter.ts", "14 tests", "docs/BUSINESS_DEVICES.md", "Prompt 95", "Platform Core", "printer-brother-dcp1600", "Honestamente offline"),
-    ("AOP-MODEL-GEMINI", "Adaptador de Modelo Google Gemini / Vertex AI", "Models", "Gateway oficial para Google Gemini 1.5/2.0 Pro/Flash vía API REST de Google Cloud.", "BACKLOG", "HIGH", "v1.2", "AOP-MODL-004", "N/A", "0 tests", "docs/TECHNICAL_DEBT.md", "Prompt 101+", "Platform Core", "N/A", "GAP-01"),
-    ("AOP-AUTH", "Proveedor de Autenticación OIDC / JWT Producción", "Security", "Servicio formal de validación JWT con rotación asimétrica de claves y gestión de roles RBAC.", "BACKLOG", "HIGH", "v1.2", "AOP-PROD-001", "N/A", "0 tests", "docs/TECHNICAL_DEBT.md", "Prompt 101+", "Platform Core", "N/A", "GAP-03"),
-    ("AOP-NETWORK", "Topología de Red y Proxy Reverso de Producción", "Security", "Configuración declarativa de Nginx/Caddy con terminación TLS, rate limiting perimetral y CORS restrictivo.", "BACKLOG", "MEDIUM", "v1.2", "AOP-PROD-001", "N/A", "0 tests", "docs/TECHNICAL_DEBT.md", "Prompt 101+", "Platform Core", "N/A", "GAP-04"),
-    ("AOP-MEMORY", "Pasarela de Memoria Duradera SQLite", "Memory", "Adaptador SqliteMemoryGateway con persistencia relacional indexada por ámbito de agente y sesión.", "BACKLOG", "HIGH", "v1.2", "AOP-PERS-001", "N/A", "0 tests", "docs/TECHNICAL_DEBT.md", "Prompt 101+", "Platform Core", "N/A", "GAP-02"),
-    ("AOP-API-SURFACES", "Política de Convergencia de Rutas /api/v1", "Platform API", "Eliminación planificada del alias /api/platform/v1 en favor de /api/v1 con avisos de deprecación.", "BACKLOG", "LOW", "v1.2", "AOP-PROD-001", "N/A", "0 tests", "docs/TECHNICAL_DEBT.md", "Prompt 101+", "Platform Core", "N/A", "GAP-05"),
+    ("AOP-MODEL-GEMINI", "Adaptador de Modelo Google Gemini / Vertex AI", "Models", "Gateway oficial para Google Gemini 1.5/2.0 Pro/Flash vía API REST de Google Cloud.", "DONE", "HIGH", "v1.2", "AOP-MODL-004", "src/infrastructure/model/gemini/", "8 tests", "docs/decisions/0023-google-gemini-model-gateway.md", "Prompt 101", "Platform Core", "N/A", "GAP-01 Resuelto"),
+    ("AOP-AUTH", "Proveedor de Autenticación OIDC / JWT Producción", "Security", "Servicio formal de validación JWT con rotación asimétrica de claves (RS256/ES256) y gestión de roles.", "DONE", "HIGH", "v1.2", "AOP-PROD-001", "src/infrastructure/security/jwt-token-verifier.ts", "4 tests", "docs/decisions/0025-asymmetric-jwt-and-key-rotation.md", "Prompt 101", "Platform Core", "N/A", "GAP-03 Resuelto"),
+    ("AOP-NETWORK", "Topología de Red y Proxy Reverso de Producción", "Security", "Configuración declarativa de Nginx/Caddy con terminación TLS, rate limiting perimetral y Docker Compose.", "DONE", "MEDIUM", "v1.2", "AOP-PROD-001", "deploy/", "Manifests", "docs/PRODUCTION_NETWORK_TOPOLOGY.md", "Prompt 101", "Platform Core", "N/A", "GAP-04 Resuelto"),
+    ("AOP-MEMORY", "Pasarela de Memoria Duradera SQLite", "Memory", "Adaptador SqliteMemoryGateway con persistencia relacional indexada por ámbito de agente y sesión.", "DONE", "HIGH", "v1.2", "AOP-PERS-001", "src/infrastructure/memory/sqlite-memory-gateway.ts", "6 tests", "docs/decisions/0024-sqlite-durable-memory-gateway.md", "Prompt 101", "Platform Core", "N/A", "GAP-02 Resuelto"),
+    ("AOP-API-SURFACES", "Política de Convergencia de Rutas /api/v1", "Platform API", "Eliminación planificada del alias /api/platform/v1 en favor de /api/v1 con avisos RFC 8594.", "DONE", "LOW", "v1.2", "AOP-PROD-001", "src/platform/api/http-router.ts", "1 test", "docs/TECHNICAL_DEBT.md", "Prompt 101", "Platform Core", "N/A", "GAP-05 Resuelto"),
     ("AOP-V1-EXIT", "Certificación Final de Criterios de Producción", "Governance", "Auditoría y ejecución de pruebas de carga para cumplimiento de criterios de release formal.", "BACKLOG", "CRITICAL", "v1.2", "Todos los anteriores", "N/A", "0 tests", "docs/V1_EXIT_CRITERIA.md", "Prompt 101+", "Platform Core", "N/A", "Criterios formales")
 ]
 
@@ -204,8 +204,9 @@ MILESTONES_DATA = [
     ("v0.12 Durable Repositories", "Adaptadores SQLite para tareas, ejecuciones y agentes", "Persistencia total en disco (data/app.db)", "DONE", "28 tests", "SqliteTask/Execution/AgentRepo"),
     ("v0.13 Crash Recovery", "Reconciliación atómica al inicio y EventStore", "Recuperación post-crash idempotente", "DONE", "30 tests", "RestartRecoveryService"),
     ("v1.0.0 Platform Foundation", "Motor integrado, PlatformClient y Tentaciones", "Plataforma empresarial de IA gobernada", "DONE", "78 tests", "TentacionesPlatformAdapter"),
-    ("v1.1.0 Extended Ecosystem", "Modelos reales, impresora Brother, consola bilingüe", "966 tests PASS, 11 suites, 0 innerHTML", "DONE", "966 tests PASS", "Línea Base Canónica Actual"),
-    ("v1.2.0 Enterprise Cloud", "Gateway Gemini, OIDC/JWT, proxy reverso TLS", "Certificación formal para nube pública", "PLANNED", "0 tests (Backlog)", "Próxima fase")
+    ("v1.1.0 Extended Ecosystem", "Modelos reales, impresora Brother, consola bilingüe", "966 tests PASS, 11 suites, 0 innerHTML", "DONE", "966 tests PASS", "Línea Base Fase 54"),
+    ("v1.2.0 Enterprise Cloud", "Gateway Gemini, OIDC/JWT, proxy reverso TLS, memoria SQLite", "985 tests PASS, 11 suites, 0 runtime deps", "DONE", "985 tests PASS", "Línea Base Canónica Actual"),
+    ("v1.2.1 Production Certification", "Certificación formal de producción y pruebas de carga", "Criterios de salida formal v1.0/v1.2 completados", "PLANNED", "0 tests (Backlog)", "Próxima fase")
 ]
 
 for row_idx, data in enumerate(MILESTONES_DATA, 4):
@@ -249,7 +250,9 @@ DEPS_DATA = [
     ("AOP-DEV-001", "Adaptador Brother DCP-1600", "AOP-PROD-001", "Servidor HTTP Nativo", "Endpoints de Impresión", "MEDIA"),
     ("AOP-MODEL-GEMINI", "Adaptador Gemini", "AOP-MODL-004", "ProviderFactory", "Registro de Provider", "ALTA"),
     ("AOP-AUTH", "Proveedor OIDC / JWT", "AOP-PROD-001", "Servidor HTTP Nativo", "Middleware de Seguridad", "BLOQUEANTE (Prod)"),
-    ("AOP-NETWORK", "Proxy Reverso TLS", "AOP-PROD-001", "Servidor HTTP Nativo", "Terminación HTTPS", "BLOQUEANTE (Prod)")
+    ("AOP-NETWORK", "Proxy Reverso TLS", "AOP-PROD-001", "Servidor HTTP Nativo", "Terminación HTTPS", "BLOQUEANTE (Prod)"),
+    ("AOP-MEMORY", "Memoria Duradera SQLite", "AOP-PERS-001", "Motor SQLite Nativo", "Persistencia Relacional", "ALTA"),
+    ("AOP-API-SURFACES", "Convergencia de Rutas", "AOP-PROD-001", "Servidor HTTP Nativo", "Deprecación RFC 8594", "MEDIA")
 ]
 
 for row_idx, data in enumerate(DEPS_DATA, 4):
@@ -282,7 +285,10 @@ ARCH_DATA = [
     ("RestartRecoveryService", "Aplicación", "Reconciliación atómica post-crash de entidades activas", "TaskRepo, ExecRepo, OperationRepo", "reconcile(): RecoveryResult", "Transacción atómica idempotente", "Terminaliza estados en SQLite", "task.failed, execution.failed", "IMPLEMENTED / OPERATIONAL"),
     ("Entidades de Dominio", "Dominio Puro", "Invariantes de negocio, máquinas de estados e inmutabilidad", "Cero dependencias externas", "rehydrate(), métodos puros", "Object.freeze() exhaustivo", "Agnóstico a almacenamiento", "DomainEvents tipados", "IMPLEMENTED / OPERATIONAL"),
     ("SQLite Storage Engine", "Infraestructura", "Persistencia relacional duradera en disco con WAL", "node:sqlite nativo (Node 22+)", "Repositorios SQLite", "SQL 100% parametrizado", "Archivo físico data/app.db", "Diagnóstico forense SQLite", "IMPLEMENTED / OPERATIONAL"),
-    ("Model Gateways", "Infraestructura", "Adaptadores para OpenAI, Anthropic, Ollama y Stub", "node:http, node:https", "ModelGateway.execute()", "Ocultación de API keys en logs", "Ninguna", "model.requested/completed", "IMPLEMENTED / OPERATIONAL"),
+    ("SqliteMemoryGateway", "Infraestructura", "Persistencia relacional duradera de memoria de agentes", "node:sqlite nativo", "MemoryGateway", "SQL parametrizado, índice scope/key", "data/app.db (platform_memory)", "Métricas de operaciones", "IMPLEMENTED / OPERATIONAL"),
+    ("Model Gateways", "Infraestructura", "Adaptadores para OpenAI, Anthropic, Ollama, Gemini y Stub", "node:http, node:https", "ModelGateway.execute()", "Ocultación de API keys en logs", "Ninguna", "model.requested/completed", "IMPLEMENTED / OPERATIONAL"),
+    ("JwtTokenVerifier", "Infraestructura", "Validación criptográfica JWT asimétrica (RS256/ES256)", "node:crypto nativo", "TokenVerifier", "Rotación dinámica y revocación kid", "Ninguna", "Auditoría de autenticación", "IMPLEMENTED / OPERATIONAL"),
+    ("Reverse Proxy Topology", "Infraestructura", "Terminación TLS, rate limiting y CORS perimetral", "Nginx / Caddy v2", "https://localhost:443/", "Terminación TLS + Headers HSTS/CSP", "Ninguna", "Access logs y métricas", "CONFIGURED / DEPLOYABLE"),
     ("BrotherPrinterAdapter", "Infraestructura", "Control y spooler de impresora comercial USB", "APIs nativas de SO", "BusinessDeviceAdapter", "Validación MIME y límites de cola", "Cola en memoria", "Métricas de trabajos", "IMPLEMENTED (Hardware Offline)")
 ]
 
@@ -356,7 +362,9 @@ SEC_DATA = [
     ("SEC-007", "Consultas SQL 100% Parametrizadas", "IMPLEMENTED", "sqlite-mapper.ts, sqlite-database.ts", "32 tests pass", "docs/decisions/0015-durable-persistence-architecture.md", "2026-09-17"),
     ("SEC-008", "Enlace Restrictivo de Red (127.0.0.1)", "IMPLEMENTED", "server.ts, config.ts", "12 tests pass", "docs/CLOUD_DEPLOYMENT.md", "2026-09-17"),
     ("SEC-009", "Límites de Tamaño de Payload (1MB Max)", "IMPLEMENTED", "http-router.ts, config.ts", "HTTP 413 checks pass", "docs/PLATFORM_API.md", "2026-09-17"),
-    ("SEC-010", "Rate Limiting Empresarial por Tenant", "IMPLEMENTED", "http-router.ts, platform-service.ts", "HTTP 429 checks pass", "docs/API_OPERATIONS.md", "2026-09-17")
+    ("SEC-010", "Rate Limiting Empresarial por Tenant", "IMPLEMENTED", "http-router.ts, platform-service.ts", "HTTP 429 checks pass", "docs/API_OPERATIONS.md", "2026-09-17"),
+    ("SEC-011", "Autenticación Asimétrica JWT (RS256/ES256)", "IMPLEMENTED", "jwt-token-verifier.ts", "4 tests pass", "docs/decisions/0025-asymmetric-jwt-and-key-rotation.md", "2026-09-17"),
+    ("SEC-012", "Terminación TLS y Seguridad Perimetral", "CONFIGURED", "deploy/nginx/, deploy/caddy/", "Config checks pass", "docs/PRODUCTION_NETWORK_TOPOLOGY.md", "2026-09-17")
 ]
 
 for row_idx, data in enumerate(SEC_DATA, 4):
@@ -377,7 +385,7 @@ ws_sec.freeze_panes = "A4"
 # -------------------------------------------------------------
 ws_test = wb.create_sheet(title="08_TESTING")
 ws_test.views.sheetView[0].showGridLines = True
-ws_test.cell(row=1, column=1, value="REGISTRO OFICIAL DE SUITES DE PRUEBAS (966 TESTS PASS)").font = TITLE_FONT
+ws_test.cell(row=1, column=1, value="REGISTRO OFICIAL DE SUITES DE PRUEBAS (985 TESTS PASS)").font = TITLE_FONT
 
 TEST_HEADERS = ["Área Técnica", "Suites / Archivos Representativos", "Tests Aprobados", "Tests Fallidos", "Foco de Verificación", "Determinismo"]
 for col_idx, h in enumerate(TEST_HEADERS, 1):
@@ -386,16 +394,16 @@ style_header_row(ws_test, 3, len(TEST_HEADERS))
 
 TEST_DATA = [
     ("Core Runtime & Autonomía", "task.test.ts, execution.test.ts, autonomous-operation.test.ts", 184, 0, "Máquinas de estados, presupuestos inmutables y bucles acotados", "100% Determinista"),
-    ("Persistencia SQLite WAL", "sqlite-persistence.test.ts, sqlite-durable-events.test.ts", 142, 0, "node:sqlite nativo, transacciones atómicas, OCC y WAL", "100% Determinista"),
+    ("Persistencia SQLite WAL", "sqlite-persistence.test.ts, sqlite-memory-gateway.test.ts", 148, 0, "node:sqlite nativo, transacciones atómicas, memoria duradera y WAL", "100% Determinista"),
     ("Recuperación post-Crash", "restart-recovery-service.test.ts, sqlite-crash-recovery.test.ts", 42, 0, "Reconciliación atómica tras caídas simuladas e idempotencia", "100% Determinista"),
-    ("Model Gateways", "model-gateway-contracts.test.ts, ollama-model-gateway.test.ts", 56, 0, "Paridad de contratos para OpenAI, Anthropic, Ollama y Stub", "100% Determinista"),
+    ("Model Gateways", "model-gateway-contracts.test.ts, gemini-model-gateway.test.ts", 64, 0, "Paridad de contratos para OpenAI, Anthropic, Ollama, Gemini y Stub", "100% Determinista"),
     ("Agentes y Coordinación", "agent.test.ts, multi-agent-coordinator.test.ts", 68, 0, "Listas blancas de herramientas y particionamiento de memoria", "100% Determinista"),
     ("Ecosistema de Aplicaciones", "tentaciones-platform-adapter.test.ts, vehicle-parts.test.ts", 138, 0, "Comercio electrónico, probador AR y compatibilidad automotriz", "100% Determinista"),
-    ("Seguridad y Aislamiento", "security-boundaries.test.ts, authorization-rbac.test.ts", 114, 0, "Gobernanza default-deny, límites multi-tenant y auditoría", "100% Determinista"),
-    ("Platform API & Diagnóstico", "api.test.ts, diagnostics-api.test.ts, operations-api.test.ts", 122, 0, "Rutas REST, rate limiting, esquemas DTO y trazas forenses", "100% Determinista"),
+    ("Seguridad y Aislamiento", "security-boundaries.test.ts, jwt-authentication.test.ts", 118, 0, "Gobernanza default-deny, firmas asimétricas JWT y auditoría", "100% Determinista"),
+    ("Platform API & Diagnóstico", "api.test.ts, diagnostics-api.test.ts, api-surface-deprecation.test.ts", 123, 0, "Rutas REST, convergencia RFC 8594, rate limiting y trazas", "100% Determinista"),
     ("Dispositivos Empresariales", "business-device-printing.test.ts", 14, 0, "Spooler de impresión Brother DCP-1600 y salud de periféricos", "100% Determinista"),
     ("Front-End Web & I18N", "operational-ui-frontend.test.ts, operational-ui-i18n.test.ts", 86, 0, "SPA nativa con 0 innerHTML y alternancia bilingüe es-419 / en", "100% Determinista"),
-    ("TOTAL CANÓNICO", "11 Suites de Ejecución Concurrente/Secuencial", 966, 0, "LÍNEA BASE INTEGRAL COMPLETA DEL REPOSITORIO", "100% DETERMINISTA")
+    ("TOTAL CANÓNICO", "11 Suites de Ejecución Concurrente/Secuencial", 985, 0, "LÍNEA BASE INTEGRAL COMPLETA DEL REPOSITORIO", "100% DETERMINISTA")
 ]
 
 for row_idx, data in enumerate(TEST_DATA, 4):
@@ -495,11 +503,11 @@ for col_idx, h in enumerate(DEBT_HEADERS, 1):
 style_header_row(ws_debt, 3, len(DEBT_HEADERS))
 
 DEBT_DATA = [
-    ("GAP-01", "Model Gateways", "Media", "Ausencia de adaptador real para Google Gemini / Vertex AI", "Peticiones a modelos Google desviadas a Stub", "Implementar GeminiModelGateway en src/infrastructure/model/gemini/", "v1.2 (AOP-MODEL-GEMINI)"),
-    ("GAP-02", "Memory & Context", "Alta", "Memoria de agentes exclusivamente volátil (InMemoryMemoryGateway)", "Pérdida de contexto de agente si el proceso se reinicia", "Implementar SqliteMemoryGateway relacional duradero", "v1.2 (AOP-MEMORY)"),
-    ("GAP-03", "Seguridad / Auth", "Alta", "Autenticación basada en repositorio en memoria sin OIDC/OAuth2/JWT corporativo", "Apto para entornos locales; insuficiente para internet público abierto", "Integrar proveedor formal JWT con rotación asimétrica", "v1.2 (AOP-AUTH)"),
-    ("GAP-04", "Infraestructura / Red", "Media", "Servidor escucha directamente en 127.0.0.1:3000 sin proxy reverso ni TLS nativo", "No exponer directamente a 0.0.0.0 sin capa perimetral HTTPS", "Manifiestos oficiales Nginx/Caddy con terminación TLS", "v1.2 (AOP-NETWORK)"),
-    ("GAP-05", "Platform API", "Baja", "Dualidad de rutas (/api/v1/* y alias /api/platform/v1/*)", "Riesgo de confusión en desarrolladores externos", "Convergencia en /api/v1/* con cabeceras de deprecación", "v1.2 (AOP-API-SURFACES)"),
+    ("GAP-01", "Model Gateways", "Resuelta", "Ausencia de adaptador real para Google Gemini / Vertex AI", "Resuelta en Prompt 101 / Fase 55 con GeminiModelGateway", "Implementado GeminiModelGateway en src/infrastructure/model/gemini/", "v1.2 (AOP-MODEL-GEMINI) - CERRADA"),
+    ("GAP-02", "Memory & Context", "Resuelta", "Memoria de agentes exclusivamente volátil (InMemoryMemoryGateway)", "Resuelta en Prompt 101 / Fase 55 con SqliteMemoryGateway", "Implementado SqliteMemoryGateway relacional duradero", "v1.2 (AOP-MEMORY) - CERRADA"),
+    ("GAP-03", "Seguridad / Auth", "Resuelta", "Autenticación basada en repositorio en memoria sin OIDC/OAuth2/JWT corporativo", "Resuelta en Prompt 101 / Fase 55 con JwtTokenVerifier", "Integrado JwtTokenVerifier asimétrico RS256/ES256", "v1.2 (AOP-AUTH) - CERRADA"),
+    ("GAP-04", "Infraestructura / Red", "Resuelta", "Servidor escucha directamente en 127.0.0.1:3000 sin proxy reverso ni TLS nativo", "Resuelta en Prompt 101 / Fase 55 con Caddy/Nginx manifests", "Manifiestos oficiales Nginx/Caddy con terminación TLS", "v1.2 (AOP-NETWORK) - CERRADA"),
+    ("GAP-05", "Platform API", "Resuelta", "Dualidad de rutas (/api/v1/* y alias /api/platform/v1/*)", "Resuelta en Prompt 101 / Fase 55 con cabeceras RFC 8594", "Convergencia en /api/v1/* con cabeceras de deprecación", "v1.2 (AOP-API-SURFACES) - CERRADA"),
     ("GAP-06", "Recovery & Resilience", "Baja", "Agregado Agent sin máquina formal de recuperación post-crash", "Los agentes son declarativos; no hay ciclo de crash recovery de agente", "Formalizar en ADR 0018 la naturaleza stateless de agentes", "v1.2"),
     ("GAP-07", "Business Devices", "Informativa", "Impresora USB no expone niveles de tóner por controlador estándar", "No inventar métricas falsas de consumibles", "Mantener reporte honesto device.consumables: UNSUPPORTED", "Permanente")
 ]
@@ -554,7 +562,11 @@ DEC_DATA = [
     ("ADR 0019", "Durable SQLite Adapters for Core Entities", "0019-durable-sqlite-adapters-for-task-execution-agent.md", "APROBADO", "2026-09-09", "SqliteTask, Execution y Agent repositories."),
     ("ADR 0020", "Crash Recovery & Restart Reconciliation", "0020-crash-recovery-and-restart-reconciliation.md", "APROBADO", "2026-09-10", "RestartRecoveryService para transición atómica post-caída."),
     ("ADR 0021", "Durable Events & Audit Infrastructure", "0021-durable-events-and-audit-infrastructure.md", "APROBADO", "2026-09-10", "SqliteEventStore inmutable append-only."),
-    ("ADR 0022", "Observability Audit Query & Diagnostics", "0022-observability-audit-query-and-runtime-diagnostics.md", "APROBADO", "2026-09-11", "Reconstrucción de trazas forenses por traceId.")
+    ("ADR 0022", "Observability Audit Query & Diagnostics", "0022-observability-audit-query-and-runtime-diagnostics.md", "APROBADO", "2026-09-11", "Reconstrucción de trazas forenses por traceId."),
+    ("ADR 0023", "Google Gemini Model Gateway Adapter", "0023-google-gemini-model-gateway.md", "APROBADO", "2026-09-17", "Adaptador oficial para Google Gemini y Vertex AI con streaming y JSON."),
+    ("ADR 0024", "SQLite Durable Memory Gateway", "0024-sqlite-durable-memory-gateway.md", "APROBADO", "2026-09-17", "Persistencia relacional duradera para memoria indexada por agente y sesión."),
+    ("ADR 0025", "Asymmetric JWT & Key Rotation", "0025-asymmetric-jwt-and-key-rotation.md", "APROBADO", "2026-09-17", "Verificación criptográfica RS256/ES256 y rotación dinámica de claves."),
+    ("ADR 0026", "Production Reverse Proxy & TLS", "0026-production-reverse-proxy-and-tls.md", "APROBADO", "2026-09-17", "Manifiestos Nginx/Caddy con terminación TLS y rate limiting perimetral.")
 ]
 
 for row_idx, data in enumerate(DEC_DATA, 4):
@@ -575,7 +587,7 @@ ws_dec.freeze_panes = "A4"
 # -------------------------------------------------------------
 ws_trace = wb.create_sheet(title="13_PROMPT_TRACEABILITY")
 ws_trace.views.sheetView[0].showGridLines = True
-ws_trace.cell(row=1, column=1, value="MATRIZ DE TRAZABILIDAD DE PROMPTS (PROMPTS 94 AL 100)").font = TITLE_FONT
+ws_trace.cell(row=1, column=1, value="MATRIZ DE TRAZABILIDAD DE PROMPTS (PROMPTS 94 AL 101)").font = TITLE_FONT
 
 TRACE_HEADERS = ["Prompt", "Fase / Hito", "Objetivo Principal", "Capacidades Implementadas", "Evidencia en Código", "Tests", "Commit Git", "Estado"]
 for col_idx, h in enumerate(TRACE_HEADERS, 1):
@@ -589,7 +601,8 @@ TRACE_DATA = [
     ("Prompt 97", "Phase 46-51", "Application Factory 2.0 & Vehicle Parts App", "Catálogo automotriz, compatibilidad mecánica, manifiestos", "src/application/platform/", "28 tests pass", "0aff833", "DONE"),
     ("Prompt 98", "Phase 46-48", "Official Documentation & Visual Blueprints", "Libro Oficial en Markdown/PDF, 5 infografías maestras es-419", "LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md", "Integridad sintáctica", "fa95aff", "DONE"),
     ("Prompt 99", "Phase 54", "Bilingual Web Interface & Spanish-First Manuals", "Núcleo i18n es-419/en en Web UI, armonización manuales", "src/platform/web/i18n/", "18 tests pass", "00ea46b", "DONE"),
-    ("Prompt 100", "Phase 54", "Auditoría Fuente de Verdad, Resincronización & Roadmap", "12 registros canónicos docs/, Excel 14 hojas, docs:check, 966 tests", "docs/*, scripts/docs-check.mjs", "966 tests PASS", "docs(phase-54)", "DONE")
+    ("Prompt 100", "Phase 54", "Auditoría Fuente de Verdad, Resincronización & Roadmap", "12 registros canónicos docs/, Excel 14 hojas, docs:check, 966 tests", "docs/*, scripts/docs-check.mjs", "966 tests PASS", "docs(phase-54)", "DONE"),
+    ("Prompt 101", "Phase 55", "Enterprise Cloud Foundation & Real Model Expansion", "Gemini Gateway, SqliteMemoryGateway, JWT RS256/ES256, Caddy/Nginx TLS, RFC 8594", "src/infrastructure/, deploy/", "19 tests pass (985 total)", "feat(phase-55)", "DONE")
 ]
 
 for row_idx, data in enumerate(TRACE_DATA, 4):
@@ -621,15 +634,15 @@ style_header_row(ws_dash, 4, len(METRIC_HEADERS))
 
 DASH_METRICS = [
     ("Versión de Plataforma (PLATFORM_VERSION)", "1.1.0", "src/platform/version.ts, package.json"),
-    ("Total de Pruebas Automatizadas", "966 PASS (0 FAIL)", "node --test dist/tests (100% éxito)"),
+    ("Total de Pruebas Automatizadas", "985 PASS (0 FAIL)", "node --test dist/tests (100% éxito)"),
     ("Suites de Pruebas Verificadas", "11 Suites", "Tests unitarios, de contrato y de integración"),
     ("Total de Iniciativas en Roadmap Maestro", "31 Iniciativas", "docs/ROADMAP_MASTER.md"),
-    ("Iniciativas Completadas (DONE)", "25 Iniciativas (80.6%)", "Implementadas en código y probadas"),
-    ("Iniciativas en Backlog Formal (BACKLOG)", "6 Iniciativas (19.4%)", "Programadas para versión v1.2.0"),
+    ("Iniciativas Completadas (DONE)", "30 Iniciativas (96.8%)", "Implementadas en código y probadas"),
+    ("Iniciativas en Backlog Formal (BACKLOG)", "1 Iniciativa (3.2%)", "AOP-V1-EXIT (Certificación de salida)"),
     ("Iniciativas Bloqueadas / Fallidas", "0", "Cero bloqueos técnicos activos"),
     ("Dependencias en Runtime (npm ls)", "0 (Zero Dependencies)", "APIs nativas de Node.js exclusivamente"),
     ("Vulnerabilidades XSS en Front-End", "0 innerHTML", "Sanitización estricta del DOM comprobada"),
-    ("Registros de Decisión Arquitectónica (ADRs)", "32 ADRs Catalogados", "docs/decisions/ (ADR 0001 al 0022 + Serie ADR)"),
+    ("Registros de Decisión Arquitectónica (ADRs)", "36 ADRs Catalogados", "docs/decisions/ (ADR 0001 al 0026 + Serie ADR-001..010)"),
     ("Persistencia Relacional Duradera", "SQLite WAL (data/app.db)", "node:sqlite nativo en servidor de producción"),
     ("Idiomas del Plano de Control Web", "es-419 (Default) / en", "src/platform/web/i18n/ dinámico")
 ]
@@ -654,12 +667,12 @@ style_header_row(ws_dash, 21, len(AREA_HEADERS))
 
 AREAS_DATA = [
     ("Core Engine & Autonomía", 8, 8, 0, "MADURA / CONGELADA"),
-    ("Persistencia & Recuperación", 6, 5, 1, "OPERACIONAL (Memoria en backlog)"),
-    ("Platform Product & APIs", 4, 3, 1, "OPERACIONAL (Convergencia en backlog)"),
-    ("Model Gateways & AI Runtime", 4, 3, 1, "OPERACIONAL (Gemini en backlog)"),
-    ("Ecosistema de Aplicaciones", 3, 2, 1, "OPERACIONAL (Support Agent en backlog)"),
+    ("Persistencia & Recuperación", 6, 6, 0, "MADURA (SQLite WAL + Memoria Duradera)"),
+    ("Platform Product & APIs", 5, 5, 0, "OPERACIONAL (Convergencia RFC 8594)"),
+    ("Model Gateways & AI Runtime", 5, 5, 0, "OPERACIONAL (OpenAI, Anthropic, Ollama, Gemini)"),
+    ("Ecosistema de Aplicaciones", 2, 2, 0, "OPERACIONAL (Tentaciones + Vehicle Parts)"),
     ("Dispositivos Empresariales", 1, 1, 0, "OPERACIONAL (Hardware offline)"),
-    ("Seguridad & Gobernanza", 5, 3, 2, "OPERACIONAL (OIDC / TLS en backlog)")
+    ("Seguridad & Gobernanza", 4, 3, 1, "OPERACIONAL (Auth JWT + TLS listos; V1-Exit backlog)")
 ]
 
 for row_idx, data in enumerate(AREAS_DATA, 22):

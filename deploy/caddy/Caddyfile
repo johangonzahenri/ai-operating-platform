@@ -1,0 +1,42 @@
+# AI Operating Platform — Production Caddyfile
+# Initiative: AOP-NETWORK (Phase 55 / Prompt 101)
+
+{
+    email admin@ai-operating-platform.internal
+    admin off
+}
+
+# Production Domain with Automated Let's Encrypt TLS
+platform.ai-operating-system.internal, localhost {
+    # Strict Transport Security & Perimetric Headers
+    header {
+        Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+        X-Frame-Options "DENY"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self';"
+        -Server
+    }
+
+    # Request Body Size Limitation (1MB)
+    request_body {
+        max_size 1MB
+    }
+
+    # Reverse Proxy to Platform Core Service
+    reverse_proxy platform:3000 {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Request-Id {uuid}
+
+        # Streaming support for Server-Sent Events (SSE)
+        flush_interval -1
+    }
+
+    log {
+        output file /var/log/caddy/access.log {
+            roll_size 10MB
+            roll_keep 10
+        }
+    }
+}

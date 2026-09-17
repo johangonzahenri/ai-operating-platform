@@ -295,6 +295,13 @@ export function createHttpServer(
           ? pathname.substring("/api/v1".length)
           : pathname.substring("/api".length);
 
+        // RFC 8594: Emit Deprecation and Sunset headers on legacy /api/platform/v1/* alias
+        if (isPlatformV1) {
+          res.setHeader("Deprecation", "true");
+          res.setHeader("Sunset", "Thu, 31 Dec 2026 23:59:59 GMT");
+          res.setHeader("Link", `</api/v1${subPath}>; rel="successor-version"`);
+        }
+
         // Server-Side Rate Limiter Check (Enterprise Gateway)
         const rateLimiter = service.getRateLimiter();
         const rlDecision = rateLimiter.checkRateLimit({

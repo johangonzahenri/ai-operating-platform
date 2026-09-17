@@ -44,6 +44,10 @@ Este documento consolida el índice oficial de los Registros de Decisiones Arqui
 | **ADR 0020** | Crash Recovery & Reconciliation | `0020-crash-recovery-and-restart-reconciliation.md` | APROBADO | `RestartRecoveryService` para transición atómica de operaciones interrumpidas tras caídas. |
 | **ADR 0021** | Durable Events & Audit Infrastructure | `0021-durable-events-and-audit-infrastructure.md` | APROBADO | `SqliteEventStore` como almacén append-only inmutable de eventos de dominio. |
 | **ADR 0022** | Observability Audit Query & Diagnostics | `0022-observability-audit-query-and-runtime-diagnostics.md` | APROBADO | Proyecciones CQRS forenses para reconstrucción de líneas de tiempo por `traceId`. |
+| **ADR 0023** | Google Gemini Model Gateway Adapter | `0023-google-gemini-model-gateway.md` | APROBADO | Adaptador nativo para modelos Google Gemini / Vertex AI con streaming y JSON estructurado. |
+| **ADR 0024** | SQLite Durable Memory Gateway | `0024-sqlite-durable-memory-gateway.md` | APROBADO | Persistencia relacional duradera para retención contextual de memoria por agente y sesión. |
+| **ADR 0025** | Asymmetric JWT & Key Rotation | `0025-asymmetric-jwt-and-key-rotation.md` | APROBADO | Verificación criptográfica RS256/ES256 con soporte para rotación dinámica de claves OIDC. |
+| **ADR 0026** | Production Reverse Proxy & TLS | `0026-production-reverse-proxy-and-tls.md` | APROBADO | Manifiestos de Nginx y Caddy con terminación TLS, HSTS, CSP y rate limiting perimetral. |
 
 ---
 

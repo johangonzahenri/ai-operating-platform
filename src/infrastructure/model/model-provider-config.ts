@@ -1,4 +1,4 @@
-export type SupportedModelProvider = "stub" | "openai" | "anthropic" | "ollama";
+export type SupportedModelProvider = "stub" | "openai" | "anthropic" | "ollama" | "gemini";
 
 export interface ModelProviderConfig {
   readonly provider: SupportedModelProvider;
@@ -22,6 +22,9 @@ export interface ModelEnvironment {
   readonly ANTHROPIC_BASE_URL?: string;
   readonly OLLAMA_MODEL?: string;
   readonly OLLAMA_BASE_URL?: string;
+  readonly GEMINI_API_KEY?: string;
+  readonly GEMINI_MODEL?: string;
+  readonly GEMINI_BASE_URL?: string;
 }
 
 export class ModelConfigError extends Error {
@@ -33,7 +36,7 @@ export class ModelConfigError extends Error {
 
 export function validateProviderConfig(config: ModelProviderConfig): void {
   if (!config || typeof config !== "object") throw new ModelConfigError("Provider configuration must be a valid object");
-  if (!["stub", "openai", "anthropic", "ollama"].includes(config.provider)) {
+  if (!["stub", "openai", "anthropic", "ollama", "gemini"].includes(config.provider)) {
     throw new ModelConfigError(`Unsupported model provider: '${config.provider}'`);
   }
   if (typeof config.defaultModel !== "string" || config.defaultModel.trim() === "") {
@@ -54,6 +57,7 @@ export function modelProviderConfigFromEnvironment(environment: ModelEnvironment
     openai: environment.OPENAI_MODEL ?? environment.MODEL_NAME ?? "gpt-4o-mini",
     anthropic: environment.ANTHROPIC_MODEL ?? environment.MODEL_NAME ?? "claude-3-5-haiku-latest",
     ollama: environment.OLLAMA_MODEL ?? environment.MODEL_NAME ?? "llama3",
+    gemini: environment.GEMINI_MODEL ?? environment.MODEL_NAME ?? "gemini-1.5-flash",
   };
   const timeoutMs = environment.MODEL_REQUEST_TIMEOUT_MS === undefined ? undefined : Number(environment.MODEL_REQUEST_TIMEOUT_MS);
   const maxRetries = environment.MODEL_MAX_RETRIES === undefined ? undefined : Number(environment.MODEL_MAX_RETRIES);
@@ -63,6 +67,7 @@ export function modelProviderConfigFromEnvironment(environment: ModelEnvironment
     ...(provider === "openai" ? { apiKey: environment.OPENAI_API_KEY, baseUrl: environment.OPENAI_BASE_URL ?? "https://api.openai.com/v1" } : {}),
     ...(provider === "anthropic" ? { apiKey: environment.ANTHROPIC_API_KEY, baseUrl: environment.ANTHROPIC_BASE_URL ?? "https://api.anthropic.com" } : {}),
     ...(provider === "ollama" ? { baseUrl: environment.OLLAMA_BASE_URL ?? "http://127.0.0.1:11434" } : {}),
+    ...(provider === "gemini" ? { apiKey: environment.GEMINI_API_KEY, baseUrl: environment.GEMINI_BASE_URL ?? "https://generativelanguage.googleapis.com/v1beta" } : {}),
     ...(timeoutMs !== undefined ? { timeoutMs } : {}),
     ...(maxRetries !== undefined ? { maxRetries } : {}),
   };

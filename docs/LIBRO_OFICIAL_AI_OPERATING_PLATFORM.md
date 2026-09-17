@@ -5,8 +5,8 @@
 ---
 
 **Documento:** AI Operating Platform — Official Architecture Book
-**Versión del Documento:** 2.0 (Consolidación v1.1.0 Baseline Auditada)
-**Estado del Repositorio:** v1.1.0 Baseline (966 tests PASS, 0 FAIL — 100% determinismo)
+**Versión del Documento:** 2.1 (Consolidación v1.1.0 Baseline Auditada & Cloud Foundation)
+**Estado del Repositorio:** v1.1.0 Baseline (985 tests PASS, 0 FAIL — 100% determinismo)
 **Estado Documental:** Oficial / Sincronizado con Fuente de Verdad
 **Fecha de Verificación:** Septiembre de 2026
 **Fuente de Verdad Técnica:** Código fuente (`src/`) + Tests automatizados (`tests/`) + ADRs (`docs/decisions/`)
@@ -22,6 +22,7 @@
 | **1.1** | Septiembre 2026 | v0.9 Increment #5 | Auditoría arquitectónica integral e incorporación formal de v0.9 Increments #1 al #5. |
 | **1.2** | Septiembre 2026 | v0.9 Release Candidate | Consolidación completa de v0.9 Bounded Autonomous Operations (Increments #6 y #7, 268 tests). |
 | **2.0** | Septiembre 2026 | v1.1.0 Baseline Auditada | **Auditoría Canónica de Fuente de Verdad y Sincronización Integral:**<br>• Incorporación de persistencia duradera SQLite WAL (`SqliteDatabase`, repositorios de tareas, ejecuciones, agentes y operaciones).<br>• Formalización de fronteras de rehidratación de dominio (v0.11) y servicio de reconciliación post-crash (`RestartRecoveryService`, v0.13).<br>• Integración de adaptadores reales de modelos de IA (OpenAI, Anthropic, Ollama) y router de fallback a Stub determinista.<br>• Integración de aplicaciones satélites gobernadas (*Tentaciones AI Commerce* y *Vehicle Parts Reference App*).<br>• Incorporación del adaptador de dispositivo físico empresarial (Brother DCP-1600 series en USB001).<br>• Soporte bilingüe en el Control Plane Web (`es-419` por defecto / `en`) con 0 `innerHTML`.<br>• Trazabilidad exhaustiva de ADRs (ADR 0001 a 0022 y ADR-001 a ADR-010).<br>• Línea base canónica verificada en **966 tests PASS** (0 FAIL, 11 suites). |
+| **2.1** | Septiembre 2026 | v1.1.0 Cloud Foundation | **Expansión Cloud Foundation y Modelos Reales (Fase 55 / Prompt 101):**<br>• Adaptador oficial para Google Gemini / Vertex AI (`GeminiModelGateway`, ADR 0023).<br>• Pasarela duradera de memoria contextual en SQLite WAL (`SqliteMemoryGateway`, ADR 0024).<br>• Verificación JWT asimétrica (RS256/ES256) con rotación de claves (`JwtTokenVerifier`, ADR 0025).<br>• Topología perimetral de red y manifiestos de producción TLS Nginx/Caddy (ADR 0026).<br>• Convergencia REST `/api/v1/*` con cabeceras RFC 8594 de deprecación en `/api/platform/v1/*`.<br>• Línea base canónica verificada en **985 tests PASS** (0 FAIL, 11 suites). |
 
 ---
 
@@ -45,21 +46,22 @@ Para garantizar la honestidad operativa y evitar falsas expectativas, este libro
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │ VISIÓN ESTRATÉGICA (Futuro / Backlog Formal)                                   │
 │ • Ecosistema distribuido multi-región con clustering y failover activo-activo.  │
-│ • Adaptador oficial para Google Gemini / Vertex AI (AOP-MODEL-GEMINI).          │
-│ • Proveedor formal corporativo OIDC / JWT con rotación asimétrica (AOP-AUTH).    │
-│ • Topología de red perimetral con proxy reverso y terminación TLS (AOP-NETWORK).│
-│ • Memoria contextual duradera en SQLite indexada por sesión (AOP-MEMORY).      │
+│ • Certificación formal de criterios de salida para producción masiva (AOP-EXIT).│
 ├─────────────────────────────────────────────────────────────────────────────────┤
-│ CAPACIDADES IMPLEMENTADAS & VERIFICADAS (Línea Base Real v1.1.0)               │
+│ CAPACIDADES IMPLEMENTADAS & VERIFICADAS (Línea Base Real v1.1.0 — 985 PASS)     │
 │ • Motor hexagonal determinista con cero dependencias en runtime (npm ls vacío). │
 │ • Persistencia duradera relacional SQLite WAL (`SqliteDatabase`, `data/app.db`).│
+│ • Memoria contextual duradera en SQLite WAL (`SqliteMemoryGateway`, ADR 0024). │
 │ • Servicio atómico de reconciliación post-crash (`RestartRecoveryService`).     │
-│ • Model Gateways funcionales para OpenAI, Anthropic, Ollama y Stub determinista.│
+│ • Model Gateways para OpenAI, Anthropic, Ollama, Gemini y Stub determinista.    │
+│ • Verificador JWT asimétrico RS256/ES256 con rotación de claves (ADR 0025).     │
+│ • Topología de red perimetral con manifiestos TLS Nginx/Caddy (ADR 0026).       │
+│ • Convergencia REST canónica en /api/v1/* con cabeceras RFC 8594 (Deprecation). │
 │ • Integración de Tentaciones AI Commerce con probador virtual AR y fallback.    │
 │ • Aplicación de referencia automotriz Vehicle Parts Platform con compatibilidad.│
 │ • Adaptador de hardware Brother DCP-1600 series (USB001, honestamente offline). │
 │ • Web Control Plane nativo bilingüe (es-419 / en) con 0 innerHTML.             │
-│ • 966 pruebas automatizadas aprobadas (0 fallos, 11 suites de prueba).          │
+│ • 985 pruebas automatizadas aprobadas (0 fallos, 11 suites de prueba).          │
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -520,6 +522,10 @@ Esta matriz vincula cada decisión arquitectónica aprobada con su documento ADR
 | **Crash Recovery & Restart Reconciliation** | ADR 0020 | `src/application/recovery/restart-recovery-service.ts` | `tests/unit/restart-recovery-service.test.ts`<br>`tests/integration/sqlite-crash-recovery.integration.test.ts` | `docs/decisions/0020-crash-recovery-and-restart-reconciliation.md` |
 | **Durable Events & Audit Infrastructure** | ADR 0021 | `src/infrastructure/persistence/sqlite/sqlite-event-store.ts` | `tests/contract/durable-event-store.contract.test.ts`<br>`tests/integration/sqlite-durable-events.integration.test.ts` | `docs/decisions/0021-durable-events-and-audit-infrastructure.md` |
 | **Observability Audit Query & Diagnostics** | ADR 0022 | `src/application/diagnostics/runtime-diagnostics.ts`<br>`src/platform/api/http-router.ts` | `tests/platform/diagnostics-api.test.ts` | `docs/decisions/0022-observability-audit-query-and-runtime-diagnostics.md` |
+| **Google Gemini Model Gateway** | ADR 0023 | `src/infrastructure/model/gemini/gemini-model-gateway.ts` | `tests/unit/gemini-model-gateway.test.ts` | `docs/decisions/0023-google-gemini-model-gateway.md` |
+| **SQLite Durable Memory Gateway** | ADR 0024 | `src/infrastructure/memory/sqlite-memory-gateway.ts` | `tests/unit/sqlite-memory-gateway.test.ts`<br>`tests/contract/memory-gateway.contract.test.ts` | `docs/decisions/0024-sqlite-durable-memory-gateway.md` |
+| **Asymmetric JWT & Key Rotation** | ADR 0025 | `src/infrastructure/security/jwt-token-verifier.ts` | `tests/unit/jwt-authentication.test.ts` | `docs/decisions/0025-asymmetric-jwt-and-key-rotation.md` |
+| **Production Reverse Proxy & TLS** | ADR 0026 | `deploy/nginx/nginx.conf`<br>`deploy/caddy/Caddyfile`<br>`deploy/docker-compose.prod.yml` | Despliegue de manifiestos y configuración | `docs/decisions/0026-production-reverse-proxy-and-tls.md` |
 | **Security Context & Multi-Tenant Boundary** | ADR-003 | `src/domain/security/boundaries.ts` | `tests/unit/security-boundaries.test.ts` | `docs/decisions/ADR-003-security-context.md` |
 | **Tentaciones Platform Integration & Fallback** | ADR-008 | `src/application/platform/tentaciones-platform-adapter.ts` | `tests/platform/tentaciones-platform-adapter.test.ts` | `docs/decisions/ADR-008-tentaciones-integration.md` |
 | **Platform Truth Model** | ADR-010 | `docs/SOURCE_OF_TRUTH.md` | `tests/platform/runtime-integration-hardening.test.ts` | `docs/decisions/ADR-010-platform-truth-model.md` |
@@ -531,7 +537,7 @@ Esta matriz vincula cada decisión arquitectónica aprobada con su documento ADR
 El roadmap técnico se estructura exclusivamente sobre hechos demostrados en el código y proyecciones futuras debidamente delimitadas:
 
 ```text
-COMPLETADO & VERIFICADO (v1.1.0 BASELINE CANÓNICA — 966 TESTS PASS)
+COMPLETADO & VERIFICADO (v1.1.0 BASELINE CANÓNICA — 985 TESTS PASS)
 ──────────────────────────────────────────────────────────────────────────
 • v0.1 a v0.6: Core Engine Primitives (Runtime, Context, Memory, Tools, Models, Policy)
 • v0.7: Platform API Gateway & Web Control Plane SPA (Zero Runtime Dependencies)
@@ -547,15 +553,16 @@ COMPLETADO & VERIFICADO (v1.1.0 BASELINE CANÓNICA — 966 TESTS PASS)
   - Business Devices: Adaptador Brother DCP-1600 series en USB001 y spooler de impresión.
   - Reference Applications: Vehicle Parts Platform y Application Factory 2.0.
   - Bilingual Interface: Consola web nativa en Español Latinoamericano (es-419) e Inglés (en).
-  - Test Baseline: 966 tests passing deterministas (0 fail, 11 suites).
+• v1.2.0 (Fase 55 / Prompt 101): Enterprise Cloud Foundation & Real Model Expansion:
+  - Google Gemini / Vertex AI: Adaptador nativo GeminiModelGateway con streaming y tool calling (AOP-MODEL-GEMINI).
+  - Durable Memory Gateway: Pasarela relacional duradera SqliteMemoryGateway en SQLite WAL (AOP-MEMORY).
+  - Asymmetric JWT & OIDC: Verificador criptográfico JwtTokenVerifier con RS256/ES256 y rotación de claves (AOP-AUTH).
+  - Perimeter Network Topology: Manifiestos de producción Nginx/Caddy con TLS, HSTS y Docker Compose (AOP-NETWORK).
+  - REST API Surface Convergence: Cabeceras RFC 8594 (Deprecation/Sunset) en alias /api/platform/v1/* (AOP-API-SURFACES).
+  - Test Baseline: 985 tests passing deterministas (0 fail, 11 suites).
 
 ROADMAP FUTURO (BACKLOG FORMAL v1.2 — DISEÑADO / NO IMPLEMENTADO)
 ──────────────────────────────────────────────────────────────────────────
-• AOP-MODEL-GEMINI: Adaptador oficial de Google Gemini / Vertex AI vía REST.
-• AOP-AUTH: Proveedor formal corporativo OIDC / JWT con rotación asimétrica de claves.
-• AOP-NETWORK: Topología perimetral con proxy reverso Nginx/Caddy y terminación TLS/HTTPS.
-• AOP-MEMORY: Adaptador SqliteMemoryGateway para persistencia duradera de memoria contextual.
-• AOP-API-SURFACES: Convergencia de rutas REST en /api/v1/* con deprecación de /api/platform/v1/*.
 • AOP-V1-EXIT: Certificación final de criterios de salida para producción masiva.
 ```
 

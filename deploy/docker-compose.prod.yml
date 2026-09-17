@@ -1,0 +1,61 @@
+# AI Operating Platform — Production Multi-Container Compose
+# Initiative: AOP-NETWORK (Phase 55 / Prompt 101)
+
+version: "3.8"
+
+services:
+  platform:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: ai-operating-platform:1.1.0
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOST=0.0.0.0
+      - MODEL_PROVIDER=${MODEL_PROVIDER:-stub}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      - ENFORCE_SECURITY=true
+      - RATE_LIMIT_TIER=PRODUCTION
+    volumes:
+      - platform_data:/app/data
+    networks:
+      - platform_internal
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/v1/health/liveness').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  reverse_proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      platform:
+        condition: service_healthy
+    networks:
+      - platform_internal
+
+volumes:
+  platform_data:
+    driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
+    driver: local
+
+networks:
+  platform_internal:
+    driver: bridge
