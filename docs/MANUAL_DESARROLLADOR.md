@@ -172,3 +172,41 @@ Para agregar un nuevo proveedor de modelos (ejemplo: Google Vertex AI):
 3. Convierta las respuestas nativas al contrato canónico `ModelResponse`.
 4. Registre el nuevo adaptador en `ProviderFactory` (`src/infrastructure/models/provider-factory.ts`).
 5. Añada pruebas unitarias y de contrato correspondientes en `tests/contract/model-gateway.contract.test.ts`.
+
+---
+
+## 10. Cómo Gestionar la Organización Virtual (Organizaciones, Áreas y Equipos)
+
+La plataforma permite modelar la estructura operativa empresarial mediante la Virtual Organization Foundation (ADR 0027):
+
+1. **Crear una Organización:**
+   ```bash
+   curl -X POST http://127.0.0.1:3000/api/v1/organizations \
+     -H "Content-Type: application/json" \
+     -d '{"tenantId": "tenant-corp", "name": "corp-hq", "displayName": "Corporate HQ", "description": "Sede principal"}'
+   ```
+2. **Crear un Área Funcional:**
+   ```bash
+   curl -X POST http://127.0.0.1:3000/api/v1/organizations/{organizationId}/areas \
+     -H "Content-Type: application/json" \
+     -d '{"name": "Engineering", "description": "División de ingeniería"}'
+   ```
+3. **Crear un Equipo de Trabajo:**
+   ```bash
+   curl -X POST http://127.0.0.1:3000/api/v1/areas/{areaId}/teams \
+     -H "Content-Type: application/json" \
+     -d '{"name": "Core Platform Team", "description": "Equipo de plataforma central"}'
+   ```
+4. **Asignar un Agente con Rol Operativo:**
+   ```bash
+   curl -X POST http://127.0.0.1:3000/api/v1/teams/{teamId}/agents \
+     -H "Content-Type: application/json" \
+     -d '{"agentId": "foundation-agent", "role": "LEAD"}'
+   ```
+   Roles permitidos: `LEAD`, `SPECIALIST`, `OPERATOR`, `REVIEWER`.
+5. **Consultar Jerarquía Completa:**
+   ```bash
+   curl http://127.0.0.1:3000/api/v1/organizations/{organizationId}/hierarchy
+   ```
+   Retorna la estructura anidada con organización, áreas, equipos y miembros asignados en una sola llamada atómica.
+

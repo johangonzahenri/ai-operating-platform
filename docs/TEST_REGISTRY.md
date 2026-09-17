@@ -10,11 +10,11 @@ Este registro documenta el inventario verificado de pruebas automatizadas del pr
 ============================================================
   ESTADO CANÓNICO DE PRUEBAS (TEST EXECUTION BASELINE)
 ============================================================
-  Total Tests Ejecutados : 985
-  Total Tests Aprobados  : 985 (PASS)
-  Total Tests Fallidos   : 0   (FAIL)
-  Total Tests Omitidos   : 0   (SKIPPED)
-  Total Tests Pendientes : 0   (TODO)
+  Total Tests Ejecutados : 1019
+  Total Tests Aprobados  : 1019 (PASS)
+  Total Tests Fallidos   : 0    (FAIL)
+  Total Tests Omitidos   : 0    (SKIPPED)
+  Total Tests Pendientes : 0    (TODO)
   Suites Principales     : 11
   Tasa de Éxito          : 100.0%
 ============================================================
@@ -141,3 +141,13 @@ Este registro documenta el inventario verificado de pruebas automatizadas del pr
   - `tests/platform/operational-intelligence-console.test.ts`
 * **Pruebas Contenidas:** 86 tests pass.
 * **Aspectos Verificados:** Interfaz SPA en Vanilla JS con 0 `innerHTML`, selección bilingüe (`es-419` / `en`), telemetría en tiempo real, renderizado de eventos y accesibilidad.
+
+### 2.11 Virtual Organization Foundation (Organización, Áreas, Equipos & Membresía)
+* **Archivos:**
+  - `tests/unit/organization-domain.test.ts`
+  - `tests/unit/sqlite-organization-repository.test.ts`
+  - `tests/unit/organization-service.test.ts`
+  - `tests/platform/organization-api.test.ts`
+* **Pruebas Contenidas:** 34 tests pass.
+* **Aspectos Verificados:** Agregado `Organization` con ciclo de vida blando (`ACTIVE`, `INACTIVE`, `ARCHIVED`), entidades `Area` y `Team`, membresía `AgentMembership` con roles (`LEAD`, `SPECIALIST`, `OPERATOR`, `REVIEWER`), eventos de dominio tipados, repositorio relacional `SqliteOrganizationRepository` con índices compuestos y OCC, orquestación en `OrganizationService` con cálculo de jerarquía completa, y endpoints REST canónicos en `/api/v1/*` con bloqueo estricto en `/api/platform/v1/*`.
+

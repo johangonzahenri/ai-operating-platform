@@ -4,7 +4,7 @@ import {
   ModelGateway,
   ModelRequest,
   ModelResponse,
-  ModelStreamChunk,
+  ModelStreamEvent,
   ModelAuthenticationError,
   ModelRateLimitError,
   ModelTimeoutError,
@@ -180,7 +180,7 @@ export class GeminiModelGateway implements ModelGateway, ModelProviderAdapter {
     } catch (err: unknown) {
       clearTimeout(timeoutId);
       if (err instanceof Error && err.name === "AbortError") {
-        throw new ModelTimeoutError(this.provider, timeoutMs);
+        throw new ModelTimeoutError(this.provider, `Gemini request timed out after ${timeoutMs}ms`);
       }
       throw new ModelUnavailableError(this.provider, err instanceof Error ? err.message : "Network error");
     } finally {
@@ -236,10 +236,10 @@ export class GeminiModelGateway implements ModelGateway, ModelProviderAdapter {
       }
     }
 
-    let output: unknown = content;
-    if (request.requestedFormat === "json_object" && content) {
+    let output: Readonly<Record<string, unknown>> = { raw: content };
+    if ((request.requestedFormat === "json_object" || request.requestedFormat === "json_schema") && content) {
       try {
-        output = JSON.parse(content);
+        output = JSON.parse(content) as Record<string, unknown>;
       } catch {
         throw new ModelInvalidResponseError(this.provider, "Gemini returned invalid structured JSON");
       }
@@ -285,12 +285,26 @@ export class GeminiModelGateway implements ModelGateway, ModelProviderAdapter {
     return { output: output as T, raw };
   }
 
-  async *generateStream(request: ModelRequest): AsyncIterable<ModelStreamChunk> {
+  async *stream(request: ModelRequest): AsyncIterable<ModelStreamEvent> {
+    const raw = await this.generate(request);
+    if (raw.content) {
+      yield {
+        type: "token",
+        delta: raw.content,
+      };
+    }
+    yield {
+      type: "finish",
+      finishReason: raw.finishReason,
+    };
+  }
+
+  async *generateStream(request: ModelRequest): AsyncIterable<{ content: string; isFinal: boolean; finishReason?: string }> {
     const raw = await this.generate(request);
     yield {
-      content: raw.content,
+      content: raw.content ?? "",
       isFinal: true,
-      finishReason: raw.finishReason,
+      ...(raw.finishReason ? { finishReason: raw.finishReason } : {}),
     };
   }
 

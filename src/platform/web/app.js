@@ -195,6 +195,7 @@ class PlatformApp {
     this.setupDiagnosticsView();
     this.setupApplicationDetailView();
     this.setupDevicesView();
+    this.setupOrganizations();
     this.loadData();
     this.startAutoRefresh();
   }
@@ -652,6 +653,7 @@ class PlatformApp {
       "application-detail": { title: "Application Detail & Trust", sub: "Deep dive into application manifest, lifecycle state, capabilities, and audit history" },
       devices: { title: "Business Devices & Hardware Printing", sub: "Enterprise device registry and durable local spooler queue for business hardware" },
       "device-detail": { title: "Device Identity & Capabilities", sub: "Deep hardware diagnostics, declared capabilities, and print queue inspection" },
+      organizations: { title: "Virtual Organization Foundation", sub: "Multi-level organizational hierarchy, operational areas, working teams, and agent memberships" },
     };
 
     this.updateViewHeader(tab);
@@ -680,6 +682,8 @@ class PlatformApp {
       this.loadDiagnosticsData();
     } else if (tab === "devices") {
       this.loadDevicesData();
+    } else if (tab === "organizations") {
+      this.loadOrganizationsData();
     } else if (tab === "agents" || tab === "models" || tab === "tools" || tab === "executions" || tab === "governance" || tab === "operations") {
       this.loadData();
     }
@@ -5739,6 +5743,795 @@ class PlatformApp {
       this.switchTab("device-detail");
     } catch (err) {
       alert(`Failed to inspect device: ${err.message}`);
+    }
+  }
+
+  setupOrganizations() {
+    const refreshBtn = document.getElementById("refresh-orgs-btn");
+    if (refreshBtn) {
+      refreshBtn.addEventListener("click", () => {
+        this.loadOrganizationsData();
+      });
+    }
+
+    const openCreateBtn = document.getElementById("open-create-org-btn");
+    if (openCreateBtn) {
+      openCreateBtn.addEventListener("click", () => {
+        this.showCreateOrganizationForm();
+      });
+    }
+  }
+
+  async loadOrganizationsData() {
+    const container = document.getElementById("orgs-tree-container");
+    const countBadge = document.getElementById("orgs-count-badge");
+    if (!container) return;
+
+    try {
+      const orgs = await api.getOrganizations();
+      if (countBadge) {
+        countBadge.textContent = `${orgs.length} ${orgs.length === 1 ? (i18n.t("organizations.organization") || "Organization") : (i18n.t("organizations.title") || "Organizations")}`;
+      }
+
+      clearChildren(container);
+
+      if (!orgs || orgs.length === 0) {
+        const emptyP = document.createElement("p");
+        emptyP.className = "ops-muted";
+        emptyP.textContent = i18n.t("organizations.emptyState") || "No organizations found. Click '+ New Organization' to create one.";
+        container.appendChild(emptyP);
+        return;
+      }
+
+      for (const org of orgs) {
+        const orgCard = document.createElement("div");
+        orgCard.className = "org-tree-node";
+        orgCard.style.border = "1px solid var(--border-color)";
+        orgCard.style.borderRadius = "6px";
+        orgCard.style.padding = "0.75rem";
+        orgCard.style.marginBottom = "0.75rem";
+        orgCard.style.background = "var(--bg-secondary)";
+
+        const headerDiv = document.createElement("div");
+        headerDiv.style.display = "flex";
+        headerDiv.style.justifyContent = "space-between";
+        headerDiv.style.alignItems = "center";
+        headerDiv.style.marginBottom = "0.5rem";
+
+        const titleDiv = document.createElement("div");
+        titleDiv.style.display = "flex";
+        titleDiv.style.alignItems = "center";
+        titleDiv.style.gap = "0.5rem";
+
+        const iconSpan = document.createElement("span");
+        iconSpan.textContent = "🏢";
+
+        const orgNameStrong = document.createElement("strong");
+        orgNameStrong.textContent = org.displayName || org.name;
+        orgNameStrong.style.cursor = "pointer";
+        orgNameStrong.addEventListener("click", () => this.inspectOrganization(org.organizationId));
+
+        const tenantBadge = document.createElement("span");
+        tenantBadge.className = "badge badge-neutral";
+        tenantBadge.textContent = org.tenantId;
+
+        titleDiv.append(iconSpan, orgNameStrong, tenantBadge);
+
+        const actionsDiv = document.createElement("div");
+        actionsDiv.style.display = "flex";
+        actionsDiv.style.gap = "0.25rem";
+        actionsDiv.style.alignItems = "center";
+
+        const statusBadge = document.createElement("span");
+        statusBadge.className = `badge badge-${org.status === "ACTIVE" ? "success" : org.status === "ARCHIVED" ? "danger" : "warning"}`;
+        statusBadge.textContent = org.status;
+
+        const inspectBtn = document.createElement("button");
+        inspectBtn.className = "btn btn-xs btn-secondary";
+        inspectBtn.textContent = i18n.t("organizations.viewDetail") || "Details";
+        inspectBtn.addEventListener("click", () => this.inspectOrganization(org.organizationId));
+
+        actionsDiv.append(statusBadge, inspectBtn);
+        headerDiv.append(titleDiv, actionsDiv);
+        orgCard.appendChild(headerDiv);
+
+        try {
+          const hierarchy = await api.getOrganizationHierarchy(org.organizationId);
+          const areas = hierarchy.areas || [];
+
+          if (areas.length === 0) {
+            const noAreas = document.createElement("div");
+            noAreas.style.fontSize = "0.85rem";
+            noAreas.style.color = "var(--text-secondary)";
+            noAreas.style.paddingLeft = "1.5rem";
+            noAreas.textContent = i18n.t("organizations.noAreas") || "No functional areas yet.";
+            orgCard.appendChild(noAreas);
+          } else {
+            const areasList = document.createElement("div");
+            areasList.style.display = "flex";
+            areasList.style.flexDirection = "column";
+            areasList.style.gap = "0.5rem";
+            areasList.style.paddingLeft = "1.25rem";
+            areasList.style.borderLeft = "2px solid var(--border-color)";
+            areasList.style.marginLeft = "0.5rem";
+
+            for (const areaItem of areas) {
+              const area = areaItem.area;
+              const areaNode = document.createElement("div");
+              areaNode.style.background = "var(--bg-primary)";
+              areaNode.style.padding = "0.5rem";
+              areaNode.style.borderRadius = "4px";
+              areaNode.style.border = "1px solid var(--border-color)";
+
+              const areaHeader = document.createElement("div");
+              areaHeader.style.display = "flex";
+              areaHeader.style.justifyContent = "space-between";
+              areaHeader.style.alignItems = "center";
+
+              const areaTitle = document.createElement("span");
+              areaTitle.style.fontWeight = "600";
+              areaTitle.style.cursor = "pointer";
+              areaTitle.textContent = `📁 ${area.name}`;
+              areaTitle.addEventListener("click", () => this.inspectArea(org.organizationId, area.areaId));
+
+              const areaStatus = document.createElement("span");
+              areaStatus.className = `badge badge-${area.status === "ACTIVE" ? "success" : "neutral"}`;
+              areaStatus.textContent = area.status;
+
+              areaHeader.append(areaTitle, areaStatus);
+              areaNode.appendChild(areaHeader);
+
+              const teams = areaItem.teams || [];
+              if (teams.length > 0) {
+                const teamsList = document.createElement("div");
+                teamsList.style.display = "flex";
+                teamsList.style.flexDirection = "column";
+                teamsList.style.gap = "0.25rem";
+                teamsList.style.marginTop = "0.4rem";
+                teamsList.style.paddingLeft = "1rem";
+                teamsList.style.borderLeft = "2px dashed var(--border-color)";
+                teamsList.style.marginLeft = "0.5rem";
+
+                for (const teamItem of teams) {
+                  const team = teamItem.team;
+                  const members = teamItem.members || [];
+
+                  const teamRow = document.createElement("div");
+                  teamRow.style.display = "flex";
+                  teamRow.style.justifyContent = "space-between";
+                  teamRow.style.alignItems = "center";
+                  teamRow.style.fontSize = "0.85rem";
+                  teamRow.style.padding = "0.25rem 0";
+
+                  const teamNameSpan = document.createElement("span");
+                  teamNameSpan.style.cursor = "pointer";
+                  teamNameSpan.textContent = `👥 ${team.name} (${members.length} agents)`;
+                  teamNameSpan.addEventListener("click", () => this.inspectTeam(org.organizationId, area.areaId, team.teamId));
+
+                  const membersBadge = document.createElement("span");
+                  membersBadge.className = "badge badge-info";
+                  membersBadge.textContent = `${members.length} members`;
+
+                  teamRow.append(teamNameSpan, membersBadge);
+                  teamsList.appendChild(teamRow);
+                }
+                areaNode.appendChild(teamsList);
+              }
+              areasList.appendChild(areaNode);
+            }
+            orgCard.appendChild(areasList);
+          }
+        } catch (hierarchyErr) {
+          const errDiv = document.createElement("div");
+          errDiv.className = "ops-muted";
+          errDiv.textContent = `Error loading hierarchy: ${hierarchyErr.message}`;
+          orgCard.appendChild(errDiv);
+        }
+
+        container.appendChild(orgCard);
+      }
+    } catch (err) {
+      clearChildren(container);
+      const errP = document.createElement("p");
+      errP.className = "ops-muted";
+      errP.style.color = "var(--accent-red, #ef4444)";
+      errP.textContent = `Failed to load organizations: ${err.message}`;
+      container.appendChild(errP);
+    }
+  }
+
+  showCreateOrganizationForm() {
+    const detailTitle = document.getElementById("org-detail-title");
+    const statusBadge = document.getElementById("org-status-badge");
+    const container = document.getElementById("org-detail-container");
+    if (!container) return;
+
+    if (detailTitle) detailTitle.textContent = "Create Organization";
+    if (statusBadge) {
+      statusBadge.textContent = "NEW";
+      statusBadge.className = "badge badge-info";
+    }
+
+    clearChildren(container);
+
+    const form = document.createElement("form");
+    form.style.display = "flex";
+    form.style.flexDirection = "column";
+    form.style.gap = "0.75rem";
+
+    const tenantGroup = document.createElement("div");
+    const tenantLabel = document.createElement("label");
+    tenantLabel.textContent = "Tenant ID";
+    tenantLabel.style.display = "block";
+    tenantLabel.style.fontWeight = "600";
+    tenantLabel.style.marginBottom = "0.25rem";
+    const tenantInput = document.createElement("input");
+    tenantInput.type = "text";
+    tenantInput.className = "input-field";
+    tenantInput.value = "tenant-corp-enterprise";
+    tenantInput.required = true;
+    tenantGroup.append(tenantLabel, tenantInput);
+
+    const nameGroup = document.createElement("div");
+    const nameLabel = document.createElement("label");
+    nameLabel.textContent = "Organization Slug / Name";
+    nameLabel.style.display = "block";
+    nameLabel.style.fontWeight = "600";
+    nameLabel.style.marginBottom = "0.25rem";
+    const nameInput = document.createElement("input");
+    nameInput.type = "text";
+    nameInput.className = "input-field";
+    nameInput.placeholder = "corp-hq";
+    nameInput.required = true;
+    nameGroup.append(nameLabel, nameInput);
+
+    const dispGroup = document.createElement("div");
+    const dispLabel = document.createElement("label");
+    dispLabel.textContent = "Display Name";
+    dispLabel.style.display = "block";
+    dispLabel.style.fontWeight = "600";
+    dispLabel.style.marginBottom = "0.25rem";
+    const dispInput = document.createElement("input");
+    dispInput.type = "text";
+    dispInput.className = "input-field";
+    dispInput.placeholder = "Corporate Headquarters";
+    dispGroup.append(dispLabel, dispInput);
+
+    const descGroup = document.createElement("div");
+    const descLabel = document.createElement("label");
+    descLabel.textContent = "Description";
+    descLabel.style.display = "block";
+    descLabel.style.fontWeight = "600";
+    descLabel.style.marginBottom = "0.25rem";
+    const descInput = document.createElement("textarea");
+    descInput.className = "input-field";
+    descInput.rows = 3;
+    descInput.placeholder = "Primary enterprise organization unit";
+    descGroup.append(descLabel, descInput);
+
+    const submitBtn = document.createElement("button");
+    submitBtn.type = "submit";
+    submitBtn.className = "btn btn-primary";
+    submitBtn.textContent = "Create Organization";
+
+    form.append(tenantGroup, nameGroup, dispGroup, descGroup, submitBtn);
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      try {
+        const payload = {
+          tenantId: tenantInput.value.trim(),
+          name: nameInput.value.trim(),
+          ...(dispInput.value.trim() ? { displayName: dispInput.value.trim() } : {}),
+          ...(descInput.value.trim() ? { description: descInput.value.trim() } : {}),
+        };
+        const created = await api.createOrganization(payload);
+        await this.loadOrganizationsData();
+        this.inspectOrganization(created.organizationId);
+      } catch (err) {
+        alert(`Failed to create organization: ${err.message}`);
+      }
+    });
+
+    container.appendChild(form);
+  }
+
+  async inspectOrganization(orgId) {
+    const detailTitle = document.getElementById("org-detail-title");
+    const statusBadge = document.getElementById("org-status-badge");
+    const container = document.getElementById("org-detail-container");
+    if (!container) return;
+
+    try {
+      const hierarchy = await api.getOrganizationHierarchy(orgId);
+      const org = hierarchy.organization;
+
+      if (detailTitle) detailTitle.textContent = `Organization: ${org.displayName || org.name}`;
+      if (statusBadge) {
+        statusBadge.textContent = org.status;
+        statusBadge.className = `badge badge-${org.status === "ACTIVE" ? "success" : org.status === "ARCHIVED" ? "danger" : "warning"}`;
+      }
+
+      clearChildren(container);
+
+      const metaBox = document.createElement("div");
+      metaBox.style.background = "var(--bg-secondary)";
+      metaBox.style.padding = "0.75rem";
+      metaBox.style.borderRadius = "6px";
+      metaBox.style.marginBottom = "1rem";
+      metaBox.style.border = "1px solid var(--border-color)";
+
+      const fields = [
+        { label: "Organization ID", val: org.organizationId },
+        { label: "Tenant ID", val: org.tenantId },
+        { label: "Slug", val: org.name },
+        { label: "Description", val: org.description || "—" },
+        { label: "Created At", val: new Date(org.createdAt).toLocaleString() },
+        { label: "Updated At", val: new Date(org.updatedAt).toLocaleString() },
+      ];
+
+      for (const f of fields) {
+        const row = document.createElement("div");
+        row.style.display = "flex";
+        row.style.justifyContent = "space-between";
+        row.style.fontSize = "0.85rem";
+        row.style.padding = "0.2rem 0";
+        row.style.borderBottom = "1px solid var(--border-color)";
+
+        const lbl = document.createElement("span");
+        lbl.style.color = "var(--text-secondary)";
+        lbl.textContent = f.label;
+
+        const val = document.createElement("span");
+        val.style.fontWeight = "500";
+        val.textContent = f.val;
+
+        row.append(lbl, val);
+        metaBox.appendChild(row);
+      }
+      container.appendChild(metaBox);
+
+      const actionsBox = document.createElement("div");
+      actionsBox.style.display = "flex";
+      actionsBox.style.gap = "0.5rem";
+      actionsBox.style.marginBottom = "1.25rem";
+
+      if (org.status === "ACTIVE") {
+        const deactBtn = document.createElement("button");
+        deactBtn.className = "btn btn-sm btn-secondary";
+        deactBtn.textContent = "Deactivate";
+        deactBtn.addEventListener("click", async () => {
+          try {
+            await api.updateOrganization(org.organizationId, { status: "INACTIVE" });
+            await this.loadOrganizationsData();
+            this.inspectOrganization(org.organizationId);
+          } catch (err) {
+            alert(`Error: ${err.message}`);
+          }
+        });
+        actionsBox.appendChild(deactBtn);
+
+        const archBtn = document.createElement("button");
+        archBtn.className = "btn btn-sm btn-danger";
+        archBtn.textContent = "Archive";
+        archBtn.addEventListener("click", async () => {
+          if (!confirm("Are you sure you want to archive this organization? Archived organizations cannot be unarchived.")) return;
+          try {
+            await api.updateOrganization(org.organizationId, { status: "ARCHIVED" });
+            await this.loadOrganizationsData();
+            this.inspectOrganization(org.organizationId);
+          } catch (err) {
+            alert(`Error: ${err.message}`);
+          }
+        });
+        actionsBox.appendChild(archBtn);
+      } else if (org.status === "INACTIVE") {
+        const actBtn = document.createElement("button");
+        actBtn.className = "btn btn-sm btn-primary";
+        actBtn.textContent = "Activate";
+        actBtn.addEventListener("click", async () => {
+          try {
+            await api.updateOrganization(org.organizationId, { status: "ACTIVE" });
+            await this.loadOrganizationsData();
+            this.inspectOrganization(org.organizationId);
+          } catch (err) {
+            alert(`Error: ${err.message}`);
+          }
+        });
+        actionsBox.appendChild(actBtn);
+
+        const archBtn = document.createElement("button");
+        archBtn.className = "btn btn-sm btn-danger";
+        archBtn.textContent = "Archive";
+        archBtn.addEventListener("click", async () => {
+          if (!confirm("Are you sure you want to archive this organization? Archived organizations cannot be unarchived.")) return;
+          try {
+            await api.updateOrganization(org.organizationId, { status: "ARCHIVED" });
+            await this.loadOrganizationsData();
+            this.inspectOrganization(org.organizationId);
+          } catch (err) {
+            alert(`Error: ${err.message}`);
+          }
+        });
+        actionsBox.appendChild(archBtn);
+      } else {
+        const archLabel = document.createElement("span");
+        archLabel.className = "ops-muted";
+        archLabel.textContent = "Archived (Immutable soft lifecycle)";
+        actionsBox.appendChild(archLabel);
+      }
+      container.appendChild(actionsBox);
+
+      if (org.status !== "ARCHIVED") {
+        const areaSection = document.createElement("div");
+        areaSection.style.marginTop = "1rem";
+        areaSection.style.borderTop = "1px solid var(--border-color)";
+        areaSection.style.paddingTop = "1rem";
+
+        const areaHeading = document.createElement("h4");
+        areaHeading.textContent = "+ Create Functional Area";
+        areaHeading.style.marginBottom = "0.75rem";
+        areaSection.appendChild(areaHeading);
+
+        const areaForm = document.createElement("form");
+        areaForm.style.display = "flex";
+        areaForm.style.flexDirection = "column";
+        areaForm.style.gap = "0.5rem";
+
+        const aNameInput = document.createElement("input");
+        aNameInput.type = "text";
+        aNameInput.className = "input-field";
+        aNameInput.placeholder = "Area Name (e.g. Engineering, Operations)";
+        aNameInput.required = true;
+
+        const aDescInput = document.createElement("input");
+        aDescInput.type = "text";
+        aDescInput.className = "input-field";
+        aDescInput.placeholder = "Description";
+
+        const aSubmitBtn = document.createElement("button");
+        aSubmitBtn.type = "submit";
+        aSubmitBtn.className = "btn btn-sm btn-primary";
+        aSubmitBtn.textContent = "Add Area";
+
+        areaForm.append(aNameInput, aDescInput, aSubmitBtn);
+
+        areaForm.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          try {
+            await api.createArea(org.organizationId, {
+              name: aNameInput.value.trim(),
+              ...(aDescInput.value.trim() ? { description: aDescInput.value.trim() } : {}),
+            });
+            await this.loadOrganizationsData();
+            this.inspectOrganization(org.organizationId);
+          } catch (err) {
+            alert(`Failed to create area: ${err.message}`);
+          }
+        });
+
+        areaSection.appendChild(areaForm);
+        container.appendChild(areaSection);
+      }
+    } catch (err) {
+      alert(`Failed to inspect organization: ${err.message}`);
+    }
+  }
+
+  async inspectArea(orgId, areaId) {
+    const detailTitle = document.getElementById("org-detail-title");
+    const statusBadge = document.getElementById("org-status-badge");
+    const container = document.getElementById("org-detail-container");
+    if (!container) return;
+
+    try {
+      const hierarchy = await api.getOrganizationHierarchy(orgId);
+      const areaItem = (hierarchy.areas || []).find((a) => a.area.areaId === areaId);
+      if (!areaItem) {
+        alert("Area not found in organization hierarchy");
+        return;
+      }
+      const area = areaItem.area;
+
+      if (detailTitle) detailTitle.textContent = `Area: ${area.name}`;
+      if (statusBadge) {
+        statusBadge.textContent = area.status;
+        statusBadge.className = `badge badge-${area.status === "ACTIVE" ? "success" : "neutral"}`;
+      }
+
+      clearChildren(container);
+
+      const metaBox = document.createElement("div");
+      metaBox.style.background = "var(--bg-secondary)";
+      metaBox.style.padding = "0.75rem";
+      metaBox.style.borderRadius = "6px";
+      metaBox.style.marginBottom = "1rem";
+      metaBox.style.border = "1px solid var(--border-color)";
+
+      const fields = [
+        { label: "Area ID", val: area.areaId },
+        { label: "Organization ID", val: area.organizationId },
+        { label: "Tenant ID", val: area.tenantId },
+        { label: "Description", val: area.description || "—" },
+        { label: "Created At", val: new Date(area.createdAt).toLocaleString() },
+      ];
+
+      for (const f of fields) {
+        const row = document.createElement("div");
+        row.style.display = "flex";
+        row.style.justifyContent = "space-between";
+        row.style.fontSize = "0.85rem";
+        row.style.padding = "0.2rem 0";
+        row.style.borderBottom = "1px solid var(--border-color)";
+
+        const lbl = document.createElement("span");
+        lbl.style.color = "var(--text-secondary)";
+        lbl.textContent = f.label;
+
+        const val = document.createElement("span");
+        val.style.fontWeight = "500";
+        val.textContent = f.val;
+
+        row.append(lbl, val);
+        metaBox.appendChild(row);
+      }
+      container.appendChild(metaBox);
+
+      const backBtn = document.createElement("button");
+      backBtn.className = "btn btn-xs btn-secondary";
+      backBtn.textContent = "← Back to Organization";
+      backBtn.style.marginBottom = "1rem";
+      backBtn.addEventListener("click", () => this.inspectOrganization(orgId));
+      container.appendChild(backBtn);
+
+      const teamSection = document.createElement("div");
+      teamSection.style.marginTop = "1rem";
+      teamSection.style.borderTop = "1px solid var(--border-color)";
+      teamSection.style.paddingTop = "1rem";
+
+      const teamHeading = document.createElement("h4");
+      teamHeading.textContent = "+ Create Working Team";
+      teamHeading.style.marginBottom = "0.75rem";
+      teamSection.appendChild(teamHeading);
+
+      const teamForm = document.createElement("form");
+      teamForm.style.display = "flex";
+      teamForm.style.flexDirection = "column";
+      teamForm.style.gap = "0.5rem";
+
+      const tNameInput = document.createElement("input");
+      tNameInput.type = "text";
+      tNameInput.className = "input-field";
+      tNameInput.placeholder = "Team Name (e.g. Core Platform Team)";
+      tNameInput.required = true;
+
+      const tDescInput = document.createElement("input");
+      tDescInput.type = "text";
+      tDescInput.className = "input-field";
+      tDescInput.placeholder = "Description";
+
+      const tSubmitBtn = document.createElement("button");
+      tSubmitBtn.type = "submit";
+      tSubmitBtn.className = "btn btn-sm btn-primary";
+      tSubmitBtn.textContent = "Add Team";
+
+      teamForm.append(tNameInput, tDescInput, tSubmitBtn);
+
+      teamForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        try {
+          await api.createTeam(area.areaId, {
+            name: tNameInput.value.trim(),
+            ...(tDescInput.value.trim() ? { description: tDescInput.value.trim() } : {}),
+          });
+          await this.loadOrganizationsData();
+          this.inspectArea(orgId, areaId);
+        } catch (err) {
+          alert(`Failed to create team: ${err.message}`);
+        }
+      });
+
+      teamSection.appendChild(teamForm);
+      container.appendChild(teamSection);
+    } catch (err) {
+      alert(`Failed to inspect area: ${err.message}`);
+    }
+  }
+
+  async inspectTeam(orgId, areaId, teamId) {
+    const detailTitle = document.getElementById("org-detail-title");
+    const statusBadge = document.getElementById("org-status-badge");
+    const container = document.getElementById("org-detail-container");
+    if (!container) return;
+
+    try {
+      const hierarchy = await api.getOrganizationHierarchy(orgId);
+      const areaItem = (hierarchy.areas || []).find((a) => a.area.areaId === areaId);
+      const teamItem = areaItem ? (areaItem.teams || []).find((t) => t.team.teamId === teamId) : null;
+      if (!teamItem) {
+        alert("Team not found in hierarchy");
+        return;
+      }
+      const team = teamItem.team;
+      const members = teamItem.members || [];
+
+      if (detailTitle) detailTitle.textContent = `Team: ${team.name}`;
+      if (statusBadge) {
+        statusBadge.textContent = team.status;
+        statusBadge.className = `badge badge-${team.status === "ACTIVE" ? "success" : "neutral"}`;
+      }
+
+      clearChildren(container);
+
+      const metaBox = document.createElement("div");
+      metaBox.style.background = "var(--bg-secondary)";
+      metaBox.style.padding = "0.75rem";
+      metaBox.style.borderRadius = "6px";
+      metaBox.style.marginBottom = "1rem";
+      metaBox.style.border = "1px solid var(--border-color)";
+
+      const fields = [
+        { label: "Team ID", val: team.teamId },
+        { label: "Area ID", val: team.areaId },
+        { label: "Organization ID", val: team.organizationId },
+        { label: "Tenant ID", val: team.tenantId },
+        { label: "Description", val: team.description || "—" },
+        { label: "Created At", val: new Date(team.createdAt).toLocaleString() },
+      ];
+
+      for (const f of fields) {
+        const row = document.createElement("div");
+        row.style.display = "flex";
+        row.style.justifyContent = "space-between";
+        row.style.fontSize = "0.85rem";
+        row.style.padding = "0.2rem 0";
+        row.style.borderBottom = "1px solid var(--border-color)";
+
+        const lbl = document.createElement("span");
+        lbl.style.color = "var(--text-secondary)";
+        lbl.textContent = f.label;
+
+        const val = document.createElement("span");
+        val.style.fontWeight = "500";
+        val.textContent = f.val;
+
+        row.append(lbl, val);
+        metaBox.appendChild(row);
+      }
+      container.appendChild(metaBox);
+
+      const backBtn = document.createElement("button");
+      backBtn.className = "btn btn-xs btn-secondary";
+      backBtn.textContent = "← Back to Area";
+      backBtn.style.marginBottom = "1rem";
+      backBtn.addEventListener("click", () => this.inspectArea(orgId, areaId));
+      container.appendChild(backBtn);
+
+      const membersSection = document.createElement("div");
+      membersSection.style.marginBottom = "1.5rem";
+
+      const membersHeading = document.createElement("h4");
+      membersHeading.textContent = `Team Members (${members.length})`;
+      membersHeading.style.marginBottom = "0.5rem";
+      membersSection.appendChild(membersHeading);
+
+      if (members.length === 0) {
+        const noMembP = document.createElement("p");
+        noMembP.className = "ops-muted";
+        noMembP.textContent = "No agents assigned to this team yet.";
+        membersSection.appendChild(noMembP);
+      } else {
+        const membTable = document.createElement("table");
+        membTable.className = "data-table";
+        membTable.style.width = "100%";
+        membTable.style.fontSize = "0.85rem";
+
+        const thead = document.createElement("thead");
+        const headerTr = document.createElement("tr");
+        for (const thText of ["Agent ID", "Role", "Joined", "Action"]) {
+          const th = document.createElement("th");
+          th.textContent = thText;
+          headerTr.appendChild(th);
+        }
+        thead.appendChild(headerTr);
+        membTable.appendChild(thead);
+
+        const tbody = document.createElement("tbody");
+        for (const m of members) {
+          const tr = document.createElement("tr");
+
+          const tdAgent = document.createElement("td");
+          const code = document.createElement("code");
+          code.textContent = m.agentId;
+          tdAgent.appendChild(code);
+
+          const tdRole = document.createElement("td");
+          const roleBadge = document.createElement("span");
+          roleBadge.className = `badge badge-${m.role === "LEAD" ? "primary" : m.role === "SPECIALIST" ? "info" : "neutral"}`;
+          roleBadge.textContent = m.role;
+          tdRole.appendChild(roleBadge);
+
+          const tdJoined = document.createElement("td");
+          tdJoined.textContent = new Date(m.joinedAt).toLocaleDateString();
+
+          const tdAction = document.createElement("td");
+          const removeBtn = document.createElement("button");
+          removeBtn.className = "btn btn-xs btn-danger";
+          removeBtn.textContent = "Remove";
+          removeBtn.addEventListener("click", async () => {
+            if (!confirm(`Remove agent ${m.agentId} from team?`)) return;
+            try {
+              await api.removeAgentFromTeam(teamId, m.agentId);
+              await this.loadOrganizationsData();
+              this.inspectTeam(orgId, areaId, teamId);
+            } catch (err) {
+              alert(`Failed to remove agent: ${err.message}`);
+            }
+          });
+          tdAction.appendChild(removeBtn);
+
+          tr.append(tdAgent, tdRole, tdJoined, tdAction);
+          tbody.appendChild(tr);
+        }
+        membTable.appendChild(tbody);
+        membersSection.appendChild(membTable);
+      }
+      container.appendChild(membersSection);
+
+      const assignSection = document.createElement("div");
+      assignSection.style.borderTop = "1px solid var(--border-color)";
+      assignSection.style.paddingTop = "1rem";
+
+      const assignHeading = document.createElement("h4");
+      assignHeading.textContent = "+ Assign Agent to Team";
+      assignHeading.style.marginBottom = "0.75rem";
+      assignSection.appendChild(assignHeading);
+
+      const assignForm = document.createElement("form");
+      assignForm.style.display = "flex";
+      assignForm.style.flexDirection = "column";
+      assignForm.style.gap = "0.5rem";
+
+      const agentInput = document.createElement("input");
+      agentInput.type = "text";
+      agentInput.className = "input-field";
+      agentInput.placeholder = "Agent ID (e.g. foundation-agent, commerce-agent)";
+      agentInput.required = true;
+
+      const roleSelect = document.createElement("select");
+      roleSelect.className = "input-field";
+      for (const r of ["LEAD", "SPECIALIST", "OPERATOR", "REVIEWER"]) {
+        const opt = document.createElement("option");
+        opt.value = r;
+        opt.textContent = r;
+        roleSelect.appendChild(opt);
+      }
+
+      const assignBtn = document.createElement("button");
+      assignBtn.type = "submit";
+      assignBtn.className = "btn btn-sm btn-primary";
+      assignBtn.textContent = "Assign Agent";
+
+      assignForm.append(agentInput, roleSelect, assignBtn);
+
+      assignForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        try {
+          await api.assignAgentToTeam(teamId, {
+            agentId: agentInput.value.trim(),
+            role: roleSelect.value,
+          });
+          await this.loadOrganizationsData();
+          this.inspectTeam(orgId, areaId, teamId);
+        } catch (err) {
+          alert(`Failed to assign agent: ${err.message}`);
+        }
+      });
+
+      assignSection.appendChild(assignForm);
+      container.appendChild(assignSection);
+    } catch (err) {
+      alert(`Failed to inspect team: ${err.message}`);
     }
   }
 

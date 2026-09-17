@@ -484,3 +484,86 @@ export async function cancelPrintJob(deviceId, jobId, reason) {
     body: JSON.stringify({ reason }),
   });
 }
+
+// ============================================================================
+// Virtual Organization & Teams API (Prompt 102)
+// Strictly routed via /api/v1/*
+// ============================================================================
+
+export async function getOrganizations() {
+  return request("/organizations");
+}
+
+export async function getOrganization(id) {
+  return request(`/organizations/${encodeURIComponent(id)}`);
+}
+
+export async function createOrganization(data) {
+  return request("/organizations", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateOrganization(id, data) {
+  return request(`/organizations/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getOrganizationAreas(orgId) {
+  return request(`/organizations/${encodeURIComponent(orgId)}/areas`);
+}
+
+export async function createArea(orgId, data) {
+  return request(`/organizations/${encodeURIComponent(orgId)}/areas`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getArea(areaId) {
+  return request(`/areas/${encodeURIComponent(areaId)}`);
+}
+
+export async function getAreaTeams(areaId) {
+  return request(`/areas/${encodeURIComponent(areaId)}/teams`);
+}
+
+export async function createTeam(areaId, data) {
+  return request(`/areas/${encodeURIComponent(areaId)}/teams`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getTeam(teamId) {
+  return request(`/teams/${encodeURIComponent(teamId)}`);
+}
+
+export async function getTeamAgents(teamId) {
+  return request(`/teams/${encodeURIComponent(teamId)}/agents`);
+}
+
+export async function assignAgentToTeam(teamId, data) {
+  return request(`/teams/${encodeURIComponent(teamId)}/agents`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function removeAgentFromTeam(teamId, agentId) {
+  return request(`/teams/${encodeURIComponent(teamId)}/agents/${encodeURIComponent(agentId)}`, {
+    method: "DELETE",
+  });
+}
+
+export async function getOrganizationHierarchy(orgId) {
+  return request(`/organizations/${encodeURIComponent(orgId)}/hierarchy`);
+}

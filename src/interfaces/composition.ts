@@ -69,6 +69,10 @@ import {
 } from "../infrastructure/security/in-memory-api-key-repository.js";
 import { InMemoryRoleRepository } from "../infrastructure/security/in-memory-role-repository.js";
 import { RoleRepository } from "../domain/security/authorization.js";
+import { OrganizationHierarchyRepository } from "../application/ports/organization-repository-port.js";
+import { InMemoryOrganizationRepository } from "../infrastructure/organization/in-memory-organization-repository.js";
+import { SqliteOrganizationRepository } from "../infrastructure/persistence/sqlite/sqlite-organization-repository.js";
+import { OrganizationService } from "../application/organization/organization-service.js";
 
 export interface CreatePlatformOptions {
   readonly logger?: StructuredLogger | undefined;
@@ -86,6 +90,8 @@ export interface CreatePlatformOptions {
   readonly roleRepository?: RoleRepository | undefined;
   readonly authenticationService?: AuthenticationService | undefined;
   readonly rbacEvaluator?: RbacAuthorizationEvaluator | undefined;
+  readonly organizationRepository?: OrganizationHierarchyRepository | undefined;
+  readonly organizationService?: OrganizationService | undefined;
 }
 
 
@@ -287,6 +293,20 @@ export const createPlatform = (
     ? (optionsOrLogger as CreatePlatformOptions).rbacEvaluator!
     : new RbacAuthorizationEvaluator(roleRepository, events);
 
+  const organizationRepository: OrganizationHierarchyRepository = (!isLogger && (optionsOrLogger as CreatePlatformOptions).organizationRepository)
+    ? (optionsOrLogger as CreatePlatformOptions).organizationRepository!
+    : dbManager
+      ? new SqliteOrganizationRepository(dbManager)
+      : new InMemoryOrganizationRepository();
+
+  const organizationService: OrganizationService = (!isLogger && (optionsOrLogger as CreatePlatformOptions).organizationService)
+    ? (optionsOrLogger as CreatePlatformOptions).organizationService!
+    : new OrganizationService({
+        repository: organizationRepository,
+        agentQuery: agents,
+        events,
+      });
+
   return {
     tasks,
     taskRepository: tasks as unknown as TaskRepository,
@@ -330,6 +350,8 @@ export const createPlatform = (
     roleRepository,
     authenticationService,
     rbacEvaluator,
+    organizationRepository,
+    organizationService,
   };
 };
 

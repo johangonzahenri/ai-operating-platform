@@ -23,7 +23,11 @@ export type EventType =
   | "authorization.allowed" | "authorization.denied"
   | "plan.requested" | "plan.generated" | "plan.validated" | "plan.rejected" | "plan.accepted" | "plan.execution_started"
   | "device.registered" | "device.unregistered" | "device.health_checked"
-  | "print.job.created" | "print.job.started" | "print.job.completed" | "print.job.failed" | "print.job.cancelled";
+  | "print.job.created" | "print.job.started" | "print.job.completed" | "print.job.failed" | "print.job.cancelled"
+  | "organization.created" | "organization.updated" | "organization.status_changed"
+  | "area.created" | "area.updated"
+  | "team.created" | "team.updated"
+  | "agent.assigned_to_team" | "agent.removed_from_team";
 
 export interface DomainEvent {
   readonly id: string;

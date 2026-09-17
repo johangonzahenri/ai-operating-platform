@@ -504,4 +504,99 @@ export interface ApplicationLifecycleUpdateDTO {
   readonly reason?: string | undefined;
 }
 
+// --- Virtual Organization DTOs (Prompt 102) ---
+
+export interface OrganizationDTO {
+  readonly id: string;
+  readonly tenantId: string;
+  readonly name: string;
+  readonly description: string;
+  readonly status: "ACTIVE" | "INACTIVE" | "ARCHIVED";
+  readonly version: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+  readonly areasCount?: number | undefined;
+  readonly teamsCount?: number | undefined;
+}
+
+export interface CreateOrganizationRequestDTO {
+  readonly id: string;
+  readonly name: string;
+  readonly description?: string | undefined;
+}
+
+export interface UpdateOrganizationRequestDTO {
+  readonly name?: string | undefined;
+  readonly description?: string | undefined;
+  readonly status?: "ACTIVE" | "INACTIVE" | "ARCHIVED" | undefined;
+}
+
+export interface AreaDTO {
+  readonly id: string;
+  readonly organizationId: string;
+  readonly tenantId: string;
+  readonly name: string;
+  readonly description: string;
+  readonly status: "ACTIVE" | "INACTIVE";
+  readonly version: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+  readonly teamsCount?: number | undefined;
+}
+
+export interface CreateAreaRequestDTO {
+  readonly id: string;
+  readonly name: string;
+  readonly description?: string | undefined;
+}
+
+export interface TeamDTO {
+  readonly id: string;
+  readonly areaId: string;
+  readonly organizationId: string;
+  readonly tenantId: string;
+  readonly name: string;
+  readonly description: string;
+  readonly status: "ACTIVE" | "INACTIVE";
+  readonly version: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+  readonly membersCount?: number | undefined;
+}
+
+export interface CreateTeamRequestDTO {
+  readonly id: string;
+  readonly organizationId: string;
+  readonly name: string;
+  readonly description?: string | undefined;
+}
+
+export interface AgentMembershipDTO {
+  readonly id: string;
+  readonly teamId: string;
+  readonly agentId: string;
+  readonly organizationId: string;
+  readonly tenantId: string;
+  readonly role: "LEAD" | "SPECIALIST" | "OPERATOR" | "REVIEWER";
+  readonly status: "ACTIVE" | "INACTIVE";
+  readonly joinedAt: string;
+  readonly updatedAt: string;
+}
+
+export interface AssignAgentRequestDTO {
+  readonly agentId: string;
+  readonly role?: "LEAD" | "SPECIALIST" | "OPERATOR" | "REVIEWER" | undefined;
+}
+
+export interface OrganizationHierarchyDTO {
+  readonly organization: OrganizationDTO;
+  readonly areas: readonly {
+    readonly area: AreaDTO;
+    readonly teams: readonly {
+      readonly team: TeamDTO;
+      readonly members: readonly AgentMembershipDTO[];
+    }[];
+  }[];
+}
+
 

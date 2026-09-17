@@ -153,9 +153,11 @@ test("GeminiModelGateway: handles tool calls and function responses", async () =
   });
 
   assert.ok(res.toolCalls);
-  assert.equal(res.toolCalls.length, 1);
-  assert.equal(res.toolCalls[0].name, "lookup_part");
-  assert.deepEqual(res.toolCalls[0].arguments, { partNumber: "BP-9921" });
+  const toolCalls = res.toolCalls!;
+  assert.equal(toolCalls.length, 1);
+  const firstCall = toolCalls[0]!;
+  assert.equal(firstCall.name, "lookup_part");
+  assert.deepEqual(firstCall.arguments, { partNumber: "BP-9921" });
 });
 
 test("GeminiModelGateway: supports structured JSON output", async () => {
@@ -260,8 +262,8 @@ test("GeminiModelGateway: streamGenerateContent produces final chunk", async () 
   }
 
   assert.equal(chunks.length, 1);
-  assert.equal(chunks[0].content, "Streamed tokens");
-  assert.equal(chunks[0].isFinal, true);
+  assert.equal(chunks[0]!.content, "Streamed tokens");
+  assert.equal(chunks[0]!.isFinal, true);
 });
 
 test("ProviderFactory: resolves registered Gemini adapter", () => {

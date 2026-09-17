@@ -79,7 +79,23 @@ import {
   TenantUsageDashboardDTO,
   ApplicationAnalyticsDTO,
   ApplicationLifecycleUpdateDTO,
+  OrganizationDTO,
+  CreateOrganizationRequestDTO,
+  UpdateOrganizationRequestDTO,
+  AreaDTO,
+  CreateAreaRequestDTO,
+  TeamDTO,
+  CreateTeamRequestDTO,
+  AgentMembershipDTO,
+  AssignAgentRequestDTO,
+  OrganizationHierarchyDTO,
 } from "./platform-dto.js";
+import { OrganizationService } from "../../application/organization/organization-service.js";
+import { InMemoryOrganizationRepository } from "../../infrastructure/organization/in-memory-organization-repository.js";
+import { Organization } from "../../domain/organization/organization.js";
+import { Area } from "../../domain/organization/area.js";
+import { Team } from "../../domain/organization/team.js";
+import { AgentMembership } from "../../domain/organization/agent-membership.js";
 import { projectExecutionObservability } from "../product/execution-observability.js";
 import { Tenant, DEFAULT_PLAN_LIMITS } from "../../domain/tenant/tenant.js";
 import { QuotaService } from "../../application/billing/quota-service.js";
@@ -131,6 +147,7 @@ export interface PlatformDependencies {
   readonly observabilityService?: ObservabilityService | undefined;
   readonly rateLimiter?: ServerRateLimiter | undefined;
   readonly idempotencyEngine?: IdempotencyEngine | undefined;
+  readonly organizationService?: OrganizationService | undefined;
 }
 
 export class PlatformService {
@@ -145,6 +162,7 @@ export class PlatformService {
   private readonly db?: SqliteDatabase | undefined;
   private readonly diagnostics?: RuntimeDiagnosticsService | undefined;
   private readonly idempotencyStore: IdempotencyStore;
+  private readonly organizationService: OrganizationService;
   private readonly governanceService: EnterpriseGovernanceService;
   private readonly quotaService: QuotaService;
   private readonly integrationEngine: IntegrationTruthEngine;
@@ -176,6 +194,10 @@ export class PlatformService {
     this.db = deps.db;
     this.diagnostics = deps.diagnostics;
     this.idempotencyStore = deps.idempotencyStore ?? new InMemoryIdempotencyStore();
+    this.organizationService = deps.organizationService ?? new OrganizationService({
+      repository: new InMemoryOrganizationRepository(),
+      agentQuery: this.agents ?? { findById: () => undefined, list: () => [] },
+    });
     this.governanceService = new EnterpriseGovernanceService();
     this.quotaService = new QuotaService();
     this.integrationEngine = deps.integrationEngine ?? new IntegrationTruthEngine();
@@ -2004,6 +2026,74 @@ export class PlatformService {
     }
 
     return Object.freeze(dependencies);
+  }
+
+  // ========================================================================
+  // Organization / Virtual Organization Methods (Prompt 102)
+  // ========================================================================
+
+  getOrganizationService(): OrganizationService {
+    return this.organizationService;
+  }
+
+  toOrganizationDTO(org: Organization, counts?: { areasCount?: number; teamsCount?: number }): OrganizationDTO {
+    return {
+      id: org.organizationId,
+      tenantId: org.tenantId,
+      name: org.name,
+      description: org.description,
+      status: org.status,
+      version: org.version,
+      createdAt: org.createdAt.toISOString(),
+      updatedAt: org.updatedAt.toISOString(),
+      ...(counts?.areasCount !== undefined ? { areasCount: counts.areasCount } : {}),
+      ...(counts?.teamsCount !== undefined ? { teamsCount: counts.teamsCount } : {}),
+    };
+  }
+
+  toAreaDTO(area: Area, counts?: { teamsCount?: number }): AreaDTO {
+    return {
+      id: area.areaId,
+      organizationId: area.organizationId,
+      tenantId: area.tenantId,
+      name: area.name,
+      description: area.description,
+      status: area.status,
+      version: area.version,
+      createdAt: area.createdAt.toISOString(),
+      updatedAt: area.updatedAt.toISOString(),
+      ...(counts?.teamsCount !== undefined ? { teamsCount: counts.teamsCount } : {}),
+    };
+  }
+
+  toTeamDTO(team: Team, counts?: { membersCount?: number }): TeamDTO {
+    return {
+      id: team.teamId,
+      areaId: team.areaId,
+      organizationId: team.organizationId,
+      tenantId: team.tenantId,
+      name: team.name,
+      description: team.description,
+      status: team.status,
+      version: team.version,
+      createdAt: team.createdAt.toISOString(),
+      updatedAt: team.updatedAt.toISOString(),
+      ...(counts?.membersCount !== undefined ? { membersCount: counts.membersCount } : {}),
+    };
+  }
+
+  toAgentMembershipDTO(m: AgentMembership): AgentMembershipDTO {
+    return {
+      id: m.membershipId,
+      teamId: m.teamId,
+      agentId: m.agentId,
+      organizationId: m.organizationId,
+      tenantId: m.tenantId,
+      role: m.role,
+      status: m.status,
+      joinedAt: m.joinedAt.toISOString(),
+      updatedAt: m.updatedAt.toISOString(),
+    };
   }
 }
 

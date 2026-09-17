@@ -66,6 +66,7 @@ La arquitectura del sistema sigue estrictamente el patrón de **Arquitectura Hex
 * **Módulos:**
   * `execution/`: Agregados `Task` y `Execution`, con máquina de estados finita y rehidratación formal (`Task.rehydrate`).
   * `agents/`: Agregado `Agent`, validación de identificadores, instructions inmutables y control OCC.
+  * `organization/`: Agregado `Organization`, entidades `Area`, `Team`, y `AgentMembership` con roles operativos (`LEAD`, `SPECIALIST`, `OPERATOR`, `REVIEWER`) y ciclo de vida soft (ADR 0027).
   * `autonomous/`: Agregado `AutonomousOperation`, presupuestos `AutonomyBudget` y evaluador determinista de decisiones.
   * `runtime/`: `CoreRuntime`, ejecutor síncrono determinista que procesa transiciones legales.
   * `security/`: `SecurityContext`, contratos de autorización y excepciones `PolicyViolationError`.
@@ -77,19 +78,20 @@ La arquitectura del sistema sigue estrictamente el patrón de **Arquitectura Hex
   * `autonomous-orchestrator.ts`: Bucle de ejecución acotado que evalúa presupuestos en cada paso.
   * `multi-agent-coordinator.ts`: Orquestador jerárquico de subagentes con control de contención.
   * `agent-service.ts`: Casos de uso para registro, activación e inspección de agentes.
+  * `organization/organization-service.ts`: Casos de uso para gestión de organizaciones, áreas, equipos, cálculo de jerarquía y membresía de agentes.
 
 ### Capa 3: Plataforma (`src/platform/`)
 * **Propósito:** Exponer las capacidades operacionales hacia consumidores externos.
 * **Módulos:**
-  * `api/http-router.ts`: Enrutador HTTP nativo en `node:http` con validación perimetral y compresión.
-  * `api/platform-service.ts`: Fachada que media entre la capa HTTP y los servicios de aplicación.
-  * `web/`: Plano de control SPA en HTML5 y Vanilla JS (cero dependencias, cero `innerHTML`).
+  * `api/http-router.ts`: Enrutador HTTP nativo en `node:http` con validación perimetral, endpoints `/api/v1/organizations/*` y compresión.
+  * `api/platform-service.ts`: Fachada que media entre la capa HTTP y los servicios de aplicación con DTO mappers.
+  * `web/`: Plano de control SPA en HTML5 y Vanilla JS (cero dependencias, cero `innerHTML`), con vista interactiva de organizaciones.
 
 ### Capa 4: Infraestructura (`src/infrastructure/`)
 * **Propósito:** Adaptadores concretos hacia recursos físicos, periféricos y sistemas externos.
 * **Módulos:**
-  * `persistence/sqlite/`: Base de datos SQLite nativa Node.js 22 en modo WAL (`SqliteDatabase`).
-  * `models/`: Conectores nativos a OpenAI, Anthropic, Ollama y Stub determinista.
+  * `persistence/sqlite/`: Base de datos SQLite nativa Node.js 22 en modo WAL (`SqliteDatabase`), incluyendo `SqliteOrganizationRepository` con índices compuestos y OCC.
+  * `models/`: Conectores nativos a OpenAI, Anthropic, Ollama, Gemini y Stub determinista.
   * `tools/`: Registro dinámico de herramientas con sandboxing y validación de esquemas Zod.
   * `hardware/`: Adaptadores para impresoras comerciales (Brother DCP-1600 series en `USB001`).
 

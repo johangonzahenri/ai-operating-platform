@@ -40,6 +40,16 @@ import { SecurityContext } from "../../domain/security/security.js";
 import { extractRequestContextFromHeaders } from "../../domain/context/request-context.js";
 import { formatApiError } from "./error-contract.js";
 import { randomUUID } from "node:crypto";
+import {
+  OrganizationValidationError,
+  OrganizationNotFoundError,
+  AreaNotFoundError,
+  TeamNotFoundError,
+  OrganizationConflictError,
+  InvalidHierarchyError,
+  CrossTenantOrganizationError,
+  MembershipConflictError,
+} from "../../domain/organization/organization-errors.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -2077,6 +2087,468 @@ export function createHttpServer(
           }
           sendJson(200, dev);
           return;
+        }
+
+        // ====================================================================
+        // Organization / Virtual Organization Routes (Prompt 102)
+        // Strictly registered under /api/v1/* (NOT under /api/platform/v1/*)
+        // ====================================================================
+        if (!isPlatformV1) {
+          const handleOrgError = (err: any) => {
+            if (err instanceof OrganizationValidationError || err instanceof InvalidHierarchyError) {
+              sendError(400, err.message, "VALIDATION_ERROR");
+              return;
+            }
+            if (err instanceof OrganizationNotFoundError) {
+              sendError(404, err.message, "ORGANIZATION_NOT_FOUND");
+              return;
+            }
+            if (err instanceof AreaNotFoundError) {
+              sendError(404, err.message, "AREA_NOT_FOUND");
+              return;
+            }
+            if (err instanceof TeamNotFoundError) {
+              sendError(404, err.message, "TEAM_NOT_FOUND");
+              return;
+            }
+            if (err instanceof OrganizationConflictError) {
+              sendError(409, err.message, "ORGANIZATION_CONFLICT");
+              return;
+            }
+            if (err instanceof MembershipConflictError) {
+              sendError(409, err.message, "MEMBERSHIP_CONFLICT");
+              return;
+            }
+            if (err instanceof CrossTenantOrganizationError) {
+              sendError(403, err.message, "CROSS_TENANT_FORBIDDEN");
+              return;
+            }
+            sendError(500, err.message || "Internal organization error", "ORGANIZATION_ERROR");
+          };
+
+          // GET /organizations
+          if (subPath === "/organizations" && req.method === "GET") {
+            const authCheck = await authenticateAndAuthorize("organization.read", "API", undefined, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            try {
+              const orgs = await service.getOrganizationService().listOrganizations(tenantId);
+              const orgDTOs = await Promise.all(orgs.map(async (org) => {
+                const areas = await service.getOrganizationService().listAreas(org.organizationId, tenantId);
+                let teamsCount = 0;
+                for (const area of areas) {
+                  const teams = await service.getOrganizationService().listTeams(area.areaId, tenantId);
+                  teamsCount += teams.length;
+                }
+                return service.toOrganizationDTO(org, { areasCount: areas.length, teamsCount });
+              }));
+              sendJson(200, orgDTOs);
+              return;
+            } catch (err: any) {
+              handleOrgError(err);
+              return;
+            }
+          }
+
+          // POST /organizations
+          if (subPath === "/organizations" && req.method === "POST") {
+            const authCheck = await authenticateAndAuthorize("organization.create", "API", undefined, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const bodyResult = await readJsonBody();
+            if (!bodyResult.ok) {
+              sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+              return;
+            }
+            const body = bodyResult.body as { id?: string; name?: string; description?: string };
+            try {
+              const org = await service.getOrganizationService().createOrganization({
+                id: body.id as string,
+                name: body.name as string,
+                description: body.description,
+                tenantId,
+              });
+              sendJson(201, service.toOrganizationDTO(org, { areasCount: 0, teamsCount: 0 }));
+              return;
+            } catch (err: any) {
+              handleOrgError(err);
+              return;
+            }
+          }
+
+          // Hierarchy route: GET /organizations/:id/hierarchy
+          const orgHierarchyMatch = subPath.match(/^\/organizations\/([^/]+)\/hierarchy$/);
+          if (orgHierarchyMatch && req.method === "GET") {
+            const orgId = normalizeId(orgHierarchyMatch[1]);
+            if (!orgId) {
+              sendError(400, "Bad Request: Invalid organization ID format", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("organization.read", "API", orgId, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            try {
+              const hierarchy = await service.getOrganizationService().getOrganizationHierarchy(orgId, tenantId);
+              sendJson(200, {
+                organization: service.toOrganizationDTO(hierarchy.organization),
+                areas: hierarchy.areas.map((a) => ({
+                  area: service.toAreaDTO(a.area),
+                  teams: a.teams.map((t) => ({
+                    team: service.toTeamDTO(t.team),
+                    members: t.members.map((m) => service.toAgentMembershipDTO(m)),
+                  })),
+                })),
+              });
+              return;
+            } catch (err: any) {
+              handleOrgError(err);
+              return;
+            }
+          }
+
+          // Areas of Organization: GET /organizations/:id/areas
+          const orgAreasMatch = subPath.match(/^\/organizations\/([^/]+)\/areas$/);
+          if (orgAreasMatch && req.method === "GET") {
+            const orgId = normalizeId(orgAreasMatch[1]);
+            if (!orgId) {
+              sendError(400, "Bad Request: Invalid organization ID format", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("organization.read", "API", orgId, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            try {
+              await service.getOrganizationService().getOrganization(orgId, tenantId);
+              const areas = await service.getOrganizationService().listAreas(orgId, tenantId);
+              const areaDTOs = await Promise.all(areas.map(async (area) => {
+                const teams = await service.getOrganizationService().listTeams(area.areaId, tenantId);
+                return service.toAreaDTO(area, { teamsCount: teams.length });
+              }));
+              sendJson(200, areaDTOs);
+              return;
+            } catch (err: any) {
+              handleOrgError(err);
+              return;
+            }
+          }
+
+          // POST /organizations/:id/areas
+          if (orgAreasMatch && req.method === "POST") {
+            const orgId = normalizeId(orgAreasMatch[1]);
+            if (!orgId) {
+              sendError(400, "Bad Request: Invalid organization ID format", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("organization.update", "API", orgId, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const bodyResult = await readJsonBody();
+            if (!bodyResult.ok) {
+              sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+              return;
+            }
+            const body = bodyResult.body as { id?: string; name?: string; description?: string };
+            try {
+              const area = await service.getOrganizationService().createArea({
+                id: body.id as string,
+                organizationId: orgId,
+                tenantId,
+                name: body.name as string,
+                description: body.description,
+              });
+              sendJson(201, service.toAreaDTO(area, { teamsCount: 0 }));
+              return;
+            } catch (err: any) {
+              handleOrgError(err);
+              return;
+            }
+          }
+
+          // GET /organizations/:id
+          const orgDetailMatch = subPath.match(/^\/organizations\/([^/]+)$/);
+          if (orgDetailMatch && req.method === "GET") {
+            const orgId = normalizeId(orgDetailMatch[1]);
+            if (!orgId) {
+              sendError(400, "Bad Request: Invalid organization ID format", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("organization.read", "API", orgId, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            try {
+              const org = await service.getOrganizationService().getOrganization(orgId, tenantId);
+              const areas = await service.getOrganizationService().listAreas(orgId, tenantId);
+              let teamsCount = 0;
+              for (const area of areas) {
+                const teams = await service.getOrganizationService().listTeams(area.areaId, tenantId);
+                teamsCount += teams.length;
+              }
+              sendJson(200, service.toOrganizationDTO(org, { areasCount: areas.length, teamsCount }));
+              return;
+            } catch (err: any) {
+              handleOrgError(err);
+              return;
+            }
+          }
+
+          // PATCH /organizations/:id
+          if (orgDetailMatch && req.method === "PATCH") {
+            const orgId = normalizeId(orgDetailMatch[1]);
+            if (!orgId) {
+              sendError(400, "Bad Request: Invalid organization ID format", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("organization.update", "API", orgId, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const bodyResult = await readJsonBody();
+            if (!bodyResult.ok) {
+              sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+              return;
+            }
+            const body = bodyResult.body as { name?: string; description?: string; status?: any };
+            try {
+              const updated = await service.getOrganizationService().updateOrganization(
+                orgId,
+                {
+                  ...(typeof body.name === "string" ? { name: body.name } : {}),
+                  ...(typeof body.description === "string" ? { description: body.description } : {}),
+                  ...(body.status !== undefined ? { status: body.status } : {}),
+                },
+                tenantId
+              );
+              sendJson(200, service.toOrganizationDTO(updated));
+              return;
+            } catch (err: any) {
+              handleOrgError(err);
+              return;
+            }
+          }
+
+          // Teams of Area: GET /areas/:id/teams
+          const areaTeamsMatch = subPath.match(/^\/areas\/([^/]+)\/teams$/);
+          if (areaTeamsMatch && req.method === "GET") {
+            const areaId = normalizeId(areaTeamsMatch[1]);
+            if (!areaId) {
+              sendError(400, "Bad Request: Invalid area ID format", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("organization.read", "API", areaId, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            try {
+              await service.getOrganizationService().getArea(areaId, tenantId);
+              const teams = await service.getOrganizationService().listTeams(areaId, tenantId);
+              const teamDTOs = await Promise.all(teams.map(async (team) => {
+                const members = await service.getOrganizationService().listTeamMemberships(team.teamId, tenantId);
+                return service.toTeamDTO(team, { membersCount: members.length });
+              }));
+              sendJson(200, teamDTOs);
+              return;
+            } catch (err: any) {
+              handleOrgError(err);
+              return;
+            }
+          }
+
+          // POST /areas/:id/teams
+          if (areaTeamsMatch && req.method === "POST") {
+            const areaId = normalizeId(areaTeamsMatch[1]);
+            if (!areaId) {
+              sendError(400, "Bad Request: Invalid area ID format", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("organization.update", "API", areaId, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const bodyResult = await readJsonBody();
+            if (!bodyResult.ok) {
+              sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+              return;
+            }
+            const body = bodyResult.body as { id?: string; organizationId?: string; name?: string; description?: string };
+            try {
+              const area = await service.getOrganizationService().getArea(areaId, tenantId);
+              const orgId = typeof body.organizationId === "string" && body.organizationId.trim() ? body.organizationId.trim() : area.organizationId;
+              const team = await service.getOrganizationService().createTeam({
+                id: body.id as string,
+                areaId,
+                organizationId: orgId,
+                tenantId,
+                name: body.name as string,
+                description: body.description,
+              });
+              sendJson(201, service.toTeamDTO(team, { membersCount: 0 }));
+              return;
+            } catch (err: any) {
+              handleOrgError(err);
+              return;
+            }
+          }
+
+          // GET /areas/:id
+          const areaDetailMatch = subPath.match(/^\/areas\/([^/]+)$/);
+          if (areaDetailMatch && req.method === "GET") {
+            const areaId = normalizeId(areaDetailMatch[1]);
+            if (!areaId) {
+              sendError(400, "Bad Request: Invalid area ID format", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("organization.read", "API", areaId, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            try {
+              const area = await service.getOrganizationService().getArea(areaId, tenantId);
+              const teams = await service.getOrganizationService().listTeams(areaId, tenantId);
+              sendJson(200, service.toAreaDTO(area, { teamsCount: teams.length }));
+              return;
+            } catch (err: any) {
+              handleOrgError(err);
+              return;
+            }
+          }
+
+          // Team agent membership routes:
+          // DELETE /teams/:id/agents/:agentId
+          const teamAgentDeleteMatch = subPath.match(/^\/teams\/([^/]+)\/agents\/([^/]+)$/);
+          if (teamAgentDeleteMatch && req.method === "DELETE") {
+            const teamId = normalizeId(teamAgentDeleteMatch[1]);
+            const agentId = normalizeId(teamAgentDeleteMatch[2]);
+            if (!teamId || !agentId) {
+              sendError(400, "Bad Request: Invalid team ID or agent ID format", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("organization.update", "API", teamId, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            try {
+              await service.getOrganizationService().removeAgent(teamId, agentId, tenantId);
+              sendJson(200, { success: true, message: `Agent ${agentId} removed from team ${teamId}` });
+              return;
+            } catch (err: any) {
+              handleOrgError(err);
+              return;
+            }
+          }
+
+          // GET /teams/:id/agents
+          const teamAgentsMatch = subPath.match(/^\/teams\/([^/]+)\/agents$/);
+          if (teamAgentsMatch && req.method === "GET") {
+            const teamId = normalizeId(teamAgentsMatch[1]);
+            if (!teamId) {
+              sendError(400, "Bad Request: Invalid team ID format", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("organization.read", "API", teamId, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            try {
+              await service.getOrganizationService().getTeam(teamId, tenantId);
+              const members = await service.getOrganizationService().listTeamMemberships(teamId, tenantId);
+              sendJson(200, members.map((m) => service.toAgentMembershipDTO(m)));
+              return;
+            } catch (err: any) {
+              handleOrgError(err);
+              return;
+            }
+          }
+
+          // POST /teams/:id/agents
+          if (teamAgentsMatch && req.method === "POST") {
+            const teamId = normalizeId(teamAgentsMatch[1]);
+            if (!teamId) {
+              sendError(400, "Bad Request: Invalid team ID format", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("organization.update", "API", teamId, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const bodyResult = await readJsonBody();
+            if (!bodyResult.ok) {
+              sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+              return;
+            }
+            const body = bodyResult.body as { agentId?: string; role?: any };
+            try {
+              const team = await service.getOrganizationService().getTeam(teamId, tenantId);
+              const membership = await service.getOrganizationService().assignAgent({
+                teamId,
+                agentId: body.agentId as string,
+                tenantId,
+                organizationId: team.organizationId,
+                role: body.role ?? "OPERATOR",
+              });
+              sendJson(201, service.toAgentMembershipDTO(membership));
+              return;
+            } catch (err: any) {
+              handleOrgError(err);
+              return;
+            }
+          }
+
+          // GET /teams/:id
+          const teamDetailMatch = subPath.match(/^\/teams\/([^/]+)$/);
+          if (teamDetailMatch && req.method === "GET") {
+            const teamId = normalizeId(teamDetailMatch[1]);
+            if (!teamId) {
+              sendError(400, "Bad Request: Invalid team ID format", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("organization.read", "API", teamId, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            try {
+              const team = await service.getOrganizationService().getTeam(teamId, tenantId);
+              const members = await service.getOrganizationService().listTeamMemberships(teamId, tenantId);
+              sendJson(200, service.toTeamDTO(team, { membersCount: members.length }));
+              return;
+            } catch (err: any) {
+              handleOrgError(err);
+              return;
+            }
+          }
         }
 
         sendError(404, `Endpoint not found: ${req.method} ${pathname}`, "ENDPOINT_NOT_FOUND");

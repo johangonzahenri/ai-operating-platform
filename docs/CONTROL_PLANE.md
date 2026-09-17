@@ -33,3 +33,8 @@ El **Enterprise Control Plane** (Plano de Control Empresarial) es la interfaz op
    * Monitor de dispositivos locales de hardware (impresora Brother DCP-1600 en puerto `USB001`) y cola de trabajos de impresión (`PrintJobs`).
 7. **Diagnostics & Blueprints:**
    * Diagnósticos de integridad de SQLite WAL y diagramas interactivos de la topología hexagonal.
+8. **Organizations & Teams (Organizaciones y Equipos - ADR 0027):**
+   * Árbol interactivo jerárquico de Organizaciones, Áreas funcionales y Equipos de trabajo.
+   * Gestión de ciclo de vida de organizaciones (creación, activación, desactivación, archivado inmutable).
+   * Asignación y revocación gobernada de agentes con roles operativos (`LEAD`, `SPECIALIST`, `OPERATOR`, `REVIEWER`).
+

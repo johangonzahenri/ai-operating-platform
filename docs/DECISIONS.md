@@ -48,6 +48,7 @@ Este documento consolida el índice oficial de los Registros de Decisiones Arqui
 | **ADR 0024** | SQLite Durable Memory Gateway | `0024-sqlite-durable-memory-gateway.md` | APROBADO | Persistencia relacional duradera para retención contextual de memoria por agente y sesión. |
 | **ADR 0025** | Asymmetric JWT & Key Rotation | `0025-asymmetric-jwt-and-key-rotation.md` | APROBADO | Verificación criptográfica RS256/ES256 con soporte para rotación dinámica de claves OIDC. |
 | **ADR 0026** | Production Reverse Proxy & TLS | `0026-production-reverse-proxy-and-tls.md` | APROBADO | Manifiestos de Nginx y Caddy con terminación TLS, HSTS, CSP y rate limiting perimetral. |
+| **ADR 0027** | Virtual Organization Foundation | `0027-virtual-organization-foundation.md` | APROBADO | Jerarquía organizativa multinivel (Organización, Áreas, Equipos) y membresía gobernada de agentes con roles. |
 
 ---
 

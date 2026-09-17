@@ -14,7 +14,7 @@
 | **Versión Actual** | 1.1.0 Enterprise Baseline |
 | **Idioma Oficial** | Español (Latinoamérica) / es-419 |
 | **Idioma Opcional Web** | Inglés / en |
-| **Línea Base de Pruebas** | 966 PASS / 0 FAIL (100% Determinista) |
+| **Línea Base de Pruebas** | 1019 PASS / 0 FAIL (100% Determinista) |
 | **Libro Oficial Canónico** | [LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md](LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md) |
 | **Fuente de Verdad** | [docs/SOURCE_OF_TRUTH.md](SOURCE_OF_TRUTH.md) |
 | **Arquitectura de Base** | Hexagonal (Ports & Adapters) en TypeScript / Node.js nativo |
@@ -221,6 +221,7 @@ Los agentes son agregados de dominio con identidad formal:
 * **Modelo Asociado:** Enlace explícito a un modelo registrado en la pasarela.
 * **Lista Blanca de Herramientas:** Subconjunto inmutable de `toolIds` autorizados para el agente.
 * **Ciclo de Vida:** Estados legales `ACTIVE` e `INACTIVE`.
+* **Virtual Organization Foundation (ADR 0027):** Membresía gobernada de agentes en Equipos (`Team`) y Áreas funcionales (`Area`) dentro de Organizaciones lógicas (`Organization`). Los agentes reciben roles operativos (`LEAD`, `SPECIALIST`, `OPERATOR`, `REVIEWER`). La membresía modela liderazgo y asignación sin eludir los controles de acceso RBAC ni otorgar herramientas adicionales de forma implícita.
 
 ---
 
