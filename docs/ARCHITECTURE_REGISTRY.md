@@ -92,6 +92,17 @@ Este registro documenta de forma exhaustiva los componentes del sistema, organiz
 * **Documentación:** `docs/decisions/0020-crash-recovery-and-restart-reconciliation.md`.
 * **Estado:** `IMPLEMENTED / OPERATIONAL`
 
+### 3.4 OrganizationService
+* **Componente:** `src/application/organization/organization-service.ts`
+* **Capa:** Aplicación / Orquestación Organizacional
+* **Responsabilidad:** Orquestar el ciclo de vida de organizaciones, áreas, equipos y asignación/remoción de membresías de agentes con roles operativos.
+* **Dependencias:** `OrganizationRepositoryPort`, `EventPublisherPort`, `AgentQueryPort`.
+* **Public API:** `createOrganization`, `updateOrganization`, `createArea`, `createTeam`, `assignAgentToTeam`, `removeAgentFromTeam`, `getOrganizationHierarchy`.
+* **Security Boundary:** Aislamiento multi-tenant estricto (`tenantId`), verificación fail-closed de límites cruzados.
+* **Tests:** `tests/unit/organization-service.test.ts`, `tests/platform/organization-api.test.ts` (15 tests).
+* **Documentación:** `docs/decisions/0027-virtual-organization-foundation.md`.
+* **Estado:** `IMPLEMENTED / OPERATIONAL`
+
 ---
 
 ## 4. Capa de Dominio (Domain Core Layer)
@@ -107,6 +118,17 @@ Este registro documenta de forma exhaustiva los componentes del sistema, organiz
 * **Observabilidad:** Emisión de eventos canónicos inmutables (`DomainEvent`).
 * **Tests:** `tests/unit/task.test.ts`, `tests/unit/execution.test.ts`, `tests/unit/agent.test.ts`, `tests/unit/autonomous-operation.test.ts` (120+ tests).
 * **Documentación:** `docs/MANUAL_ARQUITECTURA.md`, `docs/ARCHITECTURE.md`.
+* **Estado:** `IMPLEMENTED / OPERATIONAL`
+
+### 4.2 Virtual Organization Foundation
+* **Componentes:** `src/domain/organization/organization.ts`, `area.ts`, `team.ts`, `agent-membership.ts`, `organization-events.ts`, `organization-errors.ts`
+* **Capa:** Dominio Puro (Virtual Organization)
+* **Responsabilidad:** Modelar la estructura jerárquica empresarial (Organización, Áreas, Equipos) y la pertenencia gobernada de agentes con roles (`LEAD`, `SPECIALIST`, `OPERATOR`, `REVIEWER`). Ciclo de vida blando (las organizaciones archivadas no pueden reactivarse).
+* **Dependencias:** Cero dependencias externas.
+* **Public API:** Métodos estáticos de creación y rehidratación formal (`Organization.rehydrate`).
+* **Security Boundary:** Verificación de pertenencia a `tenantId` inmutable; pertenecer a un equipo no otorga permisos de herramientas automáticamente.
+* **Tests:** `tests/unit/organization-domain.test.ts` (9 tests).
+* **Documentación:** `docs/decisions/0027-virtual-organization-foundation.md`.
 * **Estado:** `IMPLEMENTED / OPERATIONAL`
 
 ---
@@ -136,8 +158,8 @@ Este registro documenta de forma exhaustiva los componentes del sistema, organiz
 * **Persistencia:** Ninguna.
 * **Observabilidad:** Eventos `model.requested`, `model.completed`, `model.failed`.
 * **Tests:** `tests/unit/model-gateway-contracts.test.ts`, `tests/unit/ollama-model-gateway.test.ts` (32 tests).
-* **Documentación:** `docs/REAL_AI_PROVIDERS.md`, `docs/MODEL_GATEWAY.md`.
-* **Estado:** `IMPLEMENTED` (OpenAI, Anthropic, Ollama, Stub); Gemini `NOT_IMPLEMENTED`.
+* **Documentación:** `docs/REAL_AI_PROVIDERS.md`, `docs/MODEL_GATEWAY.md`, `docs/decisions/0023-google-gemini-model-gateway.md`.
+* **Estado:** `IMPLEMENTED / OPERATIONAL` (OpenAI, Anthropic, Ollama, Google Gemini, Stub).
 
 ### 5.3 Dispositivos Empresariales (Business Devices)
 * **Componente:** `src/infrastructure/device/brother-printer-adapter.ts`
@@ -151,3 +173,15 @@ Este registro documenta de forma exhaustiva los componentes del sistema, organiz
 * **Tests:** `tests/unit/business-device-printing.test.ts` (14 tests).
 * **Documentación:** `docs/BUSINESS_DEVICES.md`, `docs/PRINT_OPERATIONS.md`.
 * **Estado:** `IMPLEMENTED` (Software adapter funcional; hardware físico en estado offline).
+
+### 5.4 Repositorio Relacional de Organización
+* **Componente:** `src/infrastructure/persistence/sqlite/sqlite-organization-repository.ts`
+* **Capa:** Infraestructura / Almacenamiento Relacional
+* **Responsabilidad:** Persistir y consultar organizaciones, áreas, equipos y membresías de agentes en SQLite WAL con índices compuestos y control OCC.
+* **Dependencias:** Node.js 22+ `node:sqlite`, `SqliteDatabase`.
+* **Public API:** Implementación de `OrganizationRepositoryPort`.
+* **Security Boundary:** Aislamiento multi-tenant forzado en consultas SQL y actualización optimista por columna `version`.
+* **Persistencia:** Tablas `organizations`, `areas`, `teams`, `agent_memberships` en `data/app.db`.
+* **Tests:** `tests/unit/sqlite-organization-repository.test.ts` (10 tests).
+* **Documentación:** `docs/decisions/0027-virtual-organization-foundation.md`.
+* **Estado:** `IMPLEMENTED / OPERATIONAL`
