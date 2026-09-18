@@ -147,8 +147,20 @@ Este registro documenta el progreso factual de las fases de ingeniería correspo
 * **Implementado:** Verificación fail-closed en `AgentExecutionStrategy`, `ToolInvocationRuntime` y `AutonomousOrchestrator` de contexto de equipo y presupuesto; soporte de `allowOvershoot` en `TeamResourceBudget.canConsume()` y registro post-facto exacto; tests adversarios y de gobernanza estricta.
 * **Evidencia:** `src/application/runtime/agent-execution-strategy.ts`, `src/application/tools/tool-invocation-runtime.ts`, `src/application/autonomy/autonomous-orchestrator.ts`, `src/domain/organization/team-resource-budget.ts`, `tests/unit/team-resource-budget-enforcement.test.ts`.
 * **Tests:** 1064 tests PASS, 0 FAIL, 11 suites.
-* **Commit:** `feat(phase-57.2): budget governance closure and no-bypass hardening`.
+* **Commit:** `8ab6446` (`feat(phase-57.2): budget governance closure and no-bypass hardening`).
 * **Documentación:** Libro Oficial v2.5, TEST_REGISTRY.md, TECHNICAL_DEBT.md.
 * **Estado:** `DONE`
+
+---
+
+### Prompt 106 — AOP-V1-EXIT Release Certification
+* **Objetivo:** Ejecutar la auditoría y certificación integral de criterios de release formal (`AOP-V1-EXIT` / `INF-05`), evaluando la pureza de la arquitectura hexagonal, seguridad estática, paridad de contratos de modelos, persistencia SQLite WAL y gobernanza de presupuestos.
+* **Implementado:** Emisión del reporte canónico de certificación en `docs/RELEASE_CERTIFICATION_V1.md` clasificando la plataforma como `CERTIFIED WITH OPEN GAPS`, sincronización de `docs/V1_EXIT_CRITERIA.md`, actualización de `ROADMAP_MASTER.md` e `INF-05` en Kanban a `DONE`.
+* **Evidencia:** `docs/RELEASE_CERTIFICATION_V1.md`, `docs/V1_EXIT_CRITERIA.md`, `docs/ROADMAP_MASTER.md`, `DOCUMENTACION/KANBAN_TABLERO_MAESTRO.md`.
+* **Tests:** 1064 tests PASS, 0 FAIL, 11 suites.
+* **Commit:** `feat(phase-58): aop-v1-exit release certification and audit report`.
+* **Documentación:** `docs/RELEASE_CERTIFICATION_V1.md`, `docs/V1_EXIT_CRITERIA.md`, `LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md`.
+* **Estado:** `DONE`
+
 
 

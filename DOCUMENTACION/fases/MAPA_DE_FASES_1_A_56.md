@@ -95,15 +95,21 @@
   * Denegación fail-closed de agentes sin asignación de equipo (`unassigned-agent-no-team`) salvo autorización explícita por política de sistema.
   * Denegación fail-closed ante presupuestos de equipo inexistentes (`team-resource-budget-missing`).
   * Semántica formal de dimensiones: Hard Gates bloqueantes vs Contabilización Post-Facto con overshoot para duración y tokens (transicionando a `EXHAUSTED`).
+  * Línea base: 1064 tests PASS / 0 FAIL.
+* **Fase 58 (Prompt 106):**
+  * Certificación Integral de Criterios de Release (`AOP-V1-EXIT` / `INF-05`).
+  * Auditoría arquitectónica hexagonal pura, auditoría de seguridad estática (0 vulnerabilidades DOM/eval), paridad de contratos de modelos e infraestructura perimetral.
+  * Emisión de matriz oficial en `docs/RELEASE_CERTIFICATION_V1.md` con clasificación `CERTIFIED WITH OPEN GAPS`.
   * Línea base: **1064 tests PASS / 0 FAIL**.
 
 ---
 
-## 3. Backlog Futuro Formal (Fase 58+)
+## 3. Backlog Futuro Formal (Fase 59+)
 
 | Fase Planificada | Título de la Iniciativa | Objetivo Técnico | Estado Kanban |
 | :--- | :--- | :--- | :--- |
-| **Fase 58** | Certificación Final de Criterios de Release | Auditoría de producción masiva y pruebas de estrés (`AOP-V1-EXIT`). | `IN REVIEW` |
+| **Fase 58** | Certificación Final de Criterios de Release | Auditoría de producción masiva y certificación de release (`AOP-V1-EXIT`). | `DONE` |
 | **Fase 59** | WebSockets Bidireccionales sobre HTTP/2 | Streaming de eventos y telemetría interactiva de baja latencia sin polling. | `BACKLOG` |
 | **Fase 60+** | Checkpoint Distribuido Multi-Nodo | Sincronización multi-región para despliegues federados (v2.0). | `BACKLOG` |
+
 

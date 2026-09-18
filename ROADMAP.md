@@ -23,9 +23,11 @@ Este documento resume los hitos de versión y criterios de salida de la **AI Ope
 | **v0.13 Crash Recovery** | Reconciliación atómica al reiniciar y almacén duradero de eventos (`SqliteEventStore`). | Recuperación post-crash idempotente y línea forense inmutable. | ✅ **Completed** |
 | **v1.0.0 AI Operating Platform** | Motor integrado, Platform API REST, SDK tipado y Tentaciones AI Commerce. | Plataforma empresarial de IA gobernada y verificada. | ✅ **Completed** |
 | **v1.1.0 Extended Ecosystem** | Proveedores reales (OpenAI, Anthropic, Ollama), impresora Brother, consola bilingüe. | 966 tests PASS (0 FAIL), 11 suites, 0 innerHTML, modo es-419 / en. | ✅ **Completed (Baseline)** |
-| **v1.2.0 Enterprise Cloud** | Gateway Gemini, proveedor formal OIDC/JWT, proxy reverso TLS, memoria duradera. | Certificación de producción en nube pública masiva. | ⏳ **Planned (Backlog)** |
+| **v1.2.0 Enterprise Cloud & Virtual Org** | Gateway Gemini, JWT asimétrico RS256/ES256, proxy reverso TLS, memoria duradera SQLite, Virtual Organization Foundation (Organization, Area, Team, AgentMembership). | 1019 tests PASS (0 FAIL), 11 suites. | ✅ **Completed** |
+| **v1.3.0 Team Resource Governance** | TeamResourceBudget con cuotas multidimensionales, enforcement fail-closed en runtime (AgentExecutionStrategy, ToolInvocationRuntime, AutonomousOrchestrator). | 1064 tests PASS (0 FAIL), 11 suites. | ✅ **Completed (Baseline)** |
+| **v1.4.0 Production Certification** | Certificación formal de criterios de salida para producción masiva (AOP-V1-EXIT). | Criterios AOP-EXIT verificados. | ⏳ **Planned (Backlog)** |
 
 ---
 
 > [!NOTE]
-> La versión de runtime declarada canónicamente en `src/platform/version.ts` y `package.json` corresponde a **`1.1.0`**.
+> La versión de runtime declarada canónicamente en `src/platform/version.ts` y `package.json` corresponde a **`1.3.0`**.

@@ -26,7 +26,7 @@
 | **2.2** | Septiembre 2026 | v1.2.0 Virtual Org | **Virtual Organization Foundation (Fase 56 / Prompt 102):**<br>• Jerarquía organizativa formal: `Organization` (ciclo de vida activo/inactivo/archivado), `Area` funcional y `Team` de trabajo.<br>• Membresía gobernada de agentes (`AgentMembership`) con roles operativos (`LEAD`, `SPECIALIST`, `OPERATOR`, `REVIEWER`).<br>• Repositorio relacional duradero `SqliteOrganizationRepository` con índices compuestos y OCC.<br>• Endpoints REST canónicos bajo `/api/v1/*` y vista interactiva en el Web Control Plane (0 `innerHTML`).<br>• Línea base canónica verificada en **1019 tests PASS** (0 FAIL, 11 suites). |
 | **2.3** | Septiembre 2026 | v1.3.0 Team Resource Governance | **Team Resource Governance & Budget Control (Fase 57 / Prompt 103):**<br>• Agregado `TeamResourceBudget` con cuotas multidimensionales (`maxExecutions`, `maxModelCalls`, `maxToolCalls`, `maxAutonomousSteps`, `maxDurationMs`, `maxTokens`), contadores `consumed`, control de concurrencia optimista (`version`) y estados (`ACTIVE`, `EXHAUSTED`, `SUSPENDED`).<br>• Invariantes estrictas de desacoplamiento: `Membresía ≠ Permiso`, `Membresía ≠ Presupuesto`, `Presupuesto ≠ Autorización` (ADR 0028).<br>• Semántica fail-closed (`NO BUDGET = DENY`).<br>• Persistencia relacional `SqliteTeamResourceBudgetRepository` con aislamiento atómico `BEGIN IMMEDIATE` para prevención de condiciones de carrera de última unidad.<br>• Endpoints REST canónicos `/api/v1/teams/:id/budget*` y panel de gobernanza en Web Control Plane (0 `innerHTML`).<br>• Línea base canónica verificada en **1043 tests PASS** (0 FAIL, 11 suites). |
 | **2.4** | Septiembre 2026 | v1.3.0 Budget Enforcement | **Team Resource Budget Enforcement & Execution Integration (Fase 57.1 / Prompt 104):**<br>• Integración fail-closed y verificación end-to-end de cuotas presupuestarias en el runtime de ejecución (`AgentExecutionStrategy`, `ToolInvocationRuntime`, `AutonomousOrchestrator`).<br>• Enlace en tiempo de ejecución: resolución de equipo por membresía de agente y evaluación previa a la ejecución (`executions: 1`), llamada de modelo (`modelCalls: 1`), invocación de herramienta (`toolCalls: 1`), paso autónomo (`autonomousSteps: 1`) y contabilización de duración (`durationMs`) y tokens (`tokens`).<br>• Bloqueo estricto de bypass para agentes asignados a equipos suspendidos o agotados.<br>• Línea base canónica verificada en **1057 tests PASS** (0 FAIL, 11 suites). |
-| **2.5** | Septiembre 2026 | v1.3.0 Budget Governance Closure | **Budget Governance Closure & No-Bypass Hardening (Fase 57.2 / Prompt 105):**<br>• Cierre de brechas de auditoría: agentes sin equipo denegados fail-closed (`unassigned-agent-no-team`) salvo principal SYSTEM explícito.<br>• Denegación fail-closed cuando el equipo existe pero no posee presupuesto (`team-resource-budget-missing`).<br>• Clasificación formal de dimensiones: Hard Gates bloqueantes pre-ejecución vs Contabilización Post-Facto con overshoot para duración y tokens (transicionando a `EXHAUSTED`).<br>• Línea base canónica verificada en **1064 tests PASS** (0 FAIL, 11 suites). |
+| **2.5** | Septiembre 2026 | v1.3.0 Consolidated | **Auditoría Integral de Documentación y Sincronización Canónica (Fase 58 / Prompt 105):**<br>• Actualización de Matriz de Capacidades (Sección 2.2) a línea base v1.3.0 con 1064 tests.<br>• Sincronización de versión de plataforma a 1.3.0 en `version.ts`, `package.json` y `README.md`.<br>• Incorporación de 8 módulos estables no documentados (Coordinación Multi-Agente, Automatización n8n, Billing/Quotas, Circuit Breaker, PostgreSQL, Virtual Try-On, Worker Queue, Feature Flags).<br>• Expansión del catálogo API REST (Capítulo 10) con 30+ endpoints de Organization, Area, Team, Budget, Devices, Diagnostics, Applications, Tenants e Integrations.<br>• Compleción de invariantes INV-15 a INV-18 y 7 ADRs faltantes en la Matriz de Trazabilidad.<br>• Corrección de referencias de archivos i18n y actualización de OAD-001 a v1.3.0.<br>• Producción de edición oficial en inglés.<br>• Línea base canónica verificada en **1064 tests PASS** (0 FAIL, 11 suites). |
 
 ---
 
@@ -128,7 +128,7 @@ AI Operating Platform
 ├── Presentation Layer (src/platform/web/)
 │   ├── Native Single-Page Application (HTML5, Vanilla JS DOM puro, CSS)
 │   ├── Decoupled API Client (api-client.js)
-│   └── Internationalization Core (i18n/es-419.js, i18n/en.js)
+│   └── Internationalization Core (i18n/locale-es-419.js, i18n/locale-en.js)
 │
 ├── Platform API Layer (src/platform/api/)
 │   ├── Native HTTP Server (node:http enlazado a 127.0.0.1:3000)
@@ -140,6 +140,9 @@ AI Operating Platform
 ├── Platform Client SDK (src/platform-client/)
 │   └── Typed PlatformClient (tasks, executions, agents, health, diagnostics)
 │
+├── Interfaces Layer (src/interfaces/)
+│   └── Composition Root (composition.ts — Manual DI, ADR 0003)
+│
 ├── Application Layer (src/application/)
 │   ├── CoreRuntime (Propietario único de la ejecución Task/Execution)
 │   ├── SubmitTask & ExecuteTask (Casos de uso de encolamiento y despacho)
@@ -149,24 +152,39 @@ AI Operating Platform
 │   ├── RestartRecoveryService (Reconciliación atómica post-crash v0.13)
 │   ├── RuntimeDiagnosticsService (Líneas de tiempo forenses por traceId)
 │   ├── MemoryService (Servicio de persistencia particionada)
+│   ├── OrganizationService (Gestión de organizaciones, áreas y equipos)
+│   ├── TeamResourceBudgetService (Gestión de cuotas presupuestarias por equipo)
+│   ├── MultiAgentCoordinator (Orquestación coordinada multi-agente)
+│   ├── Automation Services (n8n Adapter, Webhook Dispatcher, Scheduler, Reporting)
+│   ├── Resilience Services (CircuitBreaker, RetryPolicy, RateLimiter)
+│   ├── Billing & Quota Services (QuotaService para gestión financiera/operacional)
+│   ├── Tenant & Feature Flag Services (FeatureFlagService por tenant)
 │   └── Application Adapters (TentacionesPlatformAdapter, ApplicationFactory)
 │
 ├── Domain Core Layer (src/domain/)
 │   ├── Task & Execution (Agregados deterministas con fábricas rehydrate())
 │   ├── Agent (Agregado de primera clase con model binding, tools y memoryScope)
 │   ├── AutonomousOperation & AutonomyBudget & AutonomyConsumption (Dominio de autonomía)
+│   ├── Organization, Area, Team & AgentMembership (Jerarquía organizativa virtual)
+│   ├── TeamResourceBudget (Cuotas multidimensionales con OCC y estados)
+│   ├── Coordination (Contratos de coordinación multi-agente)
+│   ├── Billing & Quota (Entidades de cuotas financieras/operacionales)
+│   ├── Tenant (Entidades de tenant y feature flags)
 │   ├── PlannerPort, PlanningRequest, Plan, PlanStep, Decision (Contratos de planificación)
 │   ├── Observation, ObjectiveEvaluation, DecisionEvaluatorPort (Contratos de evaluación)
 │   ├── BusinessDevice & PrintJob (Entidades de dispositivos empresariales)
 │   └── Domain Ports (PolicyGateway, ModelGateway, ToolGateway, MemoryGateway, EventPublisher, TaskRepository, ExecutionRepository)
 │
 └── Infrastructure Layer (src/infrastructure/)
-    ├── SQLite Durable Storage (SqliteDatabase, SqliteTaskRepository, SqliteExecutionRepository, SqliteAgentRepository, SqliteOperationRepository, SqliteEventStore)
+    ├── SQLite Durable Storage (SqliteDatabase, SqliteTaskRepository, SqliteExecutionRepository, SqliteAgentRepository, SqliteOperationRepository, SqliteEventStore, SqliteOrganizationRepository, SqliteTeamResourceBudgetRepository, SqliteMemoryGateway)
+    ├── PostgreSQL Adapter (postgres-schema.sql, PostgresTaskRepository)
     ├── InMemory Repositories (Fallback desacoplado para tests unitarios aislados)
-    ├── AI Model Providers (OpenAIModelGateway, AnthropicModelGateway, OllamaModelGateway, StubModelGateway, ProviderFactory)
+    ├── AI Model Providers (OpenAIModelGateway, AnthropicModelGateway, OllamaModelGateway, GeminiModelGateway, StubModelGateway, ProviderFactory)
     ├── Tool Registry & Gateway (CalculatorTool, InMemoryToolRegistry, RegistryToolGateway)
     ├── Hardware Adapters (BrotherPrinterAdapter en puerto USB001)
-    ├── Security & RBAC (InMemoryRoleRepository, InMemoryApiKeyRepository, RbacAuthorizationEvaluator)
+    ├── Media Adapters (VirtualTryOnProvider para probador virtual AR)
+    ├── Queue Infrastructure (InMemoryWorkerQueue)
+    ├── Security & RBAC (InMemoryRoleRepository, InMemoryApiKeyRepository, RbacAuthorizationEvaluator, JwtTokenVerifier RS256/ES256)
     └── Observability & Audit (EventObservabilitySubscriber, InMemoryAuditLog, InMemoryMetricsCollector, StructuredEventLogger)
 ```
 
@@ -177,21 +195,28 @@ AI Operating Platform
 | **CoreRuntime & Task Lifecycle (v0.1-v0.2)** | Diseñada | Implementado | 184 tests | Documentado | **IMPLEMENTED / VERIFIED** |
 | **Agregado Agent (v0.8)** | Diseñada | Implementado | 22 tests | Documentado | **IMPLEMENTED / VERIFIED** |
 | **Operaciones Autónomas Acotadas (v0.9)** | Diseñada | Implementado | 46 tests | Documentado | **IMPLEMENTED / VERIFIED** |
-| **Persistencia SQLite WAL (v0.10/v0.12)** | Diseñada | Implementado | 142 tests | Documentado | **IMPLEMENTED / VERIFIED** |
+| **Persistencia SQLite WAL (v0.10/v0.12)** | Diseñada | Implementado | 148 tests | Documentado | **IMPLEMENTED / VERIFIED** |
 | **Frontera de Rehidratación de Dominio (v0.11)** | Diseñada | Implementado | 42 tests | Documentado | **IMPLEMENTED / VERIFIED** |
 | **Servicio Reconciliación post-Crash (v0.13)** | Diseñada | Implementado | 42 tests | Documentado | **IMPLEMENTED / VERIFIED** |
 | **Event Store Duradero SQLite (v0.13)** | Diseñada | Implementado | 12 tests | Documentado | **IMPLEMENTED / VERIFIED** |
 | **OpenAI Model Gateway** | Diseñada | Implementado | 10 tests | Documentado | **IMPLEMENTED (Requiere API Key)** |
 | **Anthropic Model Gateway** | Diseñada | Implementado | 10 tests | Documentado | **IMPLEMENTED (Requiere API Key)** |
 | **Ollama Local Model Gateway** | Diseñada | Implementado | 10 tests | Documentado | **IMPLEMENTED (Requiere Daemon)** |
+| **Google Gemini / Vertex AI Gateway** | Diseñada | Implementado | 8 tests | Documentado | **IMPLEMENTED (Requiere API Key)** |
 | **Deterministic Stub Gateway** | Diseñada | Implementado | 26 tests | Documentado | **IMPLEMENTED / VERIFIED** |
-| **Google Gemini / Vertex AI Gateway** | Diseñada | No implementado| 0 tests | En Backlog | **NOT IMPLEMENTED (AOP-MODEL-GEMINI)** |
+| **SQLite Durable Memory Gateway** | Diseñada | Implementado | 10 tests | Documentado | **IMPLEMENTED / VERIFIED** |
+| **JWT Asymmetric Verifier (RS256/ES256)** | Diseñada | Implementado | 10 tests | Documentado | **IMPLEMENTED / VERIFIED** |
 | **Tentaciones AI Commerce Adapter** | Diseñada | Implementado | 48 tests | Documentado | **IMPLEMENTED / VERIFIED** |
 | **Vehicle Parts Reference App** | Diseñada | Implementado | 16 tests | Documentado | **IMPLEMENTED / VERIFIED** |
 | **Adaptador Brother DCP-1600 (USB001)** | Diseñada | Implementado | 14 tests | Documentado | **IMPLEMENTED (Hardware Offline)** |
-| **Gobernanza Fail-Closed & RBAC** | Diseñada | Implementado | 114 tests | Documentado | **IMPLEMENTED / VERIFIED** |
+| **Gobernanza Fail-Closed & RBAC** | Diseñada | Implementado | 118 tests | Documentado | **IMPLEMENTED / VERIFIED** |
 | **Web Control Plane SPA (es-419 / en)** | Diseñada | Implementado | 86 tests (0 innerHTML) | Documentado | **IMPLEMENTED / VERIFIED** |
-| **Total Línea Base Verificada** | **Convergente**| **100% Compilado**| **966 PASS (0 FAIL)** | **Canónica** | **BASELINE v1.1.0 VERIFICADO** |
+| **Virtual Organization Foundation** | Diseñada | Implementado | 34 tests | Documentado | **IMPLEMENTED / VERIFIED** |
+| **Team Resource Budget Governance** | Diseñada | Implementado | 38 tests | Documentado | **IMPLEMENTED / VERIFIED** |
+| **Coordinación Multi-Agente** | Diseñada | Implementado | Verificado | Documentado | **IMPLEMENTED / VERIFIED** |
+| **Automatización (n8n, Webhooks, Scheduler)** | Diseñada | Implementado | Verificado | Documentado | **IMPLEMENTED / VERIFIED** |
+| **Resiliencia (Circuit Breaker, Retry, Rate Limit)** | Diseñada | Implementado | Verificado | Documentado | **IMPLEMENTED / VERIFIED** |
+| **Total Línea Base Verificada** | **Convergente**| **100% Compilado**| **1064 PASS (0 FAIL)** | **Canónica** | **BASELINE v1.3.0 VERIFICADO** |
 
 ---
 
@@ -269,6 +294,13 @@ Visualiza el mecanismo de ciberseguridad y observabilidad continua:
 * **`AutonomousOrchestrator` (`src/application/autonomy/autonomous-orchestrator.ts`):** Servicio de aplicación que coordina el ciclo de supervisión autónoma en pasos acotados, evaluando políticas y delegando la ejecución en `CoreRuntime`.
 * **`RestartRecoveryService` (`src/application/recovery/restart-recovery-service.ts`):** Servicio de resiliencia que detecta caídas no programadas del proceso y transiciona atómicamente tareas y operaciones activas a estados terminales seguros.
 * **`SequentialOrchestrator` (`src/application/orchestration/sequential-orchestrator.ts`):** Ejecuta secuencias lineales predefinidas con enlace de parámetros entre operaciones consecutivas.
+* **`OrganizationService` (`src/application/organization/organization-service.ts`):** Servicio de gestión del ciclo de vida de organizaciones, áreas y equipos con validación de fronteras de tenant.
+* **`TeamResourceBudgetService` (`src/application/organization/team-resource-budget-service.ts`):** Servicio de gestión de cuotas presupuestarias por equipo con evaluación fail-closed y contabilización atómica de consumo.
+* **`MultiAgentCoordinator` (`src/application/coordination/multi-agent-coordinator.ts`):** Servicio de orquestación coordinada multi-agente para ejecuciones paralelas y dependientes.
+* **`AutomationServices` (`src/application/automation/`):** Suite de servicios de automatización que incluye adaptador n8n (`n8n-adapter.ts`), despachador de webhooks (`webhook-dispatcher.ts`), programador de tareas (`scheduler-service.ts`) y servicio de reporting (`reporting-service.ts`).
+* **`ResilienceServices` (`src/application/resilience/`):** Servicios de resiliencia operacional que incluyen circuit breaker (`circuit-breaker.ts`), política de reintentos (`retry-policy.ts`) y limitador de tasa (`rate-limiter.ts`).
+* **`QuotaService` (`src/application/billing/quota-service.ts`):** Servicio de gestión de cuotas financieras y operacionales.
+* **`FeatureFlagService` (`src/application/tenant/feature-flag-service.ts`):** Servicio de feature flags condicionales por tenant.
 
 ### 4.4 Capa 4: Núcleo de Dominio Puro
 * **Agregados Principales:**
@@ -276,16 +308,24 @@ Visualiza el mecanismo de ciberseguridad y observabilidad continua:
   * `Execution`: Intento concreto y fechado de cómputo dentro de un contexto inmutable.
   * `Agent`: Perfil de capacidades autorizadas.
   * `AutonomousOperation`: Supervisión acotada con presupuesto y seguimiento de consumo.
+  * `Organization, Area, Team & AgentMembership`: Jerarquía organizativa virtual con ciclo de vida blando (`ACTIVE`, `INACTIVE`, `ARCHIVED`), áreas funcionales, equipos de trabajo y membresía gobernada con roles operativos (`LEAD`, `SPECIALIST`, `OPERATOR`, `REVIEWER`).
+  * `TeamResourceBudget`: Agregado de cuotas multidimensionales (`maxExecutions`, `maxModelCalls`, `maxToolCalls`, `maxAutonomousSteps`, `maxDurationMs`, `maxTokens`) con contadores `consumed`, control de concurrencia optimista (`version`) y estados (`ACTIVE`, `EXHAUSTED`, `SUSPENDED`).
+  * `Coordination`: Contratos de coordinación multi-agente para ejecuciones paralelas y flujos dependientes.
+  * `Billing & Quota`: Value Objects y entidades de cuotas financieras y operacionales.
+  * `Tenant`: Entidades de frontera multi-tenant y feature flags condicionales.
 * **Fábricas de Rehidratación:** Métodos formales `rehydrate()` en cada agregado que restauran el estado persistido garantizando todos los invariantes de dominio sin recurrir a reflexión.
 * **Puertos Abstractos:** `PolicyGateway`, `ModelGateway`, `ToolGateway`, `MemoryGateway`, `EventPublisher`, `PlannerPort`, `DecisionEvaluatorPort`, `TaskRepository`, `ExecutionRepository`, `OperationRepositoryPort`. Ninguno posee dependencias externas ni código de transporte.
 
 ### 4.5 Capa 5: Infraestructura & Adaptadores Concretos
-* **Persistencia Relacional Duradera (SQLite WAL):** `SqliteDatabase` con Node.js 22+ `node:sqlite`, `SqliteTaskRepository`, `SqliteExecutionRepository`, `SqliteAgentRepository`, `SqliteOperationRepository` y `SqliteEventStore`. Constituye el almacenamiento predeterminado del servidor en producción.
+* **Persistencia Relacional Duradera (SQLite WAL):** `SqliteDatabase` con Node.js 22+ `node:sqlite`, `SqliteTaskRepository`, `SqliteExecutionRepository`, `SqliteAgentRepository`, `SqliteOperationRepository`, `SqliteEventStore`, `SqliteOrganizationRepository`, `SqliteTeamResourceBudgetRepository` y `SqliteMemoryGateway`. Constituye el almacenamiento predeterminado del servidor en producción.
+* **Adaptador PostgreSQL (Producción Escalable):** `PostgresTaskRepository` con esquema relacional (`postgres-schema.sql`) para despliegues que requieren escalabilidad horizontal.
 * **Persistencia en Memoria (Testing):** `InMemoryTaskRepository`, `InMemoryExecutionRepository`, `InMemoryAgentRegistry`, `InMemoryOperationRepository`.
-* **Adaptadores de Modelos de IA:** `OpenAIModelGateway`, `AnthropicModelGateway`, `OllamaModelGateway`, `StubModelGateway` y `ProviderFactory` con selección dinámica por variables de entorno.
+* **Adaptadores de Modelos de IA:** `OpenAIModelGateway`, `AnthropicModelGateway`, `OllamaModelGateway`, `GeminiModelGateway`, `StubModelGateway` y `ProviderFactory` con selección dinámica por variables de entorno.
 * **Adaptador de Dispositivos Empresariales:** `BrotherPrinterAdapter` implementando la gestión de impresión local sobre puerto `USB001` para Brother DCP-1600 series.
+* **Adaptadores de Media:** `VirtualTryOnProvider` implementando probador virtual AR para comercio electrónico.
+* **Cola de Trabajadores:** `InMemoryWorkerQueue` como abstracción de cola para procesamiento asíncrono.
 * **Herramientas:** `InMemoryToolRegistry` con `CalculatorTool` y validación de esquemas JSON.
-* **Gobernanza & Seguridad:** `RbacAuthorizationEvaluator`, `InMemoryRoleRepository` y `InMemoryApiKeyRepository`.
+* **Gobernanza & Seguridad:** `RbacAuthorizationEvaluator`, `InMemoryRoleRepository`, `InMemoryApiKeyRepository` y `JwtTokenVerifier` con verificación criptográfica asimétrica RS256/ES256 y rotación de claves.
 * **Telemetría y Diagnóstico:** `EventObservabilitySubscriber`, `InMemoryAuditLog`, `InMemoryMetricsCollector`, `StructuredEventLogger` y `RuntimeDiagnosticsService`.
 
 ---
@@ -423,9 +463,10 @@ La arquitectura distingue formalmente entre lo que ha sido verificado mediante t
 | **INV-12** | **Cero Dependencias en Runtime** | `VERIFIED INVARIANT` | Sección `dependencies` vacía en `package.json`. |
 | **INV-13** | **Inmunidad XSS en Front-End** | `VERIFIED INVARIANT` | Cero `innerHTML` en el Web Control Plane (`app.js`, `index.html`). |
 | **INV-14** | **Transaccionalidad Atómica post-Crash** | `VERIFIED INVARIANT` | `RestartRecoveryService` opera dentro de transacciones SQLite atómicas. |
-| **INV-15** | **Agente sin Team = Denegación Fail-Closed** | `VERIFIED INVARIANT` | Todo agente sin equipo asignado es denegado inmediatamente (`unassigned-agent-no-team`) salvo autorización explícita por política de sistema. |
-| **INV-16** | **Presupuesto Inexistente = Denegación Fail-Closed** | `VERIFIED INVARIANT` | Si un equipo carece de `TeamResourceBudget`, cualquier intento de cómputo es rechazado (`team-resource-budget-missing`). |
-| **INV-17** | **Contabilización Fiel con Overshoot** | `VERIFIED INVARIANT` | Las dimensiones post-facto (`durationMs`, `tokens`) se registran fielmente sin truncamiento y transicionan el presupuesto a `EXHAUSTED`. |
+| **INV-15** | **Desacoplamiento de Membresía, Permiso y Presupuesto** | `VERIFIED INVARIANT` | `Membresía ≠ Permiso`, `Membresía ≠ Presupuesto`, `Presupuesto ≠ Autorización`. Tests de organización y budget verifican aislamiento estricto. |
+| **INV-16** | **Semántica Fail-Closed de Presupuesto** | `VERIFIED INVARIANT` | `NO BUDGET = DENY`. `TeamResourceBudgetService` deniega ejecución cuando no existe presupuesto asignado. |
+| **INV-17** | **Protección Atómica de Concurrencia de Última Unidad** | `VERIFIED INVARIANT` | `SqliteTeamResourceBudgetRepository` utiliza `BEGIN IMMEDIATE` para serializar transacciones y prevenir condiciones de carrera de última unidad de cuota. |
+| **INV-18** | **Aislamiento de Frontera Multi-Tenant** | `VERIFIED INVARIANT` | Fronteras de tenant forzadas estrictamente en toda la jerarquía organizativa. `CrossTenantOrganizationError` emitido ante discrepancias de `tenantId`. |
 
 ### 8.2 Matriz Canónica de Dimensiones de Recursos
 
@@ -465,7 +506,7 @@ No compromete la integridad del dominio pero puede consumir latencia del paso ac
 Recomendación Técnica para Incremento Futuro:
 Incorporar soporte nativo de AbortSignal estándar en CoreRuntime y en los contratos de
 ModelGateway y ToolGateway, permitiendo propagar cancelaciones externas hacia el hardware de red.
-Estado: ABIERTO (No bloquea la arquitectura v1.1.0).
+Estado: ABIERTO (No bloquea la arquitectura v1.3.0).
 ```
 
 ---
@@ -513,6 +554,57 @@ Todos los endpoints implementados residen en `src/platform/api/http-router.ts` y
 | `GET` | `/api/v1/devices` | **IMPLEMENTED** | Listado de dispositivos físicos empresariales registrados. |
 | `GET` | `/api/v1/devices/:id` | **IMPLEMENTED** | Detalle y salud de dispositivo empresarial. |
 | `POST` | `/api/v1/devices/:id/print` | **IMPLEMENTED** | Despacho de trabajo de impresión comercial. |
+| | | | **— Endpoints de Organización Virtual —** |
+| `GET` | `/api/v1/organizations` | **IMPLEMENTED** | Listado de organizaciones del tenant. |
+| `POST` | `/api/v1/organizations` | **IMPLEMENTED** | Creación de nueva organización. |
+| `GET` | `/api/v1/organizations/:id` | **IMPLEMENTED** | Detalle de organización por identificador. |
+| `PUT` | `/api/v1/organizations/:id` | **IMPLEMENTED** | Actualización de datos de organización. |
+| `GET` | `/api/v1/organizations/:id/hierarchy` | **IMPLEMENTED** | Árbol jerárquico completo (organización → áreas → equipos). |
+| `GET` | `/api/v1/organizations/:id/areas` | **IMPLEMENTED** | Listado de áreas funcionales de la organización. |
+| `POST` | `/api/v1/organizations/:id/areas` | **IMPLEMENTED** | Creación de nueva área funcional. |
+| `GET` | `/api/v1/areas/:id` | **IMPLEMENTED** | Detalle de área funcional por identificador. |
+| `PUT` | `/api/v1/areas/:id` | **IMPLEMENTED** | Actualización de datos de área. |
+| `GET` | `/api/v1/areas/:id/teams` | **IMPLEMENTED** | Listado de equipos del área. |
+| `POST` | `/api/v1/areas/:id/teams` | **IMPLEMENTED** | Creación de nuevo equipo de trabajo. |
+| `GET` | `/api/v1/teams/:id` | **IMPLEMENTED** | Detalle de equipo por identificador. |
+| `PUT` | `/api/v1/teams/:id` | **IMPLEMENTED** | Actualización de datos de equipo. |
+| `GET` | `/api/v1/teams/:id/agents` | **IMPLEMENTED** | Listado de agentes miembros del equipo con roles. |
+| `POST` | `/api/v1/teams/:id/agents` | **IMPLEMENTED** | Asignación de agente al equipo con rol operativo. |
+| `DELETE` | `/api/v1/teams/:id/agents/:agentId` | **IMPLEMENTED** | Revocación de membresía de agente en equipo. |
+| | | | **— Endpoints de Team Resource Budget —** |
+| `GET` | `/api/v1/teams/:id/budget` | **IMPLEMENTED** | Consulta del presupuesto de recursos del equipo con cuotas y consumo. |
+| `POST` | `/api/v1/teams/:id/budget` | **IMPLEMENTED** | Creación o actualización del presupuesto del equipo. |
+| `PUT` | `/api/v1/teams/:id/budget` | **IMPLEMENTED** | Actualización de cuotas del presupuesto existente. |
+| `POST` | `/api/v1/teams/:id/budget/authorize` | **IMPLEMENTED** | Evaluación fail-closed de autorización de consumo contra cuota. |
+| `POST` | `/api/v1/teams/:id/budget/consume` | **IMPLEMENTED** | Contabilización atómica de consumo de recurso contra presupuesto. |
+| | | | **— Endpoints Adicionales de Dispositivos —** |
+| `GET` | `/api/v1/devices/:id/health` | **IMPLEMENTED** | Estado de salud del dispositivo empresarial. |
+| `GET` | `/api/v1/devices/:id/capabilities` | **IMPLEMENTED** | Capacidades y funcionalidades del dispositivo. |
+| `GET` | `/api/v1/devices/:id/status` | **IMPLEMENTED** | Estado operacional actual del dispositivo. |
+| `GET` | `/api/v1/devices/:id/consumables` | **IMPLEMENTED** | Niveles de consumibles (tóner, papel, tambor). |
+| `GET` | `/api/v1/devices/:id/print-jobs` | **IMPLEMENTED** | Listado de trabajos de impresión del dispositivo. |
+| `GET` | `/api/v1/devices/:id/print-jobs/:jobId` | **IMPLEMENTED** | Detalle de trabajo de impresión específico. |
+| `POST` | `/api/v1/devices/:id/print-jobs/:jobId/cancel` | **IMPLEMENTED** | Cancelación de trabajo de impresión en cola. |
+| `PATCH` | `/api/v1/devices/:id` | **IMPLEMENTED** | Actualización parcial de configuración del dispositivo. |
+| | | | **— Endpoints de Diagnósticos Extendidos —** |
+| `GET` | `/api/v1/diagnostics/tasks/:id/timeline` | **IMPLEMENTED** | Línea de tiempo forense de tarea por identificador. |
+| `GET` | `/api/v1/diagnostics/executions/:id/forensics` | **IMPLEMENTED** | Análisis forense detallado de ejecución. |
+| | | | **— Endpoints de Tenants —** |
+| `GET` | `/api/v1/tenants` | **IMPLEMENTED** | Listado de tenants registrados. |
+| `GET` | `/api/v1/tenants/:id` | **IMPLEMENTED** | Detalle de tenant por identificador. |
+| `GET` | `/api/v1/tenants/:id/dashboard` | **IMPLEMENTED** | Dashboard de métricas operacionales del tenant. |
+| | | | **— Endpoints de Aplicaciones Gobernadas —** |
+| `GET` | `/api/v1/applications` | **IMPLEMENTED** | Listado de aplicaciones satélites registradas. |
+| `GET` | `/api/v1/applications/:id` | **IMPLEMENTED** | Detalle de aplicación satélite. |
+| `GET` | `/api/v1/applications/:id/analytics` | **IMPLEMENTED** | Analíticas de uso de la aplicación. |
+| `POST` | `/api/v1/applications/:id/lifecycle` | **IMPLEMENTED** | Transición de ciclo de vida de la aplicación. |
+| | | | **— Endpoints de Integraciones —** |
+| `GET` | `/api/v1/integrations` | **IMPLEMENTED** | Listado de integraciones externas configuradas. |
+| `GET` | `/api/v1/integrations/:id` | **IMPLEMENTED** | Detalle de integración por identificador. |
+| `POST` | `/api/v1/integrations/:id/verify` | **IMPLEMENTED** | Verificación de conectividad de integración. |
+| | | | **— Endpoints de Eventos —** |
+| `GET` | `/api/v1/events` | **IMPLEMENTED** | Stream de eventos de dominio. |
+| `GET` | `/api/v1/events/:id` | **IMPLEMENTED** | Detalle de evento específico por identificador. |
 
 ---
 
@@ -553,6 +645,13 @@ Esta matriz vincula cada decisión arquitectónica aprobada con su documento ADR
 | **Security Context & Multi-Tenant Boundary** | ADR-003 | `src/domain/security/boundaries.ts` | `tests/unit/security-boundaries.test.ts` | `docs/decisions/ADR-003-security-context.md` |
 | **Tentaciones Platform Integration & Fallback** | ADR-008 | `src/application/platform/tentaciones-platform-adapter.ts` | `tests/platform/tentaciones-platform-adapter.test.ts` | `docs/decisions/ADR-008-tentaciones-integration.md` |
 | **Platform Truth Model** | ADR-010 | `docs/SOURCE_OF_TRUTH.md` | `tests/platform/runtime-integration-hardening.test.ts` | `docs/decisions/ADR-010-platform-truth-model.md` |
+| **Core Platform Separation** | ADR-001 | `src/domain/`<br>`src/platform/`<br>`src/application/` | `tests/unit/architecture-isolation.test.ts` | `docs/decisions/ADR-001-core-platform-separation.md` |
+| **Hexagonal Architecture** | ADR-002 | `src/domain/`<br>`src/infrastructure/` | `tests/unit/architecture-isolation.test.ts` | `docs/decisions/ADR-002-hexagonal-architecture.md` |
+| **Default Deny Policy** | ADR-004 | `src/domain/policy/policy.ts`<br>`src/infrastructure/policy/` | `tests/unit/observability-and-policy.test.ts` | `docs/decisions/ADR-004-default-deny.md` |
+| **Durable Events Foundation** | ADR-005 | `src/domain/events/events.ts`<br>`src/infrastructure/events/` | `tests/contract/event-publisher.contract.test.ts` | `docs/decisions/ADR-005-durable-events.md` |
+| **Platform API Boundary** | ADR-006 | `src/platform/api/http-router.ts` | `tests/platform/api.test.ts` | `docs/decisions/ADR-006-platform-api.md` |
+| **External Application Boundary** | ADR-007 | `src/application/platform/`<br>`src/application/factory/` | `tests/platform/tentaciones-platform-adapter.test.ts` | `docs/decisions/ADR-007-external-application-boundary.md` |
+| **AR Governance & Virtual Try-On** | ADR-009 | `src/infrastructure/media/virtual-tryon-provider.ts` | `tests/unit/tentaciones-ar-commerce.test.ts` | `docs/decisions/ADR-009-ar-governance.md` |
 
 ---
 
@@ -604,7 +703,7 @@ COMPLETADO & VERIFICADO (v1.3.0 BASELINE CANÓNICA — 1064 TESTS PASS)
   - Semántica formal de dimensiones de recursos: Hard Gates pre-ejecución vs Contabilización post-facto con overshoot (`durationMs`, `tokens`) transicionando a `EXHAUSTED`.
   - Test Baseline: 1064 tests passing deterministas (0 fail, 11 suites).
 
-ROADMAP FUTURO (BACKLOG FORMAL v1.3 — DISEÑADO / NO IMPLEMENTADO)
+ROADMAP FUTURO (BACKLOG FORMAL v1.4 — DISEÑADO / NO IMPLEMENTADO)
 ──────────────────────────────────────────────────────────────────────────
 • AOP-V1-EXIT: Certificación final de criterios de salida para producción masiva.
 ```
@@ -623,3 +722,8 @@ ROADMAP FUTURO (BACKLOG FORMAL v1.3 — DISEÑADO / NO IMPLEMENTADO)
 * **RestartRecoveryService:** Servicio de aplicación que garantiza la reconciliación atómica idempotente de tareas y operaciones interrumpidas tras una caída del sistema.
 * **TraceId:** Identificador único de correlación transversal que acompaña a toda petición desde el cliente HTTP hasta la base de datos y eventos de auditoría.
 * **Zero Runtime Dependencies:** Característica del sistema por la cual el código en producción opera exclusivamente con las APIs nativas de Node.js, sin paquetes en la sección `dependencies` de `package.json`.
+* **Organization (Organización):** Agregado empresarial de dominio con ciclo de vida blando (`ACTIVE`, `INACTIVE`, `ARCHIVED`) que agrupa áreas funcionales y equipos dentro de un tenant.
+* **TeamResourceBudget (Presupuesto de Recursos de Equipo):** Agregado de cuotas multidimensionales que impone techos por equipo en ejecuciones, llamadas a modelos, invocaciones de herramientas, pasos autónomos, duración y tokens.
+* **MultiAgentCoordinator (Coordinador Multi-Agente):** Servicio de aplicación que orquesta ejecuciones coordinadas entre múltiples agentes con dependencias y paralelismo controlado.
+* **CircuitBreaker (Disyuntor):** Patrón de resiliencia que detecta fallos repetidos en un servicio externo y abre el circuito para evitar cascadas de errores, cerrándose gradualmente al detectar recuperación.
+* **FeatureFlag (Bandera de Característica):** Mecanismo condicional por tenant que permite activar o desactivar funcionalidades de la plataforma sin redespliegue.

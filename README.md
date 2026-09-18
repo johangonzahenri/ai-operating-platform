@@ -1,4 +1,4 @@
-# AI OPERATING PLATFORM (v1.1.0)
+# AI OPERATING PLATFORM (v1.3.0)
 ## Plataforma Operacional de IA para la Habilitación, Gobernanza y Observabilidad Multiplataforma
 
 > **Principio de Ingeniería:**
