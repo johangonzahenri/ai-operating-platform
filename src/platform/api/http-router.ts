@@ -55,6 +55,11 @@ import {
   BudgetSuspendedError,
   BudgetConcurrencyConflictError,
 } from "../../domain/organization/organization-errors.js";
+import {
+  CoordinationDomainError,
+  CoordinationCycleError,
+  CoordinationDepthExceededError,
+} from "../../domain/organization/organizational-coordination.js";
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -2208,6 +2213,18 @@ export function createHttpServer(
               sendError(403, err.message, "CROSS_TENANT_FORBIDDEN");
               return;
             }
+            if (err instanceof CoordinationCycleError) {
+              sendError(400, err.message, "COORDINATION_CYCLE");
+              return;
+            }
+            if (err instanceof CoordinationDepthExceededError) {
+              sendError(400, err.message, "COORDINATION_DEPTH_EXCEEDED");
+              return;
+            }
+            if (err instanceof CoordinationDomainError) {
+              sendError(400, err.message, "COORDINATION_ERROR");
+              return;
+            }
             sendError(500, err.message || "Internal organization error", "ORGANIZATION_ERROR");
           };
 
@@ -2773,6 +2790,159 @@ export function createHttpServer(
                   reason: result.reason,
                 });
               }
+              return;
+            } catch (err: any) {
+              handleOrgError(err);
+              return;
+            }
+          }
+
+          // Team Agent Coordination routes (Prompt 109):
+          // POST /teams/:id/coordinations or /teams/:id/coordination
+          const teamCoordinationMatch = subPath.match(/^\/teams\/([^/]+)\/coordinations?$/);
+          if (teamCoordinationMatch && req.method === "POST") {
+            const teamId = normalizeId(teamCoordinationMatch[1]);
+            if (!teamId) {
+              sendError(400, "Bad Request: Invalid team ID format", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("organization.update", "API", teamId, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const bodyResult = await readJsonBody();
+            if (!bodyResult.ok) {
+              sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+              return;
+            }
+            const body = bodyResult.body as {
+              id?: string;
+              organizationId?: string;
+              sourceAgentId?: string;
+              targetAgentId?: string;
+              purpose?: string;
+              inputPayload?: Record<string, unknown>;
+              correlationId?: string;
+              parentExecutionId?: string;
+              depth?: number;
+              maxDepth?: number;
+              handoffCount?: number;
+              maxHandoffs?: number;
+              history?: string[];
+              requestedTokens?: number;
+              requestedCost?: number;
+              estimatedDurationMs?: number;
+            };
+
+            if (!body.sourceAgentId || typeof body.sourceAgentId !== "string" || !body.sourceAgentId.trim()) {
+              sendError(400, "Bad Request: 'sourceAgentId' must be a non-empty string", "INVALID_SOURCE_AGENT");
+              return;
+            }
+            if (!body.targetAgentId || typeof body.targetAgentId !== "string" || !body.targetAgentId.trim()) {
+              sendError(400, "Bad Request: 'targetAgentId' must be a non-empty string", "INVALID_TARGET_AGENT");
+              return;
+            }
+            if (!body.purpose || typeof body.purpose !== "string" || !body.purpose.trim()) {
+              sendError(400, "Bad Request: 'purpose' must be a non-empty string", "INVALID_PURPOSE");
+              return;
+            }
+
+            try {
+              const team = await service.getOrganizationService().getTeam(teamId, tenantId);
+              const orgId = typeof body.organizationId === "string" && body.organizationId.trim()
+                ? body.organizationId.trim()
+                : team.organizationId;
+
+              const result = await service.getOrganizationalCoordinationService().coordinate(
+                {
+                  id: body.id,
+                  tenantId,
+                  organizationId: orgId,
+                  teamId,
+                  sourceAgentId: body.sourceAgentId,
+                  targetAgentId: body.targetAgentId,
+                  requesterId: authCheck.context?.principal?.id ?? reqCtx.principal?.id ?? "anonymous",
+                  correlationId: body.correlationId ?? reqCtx.correlationId,
+                  parentExecutionId: body.parentExecutionId,
+                  purpose: body.purpose,
+                  inputPayload: body.inputPayload ?? {},
+                  depth: body.depth,
+                  maxDepth: body.maxDepth,
+                  handoffCount: body.handoffCount,
+                  maxHandoffs: body.maxHandoffs,
+                  history: body.history,
+                  requestedTokens: body.requestedTokens,
+                  requestedCost: body.requestedCost,
+                  estimatedDurationMs: body.estimatedDurationMs,
+                },
+                reqCtx.correlationId
+              );
+
+              sendJson(result.success ? 201 : 422, {
+                success: result.success,
+                coordination: service.toAgentCoordinationDTO(result.record),
+                executionId: result.executionId,
+                output: result.output,
+                error: result.error,
+              });
+              return;
+            } catch (err: any) {
+              handleOrgError(err);
+              return;
+            }
+          }
+
+          // GET /teams/:id/coordinations or /teams/:id/coordination
+          if (teamCoordinationMatch && req.method === "GET") {
+            const teamId = normalizeId(teamCoordinationMatch[1]);
+            if (!teamId) {
+              sendError(400, "Bad Request: Invalid team ID format", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("organization.read", "API", teamId, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const limit = url.searchParams.has("limit") ? parseInt(url.searchParams.get("limit")!, 10) : 50;
+            const offset = url.searchParams.has("offset") ? parseInt(url.searchParams.get("offset")!, 10) : 0;
+
+            try {
+              const records = await service.getOrganizationalCoordinationService().listTeamCoordinations(
+                teamId,
+                tenantId,
+                Number.isNaN(limit) ? 50 : limit,
+                Number.isNaN(offset) ? 0 : offset
+              );
+              sendJson(200, records.map((r) => service.toAgentCoordinationDTO(r)));
+              return;
+            } catch (err: any) {
+              handleOrgError(err);
+              return;
+            }
+          }
+
+          // GET /coordinations/:id or /coordination/:id
+          const singleCoordMatch = subPath.match(/^\/coordinations?\/([^/]+)$/);
+          if (singleCoordMatch && req.method === "GET") {
+            const coordId = normalizeId(singleCoordMatch[1]);
+            if (!coordId) {
+              sendError(400, "Bad Request: Invalid coordination ID format", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("organization.read", "API", coordId, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+
+            try {
+              const record = await service.getOrganizationalCoordinationService().getCoordination(coordId, tenantId);
+              sendJson(200, service.toAgentCoordinationDTO(record));
               return;
             } catch (err: any) {
               handleOrgError(err);

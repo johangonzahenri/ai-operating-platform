@@ -185,4 +185,8 @@ export class AgentService {
       execution: result.execution,
     };
   }
+
+  getRuntime(): Runtime {
+    return this.runtime;
+  }
 }

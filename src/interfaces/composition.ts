@@ -78,6 +78,10 @@ import { TeamResourceBudgetRepositoryPort } from "../application/ports/team-reso
 import { InMemoryTeamResourceBudgetRepository } from "../infrastructure/organization/in-memory-team-resource-budget-repository.js";
 import { SqliteTeamResourceBudgetRepository } from "../infrastructure/persistence/sqlite/sqlite-team-resource-budget-repository.js";
 import { TeamResourceBudgetService } from "../application/organization/team-resource-budget-service.js";
+import { CoordinationRepositoryPort } from "../application/ports/coordination-repository-port.js";
+import { InMemoryCoordinationRepository } from "../infrastructure/persistence/in-memory/in-memory-coordination-repository.js";
+import { SqliteCoordinationRepository } from "../infrastructure/persistence/sqlite/sqlite-coordination-repository.js";
+import { OrganizationalCoordinationService } from "../application/organization/organizational-coordination-service.js";
 
 export interface CreatePlatformOptions {
   readonly logger?: StructuredLogger | undefined;
@@ -99,6 +103,8 @@ export interface CreatePlatformOptions {
   readonly organizationService?: OrganizationService | undefined;
   readonly teamResourceBudgetRepository?: TeamResourceBudgetRepositoryPort | undefined;
   readonly teamResourceBudgetService?: TeamResourceBudgetService | undefined;
+  readonly coordinationRepository?: CoordinationRepositoryPort | undefined;
+  readonly organizationalCoordinationService?: OrganizationalCoordinationService | undefined;
   readonly eventStream?: EventStreamAdapter | undefined;
 }
 
@@ -259,6 +265,12 @@ export const createPlatform = (
         events,
       });
 
+  const coordinationRepository: CoordinationRepositoryPort = (!isLogger && (optionsOrLogger as CreatePlatformOptions).coordinationRepository)
+    ? (optionsOrLogger as CreatePlatformOptions).coordinationRepository!
+    : dbManager
+      ? new SqliteCoordinationRepository(dbManager)
+      : new InMemoryCoordinationRepository();
+
   const toolInvocationRuntime = new ToolInvocationRuntime({
     registry: tools,
     events,
@@ -279,6 +291,18 @@ export const createPlatform = (
   const agentRuntime = new CoreRuntime(tasks, executions, agentStrategy, events, undefined, undefined, eventStore, transactionRunner);
   const agentService = new AgentService(agents, agentRuntime, modelRegistry, tools);
   const multiAgentCoordinator = new MultiAgentCoordinator(agentRuntime, agents, policy, events);
+
+  const organizationalCoordinationService: OrganizationalCoordinationService = (!isLogger && (optionsOrLogger as CreatePlatformOptions).organizationalCoordinationService)
+    ? (optionsOrLogger as CreatePlatformOptions).organizationalCoordinationService!
+    : new OrganizationalCoordinationService({
+        coordinationRepository,
+        organizationRepository,
+        budgetService: teamResourceBudgetService,
+        policyGateway: policy,
+        runtime: agentRuntime,
+        agentQuery: agents,
+        events,
+      });
 
   // Orchestrated execution runtime & use case
   const orchestrator = new SequentialOrchestrator(models, toolGateway, events, policy);
@@ -390,6 +414,8 @@ export const createPlatform = (
     organizationService,
     teamResourceBudgetRepository,
     teamResourceBudgetService,
+    coordinationRepository,
+    organizationalCoordinationService,
   };
 };
 

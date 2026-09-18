@@ -208,6 +208,32 @@ export default {
     "budgetSaved": "Budget updated successfully",
     "budgetExhaustedWarning": "Budget exhausted. New executions will be rejected under fail-closed policy."
   },
+  "coordination": {
+    "title": "Organizational Agent Coordination",
+    "requestCoordination": "Request Coordination",
+    "sourceAgent": "Source Agent",
+    "targetAgent": "Target Agent",
+    "purpose": "Purpose / Objective",
+    "inputPayload": "Input Payload (JSON)",
+    "depth": "Depth",
+    "maxDepth": "Max Depth",
+    "handoffCount": "Handoffs",
+    "maxHandoffs": "Max Handoffs",
+    "status": "Status",
+    "statusRequested": "Requested",
+    "statusAuthorized": "Authorized",
+    "statusDispatched": "Dispatched",
+    "statusRunning": "Running",
+    "statusCompleted": "Completed",
+    "statusFailed": "Failed",
+    "statusRejected": "Rejected",
+    "statusCancelled": "Cancelled",
+    "output": "Output",
+    "error": "Error",
+    "noCoordinations": "No coordinations recorded for this team.",
+    "coordinationSuccess": "Coordination completed successfully",
+    "coordinationRejected": "Coordination rejected by governance or budget"
+  },
 
   "actions": {
     "create": "Create",

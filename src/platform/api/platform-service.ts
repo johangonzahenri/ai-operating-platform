@@ -95,16 +95,23 @@ import {
   UpdateTeamResourceBudgetRequestDTO,
   AuthorizeResourceConsumptionRequestDTO,
   ConsumptionEvaluationDTO,
+  AgentCoordinationDTO,
+  RequestCoordinationRequestDTO,
+  CoordinationExecutionResponseDTO,
 } from "./platform-dto.js";
 import { OrganizationService } from "../../application/organization/organization-service.js";
 import { InMemoryOrganizationRepository } from "../../infrastructure/organization/in-memory-organization-repository.js";
 import { TeamResourceBudgetService } from "../../application/organization/team-resource-budget-service.js";
 import { InMemoryTeamResourceBudgetRepository } from "../../infrastructure/organization/in-memory-team-resource-budget-repository.js";
+import { OrganizationalCoordinationService } from "../../application/organization/organizational-coordination-service.js";
+import { InMemoryCoordinationRepository } from "../../infrastructure/persistence/in-memory/in-memory-coordination-repository.js";
+import { InMemoryPolicyGateway } from "../../infrastructure/policy/in-memory-policy-gateway.js";
 import { Organization } from "../../domain/organization/organization.js";
 import { Area } from "../../domain/organization/area.js";
 import { Team } from "../../domain/organization/team.js";
 import { AgentMembership } from "../../domain/organization/agent-membership.js";
 import { TeamResourceBudget } from "../../domain/organization/team-resource-budget.js";
+import { AgentCoordinationRecord } from "../../domain/organization/organizational-coordination.js";
 
 import { projectExecutionObservability } from "../product/execution-observability.js";
 import { Tenant, DEFAULT_PLAN_LIMITS } from "../../domain/tenant/tenant.js";
@@ -159,6 +166,7 @@ export interface PlatformDependencies {
   readonly idempotencyEngine?: IdempotencyEngine | undefined;
   readonly organizationService?: OrganizationService | undefined;
   readonly teamResourceBudgetService?: TeamResourceBudgetService | undefined;
+  readonly organizationalCoordinationService?: OrganizationalCoordinationService | undefined;
   readonly eventStream?: EventStreamAdapter | undefined;
 }
 
@@ -176,6 +184,7 @@ export class PlatformService {
   private readonly idempotencyStore: IdempotencyStore;
   private readonly organizationService: OrganizationService;
   private readonly teamResourceBudgetService: TeamResourceBudgetService;
+  private readonly organizationalCoordinationService: OrganizationalCoordinationService;
   private readonly governanceService: EnterpriseGovernanceService;
   private readonly quotaService: QuotaService;
   private readonly integrationEngine: IntegrationTruthEngine;
@@ -217,6 +226,14 @@ export class PlatformService {
     this.teamResourceBudgetService = deps.teamResourceBudgetService ?? new TeamResourceBudgetService({
       budgetRepository: new InMemoryTeamResourceBudgetRepository(),
       organizationRepository: defaultOrgRepo,
+    });
+    this.organizationalCoordinationService = deps.organizationalCoordinationService ?? new OrganizationalCoordinationService({
+      coordinationRepository: new InMemoryCoordinationRepository(),
+      organizationRepository: defaultOrgRepo,
+      budgetService: this.teamResourceBudgetService,
+      policyGateway: new InMemoryPolicyGateway(),
+      runtime: this.agentService ? this.agentService.getRuntime() : ({ execute: async () => ({ task: {} as any, execution: { id: "exec-stub", status: "COMPLETED" } as any }) } as any),
+      agentQuery: this.agents ?? { findById: () => undefined, list: () => [] },
     });
 
     this.governanceService = new EnterpriseGovernanceService();
@@ -2187,6 +2204,42 @@ export class PlatformService {
       eventsDelivered: 0,
       eventsDropped: 0,
       errorsCount: 0,
+    };
+  }
+
+  // ========================================================================
+  // Organizational Agent Coordination Methods (Prompt 109)
+  // ========================================================================
+
+  getOrganizationalCoordinationService(): OrganizationalCoordinationService {
+    return this.organizationalCoordinationService;
+  }
+
+  toAgentCoordinationDTO(record: AgentCoordinationRecord): AgentCoordinationDTO {
+    return {
+      id: record.id,
+      tenantId: record.tenantId,
+      organizationId: record.organizationId,
+      teamId: record.teamId,
+      sourceAgentId: record.sourceAgentId,
+      targetAgentId: record.targetAgentId,
+      requesterId: record.requesterId,
+      correlationId: record.correlationId,
+      parentExecutionId: record.parentExecutionId,
+      childExecutionId: record.childExecutionId,
+      purpose: record.purpose,
+      inputPayload: record.inputPayload,
+      outputPayload: record.outputPayload,
+      depth: record.depth,
+      maxDepth: record.maxDepth,
+      handoffCount: record.handoffCount,
+      maxHandoffs: record.maxHandoffs,
+      status: record.status,
+      failure: record.failure,
+      version: record.version,
+      createdAt: record.createdAt.toISOString(),
+      updatedAt: record.updatedAt.toISOString(),
+      completedAt: record.completedAt?.toISOString(),
     };
   }
 }

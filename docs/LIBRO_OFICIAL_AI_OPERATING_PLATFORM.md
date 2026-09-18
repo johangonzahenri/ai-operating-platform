@@ -46,33 +46,31 @@ Entre sus principales casos de integración se encuentran aplicaciones de comerc
 
 ### Distinción Explícita: Visión Estratégica vs. Capacidades Implementadas
 
-Para garantizar la honestidad operativa y evitar falsas expectativas, este libro distingue formalmente entre la visión de producto y lo efectivamente construido:
+Antes de sumergirnos en la arquitectura, es fundamental entender una regla de transparencia que rige este libro: **nunca afirmamos que algo funciona si no está verificado con tests automatizados**. La siguiente infografía separa claramente lo que ya está construido y probado (el 90% de la plataforma) de lo que aún está en el backlog de diseño futuro.
 
-```text
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│ VISIÓN ESTRATÉGICA (Futuro / Backlog Formal)                                   │
-│ • Ecosistema distribuido multi-región con clustering y failover activo-activo.  │
-│ • Certificación formal de criterios de salida para producción masiva (AOP-EXIT).│
-├─────────────────────────────────────────────────────────────────────────────────┤
-│ CAPACIDADES IMPLEMENTADAS & VERIFICADAS (Línea Base Real v1.3.0 — 1064 PASS)    │
-│ • Motor hexagonal determinista con cero dependencias en runtime (npm ls vacío). │
-│ • Persistencia duradera relacional SQLite WAL (`SqliteDatabase`, `data/app.db`).│
-│ • Memoria contextual duradera en SQLite WAL (`SqliteMemoryGateway`, ADR 0024). │
-│ • Servicio atómico de reconciliación post-crash (`RestartRecoveryService`).     │
-│ • Model Gateways para OpenAI, Anthropic, Ollama, Gemini y Stub determinista.    │
-│ • Verificador JWT asimétrico RS256/ES256 con rotación de claves (ADR 0025).     │
-│ • Topología de red perimetral con manifiestos TLS Nginx/Caddy (ADR 0026).       │
-│ • Convergencia REST canónica en /api/v1/* con cabeceras RFC 8594 (Deprecation). │
-│ • Virtual Organization Foundation: Organización, Áreas, Equipos y Agentes (ADR 0027).│
-│ • Team Resource Governance & Budget Control: Cuotas por equipo, fail-closed (ADR 0028).│
-│ • Runtime Budget Enforcement & Hardening: Fail-closed integral y anti-bypass.   │
-│ • Integración de Tentaciones AI Commerce con probador virtual AR y fallback.    │
-│ • Aplicación de referencia automotriz Vehicle Parts Platform con compatibilidad.│
-│ • Adaptador de hardware Brother DCP-1600 series (USB001, honestamente offline). │
-│ • Web Control Plane nativo bilingüe (es-419 / en) con 0 innerHTML.             │
-│ • 1064 pruebas automatizadas aprobadas (0 fallos, 11 suites de prueba).         │
-└─────────────────────────────────────────────────────────────────────────────────┘
-```
+> 💡 **Analogía:** Imagina una casa. La *visión estratégica* es el plano del arquitecto que muestra una piscina y un garaje para 3 autos. Las *capacidades implementadas* son las habitaciones ya construidas, con electricidad funcionando y certificadas por el inspector. Este libro te dice exactamente cuáles habitaciones ya tienen luz.
+
+![Visión Estratégica vs. Capacidades Implementadas: El 90% de la plataforma está construido y verificado](docs/images/12_vision_vs_reality.jpg)
+
+**¿Qué ves en esta infografía?**
+
+* 🔭 **Lado izquierdo — Visión Estratégica (Futuro):** Solo quedan 2 grandes objetivos pendientes: el ecosistema distribuido multi-región (para que la plataforma corra en múltiples data centers simultáneamente) y la certificación formal de producción masiva.
+* ✅ **Lado derecho — Implementado y Verificado (16 capacidades reales):**
+  * **Motor Hexagonal:** El corazón de la plataforma — ejecuta tareas sin depender de ninguna librería externa (`npm ls` vacío).
+  * **SQLite WAL Storage:** La base de datos que persiste todo en disco con modo Write-Ahead Logging para máxima confiabilidad.
+  * **Memory Gateway:** Permite a cada agente tener su propia "memoria" aislada — como cajones privados en un escritorio compartido.
+  * **Crash Recovery:** Si el servidor se cae a mitad de una tarea, al reiniciar detecta qué quedó incompleto y reconcilia automáticamente.
+  * **AI Model Gateways (OpenAI, Anthropic, Ollama, Gemini):** Conectores reales a los 4 principales proveedores de IA, más un stub determinista para testing.
+  * **JWT Security:** Autenticación criptográfica con claves asimétricas RS256/ES256 y rotación automática de claves.
+  * **TLS Network:** Manifiestos listos para producción con Nginx o Caddy como reverse proxy.
+  * **REST API:** Más de 70 endpoints bajo `/api/v1/*` con deprecation headers RFC 8594.
+  * **Virtual Organization:** Estructura empresarial completa (Organización → Áreas → Equipos → Agentes).
+  * **Team Budgets:** Cuotas que limitan cuántas ejecuciones, llamadas a modelos y herramientas puede consumir cada equipo.
+  * **Budget Enforcement:** Verificación fail-closed en tiempo real — si no hay presupuesto, la operación se detiene instantáneamente.
+  * **E-Commerce + Vehicle Parts:** Dos aplicaciones satélite reales integradas como prueba del concepto multiplataforma.
+  * **Hardware Printer:** Adaptador real para impresora Brother DCP-1600 conectada por USB.
+  * **Bilingual Control Plane:** Consola web en español (es-419) e inglés, sin innerHTML (protección XSS).
+* 📊 **Barra de progreso:** El 90% de la visión ya es realidad verificada con **1064 tests pasando** sin fallos.
 
 ---
 
@@ -122,7 +120,10 @@ dicha plataforma cliente interactúa con la **AI Operating Platform** a través 
 # Capítulo 2: Arquitectura de un Vistazo (Architecture at a Glance) & Matriz de Estado
 
 ### 2.1 Estructura Global de Componentes Reales
-La siguiente topología refleja estrictamente los paquetes y componentes existentes en `src/`:
+
+La siguiente topología muestra todas las piezas que componen la plataforma, organizadas en 5 capas. Si los nombres técnicos en inglés te resultan confusos, no te preocupes — las **3 infografías de glosario visual** debajo del árbol explican qué hace cada componente en español claro.
+
+> 💡 **¿Cómo leer este árbol?** Piensa en un edificio de oficinas. El **Núcleo de Dominio** es la sala de reuniones donde se toman las decisiones. La **Capa de Aplicación** son los gerentes que coordinan el trabajo. La **Infraestructura** son las conexiones eléctricas, internet y teléfono. La **API** es la recepción donde llegan los visitantes. Y la **Presentación** es el lobby con pantallas informativas.
 
 ```text
 AI Operating Platform
@@ -190,6 +191,22 @@ AI Operating Platform
     └── Observability & Audit (EventObservabilitySubscriber, InMemoryAuditLog, InMemoryMetricsCollector, StructuredEventLogger)
 ```
 
+#### Glosario Visual: ¿Qué hace cada componente?
+
+Las siguientes infografías explican cada componente del árbol en español claro, con su nombre técnico y una descripción de qué hace en la práctica.
+
+**Capa de Aplicación** — Los servicios que coordinan todo el trabajo:
+
+![Componentes de la Capa de Aplicación: CoreRuntime, AgentService, AutonomousOrchestrator y 9 servicios más explicados](docs/images/13_componentes_aplicacion.jpg)
+
+**Núcleo de Dominio** — Las reglas de negocio puras (el corazón que no depende de nada externo):
+
+![Componentes del Núcleo de Dominio: Task, Execution, Agent, AutonomousOperation, Budget, Organization y más](docs/images/14_componentes_dominio.jpg)
+
+**Capa de Infraestructura** — Los adaptadores que conectan con el mundo real:
+
+![Componentes de Infraestructura: SQLite, PostgreSQL, Gateways de IA, Impresora, Seguridad y más](docs/images/15_componentes_infraestructura.jpg)
+
 ### 2.2 Matriz de Estado Oficial de Capacidades
 
 | Capacidad / Componente | Arquitectura | Código | Tests | Documentación | Estado Oficial |
@@ -227,52 +244,87 @@ AI Operating Platform
 Las infografías maestras representan visualmente las garantías operacionales, el ecosistema de integración y la topología de la plataforma en idioma español accesible, riguroso y profesional.
 
 ## 3.1 Blueprint Maestro: Mapa Completo del Sistema & Habilitación Multiplataforma
-![Blueprint Maestro: Mapa Completo del Sistema](docs/images/00_mapa_completo_sistema.jpg)
 
-**Descripción del Ecosistema Integral:**
-* **Plataformas de Negocio Conectadas (Arriba y Perímetro):** Representa sistemas clientes reales como la **Plataforma de Venta de Ropa (E-Commerce)**, aplicaciones web/móviles y plataformas ERP/logísticas. Estas aplicaciones externas no ejecutan modelos de IA internamente ni se acoplan a librerías propietarias; se comunican mediante peticiones estándar **API REST / HTTP en formato JSON**.
-* **AI Operating Platform (Núcleo Central):**
-  1. **Capa de Plataforma y Servidor HTTP:** Provee el enrutador nativo, validación rigurosa de DTOs, límites de payload (1MB) y endpoints REST para tareas y operaciones.
-  2. **Capa de Aplicación y Orquestación:** Contiene el `AutonomousOrchestrator`, `DecisionEvaluator` y `CoreRuntime` que coordinan la ejecución controlada.
-  3. **Capa de Dominio y Gobernanza:** Define el `AutonomyBudget` (límites de pasos, costo y tiempo), la máquina de estados finita y los perfiles de agentes cognitivos.
-  4. **Capa de Infraestructura y Adaptadores:** Gestiona los puertos de herramientas (consultas de inventario, pasarelas externas), conectores LLM y repositorios en memoria y SQLite duradero.
+Esta es la vista de helicóptero de toda la plataforma. Si solo pudieras ver **un diagrama** de todo el libro, este sería el indicado. Muestra cómo la AI Operating Platform se posiciona como el **cerebro central** que conecta múltiples aplicaciones de negocio con capacidades de IA.
+
+> 💡 **¿Para qué sirve este mapa?** Imagina que tienes una tienda de ropa online, una app de repuestos de autos y una impresora conectada. En lugar de que cada una implemente su propia conexión caótica con ChatGPT o Claude, TODAS se conectan a esta plataforma central que gobierna, audita y controla cada interacción con IA.
+
+![Blueprint Maestro: Mapa Completo del Sistema](docs/images/00_mapa_completo_sistema.jpg)
 
 ![Mapa del Ecosistema: Plataforma e Integraciones](docs/images/05_ecosystem_map.jpg)
 
+**¿Qué representa cada elemento?**
+
+* 📱 **Plataformas de Negocio (Perímetro):** Son los sistemas clientes reales — la tienda de e-commerce, la app de repuestos, las aplicaciones móviles. Ellas NO ejecutan modelos de IA directamente; envían peticiones HTTP/JSON a la plataforma y reciben respuestas procesadas.
+* 🧠 **AI Operating Platform (Hexágono Central):** El núcleo con sus 5 capas concéntricas:
+  * **Presentation** (capa exterior): La consola web SPA bilingüe donde operas y monitoreas.
+  * **Platform API**: El servidor HTTP nativo que recibe todas las peticiones REST.
+  * **Infrastructure**: Los adaptadores que conectan con bases de datos SQLite, proveedores de IA y dispositivos físicos.
+  * **Application**: Los motores de orquestación (CoreRuntime, AutonomousOrchestrator) que coordinan la ejecución.
+  * **Domain Core** (centro dorado): Las reglas de negocio puras — presupuestos, estados, políticas. Este núcleo no sabe que existe internet.
+* ☁️ **Cloud AI Providers:** OpenAI (GPT), Anthropic (Claude), Google (Gemini) y Ollama (modelos locales). La plataforma los abstrae detrás de un puerto único `ModelGateway`.
+* 🖨️ **Hardware:** Dispositivos físicos empresariales como la impresora Brother conectada por USB.
+
 ## 3.2 Blueprint 1: Topología Hexagonal y Puertos & Adaptadores en 5 Capas
+
+Este diagrama responde a una pregunta crucial: **¿cómo se organiza el código para que nunca se convierta en espagueti?** La respuesta es la arquitectura hexagonal — un patrón donde las reglas de negocio viven en el centro y jamás conocen los detalles de la base de datos, la red o los proveedores de IA.
+
+> 💡 **¿Por qué importa?** Si mañana decidimos cambiar de SQLite a PostgreSQL, o de OpenAI a un modelo local con Ollama, solo cambiamos el adaptador exterior. El corazón de la plataforma ni se entera. Esto es lo que permite que el sistema tenga **cero dependencias en runtime**.
+
 ![Blueprint 1: Topología Hexagonal en 5 Capas](docs/images/01_mapa_arquitectura_hexagonal.jpg)
 
-Representa la estricta separación de fronteras arquitectónicas:
-* **Núcleo de Dominio (Centro):** Reglas de negocio puras, presupuestos inmutables, máquinas de estados y emisión de eventos. No tiene dependencias externas.
-* **Capa de Aplicación & Puertos (Anillo Intermedio):** Casos de uso de orquestación, puertos de entrada y salida abstractos.
-* **Infraestructura & Plataforma (Anillo Exterior):** Adaptadores HTTP, adaptadores LLM, herramientas externas y repositorio en SQLite WAL.
-* **Regla de Dependencia:** Las dependencias apuntan exclusivamente hacia adentro. El núcleo de dominio no conoce a la base de datos, la red ni a los proveedores de modelos.
+**¿Qué representa cada anillo?**
+
+* 🟡 **Núcleo de Dominio (Centro dorado):** Reglas de negocio puras. Aquí viven las entidades `Task`, `Execution`, `Agent`, `AutonomousOperation` y `TeamResourceBudget`. Este código no importa NADA de infraestructura — ni `node:http`, ni `node:sqlite`, ni SDKs de proveedores. Es TypeScript puro.
+* 🔵 **Capa de Aplicación (Anillo intermedio):** Los casos de uso que orquestan el dominio — `CoreRuntime`, `AgentService`, `AutonomousOrchestrator`. Definen los "puertos" abstractos (interfaces) que la infraestructura debe implementar.
+* 🟢 **Capa de Infraestructura (Anillo exterior):** Los adaptadores concretos — `SqliteTaskRepository`, `OpenAIModelGateway`, `BrotherPrinterAdapter`. Implementan los puertos definidos por la aplicación.
+* ➡️ **Regla de Dependencia Unidireccional:** Las flechas SIEMPRE apuntan hacia adentro. La infraestructura conoce al dominio, pero el dominio jamás conoce a la infraestructura.
 
 ## 3.3 Blueprint 2: Flujo de Ejecución End-to-End & Ciclo de Vida Operacional
+
+Este diagrama muestra **qué pasa exactamente desde que llega una petición HTTP hasta que se guarda el resultado**. Es como seguir una caja por una fábrica automatizada: entra materia prima y sale un producto terminado, auditado y registrado.
+
+> 💡 **Ejemplo concreto:** Una tienda de ropa envía `POST /api/v1/operations` pidiendo "genera 5 recomendaciones de outfits para este cliente". La plataforma: (1) recibe la petición, (2) verifica que hay presupuesto disponible, (3) planifica los pasos, (4) ejecuta cada paso dentro de un bucle acotado, (5) marca el resultado como COMPLETADO o PRESUPUESTO_AGOTADO, y (6) registra todo en el log de auditoría inmutable.
+
 ![Blueprint 2: Flujo de Ejecución End-to-End](docs/images/02_mapa_flujo_ejecucion.jpg)
 
-Muestra la secuencia de 6 fases del ciclo operacional acotado:
-1. **Recepción de Solicitud (HTTP DTO):** Ingreso validado por la frontera perimetral.
-2. **Validación de Presupuesto:** Comprobación formal de `AutonomyBudget` (pasos máximos, presupuesto USD, tiempo máximo).
-3. **Planificación Inicial:** Despacho hacia `PlannerPort` para generar un `Plan` ordenado y determinista.
-4. **Bucle Acotado de Ejecución:** Ciclo iterativo `for (let i = 0; i < maxSteps; i++)` que ejecuta cada paso, obtiene una `Observation` inmutable y evalúa una `Decision`.
-5. **Transición a Estado Terminal:** Clasificación rigurosa en `COMPLETADA`, `PRESUPUESTO AGOTADO` o `CANCELADA`.
-6. **Emisión de Eventos y Auditoría Inmutable:** Registro correlacionado de todos los hechos en el bus operacional duradero.
+**Las 6 fases paso a paso:**
+
+1. 📥 **Recepción (HTTP DTO):** La petición llega al servidor, se valida el JSON (máximo 1MB), se normaliza el ID y se verifica la autenticación.
+2. 🛡️ **Validación de Presupuesto:** Se comprueba que el `AutonomyBudget` permita la operación — ¿quedan pasos disponibles? ¿Se ha excedido el tiempo máximo? ¿Hay cuota de llamadas a herramientas?
+3. 🧠 **Planificación:** El `PlannerPort` genera un `Plan` — una secuencia finita y congelada de pasos a ejecutar. El plan es inmutable una vez creado.
+4. 🔄 **Bucle Acotado:** Un ciclo `for` finito (nunca `while(true)`) ejecuta cada paso, obtiene una `Observation` inmutable del resultado y evalúa la siguiente `Decision`: ¿continuar? ¿completar? ¿fallar?
+5. 🏁 **Estado Terminal:** La operación termina en uno de 4 estados finales: `COMPLETED` ✅, `FAILED` ❌, `CANCELLED` 🚫, o `BUDGET_EXHAUSTED` ⚠️.
+6. 📋 **Auditoría:** Cada hecho se registra como un evento inmutable con `traceId` correlacionado. Nada se pierde, nada se modifica después.
 
 ## 3.4 Blueprint 3: Arquitectura de Agentes de Primera Clase y Capacidades Cognitivas
+
+Un agente en esta plataforma NO es un "chatbot autónomo con vida propia". Es una **tarjeta de perfil declarativa** que define qué puede hacer un trabajador de IA: qué modelo usa, qué herramientas tiene permitidas y a qué memoria puede acceder. Piensa en un agente como la credencial de un empleado que define sus permisos, no como el empleado ejecutando trabajo.
+
+> 💡 **Analogía:** Un agente es como la tarjeta de acceso de un hospital. La tarjeta dice "Dr. García, puede acceder a: Radiología ✅, Farmacia ✅, Quirófano ❌". Pero quien realmente opera las máquinas es el hospital (`CoreRuntime`), no la tarjeta. La tarjeta solo define los permisos.
+
 ![Blueprint 3: Arquitectura de Agentes](docs/images/03_mapa_arquitectura_agentes.jpg)
 
-Consagra el invariante fundamental: **"El Agente NO reemplaza a la Ejecución"**:
-* Un agente define una configuración declarativa de capacidades (perfil de rol, modelo vinculado, lista blanca estricta de herramientas `ToolGateway` y ámbito de memoria particionado).
-* Todo despacho de un agente se ejecuta obligatoriamente bajo las políticas y presupuestos del `CoreRuntime`, impidiendo accesos no autorizados a herramientas fuera de su perfil.
+**El principio cardinal: `Agent ≠ Execution`**
+
+* 🪪 **El Agente DEFINE capacidades:** Identidad, modelo de IA vinculado (GPT-4, Claude, Gemini), instrucciones de comportamiento, lista blanca de herramientas permitidas y un espacio de memoria aislado.
+* ⚙️ **El Runtime EJECUTA el trabajo:** Toda ejecución pasa obligatoriamente por `CoreRuntime`, que aplica las políticas de gobernanza, verifica la whitelist de herramientas y registra cada acción.
+* 🚫 **Lo que NO puede hacer un agente:** No tiene bucles propios, no agenda tareas, no ejecuta código directamente. Si un agente intenta usar una herramienta que no está en su whitelist, la ejecución se detiene instantáneamente.
 
 ## 3.5 Blueprint 4: Gobernanza Fail-Closed & Observabilidad Inmutable
+
+Este es el principio de seguridad más importante de toda la plataforma: **ante cualquier duda, detente**. A diferencia de los sistemas "fail-open" (donde si algo falla, se permite continuar por defecto), aquí todo lo que no está explícitamente permitido está **prohibido**.
+
+> 💡 **Ejemplo real:** Si un agente configurado para usar solo `CalculatorTool` intenta invocar `DatabaseTool`, la plataforma NO dice "bueno, dejémoslo pasar". Dice `PolicyDeniedError` y detiene la ejecución al instante. Sin excepciones. Sin bypass.
+
 ![Blueprint 4: Gobernanza Fail-Closed y Observabilidad](docs/images/04_mapa_gobernanza_observabilidad.jpg)
 
-Visualiza el mecanismo de ciberseguridad y observabilidad continua:
-* **Gobernanza Fail-Closed (Seguridad por Defecto):** Cualquier falla en la evaluación de políticas, timeout o intento de inyectar funciones ejecutables en metadatos produce la detención inmediata de la operación.
-* **Bus de Eventos Operacionales:** Difusión desacoplada de eventos de dominio tipados y almacenamiento append-only en `SqliteEventStore`.
-* **Observabilidad Inmutable:** Generación de snapshots congelados con `Object.freeze()`, línea de tiempo de auditoría inmutable y trazabilidad integral `{ traceId, taskId, executionId }`.
+**¿Cómo funciona la gobernanza fail-closed?**
+
+* 🛡️ **PolicyGateway — El guardián:** Antes de CADA acción (invocar un modelo, usar una herramienta, acceder a memoria), el sistema evalúa la política. Solo hay dos resultados: `ALLOW` (pase) o `DENY` (bloqueo total).
+* ❌ **Error = Deny:** Si el evaluador de políticas lanza una excepción, un timeout o cualquier error inesperado, el resultado NO es "permitir por defecto" — es DENEGAR. Esto es "fail-closed".
+* 📋 **Observabilidad Inmutable:** Cada hecho que ocurre en la plataforma se registra como un evento congelado con `Object.freeze()`. Una vez escrito, nadie puede modificarlo. Es como una caja negra de avión.
+* 🔗 **Trazabilidad Correlacionada:** Todo evento lleva un `traceId` único que permite reconstruir la historia completa de una operación — desde la petición HTTP original hasta la última escritura en la base de datos.
 
 ---
 

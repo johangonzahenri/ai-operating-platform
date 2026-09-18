@@ -208,6 +208,32 @@ export default {
     "budgetSaved": "Presupuesto actualizado exitosamente",
     "budgetExhaustedWarning": "Presupuesto agotado. Nuevas ejecuciones serán denegadas por política fail-closed."
   },
+  "coordination": {
+    "title": "Coordinación Organizacional entre Agentes",
+    "requestCoordination": "Solicitar Coordinación",
+    "sourceAgent": "Agente Origen",
+    "targetAgent": "Agente Destino",
+    "purpose": "Propósito / Objetivo",
+    "inputPayload": "Payload de Entrada (JSON)",
+    "depth": "Profundidad",
+    "maxDepth": "Profundidad Máx.",
+    "handoffCount": "Pases / Handoffs",
+    "maxHandoffs": "Handoffs Máx.",
+    "status": "Estado",
+    "statusRequested": "Solicitado",
+    "statusAuthorized": "Autorizado",
+    "statusDispatched": "Despachado",
+    "statusRunning": "En Ejecución",
+    "statusCompleted": "Completado",
+    "statusFailed": "Fallido",
+    "statusRejected": "Rechazado",
+    "statusCancelled": "Cancelado",
+    "output": "Resultado",
+    "error": "Error",
+    "noCoordinations": "No hay coordinaciones registradas para este equipo.",
+    "coordinationSuccess": "Coordinación completada exitosamente",
+    "coordinationRejected": "Coordinación rechazada por gobernanza o presupuesto"
+  },
 
   "actions": {
     "create": "Crear",

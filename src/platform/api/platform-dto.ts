@@ -670,5 +670,61 @@ export interface ConsumptionEvaluationDTO {
   readonly remaining?: BudgetRemainingDTO | undefined;
 }
 
+// --- Organizational Agent Coordination DTOs (Prompt 109) ---
+
+export interface AgentCoordinationDTO {
+  readonly id: string;
+  readonly tenantId: string;
+  readonly organizationId: string;
+  readonly teamId: string;
+  readonly sourceAgentId: string;
+  readonly targetAgentId: string;
+  readonly requesterId: string;
+  readonly correlationId: string;
+  readonly parentExecutionId?: string | undefined;
+  readonly childExecutionId?: string | undefined;
+  readonly purpose: string;
+  readonly inputPayload: Readonly<Record<string, unknown>>;
+  readonly outputPayload?: Readonly<Record<string, unknown>> | undefined;
+  readonly depth: number;
+  readonly maxDepth: number;
+  readonly handoffCount: number;
+  readonly maxHandoffs: number;
+  readonly status: "REQUESTED" | "AUTHORIZED" | "DISPATCHED" | "RUNNING" | "COMPLETED" | "FAILED" | "REJECTED" | "CANCELLED";
+  readonly failure?: Readonly<{ code: string; message: string }> | undefined;
+  readonly version: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+  readonly completedAt?: string | undefined;
+}
+
+export interface RequestCoordinationRequestDTO {
+  readonly id?: string | undefined;
+  readonly organizationId: string;
+  readonly sourceAgentId: string;
+  readonly targetAgentId: string;
+  readonly purpose: string;
+  readonly inputPayload: Readonly<Record<string, unknown>>;
+  readonly correlationId?: string | undefined;
+  readonly parentExecutionId?: string | undefined;
+  readonly depth?: number | undefined;
+  readonly maxDepth?: number | undefined;
+  readonly handoffCount?: number | undefined;
+  readonly maxHandoffs?: number | undefined;
+  readonly history?: readonly string[] | undefined;
+  readonly requestedTokens?: number | undefined;
+  readonly requestedCost?: number | undefined;
+  readonly estimatedDurationMs?: number | undefined;
+}
+
+export interface CoordinationExecutionResponseDTO {
+  readonly success: boolean;
+  readonly coordination: AgentCoordinationDTO;
+  readonly executionId?: string | undefined;
+  readonly output?: Readonly<Record<string, unknown>> | undefined;
+  readonly error?: Readonly<{ code: string; message: string }> | undefined;
+}
+
+
 
 

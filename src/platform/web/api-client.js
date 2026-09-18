@@ -724,3 +724,26 @@ export function connectEventStream(options = {}) {
   };
 }
 
+// --- Organizational Agent Coordination (Prompt 109) ---
+
+export async function getTeamCoordinations(teamId, options = {}) {
+  const params = new URLSearchParams();
+  if (options.limit !== undefined && options.limit !== "") params.set("limit", String(options.limit));
+  if (options.offset !== undefined && options.offset !== "") params.set("offset", String(options.offset));
+  const qs = params.toString();
+  return request(`/teams/${encodeURIComponent(teamId)}/coordinations${qs ? `?${qs}` : ""}`);
+}
+
+export async function requestTeamCoordination(teamId, payload) {
+  return request(`/teams/${encodeURIComponent(teamId)}/coordinations`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function getCoordination(id) {
+  return request(`/coordinations/${encodeURIComponent(id)}`);
+}
+
+

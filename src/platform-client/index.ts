@@ -12,6 +12,9 @@ import type {
   SafeAgentMetadataDTO,
   TaskCancellationResultDTO,
   TaskDTO,
+  AgentCoordinationDTO,
+  RequestCoordinationRequestDTO,
+  CoordinationExecutionResponseDTO,
 } from "../platform/api/platform-dto.js";
 import {
   toEventDTO,
@@ -534,6 +537,25 @@ export function createPlatformClient(options: PlatformClientOptions) {
     },
   };
 
+  const coordinations = {
+    async requestTeamCoordination(teamId: string, input: RequestCoordinationRequestDTO): Promise<CoordinationExecutionResponseDTO> {
+      return request<CoordinationExecutionResponseDTO>(`/teams/${encodeURIComponent(teamId)}/coordinations`, {
+        method: "POST",
+        body: JSON.stringify(input),
+      });
+    },
+    async listTeamCoordinations(teamId: string, options?: { limit?: number; offset?: number }): Promise<readonly AgentCoordinationDTO[]> {
+      const params = new URLSearchParams();
+      if (options?.limit) params.set("limit", String(options.limit));
+      if (options?.offset) params.set("offset", String(options.offset));
+      const qs = params.toString();
+      return request<readonly AgentCoordinationDTO[]>(`/teams/${encodeURIComponent(teamId)}/coordinations${qs ? `?${qs}` : ""}`);
+    },
+    async getCoordination(id: string): Promise<AgentCoordinationDTO> {
+      return request<AgentCoordinationDTO>(`/coordinations/${encodeURIComponent(id)}`);
+    },
+  };
+
   return {
     tasks,
     executions,
@@ -551,6 +573,7 @@ export function createPlatformClient(options: PlatformClientOptions) {
     printing,
     observability,
     documents,
+    coordinations,
     connect: () => healthGet(),
     health: Object.assign(healthGet, { get: healthGet }),
     getPlatformInfo: () => platform.get(),
@@ -582,6 +605,9 @@ export type {
   SafeAgentMetadataContract,
   TaskCancellationContract,
   TaskContract,
+  AgentCoordinationDTO,
+  RequestCoordinationRequestDTO,
+  CoordinationExecutionResponseDTO,
 };
 
 

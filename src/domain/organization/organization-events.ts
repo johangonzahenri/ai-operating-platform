@@ -286,3 +286,145 @@ export function createTeamResourceConsumptionDeniedEvent(
   );
 }
 
+export function createCoordinationRequestedEvent(
+  coord: { id: string; tenantId: string; organizationId: string; teamId: string; sourceAgentId: string; targetAgentId: string; correlationId: string; purpose: string; version: number },
+  traceId: string = crypto.randomUUID()
+): DomainEvent {
+  return event(
+    "coordination.requested",
+    traceId,
+    coord.id,
+    {
+      coordinationId: coord.id,
+      tenantId: coord.tenantId,
+      organizationId: coord.organizationId,
+      teamId: coord.teamId,
+      sourceAgentId: coord.sourceAgentId,
+      targetAgentId: coord.targetAgentId,
+      correlationId: coord.correlationId,
+      purpose: coord.purpose,
+      version: coord.version,
+    }
+  );
+}
+
+export function createCoordinationAuthorizedEvent(
+  coord: { id: string; tenantId: string; organizationId: string; teamId: string; sourceAgentId: string; targetAgentId: string; correlationId: string; version: number },
+  traceId: string = crypto.randomUUID()
+): DomainEvent {
+  return event(
+    "coordination.authorized",
+    traceId,
+    coord.id,
+    {
+      coordinationId: coord.id,
+      tenantId: coord.tenantId,
+      organizationId: coord.organizationId,
+      teamId: coord.teamId,
+      sourceAgentId: coord.sourceAgentId,
+      targetAgentId: coord.targetAgentId,
+      correlationId: coord.correlationId,
+      version: coord.version,
+    }
+  );
+}
+
+export function createCoordinationRejectedEvent(
+  coordId: string,
+  tenantId: string,
+  teamId: string,
+  sourceAgentId: string,
+  targetAgentId: string,
+  reason: string,
+  code: string,
+  traceId: string = crypto.randomUUID()
+): DomainEvent {
+  return event(
+    "coordination.rejected",
+    traceId,
+    coordId,
+    {
+      coordinationId: coordId,
+      tenantId,
+      teamId,
+      sourceAgentId,
+      targetAgentId,
+      reason,
+      code,
+    }
+  );
+}
+
+export function createCoordinationStartedEvent(
+  coord: { id: string; tenantId: string; organizationId: string; teamId: string; sourceAgentId: string; targetAgentId: string; correlationId: string; childExecutionId?: string | undefined; version: number },
+  traceId: string = crypto.randomUUID()
+): DomainEvent {
+  return event(
+    "coordination.started",
+    traceId,
+    coord.id,
+    {
+      coordinationId: coord.id,
+      tenantId: coord.tenantId,
+      organizationId: coord.organizationId,
+      teamId: coord.teamId,
+      sourceAgentId: coord.sourceAgentId,
+      targetAgentId: coord.targetAgentId,
+      correlationId: coord.correlationId,
+      childExecutionId: coord.childExecutionId,
+      version: coord.version,
+    }
+  );
+}
+
+export function createCoordinationCompletedEvent(
+  coord: { id: string; tenantId: string; organizationId: string; teamId: string; sourceAgentId: string; targetAgentId: string; correlationId: string; childExecutionId?: string | undefined; version: number },
+  output: Readonly<Record<string, unknown>>,
+  traceId: string = crypto.randomUUID()
+): DomainEvent {
+  return event(
+    "coordination.completed",
+    traceId,
+    coord.id,
+    {
+      coordinationId: coord.id,
+      tenantId: coord.tenantId,
+      organizationId: coord.organizationId,
+      teamId: coord.teamId,
+      sourceAgentId: coord.sourceAgentId,
+      targetAgentId: coord.targetAgentId,
+      correlationId: coord.correlationId,
+      childExecutionId: coord.childExecutionId,
+      outputSummary: { hasOutput: Boolean(output) },
+      version: coord.version,
+    }
+  );
+}
+
+export function createCoordinationFailedEvent(
+  coord: { id: string; tenantId: string; organizationId: string; teamId: string; sourceAgentId: string; targetAgentId: string; correlationId: string; childExecutionId?: string | undefined; version: number },
+  code: string,
+  message: string,
+  traceId: string = crypto.randomUUID()
+): DomainEvent {
+  return event(
+    "coordination.failed",
+    traceId,
+    coord.id,
+    {
+      coordinationId: coord.id,
+      tenantId: coord.tenantId,
+      organizationId: coord.organizationId,
+      teamId: coord.teamId,
+      sourceAgentId: coord.sourceAgentId,
+      targetAgentId: coord.targetAgentId,
+      correlationId: coord.correlationId,
+      childExecutionId: coord.childExecutionId,
+      code,
+      message,
+      version: coord.version,
+    }
+  );
+}
+
+

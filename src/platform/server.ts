@@ -41,6 +41,9 @@ async function bootstrap() {
     eventStore: platform.eventStore,
     db: platform.db,
     diagnostics: platform.diagnostics,
+    organizationService: platform.organizationService,
+    teamResourceBudgetService: platform.teamResourceBudgetService,
+    organizationalCoordinationService: platform.organizationalCoordinationService,
     eventStream: platform.eventStream,
   });
 
