@@ -43,6 +43,7 @@ import {
   TaskNotFoundError,
   InvalidTaskTransitionError,
 } from "../../domain/task/task.js";
+import { Runtime } from "../../domain/execution/runtime.js";
 import { IdempotencyStore } from "../../application/ports/idempotency-port.js";
 import { InMemoryIdempotencyStore } from "../../infrastructure/persistence/in-memory-idempotency-store.js";
 import { EnterpriseGovernanceService } from "../../application/governance/governance-service.js";
@@ -96,6 +97,8 @@ import {
   AuthorizeResourceConsumptionRequestDTO,
   ConsumptionEvaluationDTO,
   AgentCoordinationDTO,
+  AgentProfileDTO,
+  AgentCapabilityDTO,
   RequestCoordinationRequestDTO,
   CoordinationExecutionResponseDTO,
 } from "./platform-dto.js";
@@ -104,6 +107,9 @@ import { InMemoryOrganizationRepository } from "../../infrastructure/organizatio
 import { TeamResourceBudgetService } from "../../application/organization/team-resource-budget-service.js";
 import { InMemoryTeamResourceBudgetRepository } from "../../infrastructure/organization/in-memory-team-resource-budget-repository.js";
 import { OrganizationalCoordinationService } from "../../application/organization/organizational-coordination-service.js";
+import { AgentProfileService } from "../../application/organization/agent-profile-service.js";
+import { InMemoryAgentProfileRepository } from "../../infrastructure/persistence/in-memory/in-memory-agent-profile-repository.js";
+import { AgentProfile } from "../../domain/organization/agent-profile.js";
 import { InMemoryCoordinationRepository } from "../../infrastructure/persistence/in-memory/in-memory-coordination-repository.js";
 import { InMemoryPolicyGateway } from "../../infrastructure/policy/in-memory-policy-gateway.js";
 import { Organization } from "../../domain/organization/organization.js";
@@ -137,8 +143,6 @@ import { RequestContext } from "../../domain/context/request-context.js";
 
 export { TaskNotFoundError };
 
-
-
 export interface PlatformDependencies {
   readonly tasks: TaskQueryPort;
   readonly taskRepository?: TaskRepository | undefined;
@@ -167,6 +171,7 @@ export interface PlatformDependencies {
   readonly organizationService?: OrganizationService | undefined;
   readonly teamResourceBudgetService?: TeamResourceBudgetService | undefined;
   readonly organizationalCoordinationService?: OrganizationalCoordinationService | undefined;
+  readonly agentProfileService?: AgentProfileService | undefined;
   readonly eventStream?: EventStreamAdapter | undefined;
 }
 
@@ -185,6 +190,7 @@ export class PlatformService {
   private readonly organizationService: OrganizationService;
   private readonly teamResourceBudgetService: TeamResourceBudgetService;
   private readonly organizationalCoordinationService: OrganizationalCoordinationService;
+  private readonly agentProfileService: AgentProfileService;
   private readonly governanceService: EnterpriseGovernanceService;
   private readonly quotaService: QuotaService;
   private readonly integrationEngine: IntegrationTruthEngine;
@@ -232,7 +238,18 @@ export class PlatformService {
       organizationRepository: defaultOrgRepo,
       budgetService: this.teamResourceBudgetService,
       policyGateway: new InMemoryPolicyGateway(),
-      runtime: this.agentService ? this.agentService.getRuntime() : ({ execute: async () => ({ task: {} as any, execution: { id: "exec-stub", status: "COMPLETED" } as any }) } as any),
+      runtime: {
+        execute: async (task: Task) => ({
+          task,
+          execution: {} as any,
+          context: {} as any,
+        }),
+      },
+      agentQuery: this.agents ?? { findById: () => undefined, list: () => [] },
+    });
+    this.agentProfileService = deps.agentProfileService ?? new AgentProfileService({
+      profileRepository: new InMemoryAgentProfileRepository(),
+      organizationRepository: defaultOrgRepo,
       agentQuery: this.agents ?? { findById: () => undefined, list: () => [] },
     });
 
@@ -271,7 +288,6 @@ export class PlatformService {
     this.tenants.set(automotiveTenant.id, automotiveTenant);
     this.tenants.set(supportTenant.id, supportTenant);
   }
-
 
   getGovernanceService(): EnterpriseGovernanceService {
     return this.governanceService;
@@ -2213,6 +2229,36 @@ export class PlatformService {
 
   getOrganizationalCoordinationService(): OrganizationalCoordinationService {
     return this.organizationalCoordinationService;
+  }
+
+  getAgentProfileService(): AgentProfileService {
+    return this.agentProfileService;
+  }
+
+  toAgentProfileDTO(profile: AgentProfile): AgentProfileDTO {
+    return {
+      agentId: profile.agentId,
+      tenantId: profile.tenantId,
+      organizationId: profile.organizationId,
+      teamId: profile.teamId,
+      role: profile.role,
+      responsibilities: profile.responsibilities,
+      capabilities: profile.capabilities.map((c) => ({
+        id: c.id,
+        name: c.name,
+        version: c.version,
+        description: c.description,
+        category: c.category,
+        status: c.status,
+        verifiedAt: c.verifiedAt?.toISOString(),
+        verifiedBy: c.verifiedBy,
+        metadata: c.metadata,
+      })),
+      status: profile.status,
+      version: profile.version,
+      createdAt: profile.createdAt.toISOString(),
+      updatedAt: profile.updatedAt.toISOString(),
+    };
   }
 
   toAgentCoordinationDTO(record: AgentCoordinationRecord): AgentCoordinationDTO {

@@ -29,6 +29,8 @@ export type EventType =
   | "area.created" | "area.updated"
   | "team.created" | "team.updated"
   | "agent.assigned_to_team" | "agent.removed_from_team"
+  | "agent.profile.created" | "agent.profile.updated" | "agent.role.changed" | "agent.responsibility.changed"
+  | "agent.capability.added" | "agent.capability.removed" | "agent.capability.verified"
   | "team.budget.created" | "team.budget.updated" | "team.budget.exhausted" | "team.budget.status_changed"
   | "team.resource.consumption.authorized" | "team.resource.consumption.denied";
 

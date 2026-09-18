@@ -728,3 +728,80 @@ export interface CoordinationExecutionResponseDTO {
 
 
 
+
+
+// ============================================================================
+// Agent Profile, Responsibilities & Capabilities DTOs (Prompt 110)
+// ============================================================================
+
+export interface AgentCapabilityDTO {
+  readonly id: string;
+  readonly name: string;
+  readonly version?: string | undefined;
+  readonly description?: string | undefined;
+  readonly category?: string | undefined;
+  readonly status: "DECLARED" | "VERIFIED" | "DISABLED";
+  readonly verifiedAt?: string | undefined;
+  readonly verifiedBy?: string | undefined;
+  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+}
+
+export interface AgentProfileDTO {
+  readonly agentId: string;
+  readonly tenantId: string;
+  readonly organizationId: string;
+  readonly teamId: string;
+  readonly role: string;
+  readonly responsibilities: readonly string[];
+  readonly capabilities: readonly AgentCapabilityDTO[];
+  readonly status: "ACTIVE" | "INACTIVE";
+  readonly version: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export interface CreateAgentProfileRequestDTO {
+  readonly tenantId?: string | undefined;
+  readonly organizationId?: string | undefined;
+  readonly teamId: string;
+  readonly role?: string | undefined;
+  readonly responsibilities?: readonly string[] | undefined;
+  readonly capabilities?: readonly any[] | undefined;
+  readonly status?: string | undefined;
+}
+
+export interface UpdateAgentProfileRequestDTO {
+  readonly role?: string | undefined;
+  readonly responsibilities?: readonly string[] | undefined;
+  readonly status?: string | undefined;
+}
+
+export interface AddCapabilityRequestDTO {
+  readonly id: string;
+  readonly name: string;
+  readonly version?: string | undefined;
+  readonly description?: string | undefined;
+  readonly category?: string | undefined;
+  readonly status?: "DECLARED" | "VERIFIED" | "DISABLED" | undefined;
+  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+}
+
+export interface VerifyCapabilityRequestDTO {
+  readonly verifierId?: string | undefined;
+  readonly verifiedBy?: string | undefined;
+}
+
+export interface AgentDiscoveryCriteriaDTO {
+  readonly tenantId?: string | undefined;
+  readonly organizationId?: string | undefined;
+  readonly teamId?: string | undefined;
+  readonly role?: string | undefined;
+  readonly responsibility?: string | undefined;
+  readonly responsibilities?: readonly string[] | undefined;
+  readonly capabilityId?: string | undefined;
+  readonly capabilities?: readonly string[] | undefined;
+  readonly capabilityStatus?: "DECLARED" | "VERIFIED" | "DISABLED" | undefined;
+  readonly status?: "ACTIVE" | "INACTIVE" | undefined;
+  readonly limit?: number | undefined;
+  readonly offset?: number | undefined;
+}

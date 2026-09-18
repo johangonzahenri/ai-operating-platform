@@ -427,4 +427,162 @@ export function createCoordinationFailedEvent(
   );
 }
 
+// --- Agent Profile & Capability Events (Prompt 110) ---
+
+export function createAgentProfileCreatedEvent(
+  profile: { agentId: string; tenantId: string; organizationId: string; teamId: string; role: string; responsibilities: readonly string[]; capabilities: readonly any[]; status: string; version: number },
+  traceId: string = crypto.randomUUID()
+): DomainEvent {
+  return event(
+    "agent.profile.created",
+    traceId,
+    profile.agentId,
+    {
+      agentId: profile.agentId,
+      tenantId: profile.tenantId,
+      organizationId: profile.organizationId,
+      teamId: profile.teamId,
+      role: profile.role,
+      responsibilities: profile.responsibilities,
+      capabilitiesCount: profile.capabilities.length,
+      status: profile.status,
+      version: profile.version,
+    }
+  );
+}
+
+export function createAgentProfileUpdatedEvent(
+  profile: { agentId: string; tenantId: string; organizationId: string; teamId: string; role: string; responsibilities: readonly string[]; capabilities: readonly any[]; status: string; version: number },
+  traceId: string = crypto.randomUUID()
+): DomainEvent {
+  return event(
+    "agent.profile.updated",
+    traceId,
+    profile.agentId,
+    {
+      agentId: profile.agentId,
+      tenantId: profile.tenantId,
+      organizationId: profile.organizationId,
+      teamId: profile.teamId,
+      role: profile.role,
+      responsibilities: profile.responsibilities,
+      capabilitiesCount: profile.capabilities.length,
+      status: profile.status,
+      version: profile.version,
+    }
+  );
+}
+
+export function createAgentRoleChangedEvent(
+  profile: { agentId: string; tenantId: string; organizationId: string; teamId: string; version: number },
+  previousRole: string,
+  newRole: string,
+  editorId: string = "system",
+  traceId: string = crypto.randomUUID()
+): DomainEvent {
+  return event(
+    "agent.role.changed",
+    traceId,
+    profile.agentId,
+    {
+      agentId: profile.agentId,
+      tenantId: profile.tenantId,
+      organizationId: profile.organizationId,
+      teamId: profile.teamId,
+      previousRole,
+      newRole,
+      editorId,
+      version: profile.version,
+    }
+  );
+}
+
+export function createAgentResponsibilityChangedEvent(
+  profile: { agentId: string; tenantId: string; organizationId: string; teamId: string; version: number },
+  previousResponsibilities: readonly string[],
+  newResponsibilities: readonly string[],
+  traceId: string = crypto.randomUUID()
+): DomainEvent {
+  return event(
+    "agent.responsibility.changed",
+    traceId,
+    profile.agentId,
+    {
+      agentId: profile.agentId,
+      tenantId: profile.tenantId,
+      organizationId: profile.organizationId,
+      teamId: profile.teamId,
+      previousResponsibilities,
+      newResponsibilities,
+      version: profile.version,
+    }
+  );
+}
+
+export function createAgentCapabilityAddedEvent(
+  profile: { agentId: string; tenantId: string; organizationId: string; teamId: string; version: number },
+  capability: { id: string; name: string; status: string; category?: string | undefined },
+  traceId: string = crypto.randomUUID()
+): DomainEvent {
+  return event(
+    "agent.capability.added",
+    traceId,
+    profile.agentId,
+    {
+      agentId: profile.agentId,
+      tenantId: profile.tenantId,
+      organizationId: profile.organizationId,
+      teamId: profile.teamId,
+      capabilityId: capability.id,
+      capabilityName: capability.name,
+      capabilityStatus: capability.status,
+      category: capability.category,
+      version: profile.version,
+    }
+  );
+}
+
+export function createAgentCapabilityRemovedEvent(
+  profile: { agentId: string; tenantId: string; organizationId: string; teamId: string; version: number },
+  capabilityId: string,
+  traceId: string = crypto.randomUUID()
+): DomainEvent {
+  return event(
+    "agent.capability.removed",
+    traceId,
+    profile.agentId,
+    {
+      agentId: profile.agentId,
+      tenantId: profile.tenantId,
+      organizationId: profile.organizationId,
+      teamId: profile.teamId,
+      capabilityId,
+      version: profile.version,
+    }
+  );
+}
+
+export function createAgentCapabilityVerifiedEvent(
+  profile: { agentId: string; tenantId: string; organizationId: string; teamId: string; version: number },
+  capabilityId: string,
+  verifierId: string,
+  traceId: string = crypto.randomUUID()
+): DomainEvent {
+  return event(
+    "agent.capability.verified",
+    traceId,
+    profile.agentId,
+    {
+      agentId: profile.agentId,
+      tenantId: profile.tenantId,
+      organizationId: profile.organizationId,
+      teamId: profile.teamId,
+      capabilityId,
+      verifierId,
+      version: profile.version,
+    }
+  );
+}
+
+
 

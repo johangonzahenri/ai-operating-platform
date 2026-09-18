@@ -275,5 +275,19 @@ export default {
     "notFound": "El recurso solicitado no fue encontrado.",
     "validationFailed": "La validación del esquema de datos falló.",
     "networkError": "Error de comunicación con el servicio de plataforma."
+  },
+  "agentGovernance": {
+    "title": "Gobernanza de Roles y Capacidades de Agentes",
+    "role": "Rol",
+    "responsibilities": "Responsabilidades",
+    "capabilities": "Capacidades",
+    "verified": "Verificado",
+    "declared": "Declarado",
+    "disabled": "Deshabilitado",
+    "level": "Nivel",
+    "discover": "Descubrimiento de Agentes",
+    "verifyCapability": "Verificar Capacidad",
+    "addCapability": "Agregar Capacidad",
+    "removeCapability": "Eliminar Capacidad"
   }
 };

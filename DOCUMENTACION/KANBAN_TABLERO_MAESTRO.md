@@ -116,6 +116,7 @@
 | **ORG-07** | Consola Interactiva de Organización en Control Plane | Fase 56 | `DONE` | `src/platform/web/app.js` (0 `innerHTML`) | E2E Validado | ADR 0027 |
 | **ORG-08** | Presupuestos y Asignación de Recursos por Equipo | Fase 57 | `DONE` | `src/domain/organization/team-resource-budget.ts`, `sqlite-team-resource-budget-repository.ts` | 24 tests pass | ADR 0028 |
 | **ORG-09** | Coordinación Organizacional entre Agentes con OCC y Cuotas | Fase 60 | `DONE` | `src/domain/organization/organizational-coordination.ts`, `src/application/organization/organizational-coordination-service.ts` | 23 tests pass | ADR 0030 |
+| **ORG-10** | Gobernanza de Roles, Responsabilidades y Capacidades de Agentes | Fase 61 | `DONE` | `src/domain/organization/agent-profile.ts`, `src/application/organization/agent-profile-service.ts` | 27 tests pass | ADR 0031 |
 
 ---
 

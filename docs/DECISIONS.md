@@ -52,6 +52,7 @@ Este documento consolida el índice oficial de los Registros de Decisiones Arqui
 | **ADR 0028** | Team Resource Budget Governance | `0028-team-resource-budget-governance.md` | APROBADO | Cuotas operacionales, límites de consumo por equipo y transacciones atómicas con prevención de carreras. |
 | **ADR 0029** | Reactive Operational Streaming (SSE) | `0029-reactive-operational-streaming-sse.md` | APROBADO | Streaming unidireccional reactivo vía Server-Sent Events, replay desde Last-Event-ID y fallback a sondeo. |
 | **ADR 0030** | Organizational Coordination Foundation | `0030-organizational-coordination-foundation.md` | APROBADO | Coordinación organizacional entre agentes, validación de ciclos, límites de profundidad, PolicyGateway y budgets. |
+| **ADR 0031** | Agent Role, Responsibility & Capability Governance | `0031-agent-role-responsibility-capability-governance.md` | APROBADO | Gobernanza formal de roles, responsabilidades y capacidades verificadas de agentes con descubrimiento multigriterio. |
 
 
 ---

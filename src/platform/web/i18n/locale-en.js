@@ -275,5 +275,19 @@ export default {
     "notFound": "Requested resource was not found.",
     "validationFailed": "Data schema validation failed.",
     "networkError": "Communication error with platform service."
+  },
+  "agentGovernance": {
+    "title": "Agent Role and Capability Governance",
+    "role": "Role",
+    "responsibilities": "Responsibilities",
+    "capabilities": "Capabilities",
+    "verified": "Verified",
+    "declared": "Declared",
+    "disabled": "Disabled",
+    "level": "Level",
+    "discover": "Agent Discovery",
+    "verifyCapability": "Verify Capability",
+    "addCapability": "Add Capability",
+    "removeCapability": "Remove Capability"
   }
 };

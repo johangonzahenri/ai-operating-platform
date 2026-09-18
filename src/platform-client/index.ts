@@ -15,6 +15,13 @@ import type {
   AgentCoordinationDTO,
   RequestCoordinationRequestDTO,
   CoordinationExecutionResponseDTO,
+  AgentProfileDTO,
+  AgentCapabilityDTO,
+  CreateAgentProfileRequestDTO,
+  UpdateAgentProfileRequestDTO,
+  AddCapabilityRequestDTO,
+  VerifyCapabilityRequestDTO,
+  AgentDiscoveryCriteriaDTO,
 } from "../platform/api/platform-dto.js";
 import {
   toEventDTO,
@@ -556,6 +563,54 @@ export function createPlatformClient(options: PlatformClientOptions) {
     },
   };
 
+  const agentProfiles = {
+    async get(agentId: string): Promise<AgentProfileDTO> {
+      return request<AgentProfileDTO>(`/agents/${encodeURIComponent(agentId)}/profile`);
+    },
+    async create(agentId: string, input: CreateAgentProfileRequestDTO): Promise<AgentProfileDTO> {
+      return request<AgentProfileDTO>(`/agents/${encodeURIComponent(agentId)}/profile`, {
+        method: "POST",
+        body: JSON.stringify(input),
+      });
+    },
+    async update(agentId: string, input: UpdateAgentProfileRequestDTO): Promise<AgentProfileDTO> {
+      return request<AgentProfileDTO>(`/agents/${encodeURIComponent(agentId)}/profile`, {
+        method: "PATCH",
+        body: JSON.stringify(input),
+      });
+    },
+    async addCapability(agentId: string, input: AddCapabilityRequestDTO): Promise<AgentProfileDTO> {
+      return request<AgentProfileDTO>(`/agents/${encodeURIComponent(agentId)}/capabilities`, {
+        method: "POST",
+        body: JSON.stringify(input),
+      });
+    },
+    async removeCapability(agentId: string, capabilityId: string, expectedVersion?: number): Promise<AgentProfileDTO> {
+      return request<AgentProfileDTO>(`/agents/${encodeURIComponent(agentId)}/capabilities/${encodeURIComponent(capabilityId)}`, {
+        method: "DELETE",
+        ...(expectedVersion !== undefined ? { body: JSON.stringify({ expectedVersion }) } : {}),
+      });
+    },
+    async verifyCapability(agentId: string, capabilityId: string, input?: VerifyCapabilityRequestDTO): Promise<AgentProfileDTO> {
+      return request<AgentProfileDTO>(`/agents/${encodeURIComponent(agentId)}/capabilities/${encodeURIComponent(capabilityId)}/verify`, {
+        method: "POST",
+        body: JSON.stringify(input ?? {}),
+      });
+    },
+    async disableCapability(agentId: string, capabilityId: string, expectedVersion?: number): Promise<AgentProfileDTO> {
+      return request<AgentProfileDTO>(`/agents/${encodeURIComponent(agentId)}/capabilities/${encodeURIComponent(capabilityId)}/disable`, {
+        method: "POST",
+        ...(expectedVersion !== undefined ? { body: JSON.stringify({ expectedVersion }) } : {}),
+      });
+    },
+    async discover(criteria: AgentDiscoveryCriteriaDTO): Promise<readonly AgentProfileDTO[]> {
+      return request<readonly AgentProfileDTO[]>("/agents/discover", {
+        method: "POST",
+        body: JSON.stringify(criteria),
+      });
+    },
+  };
+
   return {
     tasks,
     executions,
@@ -574,6 +629,7 @@ export function createPlatformClient(options: PlatformClientOptions) {
     observability,
     documents,
     coordinations,
+    agentProfiles,
     connect: () => healthGet(),
     health: Object.assign(healthGet, { get: healthGet }),
     getPlatformInfo: () => platform.get(),
@@ -608,6 +664,13 @@ export type {
   AgentCoordinationDTO,
   RequestCoordinationRequestDTO,
   CoordinationExecutionResponseDTO,
+  AgentProfileDTO,
+  AgentCapabilityDTO,
+  CreateAgentProfileRequestDTO,
+  UpdateAgentProfileRequestDTO,
+  AddCapabilityRequestDTO,
+  VerifyCapabilityRequestDTO,
+  AgentDiscoveryCriteriaDTO,
 };
 
 

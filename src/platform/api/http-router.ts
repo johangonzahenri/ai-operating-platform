@@ -60,6 +60,13 @@ import {
   CoordinationCycleError,
   CoordinationDepthExceededError,
 } from "../../domain/organization/organizational-coordination.js";
+import {
+  ProfileValidationError,
+  ProfileNotFoundError,
+  CapabilityNotFoundError,
+  CapabilityAlreadyExistsError,
+  ProfileConcurrencyConflictError,
+} from "../../domain/organization/agent-profile.js";
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -1006,7 +1013,7 @@ export function createHttpServer(
 
         // GET /agents/:id
         const agentDetailMatch = subPath.match(/^\/agents\/([^/]+)$/);
-        if (agentDetailMatch && req.method === "GET") {
+        if (agentDetailMatch && agentDetailMatch[1] !== "discover" && req.method === "GET") {
           const id = normalizeId(agentDetailMatch[1]);
           if (!id) {
             sendError(400, "Bad Request: Invalid agent ID format", "INVALID_ID");
@@ -2169,7 +2176,7 @@ export function createHttpServer(
         // ====================================================================
         if (!isPlatformV1) {
           const handleOrgError = (err: any) => {
-            if (err instanceof OrganizationValidationError || err instanceof InvalidHierarchyError || err instanceof BudgetValidationError) {
+            if (err instanceof OrganizationValidationError || err instanceof InvalidHierarchyError || err instanceof BudgetValidationError || err instanceof ProfileValidationError) {
               sendError(400, err.message, "VALIDATION_ERROR");
               return;
             }
@@ -2183,6 +2190,14 @@ export function createHttpServer(
             }
             if (err instanceof TeamNotFoundError) {
               sendError(404, err.message, "TEAM_NOT_FOUND");
+              return;
+            }
+            if (err instanceof ProfileNotFoundError) {
+              sendError(404, err.message, "PROFILE_NOT_FOUND");
+              return;
+            }
+            if (err instanceof CapabilityNotFoundError) {
+              sendError(404, err.message, "CAPABILITY_NOT_FOUND");
               return;
             }
             if (err instanceof BudgetNotFoundError) {
@@ -2205,8 +2220,12 @@ export function createHttpServer(
               sendError(409, err.message, "MEMBERSHIP_CONFLICT");
               return;
             }
-            if (err instanceof BudgetConcurrencyConflictError) {
-              sendError(409, err.message, "BUDGET_CONCURRENCY_CONFLICT");
+            if (err instanceof CapabilityAlreadyExistsError) {
+              sendError(409, err.message, "CAPABILITY_ALREADY_EXISTS");
+              return;
+            }
+            if (err instanceof BudgetConcurrencyConflictError || err instanceof ProfileConcurrencyConflictError) {
+              sendError(409, err.message, "CONCURRENCY_CONFLICT");
               return;
             }
             if (err instanceof CrossTenantOrganizationError) {
@@ -2943,6 +2962,380 @@ export function createHttpServer(
             try {
               const record = await service.getOrganizationalCoordinationService().getCoordination(coordId, tenantId);
               sendJson(200, service.toAgentCoordinationDTO(record));
+              return;
+            } catch (err: any) {
+              handleOrgError(err);
+              return;
+            }
+          }
+
+          // ====================================================================
+          // Agent Role, Responsibility & Capability Governance (Prompt 110)
+          // ====================================================================
+
+          // GET /agents/discover
+          if (subPath === "/agents/discover" && req.method === "GET") {
+            const authCheck = await authenticateAndAuthorize("agent.read", "API", undefined, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const role = url.searchParams.get("role") ?? undefined;
+            const responsibilitiesParam = url.searchParams.get("responsibilities") ?? url.searchParams.get("responsibility");
+            const responsibility = responsibilitiesParam
+              ? (responsibilitiesParam.split(",")[0]?.trim() || undefined)
+              : undefined;
+            const capabilitiesParam = url.searchParams.get("capabilities") ?? url.searchParams.get("capabilityId");
+            const capabilityId = capabilitiesParam
+              ? (capabilitiesParam.split(",")[0]?.trim() || undefined)
+              : undefined;
+            const status = url.searchParams.get("status") ?? undefined;
+            const organizationId = url.searchParams.get("organizationId") ?? undefined;
+            const teamId = url.searchParams.get("teamId") ?? undefined;
+            const limitParam = url.searchParams.get("limit");
+            const limit = limitParam ? parseInt(limitParam, 10) : undefined;
+
+            try {
+              const profiles = await service.getAgentProfileService().discoverAgents({
+                tenantId,
+                role: role as any,
+                responsibility,
+                capabilityId,
+                status: status as any,
+                organizationId,
+                teamId,
+                limit: Number.isNaN(limit as any) ? undefined : limit,
+              });
+              sendJson(200, profiles.map((p) => service.toAgentProfileDTO(p)));
+              return;
+            } catch (err: any) {
+              handleOrgError(err);
+              return;
+            }
+          }
+
+          // POST /agents/discover
+          if (subPath === "/agents/discover" && req.method === "POST") {
+            const authCheck = await authenticateAndAuthorize("agent.read", "API", undefined, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const bodyResult = await readJsonBody();
+            if (!bodyResult.ok) {
+              sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+              return;
+            }
+            const body = bodyResult.body as {
+              role?: any;
+              responsibilities?: string[];
+              responsibility?: string;
+              capabilities?: string[];
+              capabilityId?: string;
+              status?: any;
+              organizationId?: string;
+              teamId?: string;
+              limit?: number;
+            };
+
+            const responsibility = Array.isArray(body.responsibilities) && body.responsibilities.length > 0
+              ? (body.responsibilities[0]?.trim() || undefined)
+              : typeof body.responsibility === "string"
+              ? (body.responsibility.trim() || undefined)
+              : undefined;
+
+            const capabilityId = Array.isArray(body.capabilities) && body.capabilities.length > 0
+              ? (body.capabilities[0]?.trim() || undefined)
+              : typeof body.capabilityId === "string"
+              ? (body.capabilityId.trim() || undefined)
+              : undefined;
+
+            try {
+              const profiles = await service.getAgentProfileService().discoverAgents({
+                tenantId,
+                role: body.role,
+                responsibility,
+                capabilityId,
+                status: body.status,
+                organizationId: body.organizationId,
+                teamId: body.teamId,
+                limit: typeof body.limit === "number" ? body.limit : undefined,
+              });
+              sendJson(200, profiles.map((p) => service.toAgentProfileDTO(p)));
+              return;
+            } catch (err: any) {
+              handleOrgError(err);
+              return;
+            }
+          }
+
+          // GET /agents/:id/profile
+          const agentProfileMatch = subPath.match(/^\/agents\/([^/]+)\/profile$/);
+          if (agentProfileMatch && req.method === "GET") {
+            const agentId = normalizeId(agentProfileMatch[1]);
+            if (!agentId) {
+              sendError(400, "Bad Request: Invalid agent ID format", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("agent.read", "API", agentId, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+
+            try {
+              const profile = await service.getAgentProfileService().getProfile(agentId, tenantId);
+              sendJson(200, service.toAgentProfileDTO(profile));
+              return;
+            } catch (err: any) {
+              handleOrgError(err);
+              return;
+            }
+          }
+
+          // POST /agents/:id/profile (Create profile)
+          if (agentProfileMatch && req.method === "POST") {
+            const agentId = normalizeId(agentProfileMatch[1]);
+            if (!agentId) {
+              sendError(400, "Bad Request: Invalid agent ID format", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("organization.update", "API", agentId, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const bodyResult = await readJsonBody();
+            if (!bodyResult.ok) {
+              sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+              return;
+            }
+            const body = bodyResult.body as {
+              organizationId?: string;
+              teamId?: string;
+              role?: any;
+              responsibilities?: string[];
+              capabilities?: any[];
+              status?: any;
+            };
+
+            try {
+              const profile = await service.getAgentProfileService().createProfile({
+                agentId,
+                tenantId,
+                organizationId: body.organizationId ?? "",
+                teamId: body.teamId ?? "",
+                role: body.role,
+                responsibilities: body.responsibilities,
+                capabilities: body.capabilities,
+                status: body.status,
+              });
+              sendJson(201, service.toAgentProfileDTO(profile));
+              return;
+            } catch (err: any) {
+              handleOrgError(err);
+              return;
+            }
+          }
+
+          // PATCH /agents/:id/profile or PUT /agents/:id/profile (Update profile)
+          if (agentProfileMatch && (req.method === "PATCH" || req.method === "PUT")) {
+            const agentId = normalizeId(agentProfileMatch[1]);
+            if (!agentId) {
+              sendError(400, "Bad Request: Invalid agent ID format", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("organization.update", "API", agentId, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const bodyResult = await readJsonBody();
+            if (!bodyResult.ok) {
+              sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+              return;
+            }
+            const body = bodyResult.body as {
+              expectedVersion?: number;
+              role?: any;
+              responsibilities?: string[];
+              status?: any;
+              metadata?: Record<string, unknown>;
+            };
+
+            try {
+              let updated = await service.getAgentProfileService().getProfile(agentId, tenantId);
+
+              if (body.role !== undefined) {
+                updated = await service.getAgentProfileService().updateRole(agentId, body.role, tenantId);
+              }
+              if (body.responsibilities !== undefined) {
+                updated = await service.getAgentProfileService().updateResponsibilities(agentId, body.responsibilities, tenantId);
+              }
+              if (body.status !== undefined) {
+                updated = await service.getAgentProfileService().setStatus(agentId, body.status, tenantId);
+              }
+
+              sendJson(200, service.toAgentProfileDTO(updated));
+              return;
+            } catch (err: any) {
+              handleOrgError(err);
+              return;
+            }
+          }
+
+          // POST /agents/:id/capabilities (Add capability)
+          const agentCapabilitiesMatch = subPath.match(/^\/agents\/([^/]+)\/capabilities$/);
+          if (agentCapabilitiesMatch && req.method === "POST") {
+            const agentId = normalizeId(agentCapabilitiesMatch[1]);
+            if (!agentId) {
+              sendError(400, "Bad Request: Invalid agent ID format", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("organization.update", "API", agentId, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const bodyResult = await readJsonBody();
+            if (!bodyResult.ok) {
+              sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+              return;
+            }
+            const body = bodyResult.body as {
+              id?: string;
+              name?: string;
+              version?: string;
+              description?: string;
+              category?: string;
+              status?: any;
+              metadata?: Record<string, unknown>;
+            };
+
+            if (!body.id || typeof body.id !== "string" || !body.id.trim()) {
+              sendError(400, "Bad Request: 'id' is required for capability", "INVALID_ID");
+              return;
+            }
+            if (!body.name || typeof body.name !== "string" || !body.name.trim()) {
+              sendError(400, "Bad Request: 'name' is required for capability", "INVALID_NAME");
+              return;
+            }
+
+            try {
+              const updated = await service.getAgentProfileService().addCapability(
+                agentId,
+                {
+                  id: body.id.trim(),
+                  name: body.name.trim(),
+                  version: typeof body.version === "string" ? body.version.trim() : undefined,
+                  description: typeof body.description === "string" ? body.description.trim() : undefined,
+                  category: typeof body.category === "string" ? body.category.trim() : undefined,
+                  status: body.status,
+                  metadata: body.metadata,
+                },
+                tenantId
+              );
+              sendJson(201, service.toAgentProfileDTO(updated));
+              return;
+            } catch (err: any) {
+              handleOrgError(err);
+              return;
+            }
+          }
+
+          // POST /agents/:id/capabilities/:capId/verify
+          const capVerifyMatch = subPath.match(/^\/agents\/([^/]+)\/capabilities\/([^/]+)\/verify$/);
+          if (capVerifyMatch && req.method === "POST") {
+            const agentId = normalizeId(capVerifyMatch[1]);
+            const capId = normalizeId(capVerifyMatch[2]);
+            if (!agentId || !capId) {
+              sendError(400, "Bad Request: Invalid ID format", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("organization.update", "API", agentId, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const bodyResult = await readJsonBody();
+            const body = bodyResult.ok ? (bodyResult.body as { verifiedBy?: string }) : {};
+            const verifiedBy = body.verifiedBy ?? authCheck.context?.principal?.id ?? reqCtx.principal?.id ?? "system";
+
+            try {
+              const updated = await service.getAgentProfileService().verifyCapability(
+                agentId,
+                capId,
+                verifiedBy,
+                tenantId
+              );
+              sendJson(200, service.toAgentProfileDTO(updated));
+              return;
+            } catch (err: any) {
+              handleOrgError(err);
+              return;
+            }
+          }
+
+          // POST /agents/:id/capabilities/:capId/disable
+          const capDisableMatch = subPath.match(/^\/agents\/([^/]+)\/capabilities\/([^/]+)\/disable$/);
+          if (capDisableMatch && req.method === "POST") {
+            const agentId = normalizeId(capDisableMatch[1]);
+            const capId = normalizeId(capDisableMatch[2]);
+            if (!agentId || !capId) {
+              sendError(400, "Bad Request: Invalid ID format", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("organization.update", "API", agentId, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+
+            try {
+              const updated = await service.getAgentProfileService().disableCapability(
+                agentId,
+                capId,
+                tenantId
+              );
+              sendJson(200, service.toAgentProfileDTO(updated));
+              return;
+            } catch (err: any) {
+              handleOrgError(err);
+              return;
+            }
+          }
+
+          // DELETE /agents/:id/capabilities/:capId
+          const capDeleteMatch = subPath.match(/^\/agents\/([^/]+)\/capabilities\/([^/]+)$/);
+          if (capDeleteMatch && req.method === "DELETE") {
+            const agentId = normalizeId(capDeleteMatch[1]);
+            const capId = normalizeId(capDeleteMatch[2]);
+            if (!agentId || !capId) {
+              sendError(400, "Bad Request: Invalid ID format", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("organization.update", "API", agentId, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+
+            try {
+              const updated = await service.getAgentProfileService().removeCapability(
+                agentId,
+                capId,
+                tenantId
+              );
+              sendJson(200, service.toAgentProfileDTO(updated));
               return;
             } catch (err: any) {
               handleOrgError(err);

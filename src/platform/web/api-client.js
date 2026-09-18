@@ -746,4 +746,67 @@ export async function getCoordination(id) {
   return request(`/coordinations/${encodeURIComponent(id)}`);
 }
 
+// --- Agent Role, Responsibility & Capability Governance (Prompt 110) ---
+
+export async function getAgentProfile(agentId) {
+  return request(`/agents/${encodeURIComponent(agentId)}/profile`);
+}
+
+export async function createAgentProfile(agentId, profileData) {
+  return request(`/agents/${encodeURIComponent(agentId)}/profile`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(profileData),
+  });
+}
+
+export async function updateAgentProfile(agentId, patch) {
+  return request(`/agents/${encodeURIComponent(agentId)}/profile`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
+  });
+}
+
+export async function addAgentCapability(agentId, capabilityData) {
+  return request(`/agents/${encodeURIComponent(agentId)}/capabilities`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(capabilityData),
+  });
+}
+
+export async function removeAgentCapability(agentId, capabilityId, expectedVersion) {
+  return request(`/agents/${encodeURIComponent(agentId)}/capabilities/${encodeURIComponent(capabilityId)}`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: expectedVersion !== undefined ? JSON.stringify({ expectedVersion }) : undefined,
+  });
+}
+
+export async function verifyAgentCapability(agentId, capabilityId, data = {}) {
+  return request(`/agents/${encodeURIComponent(agentId)}/capabilities/${encodeURIComponent(capabilityId)}/verify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function disableAgentCapability(agentId, capabilityId, expectedVersion) {
+  return request(`/agents/${encodeURIComponent(agentId)}/capabilities/${encodeURIComponent(capabilityId)}/disable`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: expectedVersion !== undefined ? JSON.stringify({ expectedVersion }) : undefined,
+  });
+}
+
+export async function discoverAgents(criteria = {}) {
+  return request("/agents/discover", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(criteria),
+  });
+}
+
+
 

@@ -82,6 +82,10 @@ import { CoordinationRepositoryPort } from "../application/ports/coordination-re
 import { InMemoryCoordinationRepository } from "../infrastructure/persistence/in-memory/in-memory-coordination-repository.js";
 import { SqliteCoordinationRepository } from "../infrastructure/persistence/sqlite/sqlite-coordination-repository.js";
 import { OrganizationalCoordinationService } from "../application/organization/organizational-coordination-service.js";
+import { AgentProfileRepositoryPort } from "../application/ports/agent-profile-repository-port.js";
+import { AgentProfileService } from "../application/organization/agent-profile-service.js";
+import { InMemoryAgentProfileRepository } from "../infrastructure/persistence/in-memory/in-memory-agent-profile-repository.js";
+import { SqliteAgentProfileRepository } from "../infrastructure/persistence/sqlite/sqlite-agent-profile-repository.js";
 
 export interface CreatePlatformOptions {
   readonly logger?: StructuredLogger | undefined;
@@ -105,6 +109,8 @@ export interface CreatePlatformOptions {
   readonly teamResourceBudgetService?: TeamResourceBudgetService | undefined;
   readonly coordinationRepository?: CoordinationRepositoryPort | undefined;
   readonly organizationalCoordinationService?: OrganizationalCoordinationService | undefined;
+  readonly agentProfileRepository?: AgentProfileRepositoryPort | undefined;
+  readonly agentProfileService?: AgentProfileService | undefined;
   readonly eventStream?: EventStreamAdapter | undefined;
 }
 
@@ -292,6 +298,21 @@ export const createPlatform = (
   const agentService = new AgentService(agents, agentRuntime, modelRegistry, tools);
   const multiAgentCoordinator = new MultiAgentCoordinator(agentRuntime, agents, policy, events);
 
+  const agentProfileRepository: AgentProfileRepositoryPort = (!isLogger && (optionsOrLogger as CreatePlatformOptions).agentProfileRepository)
+    ? (optionsOrLogger as CreatePlatformOptions).agentProfileRepository!
+    : dbManager
+      ? new SqliteAgentProfileRepository(dbManager)
+      : new InMemoryAgentProfileRepository();
+
+  const agentProfileService: AgentProfileService = (!isLogger && (optionsOrLogger as CreatePlatformOptions).agentProfileService)
+    ? (optionsOrLogger as CreatePlatformOptions).agentProfileService!
+    : new AgentProfileService({
+        profileRepository: agentProfileRepository,
+        organizationRepository,
+        agentQuery: agents,
+        events,
+      });
+
   const organizationalCoordinationService: OrganizationalCoordinationService = (!isLogger && (optionsOrLogger as CreatePlatformOptions).organizationalCoordinationService)
     ? (optionsOrLogger as CreatePlatformOptions).organizationalCoordinationService!
     : new OrganizationalCoordinationService({
@@ -416,6 +437,8 @@ export const createPlatform = (
     teamResourceBudgetService,
     coordinationRepository,
     organizationalCoordinationService,
+    agentProfileRepository,
+    agentProfileService,
   };
 };
 
