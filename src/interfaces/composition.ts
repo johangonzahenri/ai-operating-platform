@@ -28,6 +28,7 @@ import { InMemoryTaskRepository } from "../infrastructure/persistence/in-memory-
 import { InMemoryExecutionRepository } from "../infrastructure/persistence/in-memory-execution-repository.js";
 import { InMemoryMemoryGateway } from "../infrastructure/memory/in-memory-memory-gateway.js";
 import { InMemoryAuditLog } from "../infrastructure/observability/in-memory-audit-log.js";
+import { EventStreamAdapter } from "../application/observability/event-stream-adapter.js";
 import { InMemoryMetricsCollector } from "../infrastructure/observability/in-memory-metrics-collector.js";
 import { EventObservabilitySubscriber } from "../infrastructure/observability/event-observability-subscriber.js";
 import { InMemoryToolRegistry } from "../infrastructure/tools/in-memory-tool-registry.js";
@@ -98,6 +99,7 @@ export interface CreatePlatformOptions {
   readonly organizationService?: OrganizationService | undefined;
   readonly teamResourceBudgetRepository?: TeamResourceBudgetRepositoryPort | undefined;
   readonly teamResourceBudgetService?: TeamResourceBudgetService | undefined;
+  readonly eventStream?: EventStreamAdapter | undefined;
 }
 
 
@@ -336,11 +338,16 @@ export const createPlatform = (
     ? (optionsOrLogger as CreatePlatformOptions).rbacEvaluator!
     : new RbacAuthorizationEvaluator(roleRepository, events);
 
+  const eventStream: EventStreamAdapter = (!isLogger && (optionsOrLogger as CreatePlatformOptions).eventStream)
+    ? (optionsOrLogger as CreatePlatformOptions).eventStream!
+    : new EventStreamAdapter(events, eventStore);
+
   return {
     tasks,
     taskRepository: tasks as unknown as TaskRepository,
     executions,
     events,
+    eventStream,
     audit,
     metrics,
     policy,

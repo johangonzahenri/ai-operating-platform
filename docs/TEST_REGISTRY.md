@@ -10,13 +10,14 @@ Este registro documenta el inventario verificado de pruebas automatizadas del pr
 ============================================================
   ESTADO CANÓNICO DE PRUEBAS (TEST EXECUTION BASELINE)
 ============================================================
-  Total Tests Ejecutados : 1064
-  Total Tests Aprobados  : 1064 (PASS)
-  Total Tests Fallidos   : 0    (FAIL)
-  Total Tests Omitidos   : 0    (SKIPPED)
-  Total Tests Pendientes : 0    (TODO)
-  Suites Principales     : 11
-  Tasa de Éxito          : 100.0%
+  Línea Base Previa (Fase 58) : 1064 PASS
+  Total Tests Ejecutados      : 1072
+  Total Tests Aprobados       : 1072 (PASS)
+  Total Tests Fallidos        : 0    (FAIL)
+  Total Tests Omitidos        : 0    (SKIPPED)
+  Total Tests Pendientes      : 0    (TODO)
+  Suites Principales          : 11
+  Tasa de Éxito               : 100.0%
 ============================================================
 
 ```
@@ -158,5 +159,11 @@ Este registro documenta el inventario verificado de pruebas automatizadas del pr
   - `tests/unit/team-resource-budget-enforcement.test.ts`
 * **Pruebas Contenidas:** 45 tests pass.
 * **Aspectos Verificados:** Agregado `TeamResourceBudget` con límites multidimensionales (`maxExecutions`, `maxModelCalls`, `maxToolCalls`, `maxAutonomousSteps`, `maxDurationMs`, `maxTokens`), estados de ciclo de vida (`ACTIVE`, `EXHAUSTED`, `SUSPENDED`), ventanas temporales (`LIFETIME`, `DAILY`, `MONTHLY`), cálculo dinámico de remanentes, repositorio SQLite `SqliteTeamResourceBudgetRepository` con transacciones atómicas `BEGIN IMMEDIATE`, prevención estricta de condiciones de carrera en la última unidad (Last-Unit Race Condition: 1 ALLOW / 1 DENY), aislamiento multi-tenant, servicio `TeamResourceBudgetService` con eventos tipados de autorización/denegación/agotamiento, endpoints REST `/api/v1/teams/:id/budget*`, e integración fail-closed end-to-end en el runtime de ejecución (`AgentExecutionStrategy`, `ToolInvocationRuntime`, `AutonomousOrchestrator`) verificando que agentes sin asignación de equipo son denegados por defecto salvo política de sistema explícita, que presupuestos inexistentes deniegan la ejecución, que las dimensiones duras bloquean pre-ejecución y las dimensiones post-facto (duración/tokens) registran fielmente excesos y transicionan a `EXHAUSTED`.
+
+### 2.13 Streaming Operacional Reactivo (Server-Sent Events & Observabilidad Push)
+* **Archivos:**
+  - `tests/platform/reactive-operational-streaming.test.ts`
+* **Pruebas Contenidas:** 8 tests pass.
+* **Aspectos Verificados:** Adaptador `EventStreamAdapter` para streaming unidireccional HTTP (`text/event-stream`), sanitización recursiva de credenciales y tokens sensibles (`sanitizePayload`), manejo de conexiones activas, heartbeats periódicos con `unref()`, backpressure con buffers acotados (`maxQueueSize: 200`), replay histórico de eventos persistidos en `EventStore` a partir de `Last-Event-ID`, aislamiento estricto multi-tenant (prevención de entrega cruzada de eventos entre tenants), autenticación y autorización fail-closed sobre `/api/v1/events/stream` y `/api/platform/v1/events/stream`, suscripción a eventos en vivo mediante `EventPublisher`, e integración con `PlatformClient` y cliente Web (`app.js`) con reconexión transparente.
 
 

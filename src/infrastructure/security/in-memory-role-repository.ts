@@ -40,6 +40,7 @@ export class InMemoryRoleRepository implements RoleRepository {
         permissions: [
           "public.read",
           "health.check",
+          "events.*",
           "task.*",
           "agent.*",
           "model.*",
@@ -69,6 +70,7 @@ export class InMemoryRoleRepository implements RoleRepository {
         permissions: [
           "public.read",
           "health.check",
+          "events.read",
           "task.create",
           "task.read",
           "task.cancel",
@@ -87,6 +89,7 @@ export class InMemoryRoleRepository implements RoleRepository {
         permissions: [
           "public.read",
           "health.check",
+          "events.read",
           "task.create",
           "task.read",
           "task.cancel",

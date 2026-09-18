@@ -41,6 +41,7 @@ async function bootstrap() {
     eventStore: platform.eventStore,
     db: platform.db,
     diagnostics: platform.diagnostics,
+    eventStream: platform.eventStream,
   });
 
   const server = createHttpServer(service, {

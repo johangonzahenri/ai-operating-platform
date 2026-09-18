@@ -600,3 +600,127 @@ export async function authorizeTeamResourceConsumption(teamId, data) {
   });
 }
 
+// ============================================================================
+// Reactive Operational Streaming (Prompt 108 / Phase 59)
+// ============================================================================
+
+/**
+ * Connect to the Server-Sent Events operational stream.
+ * @param {Object} [options]
+ * @param {string} [options.tenantId]
+ * @param {string} [options.agentId]
+ * @param {string} [options.executionId]
+ * @param {string} [options.traceId]
+ * @param {string} [options.eventType]
+ * @param {number} [options.lastEventId]
+ * @param {Function} [options.onEvent]
+ * @param {Function} [options.onError]
+ * @param {Function} [options.onOpen]
+ * @returns {{ close: Function }}
+ */
+export function connectEventStream(options = {}) {
+  const params = new URLSearchParams();
+  if (options.tenantId) params.set("tenantId", options.tenantId);
+  if (options.agentId) params.set("agentId", options.agentId);
+  if (options.executionId) params.set("executionId", options.executionId);
+  if (options.traceId) params.set("traceId", options.traceId);
+  if (options.eventType) params.set("eventType", options.eventType);
+  if (options.lastEventId !== undefined) params.set("lastEventId", String(options.lastEventId));
+
+  const qs = params.toString();
+  const url = `${BASE_PATH}/events/stream${qs ? `?${qs}` : ""}`;
+
+  if (typeof EventSource !== "undefined") {
+    const es = new EventSource(url);
+    es.onopen = () => {
+      options.onOpen?.();
+    };
+    es.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        options.onEvent?.({ id: e.lastEventId, event: "message", data });
+      } catch {
+        options.onEvent?.({ id: e.lastEventId, event: "message", data: e.data });
+      }
+    };
+    es.onerror = (err) => {
+      options.onError?.(err);
+    };
+    return {
+      close: () => {
+        es.close();
+      },
+    };
+  }
+
+  // Fallback: fetch streaming
+  let aborted = false;
+  const ac = typeof AbortController !== "undefined" ? new AbortController() : null;
+
+  (async () => {
+    try {
+      const res = await fetch(url, {
+        headers: {
+          Accept: "text/event-stream",
+          ...(options.lastEventId !== undefined ? { "Last-Event-ID": String(options.lastEventId) } : {}),
+        },
+        signal: ac?.signal,
+      });
+
+      if (!res.ok) {
+        options.onError?.(new Error(`Event stream connection failed: HTTP ${res.status}`));
+        return;
+      }
+
+      options.onOpen?.();
+
+      if (!res.body) return;
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (!aborted) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop() ?? "";
+
+        for (const part of parts) {
+          const lines = part.split("\n");
+          let currentId;
+          let currentEvent;
+          let currentDataStr = "";
+
+          for (const line of lines) {
+            if (line.startsWith("id: ")) currentId = line.substring(4).trim();
+            else if (line.startsWith("event: ")) currentEvent = line.substring(7).trim();
+            else if (line.startsWith("data: ")) currentDataStr = line.substring(6).trim();
+          }
+
+          if (currentDataStr) {
+            try {
+              const data = JSON.parse(currentDataStr);
+              options.onEvent?.({ id: currentId, event: currentEvent, data });
+            } catch {
+              options.onEvent?.({ id: currentId, event: currentEvent, data: currentDataStr });
+            }
+          }
+        }
+      }
+    } catch (err) {
+      if (!aborted) {
+        options.onError?.(err);
+      }
+    }
+  })();
+
+  return {
+    close: () => {
+      aborted = true;
+      ac?.abort();
+    },
+  };
+}
+

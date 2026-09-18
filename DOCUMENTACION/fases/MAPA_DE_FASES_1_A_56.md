@@ -107,15 +107,19 @@
   * Desglose de 38 ADRs (28 numéricos `0001-0028` + 10 arquitectónicos `ADR-001-ADR-010`).
   * Sincronización de componentes en `docs/SOURCE_OF_TRUTH.md` y taxonomía de brechas ambientales vs deuda técnica.
   * Línea base: **1064 tests PASS / 0 FAIL**.
+* **Fase 59 (Prompt 108):**
+  * Streaming Operacional Reactivo (`EventStreamAdapter`, ADR 0029).
+  * Streaming unidireccional HTTP push mediante Server-Sent Events (SSE) sobre `/api/v1/events/stream` y `/api/platform/v1/events/stream`.
+  * Replay histórico con `Last-Event-ID` desde `EventStore`, heartbeats periódicos, buffers acotados y fallback no disruptivo a sondeo en Web Control Plane (0 `innerHTML`).
+  * Línea base: **1072 tests PASS / 0 FAIL**.
 
 ---
 
-## 3. Backlog Futuro Formal (Fase 59+)
+## 3. Backlog Futuro Formal (Fase 60+)
 
 | Fase Planificada | Título de la Iniciativa | Objetivo Técnico | Estado Kanban |
 | :--- | :--- | :--- | :--- |
 | **Fase 58** | Certificación Final de Criterios de Release | Auditoría de producción masiva y certificación de release (`AOP-V1-EXIT`). | `IN REVIEW` |
-| **Fase 59** | WebSockets Bidireccionales sobre HTTP/2 | Streaming de eventos y telemetría interactiva de baja latencia sin polling. | `BACKLOG` |
 | **Fase 60+** | Checkpoint Distribuido Multi-Nodo | Sincronización multi-región para despliegues federados (v2.0). | `BACKLOG` |
 
 

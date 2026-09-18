@@ -520,6 +520,69 @@ export function createHttpServer(
 
 
 
+        // GET /events/stream — Reactive Operational Streaming (SSE)
+        if (subPath === "/events/stream" && req.method === "GET") {
+          // 1. Authenticate caller (Support Authorization header, x-api-key, or query param token/apiKey)
+          const queryApiKey = url.searchParams.get("apiKey") || url.searchParams.get("api_key");
+          const queryToken = url.searchParams.get("token");
+
+          // Temporarily graft query credentials onto headers if absent
+          if (!req.headers["x-api-key"] && queryApiKey) {
+            req.headers["x-api-key"] = queryApiKey;
+          }
+          if (!req.headers["authorization"] && queryToken) {
+            req.headers["authorization"] = `Bearer ${queryToken}`;
+          }
+
+          const authCheck = await authenticateAndAuthorize("events.read", "API", "events", undefined, false);
+          if (!authCheck.ok) {
+            sendError(authCheck.status, authCheck.message, authCheck.code);
+            return;
+          }
+
+          // 2. Derive trusted tenantId (From SecurityContext, or fallback to query/header tenant for unauthenticated local demo)
+          const callerTenant = authCheck.context?.tenantId ??
+            req.headers["x-tenant-id"]?.toString() ??
+            url.searchParams.get("tenantId") ??
+            "default-tenant";
+
+          // Cross-tenant protection: if client specified tenantId, verify it matches authenticated context
+          const requestedTenant = url.searchParams.get("tenantId");
+          if (requestedTenant && authCheck.context?.tenantId && requestedTenant !== authCheck.context.tenantId) {
+            sendError(403, "Forbidden: Cross-tenant event streaming forbidden", "FORBIDDEN");
+            return;
+          }
+
+          // 3. Extract filtering and Last-Event-ID
+          const lastEventIdHeader = req.headers["last-event-id"]?.toString();
+          const lastEventIdQuery = url.searchParams.get("lastEventId");
+          let lastEventId: number | undefined = undefined;
+          const rawLastId = lastEventIdHeader ?? lastEventIdQuery;
+          if (rawLastId !== undefined && rawLastId !== null) {
+            const parsed = parseInt(rawLastId, 10);
+            if (!Number.isNaN(parsed) && parsed >= 0) {
+              lastEventId = parsed;
+            }
+          }
+
+          const filterCriteria = {
+            tenantId: callerTenant,
+            organizationId: url.searchParams.get("organizationId")?.trim() || undefined,
+            teamId: url.searchParams.get("teamId")?.trim() || undefined,
+            agentId: url.searchParams.get("agentId")?.trim() || undefined,
+            executionId: url.searchParams.get("executionId")?.trim() || undefined,
+            traceId: url.searchParams.get("traceId")?.trim() || undefined,
+            eventType: url.searchParams.get("eventType")?.trim() || undefined,
+            lastEventId,
+          };
+
+          const streamResult = service.handleEventStream(res, filterCriteria);
+          if (!streamResult.ok) {
+            sendError(streamResult.status, streamResult.message, streamResult.code);
+          }
+          return;
+        }
+
         // GET /events
         if (subPath === "/events" && req.method === "GET") {
           const limitParam = url.searchParams.get("limit");

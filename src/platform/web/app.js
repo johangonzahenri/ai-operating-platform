@@ -52,6 +52,9 @@ class PlatformApp {
   constructor() {
     this.currentTab = "platform-operations";
     this.refreshInterval = null;
+    this.eventStreamHandle = null;
+    this.streamConnectionState = "CONNECTING"; // CONNECTING | CONNECTED | RECONNECTING | DISCONNECTED
+    this.lastReceivedEventId = 0;
     this.selectedAgentId = null;
     this.selectedOperationId = null;
     this.selectedToolId = null;
@@ -198,6 +201,7 @@ class PlatformApp {
     this.setupOrganizations();
     this.loadData();
     this.startAutoRefresh();
+    this.initEventStreaming();
   }
 
   setupTheme() {
@@ -1407,26 +1411,133 @@ class PlatformApp {
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) {
         this.stopAutoRefresh();
+        if (this.eventStreamHandle) {
+          this.eventStreamHandle.close();
+          this.eventStreamHandle = null;
+        }
       } else {
         this.loadData();
         this.startAutoRefresh();
+        this.initEventStreaming();
       }
     });
   }
 
   startAutoRefresh(intervalMs = 5000) {
     this.stopAutoRefresh();
+    // In reactive mode, we use polling as fallback heartbeat/safety check at a longer interval (e.g. 15s)
     this.refreshInterval = setInterval(() => {
       if (!document.hidden) {
         this.loadData();
       }
-    }, intervalMs);
+    }, Math.max(intervalMs, 15000));
   }
 
   stopAutoRefresh() {
     if (this.refreshInterval) {
       clearInterval(this.refreshInterval);
       this.refreshInterval = null;
+    }
+  }
+
+  initEventStreaming() {
+    if (this.eventStreamHandle) {
+      this.eventStreamHandle.close();
+      this.eventStreamHandle = null;
+    }
+
+    this.updateStreamConnectionStatus("CONNECTING");
+
+    try {
+      this.eventStreamHandle = api.connectEventStream({
+        lastEventId: this.lastReceivedEventId || undefined,
+        onOpen: () => {
+          this.updateStreamConnectionStatus("CONNECTED");
+        },
+        onEvent: (msg) => {
+          this.updateStreamConnectionStatus("CONNECTED");
+          this.handleIncomingLiveEvent(msg);
+        },
+        onError: () => {
+          // Reconnecting or fallback to polling
+          this.updateStreamConnectionStatus("RECONNECTING");
+        },
+      });
+    } catch {
+      this.updateStreamConnectionStatus("DISCONNECTED");
+    }
+  }
+
+  updateStreamConnectionStatus(state) {
+    this.streamConnectionState = state;
+    const dot = document.querySelector(".pulse-dot");
+    const statusElem = document.getElementById("engine-status");
+
+    if (dot) {
+      dot.classList.remove("pulse-connecting", "pulse-connected", "pulse-reconnecting", "pulse-disconnected");
+      if (state === "CONNECTING") dot.classList.add("pulse-connecting");
+      else if (state === "CONNECTED") dot.classList.add("pulse-connected");
+      else if (state === "RECONNECTING") dot.classList.add("pulse-reconnecting");
+      else if (state === "DISCONNECTED") dot.classList.add("pulse-disconnected");
+    }
+
+    if (statusElem) {
+      const t = i18n?.t ? (k) => i18n.t(k) : (k) => k;
+      if (state === "CONNECTING") statusElem.textContent = t("app.connecting") || "Engine: Connecting...";
+      else if (state === "CONNECTED") statusElem.textContent = `${t("app.connected") || "Engine: Operational"} (Streaming)`;
+      else if (state === "RECONNECTING") statusElem.textContent = t("app.reconnecting") || "Engine: Reconnecting...";
+      else if (state === "DISCONNECTED") statusElem.textContent = t("app.disconnected") || "Engine: Disconnected";
+    }
+  }
+
+  handleIncomingLiveEvent(msg) {
+    if (!msg || !msg.data) return;
+    const data = typeof msg.data === "object" ? msg.data : {};
+    if (msg.id && !Number.isNaN(Number(msg.id))) {
+      this.lastReceivedEventId = Number(msg.id);
+    } else if (data.sequenceNumber && !Number.isNaN(Number(data.sequenceNumber))) {
+      this.lastReceivedEventId = Number(data.sequenceNumber);
+    }
+
+    // 1. Live prepend to cachedEvents and events table if on events view
+    const eventItem = {
+      sequenceNumber: data.sequenceNumber || this.lastReceivedEventId || Date.now(),
+      type: data.eventType || msg.event || "UNKNOWN",
+      aggregateType: data.aggregateType || "Operational",
+      aggregateId: data.aggregateId || data.taskId || data.executionId || "-",
+      occurredAt: data.occurredAt || new Date().toISOString(),
+      traceId: data.traceId || "-",
+      payload: data.payload ?? {},
+    };
+
+    if (Array.isArray(this.cachedEvents)) {
+      this.cachedEvents.unshift(eventItem);
+      if (this.cachedEvents.length > 100) this.cachedEvents.pop();
+    }
+
+    // If on Platform Operations tab, re-render events table
+    if (this.currentTab === "platform-operations") {
+      const tbody = document.getElementById("events-tbody");
+      if (tbody && this.cachedEvents.length > 0) {
+        this.renderEventsTable(this.cachedEvents);
+        const badge = document.getElementById("events-count-badge");
+        if (badge) {
+          this.eventsTotalCount = (this.eventsTotalCount || 0) + 1;
+          badge.textContent = `${this.eventsTotalCount} events`;
+        }
+      }
+    }
+
+    // 2. Increment live metrics counter if execution or task event
+    const eventType = String(data.eventType || msg.event || "");
+    if (eventType.includes("Execution") || eventType.includes("Task")) {
+      const mExecs = document.getElementById("metric-executions");
+      if (mExecs) {
+        const curr = parseInt(mExecs.textContent || "0", 10);
+        if (!Number.isNaN(curr) && eventType.includes("Started")) {
+          mExecs.textContent = String(curr + 1);
+        }
+      }
     }
   }
 

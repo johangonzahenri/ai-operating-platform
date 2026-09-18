@@ -3,6 +3,7 @@ import { PLATFORM_VERSION } from "../version.js";
 
 import { ExecuteOrchestration } from "../../application/orchestration/execute-orchestration.js";
 import { SubmitTask } from "../../application/submit-task.js";
+import { EventStreamAdapter, StreamFilterCriteria, StreamClientOptions } from "../../application/observability/event-stream-adapter.js";
 import { AgentService } from "../../application/agent/agent-service.js";
 import { AutonomousOperationService } from "../../application/autonomy/autonomous-operation-service.js";
 import {
@@ -158,6 +159,7 @@ export interface PlatformDependencies {
   readonly idempotencyEngine?: IdempotencyEngine | undefined;
   readonly organizationService?: OrganizationService | undefined;
   readonly teamResourceBudgetService?: TeamResourceBudgetService | undefined;
+  readonly eventStream?: EventStreamAdapter | undefined;
 }
 
 export class PlatformService {
@@ -182,11 +184,13 @@ export class PlatformService {
   private readonly observabilityService: ObservabilityService;
   private readonly rateLimiter: ServerRateLimiter;
   private readonly idempotencyEngine: IdempotencyEngine;
+  private readonly eventStream?: EventStreamAdapter | undefined;
   private readonly tenants: Map<string, Tenant> = new Map();
   private readonly startTime: Date;
 
   constructor(deps: PlatformDependencies) {
     this.deps = deps;
+    this.eventStream = deps.eventStream;
     this.models = deps.models ?? new InMemoryModelRegistry([
       {
         id: "stub-model",
@@ -2157,6 +2161,32 @@ export class PlatformService {
       version: budget.version,
       createdAt: budget.createdAt.toISOString(),
       updatedAt: budget.updatedAt.toISOString(),
+    };
+  }
+
+  handleEventStream(
+    res: import("node:http").ServerResponse,
+    filter: StreamFilterCriteria,
+    options?: StreamClientOptions
+  ): { ok: true; clientId: string } | { ok: false; status: number; code: string; message: string } {
+    if (!this.eventStream) {
+      return {
+        ok: false,
+        status: 501,
+        code: "STREAMING_UNAVAILABLE",
+        message: "Reactive event streaming adapter is not configured on this server instance",
+      };
+    }
+    return this.eventStream.handleClientConnection(res, filter, options);
+  }
+
+  getStreamStats() {
+    return this.eventStream?.getStats() ?? {
+      totalConnectionsCreated: 0,
+      activeConnections: 0,
+      eventsDelivered: 0,
+      eventsDropped: 0,
+      errorsCount: 0,
     };
   }
 }

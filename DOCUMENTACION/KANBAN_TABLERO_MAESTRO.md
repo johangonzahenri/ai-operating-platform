@@ -13,13 +13,13 @@
 ===================================================================================
   ESTADO DEL TABLERO KANBAN — CONSOLIDADO DE INGENIERÍA
 ===================================================================================
-  Iniciativas Totales Catalogadas : 36
-  [DONE]      Completadas & Verificadas : 34 (94.4%)
-  [REVIEW]    En Revisión / Auditoría   : 1  (2.8%)
+  Iniciativas Totales Catalogadas : 37
+  [DONE]      Completadas & Verificadas : 35 (94.6%)
+  [REVIEW]    En Revisión / Auditoría   : 1  (2.7%)
   [TODO]      Planificadas / Listas     : 0  (0.0%)
-  [BACKLOG]   Backlog Futuro Bounded    : 1  (2.8%)
+  [BACKLOG]   Backlog Futuro Bounded    : 1  (2.7%)
   ---------------------------------------------------------------------------------
-  Línea Base de Pruebas (Test Suite)    : 1064 PASS / 0 FAIL (11 Suites / 100%)
+  Línea Base de Pruebas (Test Suite)    : 1072 PASS / 0 FAIL (11 Suites / 100%)
   Dependencias de Producción en Runtime : 0 NPM Runtime Dependencies
   Versión Canónica de Plataforma        : v1.3.0
 ===================================================================================
@@ -70,6 +70,7 @@
 | **PLT-05** | Almacén Durable de Eventos (`SqliteEventStore`) | Fase 13 | `DONE` | `src/infrastructure/persistence/sqlite/sqlite-event-store.ts` | 22 tests pass | ADR 0021 |
 | **PLT-06** | Diagnósticos Forenses en Tiempo de Ejecución | Fase 14 | `DONE` | `src/application/diagnostics/runtime-diagnostics.ts` | 16 tests pass | ADR 0022 |
 | **PLT-07** | Convergencia de API `/api/v1` y Cabeceras RFC 8594 | Fase 55 | `DONE` | `src/platform/api/http-router.ts` | 1 test pass | ADR-100-05 |
+| **PLT-08** | Streaming Operacional Reactivo (SSE) | Fase 59 | `DONE` | `src/application/observability/event-stream-adapter.ts`, `src/platform/api/http-router.ts` | 8 tests pass | ADR 0029 |
 
 ---
 
@@ -160,8 +161,9 @@
 │ FLUJO DE ACCIÓN INMEDIATA                                                                  │
 ├─────────────────────────────────────────────────────────────────────────────────────────────┤
 │ 1. [IN REVIEW] INF-05: Certificación de release v1.3.0 (`CERTIFIED WITH OPEN GAPS`)         │
-│ 2. [DONE]      ORG-08: Modelado y enforcement de presupuestos por equipo (Fases 57-57.2)   │
-│ 3. [BACKLOG]   COR-08: Especificación de checkpoint distribuido multi-nodo para v2.0        │
+│ 2. [DONE]      PLT-08: Streaming Operacional Reactivo SSE (Fase 59 / Prompt 108)            │
+│ 3. [DONE]      ORG-08: Modelado y enforcement de presupuestos por equipo (Fases 57-57.2)   │
+│ 4. [BACKLOG]   COR-08: Especificación de checkpoint distribuido multi-nodo para v2.0        │
 └─────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 

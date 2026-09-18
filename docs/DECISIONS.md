@@ -50,6 +50,7 @@ Este documento consolida el índice oficial de los Registros de Decisiones Arqui
 | **ADR 0026** | Production Reverse Proxy & TLS | `0026-production-reverse-proxy-and-tls.md` | APROBADO | Manifiestos de Nginx y Caddy con terminación TLS, HSTS, CSP y rate limiting perimetral. |
 | **ADR 0027** | Virtual Organization Foundation | `0027-virtual-organization-foundation.md` | APROBADO | Jerarquía organizativa multinivel (Organización, Áreas, Equipos) y membresía gobernada de agentes con roles. |
 | **ADR 0028** | Team Resource Budget Governance | `0028-team-resource-budget-governance.md` | APROBADO | Cuotas operacionales, límites de consumo por equipo y transacciones atómicas con prevención de carreras. |
+| **ADR 0029** | Reactive Operational Streaming (SSE) | `0029-reactive-operational-streaming-sse.md` | APROBADO | Streaming unidireccional reactivo vía Server-Sent Events, replay desde Last-Event-ID y fallback a sondeo. |
 
 
 ---

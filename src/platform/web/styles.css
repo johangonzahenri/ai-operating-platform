@@ -247,6 +247,26 @@ body {
   animation: pulse-glow 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+.pulse-dot.pulse-connecting {
+  background-color: #f59e0b;
+  box-shadow: 0 0 8px #f59e0b;
+}
+
+.pulse-dot.pulse-connected {
+  background-color: var(--accent-green);
+  box-shadow: 0 0 8px var(--accent-green);
+}
+
+.pulse-dot.pulse-reconnecting {
+  background-color: #eab308;
+  box-shadow: 0 0 8px #eab308;
+}
+
+.pulse-dot.pulse-disconnected {
+  background-color: var(--accent-red);
+  box-shadow: 0 0 8px var(--accent-red);
+}
+
 @keyframes pulse-glow {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.4; transform: scale(1.15); }

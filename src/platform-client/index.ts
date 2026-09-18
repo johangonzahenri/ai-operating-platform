@@ -284,6 +284,106 @@ export function createPlatformClient(options: PlatformClientOptions) {
       const q = query ? "?" + new URLSearchParams(query).toString() : "";
       return request<DurableEventListResponseDTO>(`/events${q}`);
     },
+    stream(criteria?: {
+      readonly tenantId?: string | undefined;
+      readonly agentId?: string | undefined;
+      readonly executionId?: string | undefined;
+      readonly traceId?: string | undefined;
+      readonly eventType?: string | undefined;
+      readonly lastEventId?: number | undefined;
+    }, callbacks?: {
+      readonly onEvent?: (event: { readonly id?: string | undefined; readonly event?: string | undefined; readonly data: unknown }) => void;
+      readonly onError?: (err: unknown) => void;
+      readonly onOpen?: () => void;
+    }): { readonly close: () => void } {
+      const params = new URLSearchParams();
+      if (options.apiKey) params.set("apiKey", options.apiKey);
+      if (options.bearerToken) params.set("token", options.bearerToken);
+      if (criteria?.tenantId) params.set("tenantId", criteria.tenantId);
+      if (criteria?.agentId) params.set("agentId", criteria.agentId);
+      if (criteria?.executionId) params.set("executionId", criteria.executionId);
+      if (criteria?.traceId) params.set("traceId", criteria.traceId);
+      if (criteria?.eventType) params.set("eventType", criteria.eventType);
+      if (criteria?.lastEventId !== undefined) params.set("lastEventId", String(criteria.lastEventId));
+
+      const qs = params.toString();
+      const url = joinUrl(baseUrl, apiPrefix, `/events/stream${qs ? `?${qs}` : ""}`);
+      let aborted = false;
+      const ac = new AbortController();
+
+      (async () => {
+        try {
+          const res = await fetchImpl(url, {
+            headers: {
+              Accept: "text/event-stream",
+              ...(options.apiKey ? { "X-API-Key": options.apiKey } : {}),
+              ...(options.bearerToken ? { Authorization: `Bearer ${options.bearerToken}` } : {}),
+              ...(criteria?.lastEventId !== undefined ? { "Last-Event-ID": String(criteria.lastEventId) } : {}),
+            },
+            signal: ac.signal,
+          });
+
+          if (!res.ok) {
+            const err = new Error(`Event stream connection failed: HTTP ${res.status}`);
+            callbacks?.onError?.(err);
+            return;
+          }
+
+          callbacks?.onOpen?.();
+
+          if (!res.body) return;
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = "";
+
+          while (!aborted) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+
+            const parts = buffer.split("\n\n");
+            buffer = parts.pop() ?? "";
+
+            for (const part of parts) {
+              const lines = part.split("\n");
+              let currentId: string | undefined;
+              let currentEvent: string | undefined;
+              let currentDataStr = "";
+
+              for (const line of lines) {
+                if (line.startsWith("id: ")) {
+                  currentId = line.substring(4).trim();
+                } else if (line.startsWith("event: ")) {
+                  currentEvent = line.substring(7).trim();
+                } else if (line.startsWith("data: ")) {
+                  currentDataStr = line.substring(6).trim();
+                }
+              }
+
+              if (currentDataStr) {
+                try {
+                  const data = JSON.parse(currentDataStr);
+                  callbacks?.onEvent?.({ id: currentId, event: currentEvent, data });
+                } catch {
+                  callbacks?.onEvent?.({ id: currentId, event: currentEvent, data: currentDataStr });
+                }
+              }
+            }
+          }
+        } catch (err) {
+          if (!aborted) {
+            callbacks?.onError?.(err);
+          }
+        }
+      })();
+
+      return {
+        close: () => {
+          aborted = true;
+          ac.abort();
+        },
+      };
+    },
   };
 
   const integrations = {

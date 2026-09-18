@@ -169,9 +169,21 @@ Este registro documenta el progreso factual de las fases de ingeniería correspo
 * **Implementado:** Definición explícita de semántica de release en `docs/V1_EXIT_CRITERIA.md`, transición reconciliada de `INF-05` a `IN REVIEW` y `AOP-V1-EXIT` a `VALIDATION`, desglose canónico de los 38 ADRs ($28 + 10$), corrección de estado de componentes en `docs/SOURCE_OF_TRUTH.md` y actualización de métricas en Kanban.
 * **Evidencia:** `docs/V1_EXIT_CRITERIA.md`, `docs/RELEASE_CERTIFICATION_V1.md`, `DOCUMENTACION/KANBAN_TABLERO_MAESTRO.md`, `docs/ROADMAP_MASTER.md`, `docs/SOURCE_OF_TRUTH.md`, `docs/TECHNICAL_DEBT.md`.
 * **Tests:** 1064 tests PASS, 0 FAIL, 11 suites.
-* **Commit:** `feat(phase-58.1): release governance reconciliation and certification integrity`.
+* **Commit:** `1491ee1` (`feat(phase-58.1): release governance reconciliation and certification integrity`).
 * **Documentación:** Todos los registros sincronizados.
 * **Estado:** `DONE`
+
+---
+
+### Prompt 108 — Reactive Operational Streaming (SSE)
+* **Objetivo:** Evolucionar la observabilidad del Control Plane desde sondeo periódico HTTP (`setInterval(..., 5000)`) hacia streaming reactivo push mediante Server-Sent Events (SSE) con aislamiento estricto multi-tenant, replay desde `Last-Event-ID`, heartbeats periódicos, buffers acotados y fallback no disruptivo a sondeo.
+* **Implementado:** `EventStreamAdapter` (`src/application/observability/event-stream-adapter.ts`), endpoints `/api/v1/events/stream` y `/api/platform/v1/events/stream`, métodos SDK `events.stream()` y `connectEventStream()`, integración en Web Control Plane SPA (`app.js`) con indicador `.pulse-dot` de 4 estados, 0 `.innerHTML`, soporte bilingüe `es-419`/`en` y ADR 0029.
+* **Evidencia:** `src/application/observability/event-stream-adapter.ts`, `src/platform/api/http-router.ts`, `src/platform-client/index.ts`, `src/platform/web/app.js`, `src/platform/web/styles.css`, `docs/decisions/0029-reactive-operational-streaming-sse.md`.
+* **Tests:** `tests/platform/reactive-operational-streaming.test.ts` (8 tests pass). Total suite: 1072 tests PASS, 0 FAIL, 11 suites.
+* **Commit:** `feat(phase-59): reactive operational streaming with sse`.
+* **Documentación:** ADR 0029, `docs/DECISIONS.md`, `docs/ROADMAP_MASTER.md`, `DOCUMENTACION/KANBAN_TABLERO_MAESTRO.md`, `docs/TEST_REGISTRY.md`.
+* **Estado:** `DONE`
+
 
 
 
