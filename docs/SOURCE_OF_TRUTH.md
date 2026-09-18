@@ -64,11 +64,11 @@ Para evitar falsas expectativas operacionales, todo componente debe clasificarse
 * **Anthropic (`AnthropicModelGateway`):** `IMPLEMENTED` como adaptador de código. Si no se provee `ANTHROPIC_API_KEY`, su estado operativo es `UNCONFIGURED`.
 * **Ollama (`OllamaModelGateway`):** `IMPLEMENTED` como adaptador de código. Si el daemon local `http://127.0.0.1:11434` no está activo, su estado es `UNAVAILABLE`.
 * **Stub Determinista (`StubModelGateway`):** `IMPLEMENTED` y `AVAILABLE` como motor predeterminado y de contingencia para pruebas y desarrollo.
-* **Google Gemini / Vertex AI:** `NOT_IMPLEMENTED`. No existe código de adaptador en `src/infrastructure/model/`. No debe declararse bajo ningún concepto como implementado.
+* **Google Gemini / Vertex AI (`GeminiModelGateway`):** `IMPLEMENTED` como adaptador nativo (ADR 0023). Si no se provee `GEMINI_API_KEY`, su estado operativo es `UNCONFIGURED`.
 
 ### 4.2 Persistencia y Memoria
-* **Persistencia Relacional SQLite WAL:** `IMPLEMENTED` y `AVAILABLE` (`SqliteDatabase`, `SqliteTaskRepository`, `SqliteExecutionRepository`, `SqliteOperationRepository`, `SqliteAgentRepository`, `SqliteEventStore`). Es el controlador por defecto en el servidor de producción.
-* **Memoria Duradera en SQLite:** `NOT_IMPLEMENTED`. El sistema cuenta con `InMemoryMemoryGateway`. No existe `SqliteMemoryGateway` en `src/`. La memoria duradera es una brecha documentada en el backlog.
+* **Persistencia Relacional SQLite WAL:** `IMPLEMENTED` y `AVAILABLE` (`SqliteDatabase`, `SqliteTaskRepository`, `SqliteExecutionRepository`, `SqliteOperationRepository`, `SqliteAgentRepository`, `SqliteOrganizationRepository`, `SqliteTeamResourceBudgetRepository`, `SqliteEventStore`). Es el controlador por defecto en el servidor de producción.
+* **Memoria Duradera en SQLite (`SqliteMemoryGateway`):** `IMPLEMENTED` y `AVAILABLE` (ADR 0024). Persistencia relacional de memoria indexada por ámbito (`TASK`, `AGENT`, `SESSION`).
 
 ### 4.3 Dispositivos Empresariales e Impresión
 * **Adaptador Brother DCP-1600 series:** `IMPLEMENTED` a nivel de software (`BrotherPrinterAdapter`) en puerto local `USB001`.

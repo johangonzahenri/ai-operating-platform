@@ -14,14 +14,14 @@
   ESTADO DEL TABLERO KANBAN — CONSOLIDADO DE INGENIERÍA
 ===================================================================================
   Iniciativas Totales Catalogadas : 36
-  [DONE]      Completadas & Verificadas : 35 (97.2%)
-  [REVIEW]    En Revisión / Auditoría   : 0  (0.0%)
+  [DONE]      Completadas & Verificadas : 34 (94.4%)
+  [REVIEW]    En Revisión / Auditoría   : 1  (2.8%)
   [TODO]      Planificadas / Listas     : 0  (0.0%)
   [BACKLOG]   Backlog Futuro Bounded    : 1  (2.8%)
   ---------------------------------------------------------------------------------
   Línea Base de Pruebas (Test Suite)    : 1064 PASS / 0 FAIL (11 Suites / 100%)
   Dependencias de Producción en Runtime : 0 NPM Runtime Dependencies
-  Versión Canónica de Plataforma        : v1.1.0 / v1.2.0 Foundation / v1.3.0 Governance
+  Versión Canónica de Plataforma        : v1.3.0
 ===================================================================================
 
 ```
@@ -149,7 +149,7 @@
 | **INF-02** | Configuración Caddy v2 con Emisión ACME Automática | Fase 55 | `DONE` | `deploy/caddy/Caddyfile` | Config verificada | ADR 0026 |
 | **INF-03** | Orquestación Docker Compose Multi-Contenedor | Fase 55 | `DONE` | `deploy/docker-compose.prod.yml` | Compose validado | ADR 0026 |
 | **INF-04** | Pipeline CI/CD en GitHub Actions con Puertas de Calidad | Fase 55 | `DONE` | `.github/workflows/ci.yml` | CI passing | ADR-100-01 |
-| **INF-05** | Certificación Final de Criterios de Producción (`AOP-V1-EXIT`) | Fase 58 | `DONE` | `docs/RELEASE_CERTIFICATION_V1.md` | 1064 tests pass | ADR-100-01 |
+| **INF-05** | Certificación Final de Criterios de Producción (`AOP-V1-EXIT`) | Fase 58 | `IN REVIEW` | `docs/RELEASE_CERTIFICATION_V1.md` | 1064 tests pass | ADR-100-01 |
 
 ---
 
@@ -159,7 +159,7 @@
 ┌─────────────────────────────────────────────────────────────────────────────────────────────┐
 │ FLUJO DE ACCIÓN INMEDIATA                                                                  │
 ├─────────────────────────────────────────────────────────────────────────────────────────────┤
-│ 1. [DONE]      INF-05: Certificación integral de criterios de release formal completada    │
+│ 1. [IN REVIEW] INF-05: Certificación de release v1.3.0 (`CERTIFIED WITH OPEN GAPS`)         │
 │ 2. [DONE]      ORG-08: Modelado y enforcement de presupuestos por equipo (Fases 57-57.2)   │
 │ 3. [BACKLOG]   COR-08: Especificación de checkpoint distribuido multi-nodo para v2.0        │
 └─────────────────────────────────────────────────────────────────────────────────────────────┘

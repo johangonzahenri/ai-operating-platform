@@ -32,6 +32,8 @@
 
 ## Prefacio: Plataforma Operacional de IA para Habilitación Multiplataforma
 
+> **📖 Guía de Lectura:** Este libro documenta la arquitectura y operaciones de la AI Operating Platform. Si eres nuevo en la plataforma, comienza por las infografías del **Capítulo 3** para una visión general visual, luego avanza a los **Capítulos 4-6** para entender los componentes principales. Los capítulos **7-11** son material de referencia para consulta.
+
 El propósito de la **AI Operating Platform** no es constituir una "fábrica aislada" ni un chatbot monolítico independiente. Su rol estratégico es actuar como la **plataforma operacional de infraestructura y gobierno de Inteligencia Artificial** concebida para conectarse con y dotar de capacidades cognitivas a múltiples plataformas de negocio existentes y futuras.
 
 Entre sus principales casos de integración se encuentran aplicaciones de comercio electrónico (como plataformas de venta de vestuario y retail omnicanal), sistemas de gestión de inventario y pedidos, plataformas SaaS y servicios de atención automatizada. En lugar de dispersar llamadas caóticas a APIs de modelos de lenguaje (LLMs) dentro del código de cada aplicación satélite, esta plataforma centraliza:
@@ -235,6 +237,8 @@ Las infografías maestras representan visualmente las garantías operacionales, 
   3. **Capa de Dominio y Gobernanza:** Define el `AutonomyBudget` (límites de pasos, costo y tiempo), la máquina de estados finita y los perfiles de agentes cognitivos.
   4. **Capa de Infraestructura y Adaptadores:** Gestiona los puertos de herramientas (consultas de inventario, pasarelas externas), conectores LLM y repositorios en memoria y SQLite duradero.
 
+![Mapa del Ecosistema: Plataforma e Integraciones](docs/images/05_ecosystem_map.jpg)
+
 ## 3.2 Blueprint 1: Topología Hexagonal y Puertos & Adaptadores en 5 Capas
 ![Blueprint 1: Topología Hexagonal en 5 Capas](docs/images/01_mapa_arquitectura_hexagonal.jpg)
 
@@ -306,9 +310,17 @@ Visualiza el mecanismo de ciberseguridad y observabilidad continua:
 * **Agregados Principales:**
   * `Task`: Unidad duradera de trabajo (`CREATED` ➔ `QUEUED` ➔ `RUNNING` ➔ `COMPLETED` / `FAILED`).
   * `Execution`: Intento concreto y fechado de cómputo dentro de un contexto inmutable.
+
+**Visualización de Máquinas de Estados:**
+![Máquinas de Estado de la Plataforma: Task, Execution y Autonomous Operation](docs/images/10_state_machines.jpg)
+
   * `Agent`: Perfil de capacidades autorizadas.
   * `AutonomousOperation`: Supervisión acotada con presupuesto y seguimiento de consumo.
   * `Organization, Area, Team & AgentMembership`: Jerarquía organizativa virtual con ciclo de vida blando (`ACTIVE`, `INACTIVE`, `ARCHIVED`), áreas funcionales, equipos de trabajo y membresía gobernada con roles operativos (`LEAD`, `SPECIALIST`, `OPERATOR`, `REVIEWER`).
+
+**Jerarquía Organizativa Visual:**
+![Organización Virtual: Jerarquía Organization → Area → Team → Agent con Resource Budget](docs/images/09_organization_hierarchy.jpg)
+
   * `TeamResourceBudget`: Agregado de cuotas multidimensionales (`maxExecutions`, `maxModelCalls`, `maxToolCalls`, `maxAutonomousSteps`, `maxDurationMs`, `maxTokens`) con contadores `consumed`, control de concurrencia optimista (`version`) y estados (`ACTIVE`, `EXHAUSTED`, `SUSPENDED`).
   * `Coordination`: Contratos de coordinación multi-agente para ejecuciones paralelas y flujos dependientes.
   * `Billing & Quota`: Value Objects y entidades de cuotas financieras y operacionales.
@@ -344,6 +356,10 @@ En la versión **v0.8**, el concepto de Agente se formalizó como un agregado de
 
 ### 5.2 Invariante Central: `Agent ≠ Execution`
 El agente no sustituye al motor de ejecución. No existen "hilos de agente" ni bucles de ejecución propios del agente. Para ejecutar un agente:
+
+**Arquitectura Visual del Agente de Primera Clase:**
+![Arquitectura de Agentes: El Agente define capacidades, el Runtime ejecuta](docs/images/07_agent_architecture.jpg)
+
 ```text
 POST /api/v1/agents/:id/executions
        ↓
@@ -359,6 +375,9 @@ AgentExecutionStrategy (aplica PolicyGateway, tools whitelist y memoryScope)
 ---
 
 # Capítulo 6: Operaciones Autónomas Acotadas (v0.9 Increments #1 al #5)
+
+**Ciclo de Ejecución Visual End-to-End:**
+![Flujo de Ejecución en 6 Fases: Solicitud → Presupuesto → Planificación → Bucle → Terminal → Auditoría](docs/images/06_execution_lifecycle.jpg)
 
 Milestone **v0.9** introduce la capacidad de trabajar hacia un objetivo a lo largo de múltiples pasos interactivos y discretos.
 
@@ -414,6 +433,9 @@ Todo inicio de operación autónoma exige la definición de un presupuesto inmut
 [ COMPLETED ]   [ FAILED ]     [ CANCELLED ]   [ BUDGET_EXHAUSTED ]
 ```
 
+**Visualización Comparativa de Máquinas de Estado:**
+![Máquinas de Estado: Task Lifecycle, Execution Lifecycle y Autonomous Operation](docs/images/10_state_machines.jpg)
+
 * **`SUBMITTED ➔ RUNNING`:** Al iniciar el bucle en `AutonomousOrchestrator.run()`.
 * **`RUNNING ➔ COMPLETED`:** Cuando el `DecisionEvaluator` confirma que el objetivo fue alcanzado (`Decision.type === "COMPLETE"`).
 * **`RUNNING ➔ FAILED`:** Cuando ocurre un error irrecuperable de planificación, fallo terminal de un paso, o denegación de política (`PolicyDeniedError`).
@@ -442,6 +464,9 @@ Para evitar la erosión de fronteras arquitectónicas, cada componente posee res
 ---
 
 # Capítulo 8: Gobernanza Fail-Closed, Seguridad & Catálogo de Invariantes
+
+**Modelo Visual de Gobernanza Fail-Closed:**
+![Gobernanza Fail-Closed: DEFAULT = DENY, cualquier duda = DETENER](docs/images/08_governance_failclosed.jpg)
 
 ### 8.1 Invariantes Verificados vs. Invariantes de Diseño
 
@@ -512,6 +537,9 @@ Estado: ABIERTO (No bloquea la arquitectura v1.3.0).
 ---
 
 # Capítulo 10: Catálogo de Servicios & Auditoría de la API REST
+
+**Mapa Visual de la Superficie de API:**
+![Mapa de API: 70+ endpoints organizados por dominio](docs/images/11_api_surface_map.jpg)
 
 ### 10.1 Auditoría de Endpoints
 

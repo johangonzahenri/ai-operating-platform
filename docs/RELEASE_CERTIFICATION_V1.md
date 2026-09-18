@@ -97,6 +97,8 @@ Esta matriz audita punto por punto los criterios definidos en `docs/V1_EXIT_CRIT
 
 ---
 
+---
+
 ## 8. Gobernanza de Artefactos de Seguimiento (Excel vs Repositorio)
 
 * **Jerarquía Suprema:** $\text{Código} > \text{Tests} > \text{Git} > \text{Documentación} > \text{Roadmap} > \text{Excel}$.
@@ -106,20 +108,49 @@ Esta matriz audita punto por punto los criterios definidos en `docs/V1_EXIT_CRIT
 
 ---
 
-## 9. Registro de Brechas Abiertas y Deuda Técnica (Known Gaps)
+## 9. Registro de Decisiones Arquitectónicas (ADR Breakdown)
 
-1. **GAP-06 (Baja):** El agregado `Agent` es declarativo/stateless y carece de máquina de estados transaccional post-crash independiente (cubierto por la recuperación a nivel de `Task` y `Execution`).
-2. **GAP-07 (Informativa):** El adaptador de hardware Brother DCP-1600 reporta honestamente `consumables: UNSUPPORTED` debido a limitaciones del controlador USB nativo de Windows.
-3. **GAP-08 (Documentada):** La dimensión `cost` financiero de los presupuestos no está conectada a un tarificador multi-proveedor dinámico (`NOT MEASURED / UNAVAILABLE`).
-4. **OAD-001 (Abierta / Post-v1.3):** Cancelación de inferencias en vuelo mediante propagación de `AbortSignal` asincrónico directo a los sockets de red de los proveedores de LLM.
+* **Total de Archivos ADR en `docs/decisions/`:** **38 archivos físicos**.
+* **Estructura y Desglose Canónico:**
+  1. **Serie Numérica Secuencial (28 ADRs):** `0001-typescript-node-foundation.md` hasta `0028-team-resource-budget-governance.md`.
+  2. **Serie de Arquitectura y Gobernanza (10 ADRs):** `ADR-001-core-platform-separation.md` hasta `ADR-010-platform-truth-model.md`.
+  3. **Decisiones de Auditoría Canónica (5 Meta-ADRs):** `ADR-100-01` a `ADR-100-05` indexadas en `docs/DECISIONS.md`.
+* **Clarificación de Verdad:** No existen los ADRs 0029 al 0038 en la serie numérica. La cifra de 38 corresponde exactamente a la suma de $28 + 10$ archivos en el directorio físico.
 
 ---
 
-## 10. Dictamen Final y Clasificación de la Release
+## 10. Taxonomía de Brechas Abiertas, Deuda Técnica y Mejoras Futuras
+
+### A. Brechas Ambientales de Release (Environmental Release Gaps)
+1. **`GAP-INF-01` (Edge TLS Live Termination):**
+   - **Estado:** `CONFIGURED & VALIDATED IN MANIFESTS / NOT VERIFIED ON LIVE EDGE HOST`.
+   - **Evidencia:** `deploy/nginx/nginx.conf`, `deploy/caddy/Caddyfile`, `deploy/docker-compose.prod.yml`, `docs/PRODUCTION_NETWORK_TOPOLOGY.md`.
+   - **Faltante:** Asignación de dominio DNS real y certificados SSL/TLS emitidos por CA en el host de producción.
+   - **Impacto:** Bloquea la promoción a `CERTIFIED` pleno; no afecta el runtime aislado.
+2. **`GAP-SEC-01` (External OIDC/JWKS Live Verification):**
+   - **Estado:** `IMPLEMENTED & MOCK CRYPTOGRAPHICALLY VALIDATED / UNCONFIGURED ON LIVE IDP`.
+   - **Evidencia:** `src/infrastructure/security/jwt-token-verifier.ts`, `tests/unit/jwt-authentication.test.ts` (RS256/ES256, rotación y revocación).
+   - **Faltante:** Integración contra endpoint JWKS de Identity Provider corporativo en red pública en vivo.
+   - **Impacto:** Bloquea la promoción a `CERTIFIED` pleno; no afecta la seguridad del runtime local.
+
+### B. Deuda Técnica y Limitaciones Declaradas (Technical Debt)
+1. **`GAP-06` (Baja):** El agregado `Agent` es declarativo/stateless y carece de máquina de estados de recuperación transaccional post-crash independiente (cubierto por la recuperación a nivel de `Task` y `Execution`).
+2. **`GAP-07` (Informativa):** El adaptador de hardware Brother DCP-1600 reporta honestamente `consumables: UNSUPPORTED` debido a limitaciones del controlador USB GDI nativo de Windows.
+3. **`GAP-08` (Documentada):** La dimensión `cost` financiero de los presupuestos no está conectada a un tarificador multi-proveedor dinámico (`NOT MEASURED / UNAVAILABLE`).
+4. **`OAD-001` (Abierta):** Cancelación de inferencias en vuelo mediante propagación de `AbortSignal` asincrónico directo a los sockets de red de los proveedores de LLM.
+
+### C. Mejoras Post-Release (Future Enhancements)
+1. **Server-Sent Events (SSE) / WebSockets:** Streaming reactivo de tokens y eventos al Web Control Plane sin polling HTTP.
+2. **Checkpoint Distribuido Multi-Nodo (`COR-08`):** Sincronización multi-región para despliegues federados en v2.0 (`BACKLOG`).
+
+---
+
+## 11. Dictamen Final y Clasificación de la Release
 
 * **Iniciativa Evaluada:** `INF-05` / `AOP-V1-EXIT`
-* **Transición de Estado:** `IN REVIEW` ➔ **`DONE`** (Auditoría y Certificación de Criterios de Release completadas).
+* **Estado Reconciliado de la Iniciativa:** **`IN REVIEW`** (Kanban) / **`VALIDATION`** (Roadmap).
 * **Clasificación Oficial del Release:**
   $$\mathbf{CERTIFIED\ WITH\ OPEN\ GAPS}$$
-* **Justificación Técnica:**
-  La plataforma cumple con la totalidad de los requisitos funcionales, arquitectónicos, de seguridad fail-closed, de persistencia relacional duradera SQLite WAL, de gobierno de presupuestos por equipo y de inmunidad XSS. Las únicas brechas abiertas corresponden a la provisión de certificados TLS reales y credenciales de IdP en el entorno de despliegue físico de producción.
+* **Justificación Técnica de Gobernanza:**
+  La plataforma cumple el 100% de los requisitos internos arquitectónicos, deterministas, de seguridad fail-closed, de persistencia SQLite WAL y gobernanza de presupuestos por equipo (12/14 criterios PASS con 1064 tests). De acuerdo con la semántica formal de `docs/V1_EXIT_CRITERIA.md`, la presencia de brechas ambientales externas (`GAP-INF-01` y `GAP-SEC-01`) requiere que la iniciativa permanezca en **`IN REVIEW`** hasta su verificación en el host de despliegue físico empresarial, evitando falsas declaraciones de certificación plena.
+

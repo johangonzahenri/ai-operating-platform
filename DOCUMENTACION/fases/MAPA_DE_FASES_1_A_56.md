@@ -101,6 +101,12 @@
   * Auditoría arquitectónica hexagonal pura, auditoría de seguridad estática (0 vulnerabilidades DOM/eval), paridad de contratos de modelos e infraestructura perimetral.
   * Emisión de matriz oficial en `docs/RELEASE_CERTIFICATION_V1.md` con clasificación `CERTIFIED WITH OPEN GAPS`.
   * Línea base: **1064 tests PASS / 0 FAIL**.
+* **Fase 58.1 (Prompt 107):**
+  * Reconciliación de Gobernanza de Release & Integridad de Fuente de Verdad.
+  * Armonización semántica: `CERTIFIED WITH OPEN GAPS` implica `INF-05 = IN REVIEW` y `AOP-V1-EXIT = VALIDATION`.
+  * Desglose de 38 ADRs (28 numéricos `0001-0028` + 10 arquitectónicos `ADR-001-ADR-010`).
+  * Sincronización de componentes en `docs/SOURCE_OF_TRUTH.md` y taxonomía de brechas ambientales vs deuda técnica.
+  * Línea base: **1064 tests PASS / 0 FAIL**.
 
 ---
 
@@ -108,8 +114,9 @@
 
 | Fase Planificada | Título de la Iniciativa | Objetivo Técnico | Estado Kanban |
 | :--- | :--- | :--- | :--- |
-| **Fase 58** | Certificación Final de Criterios de Release | Auditoría de producción masiva y certificación de release (`AOP-V1-EXIT`). | `DONE` |
+| **Fase 58** | Certificación Final de Criterios de Release | Auditoría de producción masiva y certificación de release (`AOP-V1-EXIT`). | `IN REVIEW` |
 | **Fase 59** | WebSockets Bidireccionales sobre HTTP/2 | Streaming de eventos y telemetría interactiva de baja latencia sin polling. | `BACKLOG` |
 | **Fase 60+** | Checkpoint Distribuido Multi-Nodo | Sincronización multi-región para despliegues federados (v2.0). | `BACKLOG` |
+
 
 

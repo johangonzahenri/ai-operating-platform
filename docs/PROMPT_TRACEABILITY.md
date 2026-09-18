@@ -158,9 +158,21 @@ Este registro documenta el progreso factual de las fases de ingeniería correspo
 * **Implementado:** Emisión del reporte canónico de certificación en `docs/RELEASE_CERTIFICATION_V1.md` clasificando la plataforma como `CERTIFIED WITH OPEN GAPS`, sincronización de `docs/V1_EXIT_CRITERIA.md`, actualización de `ROADMAP_MASTER.md` e `INF-05` en Kanban a `DONE`.
 * **Evidencia:** `docs/RELEASE_CERTIFICATION_V1.md`, `docs/V1_EXIT_CRITERIA.md`, `docs/ROADMAP_MASTER.md`, `DOCUMENTACION/KANBAN_TABLERO_MAESTRO.md`.
 * **Tests:** 1064 tests PASS, 0 FAIL, 11 suites.
-* **Commit:** `feat(phase-58): aop-v1-exit release certification and audit report`.
+* **Commit:** `8280003` (`feat(phase-58): aop-v1-exit release certification and audit report`).
 * **Documentación:** `docs/RELEASE_CERTIFICATION_V1.md`, `docs/V1_EXIT_CRITERIA.md`, `LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md`.
 * **Estado:** `DONE`
+
+---
+
+### Prompt 107 — Release Governance Reconciliation & Certification Integrity
+* **Objetivo:** Reconciliar de forma formal y rigurosa la semántica de certificación de release (`CERTIFIED WITH OPEN GAPS`) con los estados en Roadmap Master (`VALIDATION`), Tablero Kanban (`INF-05 = IN REVIEW`), criterios de salida (`docs/V1_EXIT_CRITERIA.md`), desglose real de los 38 ADRs en `docs/decisions/`, actualización del estado de `GeminiModelGateway` y `SqliteMemoryGateway` en `docs/SOURCE_OF_TRUTH.md`, y taxonomía formal de brechas ambientales vs deuda técnica.
+* **Implementado:** Definición explícita de semántica de release en `docs/V1_EXIT_CRITERIA.md`, transición reconciliada de `INF-05` a `IN REVIEW` y `AOP-V1-EXIT` a `VALIDATION`, desglose canónico de los 38 ADRs ($28 + 10$), corrección de estado de componentes en `docs/SOURCE_OF_TRUTH.md` y actualización de métricas en Kanban.
+* **Evidencia:** `docs/V1_EXIT_CRITERIA.md`, `docs/RELEASE_CERTIFICATION_V1.md`, `DOCUMENTACION/KANBAN_TABLERO_MAESTRO.md`, `docs/ROADMAP_MASTER.md`, `docs/SOURCE_OF_TRUTH.md`, `docs/TECHNICAL_DEBT.md`.
+* **Tests:** 1064 tests PASS, 0 FAIL, 11 suites.
+* **Commit:** `feat(phase-58.1): release governance reconciliation and certification integrity`.
+* **Documentación:** Todos los registros sincronizados.
+* **Estado:** `DONE`
+
 
 
 

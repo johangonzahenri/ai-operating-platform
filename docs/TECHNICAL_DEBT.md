@@ -72,5 +72,33 @@ Este registro documenta de forma honesta, verificada y explícita las limitacion
   2. **Post-Facto Accounting (Contabilización Fiel con Overshoot):** `durationMs` y `tokens` no pueden predecirse exactamente antes de invocar el modelo/tarea; se registran fielmente tras la ejecución (`allowOvershoot: true`), y al alcanzar/superar el límite transicionan el estado a `EXHAUSTED`, bloqueando cualquier despacho subsiguiente.
   3. **Not Available:** La dimensión `cost` financiero no se atribuye dinámicamente en el runtime actual (no existe tarificador de moneda multi-proveedor integrado).
 * **Impacto:** Claridad absoluta en el comportamiento del runtime sin falsas suposiciones de adivinación de tokens/duración a priori.
-* **Resolución:** Formalizada en `TeamResourceBudget.canConsume()`, `AgentExecutionStrategy` y Libro Oficial v2.5.
+---
+
+## 2. Brechas Ambientales de Certificación de Release (Environmental Release Gaps)
+
+Estas brechas representan dependencias de infraestructura y servicios externos que requieren aprovisionamiento en el host físico de producción, sin constituir fallos en el código base:
+
+### GAP-INF-01: Terminación TLS Perimetral en Host Físico de Producción
+* **Clasificación:** `OPEN ENVIRONMENTAL GAP` (No bloqueante para runtime local/aislado; bloqueante para `CERTIFIED` pleno en nube pública).
+* **Área:** Topología de Red / Seguridad Perimetral
+* **Descripción:** Los manifiestos de Nginx (`deploy/nginx/nginx.conf`), Caddy (`deploy/caddy/Caddyfile`) y Docker Compose (`deploy/docker-compose.prod.yml`) están 100% implementados y validados. La terminación TLS real requiere inyección de certificados SSL/TLS y configuración de DNS en el host físico de despliegue.
+* **Evidencia Existente:** Manifiestos de despliegue y guía `docs/PRODUCTION_NETWORK_TOPOLOGY.md` (ADR 0026).
+* **Evidencia Faltante:** Dominio DNS público y certificados emitidos por CA reconocida en host de staging/producción.
+
+---
+
+### GAP-SEC-01: Verificación en Vivo contra Identity Provider OIDC/JWKS Externo
+* **Clasificación:** `OPEN ENVIRONMENTAL GAP` (No bloqueante para runtime local/aislado; bloqueante para `CERTIFIED` pleno en nube pública).
+* **Área:** Autenticación / Seguridad
+* **Descripción:** El verificador criptográfico asimétrico `JwtTokenVerifier` (RS256/ES256) y el gestor de claves `KeyStore` con rotación dinámica están 100% implementados y cubiertos por 4 tests criptográficos. La verificación en vivo requiere conectividad hacia el endpoint JWKS público de un IdP corporativo (e.g., Okta, Auth0, Keycloak).
+* **Evidencia Existente:** `src/infrastructure/security/jwt-token-verifier.ts`, `tests/unit/jwt-authentication.test.ts` (ADR 0025).
+* **Evidencia Faltante:** URI JWKS activa y credenciales de cliente OIDC en red pública empresarial.
+
+---
+
+## 3. Mejoras Post-Release y Backlog Futuro (Future Enhancements)
+
+1. **Streaming Reactivo SSE / WebSockets:** Sustitución de polling HTTP periódico en la Consola Web por Server-Sent Events nativos para streaming de tokens y telemetría de baja latencia.
+2. **Checkpoint Distribuido Multi-Nodo (`COR-08`):** Sincronización multi-región para despliegues federados en v2.0 (`BACKLOG`).
+
 

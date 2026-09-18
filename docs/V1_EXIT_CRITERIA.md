@@ -25,9 +25,31 @@ Este documento define la lista formal y verificable de criterios que determinan 
 
 ---
 
-## 2. Dictamen de Certificación
+## 2. Semántica Formal de Certificación de Release
 
-* **Baseline Local / Entornos Controlados (v1.3.0):** **CERTIFICADO** (1064 tests PASS, 0 FAIL, persistencia duradera SQLite, recuperación post-crash, Control Plane bilingüe, presupuestos gobernados y adaptadores de IA operativos).
-* **Baseline Nube Pública Empresarial (v1.3.0):** **CERTIFIED WITH OPEN GAPS** (Código, seguridad y manifiestos 100% listos; requiere inyección de certificados TLS y JWKS IdP en el host físico de producción).
-* **Documento Oficial de Certificación:** Véase `docs/RELEASE_CERTIFICATION_V1.md`.
+Para garantizar coherencia estricta entre la auditoría técnica y los artefactos de seguimiento (Roadmap y Kanban), se definen tres estados de certificación:
+
+1. **`CERTIFIED` (Certificación Plena):**
+   - La totalidad de los 14 criterios de salida están demostrados y operativos en entorno real (incluyendo terminación TLS activa y endpoint JWKS IdP en vivo sobre red pública).
+   - **Semántica Kanban / Roadmap:** Permite marcar `INF-05` como `DONE` y `AOP-V1-EXIT` como `DONE`.
+
+2. **`CERTIFIED WITH OPEN GAPS` (Certificado con Brechas Ambientales Declaradas):**
+   - Todos los invariantes internos de arquitectura hexagonal, determinismo del motor, persistencia SQLite WAL, seguridad fail-closed, presupuesto por equipos y manifiestos declarativos (12 de 14 criterios) están **100% CUMPLIDOS Y VERIFICADOS** en código y suites de pruebas (1064 PASS).
+   - Existen brechas ambientales externas no resueltas (`GAP-INF-01: Edge TLS Live Termination` y `GAP-SEC-01: External OIDC/JWKS Live Verification`), que requieren aprovisionamiento en el host físico de despliegue.
+   - **Semántica Kanban / Roadmap:** La iniciativa `INF-05` permanece en **`IN REVIEW`** y `AOP-V1-EXIT` en **`VALIDATION`**. No puede marcarse como `DONE` pleno hasta que se satisfagan los requisitos de entorno físico.
+
+3. **`NOT CERTIFIED` (No Certificado):**
+   - Uno o más invariantes críticos internos (código, determinismo, seguridad, concurrencia o persistencia) no superan las pruebas o presentan regresiones.
+   - **Semántica Kanban / Roadmap:** La iniciativa permanece en `IN_PROGRESS` o `BLOCKED`.
+
+---
+
+## 3. Dictamen Oficial de Certificación (v1.3.0)
+
+* **Clasificación Oficial del Release:** **`CERTIFIED WITH OPEN GAPS`**
+* **Línea Base de Pruebas:** 1064 tests PASS / 0 FAIL / 0 SKIPPED (11 suites nativas Node.js).
+* **Estado de la Tarjeta Kanban (`INF-05`):** **`IN REVIEW`** (Auditoría completada; brechas ambientales abiertas catalogadas).
+* **Estado en Roadmap Master (`AOP-V1-EXIT`):** **`VALIDATION`**.
+* **Documento Oficial de Certificación:** Véase [`docs/RELEASE_CERTIFICATION_V1.md`](RELEASE_CERTIFICATION_V1.md).
+
 
