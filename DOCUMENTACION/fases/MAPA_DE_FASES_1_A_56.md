@@ -16,7 +16,7 @@
 | **v1.1.0** | Fases 36 a 54 | 966 PASS | Ecosistema extendido: Modelos reales (OpenAI, Claude, Ollama), impresora Brother, Vehicle Parts y SPA bilingüe. |
 | **v1.2.0 (Alpha)**| Fase 55 (Prompt 101) | 985 PASS | Cloud Foundation: Google Gemini, SQLite Memory Gateway, JWT asimétrico con rotación y TLS. |
 | **v1.2.0 (Beta)** | Fase 56 (Prompt 102) | 1019 PASS | Virtual Organization Foundation: Organizaciones, Áreas, Equipos y Membresía gobernada de agentes. |
-| **v1.2.0 (RC)**   | Fase 57 / 57.1 (Prompts 103-104) | 1057 PASS | Team Resource Governance & Budget Enforcement: Presupuestos por equipo e integración fail-closed en el runtime de ejecución. |
+| **v1.2.0 (RC)**   | Fase 57 / 57.1 / 57.2 (Prompts 103-105) | 1064 PASS | Team Resource Governance, Enforcement & No-Bypass Closure: Presupuestos por equipo, fail-closed sin bypass y overshoot exacto. |
 
 ---
 
@@ -89,7 +89,13 @@
   * Verificación y anclaje fail-closed en `AgentExecutionStrategy`, `ToolInvocationRuntime` y `AutonomousOrchestrator`.
   * Evaluación y consumo en tiempo real de ejecuciones, llamadas a modelo, herramientas, pasos autónomos, duración y tokens.
   * Bloqueo garantizado de bypass para agentes asignados a equipos suspendidos o agotados.
-  * Línea base: **1057 tests PASS / 0 FAIL**.
+  * Línea base: 1057 tests PASS / 0 FAIL.
+* **Fase 57.2 (Prompt 105):**
+  * Budget Governance Closure & No-Bypass Hardening.
+  * Denegación fail-closed de agentes sin asignación de equipo (`unassigned-agent-no-team`) salvo autorización explícita por política de sistema.
+  * Denegación fail-closed ante presupuestos de equipo inexistentes (`team-resource-budget-missing`).
+  * Semántica formal de dimensiones: Hard Gates bloqueantes vs Contabilización Post-Facto con overshoot para duración y tokens (transicionando a `EXHAUSTED`).
+  * Línea base: **1064 tests PASS / 0 FAIL**.
 
 ---
 

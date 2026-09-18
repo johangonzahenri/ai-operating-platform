@@ -259,30 +259,46 @@ export class ToolInvocationRuntime implements ToolGateway {
     );
 
     // 4.1 Team Resource Budget Check (Fail-Closed)
-    if (this.budgetService && this.organizationRepository && agentId) {
+    const isSystemPrincipal =
+      securityContext?.principal?.type === "SYSTEM" ||
+      agentId === "foundation-agent" ||
+      agentId === "system";
+
+    if (this.budgetService && this.organizationRepository && agentId && !isSystemPrincipal) {
       const memberships = await this.organizationRepository.findMembershipsByAgentId(agentId);
       const tenantId = securityContext?.tenantId;
       const active = memberships.filter((m) => m.status === "ACTIVE" && (!tenantId || m.tenantId === tenantId));
-      if (active.length > 0 && active[0]) {
-        const membership = active[0];
-        const toolEval = await this.budgetService.evaluateAndConsume(
-          membership.teamId,
-          membership.tenantId,
-          { toolCalls: 1 },
-          context.traceId
+      if (active.length === 0) {
+        const reason = `Agent '${agentId}' has no active team membership and cannot invoke tools without an assigned team budget`;
+        this.events.publish(
+          event("tool.rejected", context.traceId, toolId, {
+            toolId,
+            version: toolVersion,
+            reason,
+            policyId: "unassigned-agent-no-team",
+          }, undefined, this.now(), eventRefs)
         );
-        if (!toolEval.allowed) {
-          const reason = toolEval.reason ?? `Team '${membership.teamId}' tool calls quota exceeded`;
-          this.events.publish(
-            event("tool.rejected", context.traceId, toolId, {
-              toolId,
-              version: toolVersion,
-              reason,
-              policyId: "team-tool-calls-exhausted",
-            }, undefined, this.now(), eventRefs)
-          );
-          throw new ToolPolicyRejectedError(toolId, reason, "team-tool-calls-exhausted");
-        }
+        throw new ToolPolicyRejectedError(toolId, reason, "unassigned-agent-no-team");
+      }
+
+      const membership = active[0]!;
+      const toolEval = await this.budgetService.evaluateAndConsume(
+        membership.teamId,
+        membership.tenantId,
+        { toolCalls: 1 },
+        context.traceId
+      );
+      if (!toolEval.allowed) {
+        const reason = toolEval.reason ?? `Team '${membership.teamId}' tool calls quota exceeded`;
+        this.events.publish(
+          event("tool.rejected", context.traceId, toolId, {
+            toolId,
+            version: toolVersion,
+            reason,
+            policyId: "team-tool-calls-exhausted",
+          }, undefined, this.now(), eventRefs)
+        );
+        throw new ToolPolicyRejectedError(toolId, reason, "team-tool-calls-exhausted");
       }
     }
 

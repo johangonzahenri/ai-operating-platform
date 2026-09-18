@@ -140,3 +140,15 @@ Este registro documenta el progreso factual de las fases de ingeniería correspo
 * **Documentación:** Libro Oficial v2.4, TEST_REGISTRY.md.
 * **Estado:** `DONE`
 
+---
+
+### Prompt 105 — Budget Governance Closure & No-Bypass Hardening
+* **Objetivo:** Cerrar inconsistencias detectadas en la auditoría presupuestaria: denegación estricta fail-closed para agentes sin asignación de equipo (salvo principal/política de sistema explícita), denegación estricta ante presupuestos inexistentes, clarificación explícita de dimensiones de recursos (Hard Enforcement vs Post-Facto Accounting vs Not Available), y contabilización exacta con overshoot para duración y tokens que transiciona el presupuesto a `EXHAUSTED`.
+* **Implementado:** Verificación fail-closed en `AgentExecutionStrategy`, `ToolInvocationRuntime` y `AutonomousOrchestrator` de contexto de equipo y presupuesto; soporte de `allowOvershoot` en `TeamResourceBudget.canConsume()` y registro post-facto exacto; tests adversarios y de gobernanza estricta.
+* **Evidencia:** `src/application/runtime/agent-execution-strategy.ts`, `src/application/tools/tool-invocation-runtime.ts`, `src/application/autonomy/autonomous-orchestrator.ts`, `src/domain/organization/team-resource-budget.ts`, `tests/unit/team-resource-budget-enforcement.test.ts`.
+* **Tests:** 1064 tests PASS, 0 FAIL, 11 suites.
+* **Commit:** `feat(phase-57.2): budget governance closure and no-bypass hardening`.
+* **Documentación:** Libro Oficial v2.5, TEST_REGISTRY.md, TECHNICAL_DEBT.md.
+* **Estado:** `DONE`
+
+

@@ -61,3 +61,16 @@ Este registro documenta de forma honesta, verificada y explícita las limitacion
 * **Descripción:** La impresora comercial Brother DCP-1600 conectada por puerto local `USB001` no puede reportar niveles de tóner ni porcentaje de vida útil del tambor mediante el controlador GDI nativo sin la suite privativa del fabricante.
 * **Impacto:** La plataforma debe mantener el reporte honesto de `device.consumables: UNSUPPORTED` para evitar falsas lecturas de telemetría.
 * **Resolución:** Registrar la limitación como permanente para conexiones USB estándar sin agente de telemetría SNMP/Cloud.
+
+---
+
+### GAP-08: Semántica de Dimensiones de Presupuesto (Hard Gate vs Contabilización Post-Facto vs Costo Financiero)
+* **Severidad:** Documentada / Resuelta (Fase 57.2 / Prompt 105)
+* **Área:** Team Resource Governance & Runtime
+* **Descripción:** Las dimensiones de presupuesto operan en tres categorías distintas:
+  1. **Hard Enforcement (Comprobación Previa Bloqueante):** `executions`, `modelCalls`, `toolCalls`, `autonomousSteps` son bloqueadas antes del cómputo si el remanente es menor a la unidad requerida.
+  2. **Post-Facto Accounting (Contabilización Fiel con Overshoot):** `durationMs` y `tokens` no pueden predecirse exactamente antes de invocar el modelo/tarea; se registran fielmente tras la ejecución (`allowOvershoot: true`), y al alcanzar/superar el límite transicionan el estado a `EXHAUSTED`, bloqueando cualquier despacho subsiguiente.
+  3. **Not Available:** La dimensión `cost` financiero no se atribuye dinámicamente en el runtime actual (no existe tarificador de moneda multi-proveedor integrado).
+* **Impacto:** Claridad absoluta en el comportamiento del runtime sin falsas suposiciones de adivinación de tokens/duración a priori.
+* **Resolución:** Formalizada en `TeamResourceBudget.canConsume()`, `AgentExecutionStrategy` y Libro Oficial v2.5.
+

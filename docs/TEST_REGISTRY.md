@@ -10,8 +10,8 @@ Este registro documenta el inventario verificado de pruebas automatizadas del pr
 ============================================================
   ESTADO CANÓNICO DE PRUEBAS (TEST EXECUTION BASELINE)
 ============================================================
-  Total Tests Ejecutados : 1057
-  Total Tests Aprobados  : 1057 (PASS)
+  Total Tests Ejecutados : 1064
+  Total Tests Aprobados  : 1064 (PASS)
   Total Tests Fallidos   : 0    (FAIL)
   Total Tests Omitidos   : 0    (SKIPPED)
   Total Tests Pendientes : 0    (TODO)
@@ -156,7 +156,7 @@ Este registro documenta el inventario verificado de pruebas automatizadas del pr
 * **Archivos:**
   - `tests/unit/team-resource-budget.test.ts`
   - `tests/unit/team-resource-budget-enforcement.test.ts`
-* **Pruebas Contenidas:** 38 tests pass.
-* **Aspectos Verificados:** Agregado `TeamResourceBudget` con límites multidimensionales (`maxExecutions`, `maxModelCalls`, `maxToolCalls`, `maxAutonomousSteps`, `maxDurationMs`, `maxTokens`), estados de ciclo de vida (`ACTIVE`, `EXHAUSTED`, `SUSPENDED`), ventanas temporales (`LIFETIME`, `DAILY`, `MONTHLY`), cálculo dinámico de remanentes, repositorio SQLite `SqliteTeamResourceBudgetRepository` con transacciones atómicas `BEGIN IMMEDIATE`, prevención estricta de condiciones de carrera en la última unidad (Last-Unit Race Condition: 1 ALLOW / 1 DENY), aislamiento multi-tenant, servicio `TeamResourceBudgetService` con eventos tipados de autorización/denegación/agotamiento, endpoints REST `/api/v1/teams/:id/budget*`, e integración fail-closed end-to-end en el runtime de ejecución (`AgentExecutionStrategy`, `ToolInvocationRuntime`, `AutonomousOrchestrator`) verificando que agentes pertenecientes a un equipo consumen y respetan cuotas en tiempo real sin posibilidad de bypass.
+* **Pruebas Contenidas:** 45 tests pass.
+* **Aspectos Verificados:** Agregado `TeamResourceBudget` con límites multidimensionales (`maxExecutions`, `maxModelCalls`, `maxToolCalls`, `maxAutonomousSteps`, `maxDurationMs`, `maxTokens`), estados de ciclo de vida (`ACTIVE`, `EXHAUSTED`, `SUSPENDED`), ventanas temporales (`LIFETIME`, `DAILY`, `MONTHLY`), cálculo dinámico de remanentes, repositorio SQLite `SqliteTeamResourceBudgetRepository` con transacciones atómicas `BEGIN IMMEDIATE`, prevención estricta de condiciones de carrera en la última unidad (Last-Unit Race Condition: 1 ALLOW / 1 DENY), aislamiento multi-tenant, servicio `TeamResourceBudgetService` con eventos tipados de autorización/denegación/agotamiento, endpoints REST `/api/v1/teams/:id/budget*`, e integración fail-closed end-to-end en el runtime de ejecución (`AgentExecutionStrategy`, `ToolInvocationRuntime`, `AutonomousOrchestrator`) verificando que agentes sin asignación de equipo son denegados por defecto salvo política de sistema explícita, que presupuestos inexistentes deniegan la ejecución, que las dimensiones duras bloquean pre-ejecución y las dimensiones post-facto (duración/tokens) registran fielmente excesos y transicionan a `EXHAUSTED`.
 
 

@@ -5,8 +5,8 @@
 ---
 
 **Documento:** AI Operating Platform — Official Architecture Book
-**Versión del Documento:** 2.4 (Consolidación v1.3.0 Team Resource Budget Enforcement & Execution Integration)
-**Estado del Repositorio:** v1.3.0 Baseline (1057 tests PASS, 0 FAIL — 100% determinismo)
+**Versión del Documento:** 2.5 (Consolidación v1.3.0 Budget Governance Closure & No-Bypass Hardening)
+**Estado del Repositorio:** v1.3.0 Baseline (1064 tests PASS, 0 FAIL — 100% determinismo)
 **Estado Documental:** Oficial / Sincronizado con Fuente de Verdad
 **Fecha de Verificación:** Septiembre de 2026
 **Fuente de Verdad Técnica:** Código fuente (`src/`) + Tests automatizados (`tests/`) + ADRs (`docs/decisions/`)
@@ -26,6 +26,7 @@
 | **2.2** | Septiembre 2026 | v1.2.0 Virtual Org | **Virtual Organization Foundation (Fase 56 / Prompt 102):**<br>• Jerarquía organizativa formal: `Organization` (ciclo de vida activo/inactivo/archivado), `Area` funcional y `Team` de trabajo.<br>• Membresía gobernada de agentes (`AgentMembership`) con roles operativos (`LEAD`, `SPECIALIST`, `OPERATOR`, `REVIEWER`).<br>• Repositorio relacional duradero `SqliteOrganizationRepository` con índices compuestos y OCC.<br>• Endpoints REST canónicos bajo `/api/v1/*` y vista interactiva en el Web Control Plane (0 `innerHTML`).<br>• Línea base canónica verificada en **1019 tests PASS** (0 FAIL, 11 suites). |
 | **2.3** | Septiembre 2026 | v1.3.0 Team Resource Governance | **Team Resource Governance & Budget Control (Fase 57 / Prompt 103):**<br>• Agregado `TeamResourceBudget` con cuotas multidimensionales (`maxExecutions`, `maxModelCalls`, `maxToolCalls`, `maxAutonomousSteps`, `maxDurationMs`, `maxTokens`), contadores `consumed`, control de concurrencia optimista (`version`) y estados (`ACTIVE`, `EXHAUSTED`, `SUSPENDED`).<br>• Invariantes estrictas de desacoplamiento: `Membresía ≠ Permiso`, `Membresía ≠ Presupuesto`, `Presupuesto ≠ Autorización` (ADR 0028).<br>• Semántica fail-closed (`NO BUDGET = DENY`).<br>• Persistencia relacional `SqliteTeamResourceBudgetRepository` con aislamiento atómico `BEGIN IMMEDIATE` para prevención de condiciones de carrera de última unidad.<br>• Endpoints REST canónicos `/api/v1/teams/:id/budget*` y panel de gobernanza en Web Control Plane (0 `innerHTML`).<br>• Línea base canónica verificada en **1043 tests PASS** (0 FAIL, 11 suites). |
 | **2.4** | Septiembre 2026 | v1.3.0 Budget Enforcement | **Team Resource Budget Enforcement & Execution Integration (Fase 57.1 / Prompt 104):**<br>• Integración fail-closed y verificación end-to-end de cuotas presupuestarias en el runtime de ejecución (`AgentExecutionStrategy`, `ToolInvocationRuntime`, `AutonomousOrchestrator`).<br>• Enlace en tiempo de ejecución: resolución de equipo por membresía de agente y evaluación previa a la ejecución (`executions: 1`), llamada de modelo (`modelCalls: 1`), invocación de herramienta (`toolCalls: 1`), paso autónomo (`autonomousSteps: 1`) y contabilización de duración (`durationMs`) y tokens (`tokens`).<br>• Bloqueo estricto de bypass para agentes asignados a equipos suspendidos o agotados.<br>• Línea base canónica verificada en **1057 tests PASS** (0 FAIL, 11 suites). |
+| **2.5** | Septiembre 2026 | v1.3.0 Budget Governance Closure | **Budget Governance Closure & No-Bypass Hardening (Fase 57.2 / Prompt 105):**<br>• Cierre de brechas de auditoría: agentes sin equipo denegados fail-closed (`unassigned-agent-no-team`) salvo principal SYSTEM explícito.<br>• Denegación fail-closed cuando el equipo existe pero no posee presupuesto (`team-resource-budget-missing`).<br>• Clasificación formal de dimensiones: Hard Gates bloqueantes pre-ejecución vs Contabilización Post-Facto con overshoot para duración y tokens (transicionando a `EXHAUSTED`).<br>• Línea base canónica verificada en **1064 tests PASS** (0 FAIL, 11 suites). |
 
 ---
 
@@ -51,7 +52,7 @@ Para garantizar la honestidad operativa y evitar falsas expectativas, este libro
 │ • Ecosistema distribuido multi-región con clustering y failover activo-activo.  │
 │ • Certificación formal de criterios de salida para producción masiva (AOP-EXIT).│
 ├─────────────────────────────────────────────────────────────────────────────────┤
-│ CAPACIDADES IMPLEMENTADAS & VERIFICADAS (Línea Base Real v1.3.0 — 1057 PASS)    │
+│ CAPACIDADES IMPLEMENTADAS & VERIFICADAS (Línea Base Real v1.3.0 — 1064 PASS)    │
 │ • Motor hexagonal determinista con cero dependencias en runtime (npm ls vacío). │
 │ • Persistencia duradera relacional SQLite WAL (`SqliteDatabase`, `data/app.db`).│
 │ • Memoria contextual duradera en SQLite WAL (`SqliteMemoryGateway`, ADR 0024). │
@@ -62,12 +63,12 @@ Para garantizar la honestidad operativa y evitar falsas expectativas, este libro
 │ • Convergencia REST canónica en /api/v1/* con cabeceras RFC 8594 (Deprecation). │
 │ • Virtual Organization Foundation: Organización, Áreas, Equipos y Agentes (ADR 0027).│
 │ • Team Resource Governance & Budget Control: Cuotas por equipo, fail-closed (ADR 0028).│
-│ • Runtime Budget Enforcement: Integración fail-closed en Core & Tool Runtime.  │
+│ • Runtime Budget Enforcement & Hardening: Fail-closed integral y anti-bypass.   │
 │ • Integración de Tentaciones AI Commerce con probador virtual AR y fallback.    │
 │ • Aplicación de referencia automotriz Vehicle Parts Platform con compatibilidad.│
 │ • Adaptador de hardware Brother DCP-1600 series (USB001, honestamente offline). │
 │ • Web Control Plane nativo bilingüe (es-419 / en) con 0 innerHTML.             │
-│ • 1057 pruebas automatizadas aprobadas (0 fallos, 11 suites de prueba).         │
+│ • 1064 pruebas automatizadas aprobadas (0 fallos, 11 suites de prueba).         │
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -422,6 +423,21 @@ La arquitectura distingue formalmente entre lo que ha sido verificado mediante t
 | **INV-12** | **Cero Dependencias en Runtime** | `VERIFIED INVARIANT` | Sección `dependencies` vacía en `package.json`. |
 | **INV-13** | **Inmunidad XSS en Front-End** | `VERIFIED INVARIANT` | Cero `innerHTML` en el Web Control Plane (`app.js`, `index.html`). |
 | **INV-14** | **Transaccionalidad Atómica post-Crash** | `VERIFIED INVARIANT` | `RestartRecoveryService` opera dentro de transacciones SQLite atómicas. |
+| **INV-15** | **Agente sin Team = Denegación Fail-Closed** | `VERIFIED INVARIANT` | Todo agente sin equipo asignado es denegado inmediatamente (`unassigned-agent-no-team`) salvo autorización explícita por política de sistema. |
+| **INV-16** | **Presupuesto Inexistente = Denegación Fail-Closed** | `VERIFIED INVARIANT` | Si un equipo carece de `TeamResourceBudget`, cualquier intento de cómputo es rechazado (`team-resource-budget-missing`). |
+| **INV-17** | **Contabilización Fiel con Overshoot** | `VERIFIED INVARIANT` | Las dimensiones post-facto (`durationMs`, `tokens`) se registran fielmente sin truncamiento y transicionan el presupuesto a `EXHAUSTED`. |
+
+### 8.2 Matriz Canónica de Dimensiones de Recursos
+
+| Dimensión de Recurso | Origen de la Medición | Preflight Gate | Tipo de Enforcement | Fase de Contabilización | Transición de Estado al Límite |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **`executions`** | Despacho de tarea en `AgentExecutionStrategy` | `canConsume({ executions: 1 })` | **ENFORCED (Hard Gate)** | Pre-ejecución (1 unidad) | `ACTIVE` ➔ `EXHAUSTED` (Bloquea ejecuciones posteriores) |
+| **`modelCalls`** | Despacho a LLM en `AgentExecutionStrategy` | `canConsume({ modelCalls: 1 })` | **ENFORCED (Hard Gate)** | Pre-llamada a modelo (1 unidad) | `ACTIVE` ➔ `EXHAUSTED` (Bloquea llamadas a modelo) |
+| **`toolCalls`** | Invocación en `ToolInvocationRuntime` y `Strategy` | `canConsume({ toolCalls: 1 })` | **ENFORCED (Hard Gate)** | Pre-llamada a herramienta (1 unidad) | `ACTIVE` ➔ `EXHAUSTED` (Bloquea herramientas) |
+| **`autonomousSteps`** | Iteración de bucle en `AutonomousOrchestrator` | `canConsume({ autonomousSteps: 1 })` | **ENFORCED (Hard Gate)** | Pre-paso autónomo (1 unidad) | `ACTIVE` ➔ `EXHAUSTED` (Falla con `STEPS_EXHAUSTED`) |
+| **`durationMs`** | Tiempo de reloj medido en `AgentExecutionStrategy` | N/A (Medido tras ejecución) | **ACCOUNTED (Post-Facto)** | Post-ejecución (milisegundos reales) | `ACTIVE` ➔ `EXHAUSTED` cuando `consumed.durationMs >= limit` |
+| **`tokens`** | Conteo reportado por proveedor (`totalTokens`) | N/A (Reportado tras inferencia) | **ACCOUNTED (Post-Facto)** | Post-llamada (tokens reales) | `ACTIVE` ➔ `EXHAUSTED` cuando `consumed.tokens >= limit` |
+| **`cost`** | Atribución de costo financiero | No medido / No disponible | **NOT MEASURED / UNAVAILABLE** | N/A | N/A |
 
 ---
 
@@ -545,7 +561,7 @@ Esta matriz vincula cada decisión arquitectónica aprobada con su documento ADR
 El roadmap técnico se estructura exclusivamente sobre hechos demostrados en el código y proyecciones futuras debidamente delimitadas:
 
 ```text
-COMPLETADO & VERIFICADO (v1.3.0 BASELINE CANÓNICA — 1057 TESTS PASS)
+COMPLETADO & VERIFICADO (v1.3.0 BASELINE CANÓNICA — 1064 TESTS PASS)
 ──────────────────────────────────────────────────────────────────────────
 • v0.1 a v0.6: Core Engine Primitives (Runtime, Context, Memory, Tools, Models, Policy)
 • v0.7: Platform API Gateway & Web Control Plane SPA (Zero Runtime Dependencies)
@@ -582,7 +598,11 @@ COMPLETADO & VERIFICADO (v1.3.0 BASELINE CANÓNICA — 1057 TESTS PASS)
   - Runtime Fail-Closed Integration: Conexión activa de cuotas de equipo en `AgentExecutionStrategy`, `ToolInvocationRuntime` y `AutonomousOrchestrator`.
   - Quota Evaluation Points: Comprobación y consumo fail-closed por ejecución, llamadas a modelos, llamadas a herramientas, pasos autónomos, duración y tokens.
   - Anti-Bypass & Isolation: Bloqueo garantizado sin bypass ante estados EXHAUSTED y SUSPENDED y discrepancias de tenantId.
-  - Test Baseline: 1057 tests passing deterministas (0 fail, 11 suites).
+• v1.3.0 (Fase 57.2 / Prompt 105): Budget Governance Closure & No-Bypass Hardening:
+  - Cierre de brechas de auditoría: denegación estricta para agentes sin equipo asignado (`unassigned-agent-no-team`) salvo autorización explícita por política de sistema.
+  - Denegación estricta fail-closed ante presupuestos de equipo inexistentes (`team-resource-budget-missing`).
+  - Semántica formal de dimensiones de recursos: Hard Gates pre-ejecución vs Contabilización post-facto con overshoot (`durationMs`, `tokens`) transicionando a `EXHAUSTED`.
+  - Test Baseline: 1064 tests passing deterministas (0 fail, 11 suites).
 
 ROADMAP FUTURO (BACKLOG FORMAL v1.3 — DISEÑADO / NO IMPLEMENTADO)
 ──────────────────────────────────────────────────────────────────────────

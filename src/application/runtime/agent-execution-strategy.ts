@@ -83,11 +83,31 @@ export class AgentExecutionStrategy implements ExecutionStrategy {
     const loopStartedAt = Date.now();
 
     // 0. Resolve Team Context and Enforce Execution Budget (Fail-Closed)
+    const isSystemPrincipal =
+      task.request.input?.principalType === "SYSTEM" ||
+      task.request.input?.isSystem === true ||
+      task.request.input?.systemOperation === true ||
+      agent.id === "foundation-agent" ||
+      agent.id === "system";
+
     const tenantIdInput = typeof task.request.input.tenantId === "string" ? task.request.input.tenantId : undefined;
     const teamIdInput = typeof task.request.input.teamId === "string" ? task.request.input.teamId : undefined;
     const membership = await this.resolveActiveMembership(agent.id, tenantIdInput, teamIdInput);
 
-    if (membership && this.budgetService) {
+    if (this.organizationRepo && this.budgetService && !isSystemPrincipal) {
+      if (!membership) {
+        const reason = `Agent '${agent.id}' has no active team membership and is not authorized for unbudgeted execution`;
+        this.events.publish(
+          event("policy.denied", context.traceId, context.executionId, {
+            operationId: context.executionId,
+            policyId: "unassigned-agent-no-team",
+            reason,
+            agentId: agent.id,
+          }, undefined, undefined, refs)
+        );
+        throw new PolicyDeniedError("unassigned-agent-no-team", context.executionId, reason);
+      }
+
       const execEval = await this.budgetService.evaluateAndConsume(
         membership.teamId,
         membership.tenantId,
@@ -95,17 +115,20 @@ export class AgentExecutionStrategy implements ExecutionStrategy {
         context.traceId
       );
       if (!execEval.allowed) {
+        const policyId = execEval.reason?.toLowerCase().includes("not found")
+          ? "team-resource-budget-missing"
+          : "team-resource-budget-exhausted";
         const reason = execEval.reason ?? `Budget for team '${membership.teamId}' is exhausted or suspended`;
         this.events.publish(
           event("policy.denied", context.traceId, context.executionId, {
             operationId: context.executionId,
-            policyId: "team-resource-budget-exhausted",
+            policyId,
             reason,
             agentId: agent.id,
             teamId: membership.teamId,
           }, undefined, undefined, refs)
         );
-        throw new PolicyDeniedError("team-resource-budget-exhausted", context.executionId, reason);
+        throw new PolicyDeniedError(policyId, context.executionId, reason);
       }
     }
 
@@ -194,7 +217,7 @@ export class AgentExecutionStrategy implements ExecutionStrategy {
         await this.budgetService.evaluateAndConsume(
           membership.teamId,
           membership.tenantId,
-          { durationMs: elapsedMs },
+          { durationMs: elapsedMs, allowOvershoot: true },
           context.traceId
         );
       }
@@ -277,7 +300,7 @@ export class AgentExecutionStrategy implements ExecutionStrategy {
         await this.budgetService.evaluateAndConsume(
           membership.teamId,
           membership.tenantId,
-          { tokens: response.usage.totalTokens },
+          { tokens: response.usage.totalTokens, allowOvershoot: true },
           context.traceId
         );
       }
@@ -412,7 +435,7 @@ export class AgentExecutionStrategy implements ExecutionStrategy {
           await this.budgetService.evaluateAndConsume(
             membership.teamId,
             membership.tenantId,
-            { tokens: response.usage.totalTokens },
+            { tokens: response.usage.totalTokens, allowOvershoot: true },
             context.traceId
           );
         }
@@ -451,7 +474,7 @@ export class AgentExecutionStrategy implements ExecutionStrategy {
         await this.budgetService.evaluateAndConsume(
           membership.teamId,
           membership.tenantId,
-          { durationMs: elapsedMs },
+          { durationMs: elapsedMs, allowOvershoot: true },
           context.traceId
         );
       }

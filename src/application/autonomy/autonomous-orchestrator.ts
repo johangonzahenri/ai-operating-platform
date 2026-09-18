@@ -214,26 +214,40 @@ export class AutonomousOrchestrator {
       }
 
       // Pre-execution Team Resource Budget check for autonomousSteps (Fail-Closed)
-      if (this.organizationRepo && this.budgetService) {
+      const isSystemPrincipal =
+        (request.metadata as Record<string, unknown> | undefined)?.principalType === "SYSTEM" ||
+        (request.metadata as Record<string, unknown> | undefined)?.isSystem === true ||
+        agent.id === "foundation-agent" ||
+        agent.id === "system";
+
+      if (this.organizationRepo && this.budgetService && !isSystemPrincipal) {
         const memberships = await this.organizationRepo.findMembershipsByAgentId(agent.id);
         const active = memberships.filter((m) => m.status === "ACTIVE");
-        if (active.length > 0 && active[0]) {
-          const membership = active[0];
-          const stepEval = await this.budgetService.evaluateAndConsume(
-            membership.teamId,
-            membership.tenantId,
-            { autonomousSteps: 1 },
-            operation.id
-          );
-          if (!stepEval.allowed) {
-            operation = operation.exhaustBudget("STEPS_EXHAUSTED", this.now());
-            this.publishEvent("operation.budget_exhausted", operation.id, {
-              reason: "STEPS_EXHAUSTED",
-              teamId: membership.teamId,
-              message: stepEval.reason ?? `Team '${membership.teamId}' autonomous steps budget exhausted`,
-            });
-            break;
-          }
+        if (active.length === 0) {
+          const message = `Agent '${agent.id}' has no active team membership and is not authorized for unbudgeted autonomous operations`;
+          operation = operation.fail({ code: "UNASSIGNED_AGENT_NO_TEAM", message }, this.now());
+          this.publishEvent("operation.failed", operation.id, {
+            code: "UNASSIGNED_AGENT_NO_TEAM",
+            message,
+          });
+          break;
+        }
+
+        const membership = active[0]!;
+        const stepEval = await this.budgetService.evaluateAndConsume(
+          membership.teamId,
+          membership.tenantId,
+          { autonomousSteps: 1 },
+          operation.id
+        );
+        if (!stepEval.allowed) {
+          operation = operation.exhaustBudget("STEPS_EXHAUSTED", this.now());
+          this.publishEvent("operation.budget_exhausted", operation.id, {
+            reason: "STEPS_EXHAUSTED",
+            teamId: membership.teamId,
+            message: stepEval.reason ?? `Team '${membership.teamId}' autonomous steps budget exhausted`,
+          });
+          break;
         }
       }
 

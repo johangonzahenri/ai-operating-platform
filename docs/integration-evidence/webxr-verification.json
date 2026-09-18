@@ -1,14 +1,14 @@
 {
-  "traceId": "trace-verify-webxr-7ef242e6",
+  "traceId": "trace-verify-webxr-d48cedbc",
   "provider": "webxr",
   "environment": "browser_client",
-  "verifiedAt": "2026-09-17T23:11:50.754Z",
+  "verifiedAt": "2026-09-18T03:37:35.442Z",
   "status": "STANDBY",
   "latencyMs": 1,
   "metadata": {
     "clientDetection": {
-      "supported": true,
-      "permission": "prompt"
+      "clientDetected": false,
+      "note": "Browser client required for sensor check"
     }
   }
 }

@@ -136,7 +136,7 @@ try {
 // -------------------------------------------------------------
 console.log('\n3. Checking documented test count consistency...');
 
-const CANONICAL_TEST_COUNT = '1057';
+const CANONICAL_TEST_COUNT = '1064';
 
 try {
   const readme = fs.readFileSync(path.join(ROOT_DIR, 'README.md'), 'utf8');

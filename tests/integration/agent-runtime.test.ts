@@ -1,9 +1,40 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { Agent, AgentInactiveError, AgentNotFoundError } from "../../src/domain/agent/agent.js";
+import { Organization, Area, Team, AgentMembership } from "../../src/domain/organization/index.js";
 import { createPlatform } from "../../src/interfaces/composition.js";
 import { InMemoryPolicyGateway } from "../../src/infrastructure/policy/in-memory-policy-gateway.js";
 import { PolicyContext, PolicyDecision } from "../../src/domain/policy/policy.js";
+
+async function setupAgentTeam(platform: any, agentId: string, teamId: string = `team-${agentId}`) {
+  const org = Organization.create({ id: "org-test", tenantId: "tenant-test", name: "Test Org" });
+  await platform.organizationRepository.saveOrganization(org);
+  const area = Area.create({ id: "area-test", organizationId: "org-test", tenantId: "tenant-test", name: "Test Area" });
+  await platform.organizationRepository.saveArea(area);
+  const team = Team.create({ id: teamId, organizationId: "org-test", areaId: "area-test", tenantId: "tenant-test", name: `Team ${teamId}` });
+  await platform.organizationRepository.saveTeam(team);
+  const mem = AgentMembership.create({
+    id: `mem_${teamId}_${agentId}`,
+    teamId,
+    agentId,
+    organizationId: "org-test",
+    tenantId: "tenant-test",
+    role: "SPECIALIST",
+  });
+  await platform.organizationRepository.saveMembership(mem);
+  await platform.teamResourceBudgetService.createBudget({
+    id: `trb_${teamId}`,
+    teamId,
+    tenantId: "tenant-test",
+    limits: {
+      maxExecutions: 100,
+      maxModelCalls: 100,
+      maxToolCalls: 100,
+      maxAutonomousSteps: 100,
+      maxDurationMs: 60000,
+    },
+  });
+}
 
 test("Agent Runtime Integration Suite", async (t) => {
   await t.test("executes agent through CoreRuntime with full correlation and lifecycle events", async () => {
@@ -18,6 +49,7 @@ test("Agent Runtime Integration Suite", async (t) => {
     });
 
     platform.agents.register(agent);
+    await setupAgentTeam(platform, "agent-runner");
 
     const { task, execution } = await platform.agentService.executeAgent("agent-runner", {
       prompt: "Compute 2 + 2",
@@ -80,6 +112,7 @@ test("Agent Runtime Integration Suite", async (t) => {
     });
 
     platform.agents.register(agent);
+    await setupAgentTeam(platform, "agent-tool-user");
 
     const { task, execution } = await platform.agentService.executeAgent("agent-tool-user", {
       tool: "calculator",
@@ -101,6 +134,7 @@ test("Agent Runtime Integration Suite", async (t) => {
     });
 
     platform.agents.register(agent);
+    await setupAgentTeam(platform, "agent-no-tools");
 
     const { task, execution } = await platform.agentService.executeAgent("agent-no-tools", {
       tool: "calculator",
@@ -130,6 +164,7 @@ test("Agent Runtime Integration Suite", async (t) => {
     });
 
     platform.agents.register(agent);
+    await setupAgentTeam(platform, "agent-denied");
 
     const { task, execution } = await platform.agentService.executeAgent("agent-denied", {
       prompt: "Should be blocked",
@@ -156,6 +191,7 @@ test("Agent Runtime Integration Suite", async (t) => {
     });
 
     platform.agents.register(agent);
+    await setupAgentTeam(platform, "agent-policy-error-test");
 
     const { task, execution } = await platform.agentService.executeAgent("agent-policy-error-test", {
       prompt: "Should fail closed on policy throw",
@@ -185,6 +221,8 @@ test("Agent Runtime Integration Suite", async (t) => {
 
     platform.agents.register(agentA);
     platform.agents.register(agentB);
+    await setupAgentTeam(platform, "agent-alpha");
+    await setupAgentTeam(platform, "agent-beta");
 
     assert.equal(agentA.memoryScope, "agent-agent-alpha");
     assert.equal(agentB.memoryScope, "agent-agent-beta");

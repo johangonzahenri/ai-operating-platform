@@ -41,6 +41,7 @@ export interface ResourceConsumptionRequest {
   readonly autonomousSteps?: number | undefined;
   readonly durationMs?: number | undefined;
   readonly tokens?: number | undefined;
+  readonly allowOvershoot?: boolean | undefined;
 }
 
 export interface CreateTeamResourceBudgetProps {
@@ -318,6 +319,13 @@ export class TeamResourceBudget {
 
     if (reqExec < 0 || reqModel < 0 || reqTool < 0 || reqSteps < 0 || reqDuration < 0 || reqTokens < 0) {
       throw new BudgetValidationError("Resource consumption request amounts must be non-negative");
+    }
+
+    if (request.allowOvershoot) {
+      return {
+        allowed: true,
+        remaining,
+      };
     }
 
     if (reqExec > 0 && reqExec > remaining.executions) {

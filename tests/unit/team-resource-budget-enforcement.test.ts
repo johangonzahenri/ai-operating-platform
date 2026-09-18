@@ -441,6 +441,257 @@ test("Prompt 104 — Team Resource Budget Enforcement & Execution Integration Su
     assert.equal(tBudget.getRemaining().tokens, 380);
   });
 
+  await t.test("TEST 14: Agent without Team -> Execution DENY fail-closed", async () => {
+    const orphanAgentId = "agent-orphan-no-team";
+    const orphanAgent = Agent.create({
+      id: orphanAgentId,
+      name: "Orphan Agent",
+      model: "stub-model",
+      instructions: "I have no team",
+    });
+    platform.agents.register(orphanAgent);
+
+    // Attempt execution without team membership
+    const result = await platform.agentService.executeAgent(orphanAgentId, {
+      objective: "Orphan execution attempt",
+      tenantId,
+    });
+
+    assert.equal(result.task.status, "FAILED");
+    assert.equal(result.execution.status, "FAILED");
+    assert.match(result.execution.error?.message ?? "", /no active team membership/i);
+  });
+
+  await t.test("TEST 15: Agent without Team -> Tool invocation via real path DENY fail-closed", async () => {
+    const orphanToolAgentId = "agent-orphan-tool-caller";
+    const orphanToolAgent = Agent.create({
+      id: orphanToolAgentId,
+      name: "Orphan Tool Caller",
+      model: "stub-model",
+      tools: ["calculator"],
+      instructions: "Orphan tool tester",
+    });
+    platform.agents.register(orphanToolAgent);
+
+    // 1. Via AgentService tool input
+    const result = await platform.agentService.executeAgent(orphanToolAgentId, {
+      tool: "calculator",
+      toolInput: { operation: "add", a: 1, b: 2 },
+      tenantId,
+    });
+    assert.equal(result.task.status, "FAILED");
+    assert.match(result.execution.error?.message ?? "", /no active team membership/i);
+
+    // 2. Via ToolInvocationRuntime.invokeSecurely direct path
+    const toolRuntime = platform.toolInvocationRuntime;
+    const secCtx = SecurityContext.create({
+      principal: Principal.create({ id: "user-orphan", type: "HUMAN", permissions: ["tool.invoke"] }),
+      authenticated: true,
+      correlationId: "trace-orphan-tool-direct",
+      tenantId,
+    });
+
+    await assert.rejects(
+      async () => {
+        await toolRuntime.invokeSecurely({
+          request: { toolId: "calculator", input: { operation: "add", a: 1, b: 2 } },
+          context: {
+            traceId: "trace-orphan-tool-direct",
+            executionId: "exec-orphan-tool",
+            taskId: "task-orphan-tool",
+            principalId: "user-orphan",
+            toolId: "calculator",
+            riskLevel: "LOW",
+          },
+          securityContext: secCtx,
+          agentId: orphanToolAgentId,
+        });
+      },
+      (err: Error) => {
+        return err.name === "ToolPolicyRejectedError" && /no active team membership/i.test(err.message);
+      }
+    );
+  });
+
+  await t.test("TEST 16: Agent without Team -> Autonomous Operation FAILS fail-closed", async () => {
+    const orphanAutoAgentId = "agent-orphan-auto";
+    const orphanAutoAgent = Agent.create({
+      id: orphanAutoAgentId,
+      name: "Orphan Auto Agent",
+      model: "stub-model",
+      instructions: "Orphan autonomous tester",
+    });
+    platform.agents.register(orphanAutoAgent);
+
+    const opResult = await platform.autonomousOrchestrator.run({
+      operationId: "op-orphan-auto",
+      objective: "Autonomous operation without team",
+      agent: orphanAutoAgent.toDefinition(),
+      budget: AutonomyBudget.create({ maxSteps: 3, maxDurationMs: 60000, maxToolCalls: 5 }),
+    });
+
+    assert.equal(opResult.operation.status, "FAILED");
+    assert.equal(opResult.operation.failureError?.code, "UNASSIGNED_AGENT_NO_TEAM");
+    assert.match(opResult.operation.failureError?.message ?? "", /no active team membership/i);
+  });
+
+  await t.test("TEST 17: Team exists, Budget does NOT exist -> Execution DENY fail-closed", async () => {
+    const budgetlessTeamId = "team-without-budget";
+    const budgetlessAgentId = "agent-budgetless-team";
+
+    const bTeam = Team.create({
+      id: budgetlessTeamId,
+      organizationId: orgId,
+      areaId,
+      tenantId,
+      name: "Budgetless Team",
+    });
+    await platform.organizationRepository.saveTeam(bTeam);
+
+    const bAgent = Agent.create({
+      id: budgetlessAgentId,
+      name: "Budgetless Agent",
+      model: "stub-model",
+      instructions: "Team has no budget",
+    });
+    platform.agents.register(bAgent);
+
+    const bMem = AgentMembership.create({
+      id: `mem_${budgetlessTeamId}_${budgetlessAgentId}`,
+      teamId: budgetlessTeamId,
+      agentId: budgetlessAgentId,
+      organizationId: orgId,
+      tenantId,
+      role: "SPECIALIST",
+    });
+    await platform.organizationRepository.saveMembership(bMem);
+
+    // No budget is created for team-without-budget!
+    const result = await platform.agentService.executeAgent(budgetlessAgentId, {
+      objective: "Execution on team without budget",
+      tenantId,
+      teamId: budgetlessTeamId,
+    });
+
+    assert.equal(result.task.status, "FAILED");
+    assert.equal(result.execution.status, "FAILED");
+    assert.match(result.execution.error?.message ?? "", /not found|budget/i);
+  });
+
+  await t.test("TEST 18: Token Overshoot Semantics -> maxTokens = 10, reports 25 -> consumed = 25, status = EXHAUSTED", async () => {
+    const overshootTeamId = "team-token-overshoot";
+    const oTeam = Team.create({
+      id: overshootTeamId,
+      organizationId: orgId,
+      areaId,
+      tenantId,
+      name: "Token Overshoot Team",
+    });
+    await platform.organizationRepository.saveTeam(oTeam);
+
+    const budget = await platform.teamResourceBudgetService.createBudget({
+      id: `trb_${overshootTeamId}`,
+      teamId: overshootTeamId,
+      tenantId,
+      limits: {
+        maxExecutions: 10,
+        maxModelCalls: 10,
+        maxToolCalls: 10,
+        maxAutonomousSteps: 10,
+        maxDurationMs: 60000,
+        maxTokens: 10,
+      },
+    });
+    assert.equal(budget.status, "ACTIVE");
+
+    // Provider reports 25 tokens after model call (overshoot from initial 0)
+    const result = await platform.teamResourceBudgetService.evaluateAndConsume(
+      overshootTeamId,
+      tenantId,
+      { tokens: 25, allowOvershoot: true },
+      "trace-token-overshoot"
+    );
+
+    // Allowed because accounting post-call records actual tokens, but transitions budget to EXHAUSTED
+    assert.equal(result.allowed, true);
+    const updated = await platform.teamResourceBudgetService.getBudget(overshootTeamId, tenantId);
+    assert.equal(updated.consumed.tokens, 25);
+    assert.equal(updated.status, "EXHAUSTED");
+    assert.equal(updated.getRemaining().tokens, 0);
+
+    // Subsequent model call or token consumption is now DENIED
+    const secondCall = await platform.teamResourceBudgetService.evaluateAndConsume(
+      overshootTeamId,
+      tenantId,
+      { tokens: 1 },
+      "trace-token-subsequent"
+    );
+    assert.equal(secondCall.allowed, false);
+    assert.match(secondCall.reason ?? "", /insufficient token quota/i);
+  });
+
+  await t.test("TEST 19: Duration Overshoot Semantics -> maxDurationMs = 100, measures 500ms -> consumed = 500, status = EXHAUSTED", async () => {
+    const durationTeamId = "team-duration-overshoot";
+    const dTeam = Team.create({
+      id: durationTeamId,
+      organizationId: orgId,
+      areaId,
+      tenantId,
+      name: "Duration Overshoot Team",
+    });
+    await platform.organizationRepository.saveTeam(dTeam);
+
+    await platform.teamResourceBudgetService.createBudget({
+      id: `trb_${durationTeamId}`,
+      teamId: durationTeamId,
+      tenantId,
+      limits: {
+        maxExecutions: 10,
+        maxModelCalls: 10,
+        maxToolCalls: 10,
+        maxAutonomousSteps: 10,
+        maxDurationMs: 100,
+        maxTokens: 1000,
+      },
+    });
+
+    // Execution measures 500ms elapsed duration
+    const durResult = await platform.teamResourceBudgetService.evaluateAndConsume(
+      durationTeamId,
+      tenantId,
+      { durationMs: 500, allowOvershoot: true },
+      "trace-duration-overshoot"
+    );
+    assert.equal(durResult.allowed, true);
+
+    const durBudget = await platform.teamResourceBudgetService.getBudget(durationTeamId, tenantId);
+    assert.equal(durBudget.consumed.durationMs, 500);
+    assert.equal(durBudget.status, "EXHAUSTED");
+    assert.equal(durBudget.getRemaining().durationMs, 0);
+
+    // Subsequent execution request checking duration or quota is DENIED
+    const nextExec = await platform.teamResourceBudgetService.evaluateAndConsume(
+      durationTeamId,
+      tenantId,
+      { durationMs: 10 },
+      "trace-duration-subsequent"
+    );
+    assert.equal(nextExec.allowed, false);
+    assert.match(nextExec.reason ?? "", /insufficient duration quota/i);
+  });
+
+  await t.test("TEST 20: Explicit SYSTEM Principal operation bypasses team budget through authorized system policy", async () => {
+    // Foundation Agent is a recognized SYSTEM agent
+    const result = await platform.agentService.executeAgent("foundation-agent", {
+      objective: "System health probe",
+      principalType: "SYSTEM",
+      isSystem: true,
+    });
+
+    assert.equal(result.task.status, "COMPLETED");
+    assert.equal(result.execution.status, "COMPLETED");
+  });
+
   // Cleanup test DB
   if (existsSync(dbPath)) {
     try { unlinkSync(dbPath); } catch {}

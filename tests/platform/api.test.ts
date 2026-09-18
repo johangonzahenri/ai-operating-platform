@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import http from "node:http";
 import { createPlatform } from "../../src/interfaces/composition.js";
+import { Organization, Area, Team, AgentMembership } from "../../src/domain/organization/index.js";
 import { PlatformService } from "../../src/platform/api/platform-service.js";
 import { createHttpServer } from "../../src/platform/api/http-router.js";
 import { PolicyContext, PolicyDecision } from "../../src/domain/policy/policy.js";
@@ -30,7 +31,7 @@ function createTestServer(policyRule?: (context: PolicyContext) => PolicyDecisio
 }
 
 test("Platform API Endpoints Suite", async (t) => {
-  const { server } = createTestServer();
+  const { platform, server } = createTestServer();
 
   await new Promise<void>((resolve) => {
     server.listen(PORT, "127.0.0.1", () => resolve());
@@ -566,11 +567,39 @@ test("Platform API Endpoints Suite", async (t) => {
   });
 
   await t.test("POST /api/v1/agents/:id/executions executes agent through CoreRuntime", async () => {
+    const org = Organization.create({ id: "org-api-test", tenantId: "tenant-api", name: "API Org" });
+    await platform.organizationRepository.saveOrganization(org);
+    const area = Area.create({ id: "area-sales-api", organizationId: "org-api-test", tenantId: "tenant-api", name: "Sales Area" });
+    await platform.organizationRepository.saveArea(area);
+    const team = Team.create({ id: "team-sales-api", organizationId: "org-api-test", areaId: "area-sales-api", tenantId: "tenant-api", name: "Sales Team" });
+    await platform.organizationRepository.saveTeam(team);
+    const mem = AgentMembership.create({
+      id: "mem_sales_agent",
+      teamId: "team-sales-api",
+      agentId: "sales-agent-api",
+      organizationId: "org-api-test",
+      tenantId: "tenant-api",
+      role: "SPECIALIST",
+    });
+    await platform.organizationRepository.saveMembership(mem);
+    await platform.teamResourceBudgetService.createBudget({
+      id: "trb_sales_team",
+      teamId: "team-sales-api",
+      tenantId: "tenant-api",
+      limits: {
+        maxExecutions: 100,
+        maxModelCalls: 100,
+        maxToolCalls: 100,
+        maxAutonomousSteps: 100,
+        maxDurationMs: 60000,
+      },
+    });
+
     const res = await fetch(`${BASE_URL}/api/v1/agents/sales-agent-api/executions`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        input: { prompt: "Execute sales query" },
+        input: { prompt: "Execute sales query", tenantId: "tenant-api", teamId: "team-sales-api" },
         traceId: "trace-agent-api-exec",
       }),
     });
