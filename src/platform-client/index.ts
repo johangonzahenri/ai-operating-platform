@@ -30,6 +30,9 @@ import type {
   WorkflowInstanceDTO,
   StartWorkflowRequestDTO,
   AdvanceWorkflowResultDTO,
+  WorkflowStepVerificationRuleDTO,
+  VerificationResultDTO,
+  VerifyStepRequestDTO,
 } from "../platform/api/platform-dto.js";
 import {
   toEventDTO,
@@ -765,6 +768,31 @@ export function createPlatformClient(options: PlatformClientOptions) {
     },
   };
 
+  const verifications = {
+    async verify(body: VerifyStepRequestDTO): Promise<VerificationResultDTO> {
+      return request<VerificationResultDTO>("/verifications", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+    },
+    async list(options?: { limit?: number; offset?: number }): Promise<readonly VerificationResultDTO[]> {
+      const params = new URLSearchParams();
+      if (options?.limit) params.set("limit", String(options.limit));
+      if (options?.offset) params.set("offset", String(options.offset));
+      const qs = params.toString();
+      return request<readonly VerificationResultDTO[]>(`/verifications${qs ? `?${qs}` : ""}`);
+    },
+    async get(id: string): Promise<VerificationResultDTO> {
+      return request<VerificationResultDTO>(`/verifications/${encodeURIComponent(id)}`);
+    },
+    async listByInstance(instanceId: string): Promise<readonly VerificationResultDTO[]> {
+      return request<readonly VerificationResultDTO[]>(`/workflows/instances/${encodeURIComponent(instanceId)}/verifications`);
+    },
+    async listByExecution(executionId: string): Promise<readonly VerificationResultDTO[]> {
+      return request<readonly VerificationResultDTO[]>(`/executions/${encodeURIComponent(executionId)}/verifications`);
+    },
+  };
+
   return {
     tasks,
     executions,
@@ -785,6 +813,7 @@ export function createPlatformClient(options: PlatformClientOptions) {
     coordinations,
     agentProfiles,
     workflows,
+    verifications,
     connect: () => healthGet(),
     health: Object.assign(healthGet, { get: healthGet }),
     getPlatformInfo: () => platform.get(),
@@ -834,7 +863,7 @@ export type {
   WorkflowInstanceDTO,
   StartWorkflowRequestDTO,
   AdvanceWorkflowResultDTO,
+  WorkflowStepVerificationRuleDTO,
+  VerificationResultDTO,
+  VerifyStepRequestDTO,
 };
-
-
-

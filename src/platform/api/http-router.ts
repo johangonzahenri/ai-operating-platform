@@ -8,6 +8,14 @@ import {
   WorkflowExecutionError,
   NoEligibleAgentFoundError,
 } from "../../domain/workflow/workflow-errors.js";
+import {
+  VerificationError,
+  VerificationValidationError,
+  VerificationNotFoundError,
+  SelfVerificationError,
+  VerificationConcurrencyConflictError,
+  VerificationPolicyDeniedError,
+} from "../../domain/workflow/verification-errors.js";
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
@@ -3769,6 +3777,163 @@ export function createHttpServer(
               return;
             } catch (err: any) {
               handleWorkflowError(err);
+              return;
+            }
+          }
+        }
+
+        // ====================================================================
+        // Verification & Result Validation Routes (Prompt 112 / Phase 63)
+        // ====================================================================
+        const handleVerificationError = (err: unknown) => {
+          if (err instanceof VerificationValidationError) {
+            sendError(400, err.message, "VERIFICATION_VALIDATION_ERROR");
+          } else if (err instanceof VerificationNotFoundError) {
+            sendError(404, err.message, "VERIFICATION_NOT_FOUND");
+          } else if (err instanceof SelfVerificationError) {
+            sendError(403, err.message, "SELF_VERIFICATION_REJECTED");
+          } else if (err instanceof VerificationConcurrencyConflictError) {
+            sendError(409, err.message, "VERIFICATION_CONCURRENCY_CONFLICT");
+          } else if (err instanceof VerificationPolicyDeniedError) {
+            sendError(403, err.message, "VERIFICATION_POLICY_DENIED");
+          } else if (err instanceof WorkflowInstanceNotFoundError) {
+            sendError(404, err.message, "WORKFLOW_INSTANCE_NOT_FOUND");
+          } else if (err instanceof WorkflowNotFoundError) {
+            sendError(404, err.message, "WORKFLOW_NOT_FOUND");
+          } else {
+            const msg = err instanceof Error ? err.message : "Internal verification error";
+            sendError(500, msg, "VERIFICATION_INTERNAL_ERROR");
+          }
+        };
+
+        const vService = service.getWorkflowVerificationService();
+        if (vService) {
+          // POST /verifications
+          if (subPath === "/verifications" && req.method === "POST") {
+            const bodyResult = await readJsonBody();
+            if (!bodyResult.ok) {
+              sendError(400, "Bad Request: Invalid JSON body", "INVALID_JSON");
+              return;
+            }
+            const body = bodyResult.body as any;
+            const targetTenant = body.tenantId ?? reqCtx.tenantId;
+            const authCheck = await authenticateAndAuthorize("workflow.verify", "API", body.workflowInstanceId ?? "", targetTenant);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? targetTenant;
+            const verifierId = body.verifierPrincipalId ?? authCheck.context?.principal?.id ?? reqCtx.principal?.id ?? "system";
+
+            try {
+              const vResult = await vService.verifyStepResult({
+                tenantId,
+                workflowInstanceId: body.workflowInstanceId,
+                stepId: body.stepId,
+                verifierPrincipalId: verifierId,
+                verifierSource: body.verifierSource ?? "SYSTEM",
+                producerPrincipalId: body.producerPrincipalId,
+                explicitRule: body.explicitRule,
+                overrideOutput: body.overrideOutput,
+              });
+              sendJson(201, service.toVerificationResultDTO(vResult));
+              return;
+            } catch (err: any) {
+              handleVerificationError(err);
+              return;
+            }
+          }
+
+          // GET /verifications
+          if (subPath === "/verifications" && req.method === "GET") {
+            const authCheck = await authenticateAndAuthorize("workflow.read", "API", "", reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const limitParam = url.searchParams.get("limit");
+            const offsetParam = url.searchParams.get("offset");
+            const limit = limitParam ? parseInt(limitParam, 10) : 50;
+            const offset = offsetParam ? parseInt(offsetParam, 10) : 0;
+            try {
+              const results = await vService.listVerifications(tenantId, limit, offset);
+              sendJson(200, results.map((r) => service.toVerificationResultDTO(r)));
+              return;
+            } catch (err: any) {
+              handleVerificationError(err);
+              return;
+            }
+          }
+
+          // GET /verifications/:id
+          const vGetMatch = subPath.match(/^\/verifications\/([^/]+)$/);
+          if (vGetMatch && req.method === "GET") {
+            const id = normalizeId(vGetMatch[1]);
+            if (!id) {
+              sendError(400, "Bad Request: Invalid ID format", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("workflow.read", "API", id, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            try {
+              const result = await vService.getVerification(id, tenantId);
+              sendJson(200, service.toVerificationResultDTO(result));
+              return;
+            } catch (err: any) {
+              handleVerificationError(err);
+              return;
+            }
+          }
+
+          // GET /workflows/instances/:instanceId/verifications
+          const vInstMatch = subPath.match(/^\/workflows\/instances\/([^/]+)\/verifications$/);
+          if (vInstMatch && req.method === "GET") {
+            const instanceId = normalizeId(vInstMatch[1]);
+            if (!instanceId) {
+              sendError(400, "Bad Request: Invalid ID format", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("workflow.read", "API", instanceId, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            try {
+              const results = await vService.listVerificationsByInstance(instanceId, tenantId);
+              sendJson(200, results.map((r) => service.toVerificationResultDTO(r)));
+              return;
+            } catch (err: any) {
+              handleVerificationError(err);
+              return;
+            }
+          }
+
+          // GET /executions/:executionId/verifications
+          const vExecMatch = subPath.match(/^\/executions\/([^/]+)\/verifications$/);
+          if (vExecMatch && req.method === "GET") {
+            const executionId = normalizeId(vExecMatch[1]);
+            if (!executionId) {
+              sendError(400, "Bad Request: Invalid ID format", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("execution.read", "API", executionId, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            try {
+              const results = await vService.listVerificationsByExecution(executionId, tenantId);
+              sendJson(200, results.map((r) => service.toVerificationResultDTO(r)));
+              return;
+            } catch (err: any) {
+              handleVerificationError(err);
               return;
             }
           }

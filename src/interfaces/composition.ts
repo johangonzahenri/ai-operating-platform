@@ -2,15 +2,19 @@ import {
   WorkflowDefinitionRepositoryPort,
   WorkflowInstanceRepositoryPort,
 } from "../application/ports/workflow-repository-port.js";
+import { VerificationResultRepositoryPort } from "../application/ports/verification-repository-port.js";
 import {
   InMemoryWorkflowDefinitionRepository,
   InMemoryWorkflowInstanceRepository,
 } from "../infrastructure/persistence/in-memory/in-memory-workflow-repository.js";
+import { InMemoryVerificationResultRepository } from "../infrastructure/persistence/in-memory/in-memory-verification-repository.js";
 import {
   SqliteWorkflowDefinitionRepository,
   SqliteWorkflowInstanceRepository,
 } from "../infrastructure/persistence/sqlite/sqlite-workflow-repository.js";
+import { SqliteVerificationResultRepository } from "../infrastructure/persistence/sqlite/sqlite-verification-repository.js";
 import { WorkflowOrchestratorService } from "../application/workflow/workflow-orchestrator-service.js";
+import { WorkflowVerificationService } from "../application/workflow/workflow-verification-service.js";
 import { ExecuteTask } from "../application/execute-task.js";
 import { SubmitTask } from "../application/submit-task.js";
 import { ExecuteOrchestration } from "../application/orchestration/execute-orchestration.js";
@@ -127,10 +131,10 @@ export interface CreatePlatformOptions {
   readonly workflowDefinitionRepository?: WorkflowDefinitionRepositoryPort | undefined;
   readonly workflowInstanceRepository?: WorkflowInstanceRepositoryPort | undefined;
   readonly workflowOrchestratorService?: WorkflowOrchestratorService | undefined;
+  readonly verificationResultRepository?: VerificationResultRepositoryPort | undefined;
+  readonly workflowVerificationService?: WorkflowVerificationService | undefined;
   readonly eventStream?: EventStreamAdapter | undefined;
 }
-
-
 
 /** Composition root: wires domain ports to infrastructure adapters and exposes use cases. */
 export const createPlatform = (
@@ -353,6 +357,23 @@ export const createPlatform = (
       ? new SqliteWorkflowInstanceRepository(dbManager)
       : new InMemoryWorkflowInstanceRepository();
 
+  const verificationResultRepository: VerificationResultRepositoryPort = (!isLogger && (optionsOrLogger as CreatePlatformOptions).verificationResultRepository)
+    ? (optionsOrLogger as CreatePlatformOptions).verificationResultRepository!
+    : dbManager
+      ? new SqliteVerificationResultRepository(dbManager)
+      : new InMemoryVerificationResultRepository();
+
+  const workflowVerificationService: WorkflowVerificationService = (!isLogger && (optionsOrLogger as CreatePlatformOptions).workflowVerificationService)
+    ? (optionsOrLogger as CreatePlatformOptions).workflowVerificationService!
+    : new WorkflowVerificationService({
+        verificationRepo: verificationResultRepository,
+        instanceRepo: workflowInstanceRepository,
+        defRepo: workflowDefinitionRepository,
+        policy,
+        budgetService: teamResourceBudgetService,
+        events,
+      });
+
   const workflowOrchestratorService: WorkflowOrchestratorService = (!isLogger && (optionsOrLogger as CreatePlatformOptions).workflowOrchestratorService)
     ? (optionsOrLogger as CreatePlatformOptions).workflowOrchestratorService!
     : new WorkflowOrchestratorService({
@@ -362,6 +383,7 @@ export const createPlatform = (
         organizationRepository,
         budgetService: teamResourceBudgetService,
         policyGateway: policy,
+        verificationService: workflowVerificationService,
         runtime: agentRuntime,
         agentQuery: agents,
         events,
@@ -484,7 +506,7 @@ export const createPlatform = (
     workflowDefinitionRepository,
     workflowInstanceRepository,
     workflowOrchestratorService,
+    verificationResultRepository,
+    workflowVerificationService,
   };
 };
-
-

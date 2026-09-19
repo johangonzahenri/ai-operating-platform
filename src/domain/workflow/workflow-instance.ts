@@ -3,6 +3,7 @@ import {
   WorkflowStateTransitionError,
 } from "./workflow-errors.js";
 import { WorkflowDefinition } from "./workflow-definition.js";
+import { VerificationVerdict } from "./verification-result.js";
 
 export type WorkflowInstanceStatus =
   | "PENDING"
@@ -34,6 +35,8 @@ export interface WorkflowStepState {
   readonly input: Readonly<Record<string, unknown>>;
   readonly output?: Readonly<Record<string, unknown>> | undefined;
   readonly error?: string | undefined;
+  readonly verificationVerdict?: VerificationVerdict | undefined;
+  readonly verificationId?: string | undefined;
   readonly startedAt?: Date | undefined;
   readonly completedAt?: Date | undefined;
 }
@@ -267,7 +270,15 @@ export class WorkflowInstance {
       const deps = step.dependsOn ?? [];
       const allDepsDone = deps.every((depId) => {
         const depState = this.stepStates[depId];
-        return depState && (depState.status === "COMPLETED" || depState.status === "SKIPPED");
+        if (!depState) return false;
+        if (depState.status === "SKIPPED") return true;
+        if (depState.status !== "COMPLETED") return false;
+
+        const depDef = definition.steps.find((s) => s.stepId === depId);
+        if (depDef?.verificationRule) {
+          return depState.verificationVerdict === "PASS";
+        }
+        return true;
       });
 
       if (allDepsDone) {
@@ -425,6 +436,103 @@ export class WorkflowInstance {
         status: "FAILED",
         failure: {
           code: "STEP_EXECUTION_FAILED",
+          message: error,
+          stepId,
+        },
+        completedAt: now,
+        stepStates: updatedStates,
+        version: this.version + 1,
+        updatedAt: now,
+      }),
+      willRetry: false,
+    };
+  }
+
+  markStepVerified(
+    stepId: string,
+    verificationId: string,
+    verdict: VerificationVerdict,
+    output?: Readonly<Record<string, unknown>>
+  ): WorkflowInstance {
+    const existing = this.stepStates[stepId];
+    if (!existing) {
+      throw new WorkflowValidationError(`Step '${stepId}' does not exist on instance '${this.id}'`);
+    }
+
+    const now = new Date();
+    const updatedStates: Record<string, WorkflowStepState> = {
+      ...this.stepStates,
+      [stepId]: {
+        ...existing,
+        verificationId,
+        verificationVerdict: verdict,
+        output: output ? { ...output } : existing.output,
+      },
+    };
+
+    return new WorkflowInstance({
+      ...this,
+      stepStates: updatedStates,
+      version: this.version + 1,
+      updatedAt: now,
+    });
+  }
+
+  markStepVerificationFailed(
+    stepId: string,
+    verificationId: string,
+    verdict: VerificationVerdict,
+    error: string
+  ): { instance: WorkflowInstance; willRetry: boolean } {
+    const existing = this.stepStates[stepId];
+    if (!existing) {
+      throw new WorkflowValidationError(`Step '${stepId}' does not exist on instance '${this.id}'`);
+    }
+
+    const willRetry = existing.attempts < (existing.maxRetries ?? 0);
+    const now = new Date();
+
+    if (willRetry) {
+      const updatedStates: Record<string, WorkflowStepState> = {
+        ...this.stepStates,
+        [stepId]: {
+          ...existing,
+          status: "PENDING",
+          verificationId,
+          verificationVerdict: verdict,
+          error,
+        },
+      };
+
+      return {
+        instance: new WorkflowInstance({
+          ...this,
+          stepStates: updatedStates,
+          version: this.version + 1,
+          updatedAt: now,
+        }),
+        willRetry: true,
+      };
+    }
+
+    const updatedStates: Record<string, WorkflowStepState> = {
+      ...this.stepStates,
+      [stepId]: {
+        ...existing,
+        status: "FAILED",
+        verificationId,
+        verificationVerdict: verdict,
+        error,
+        completedAt: now,
+      },
+    };
+
+    return {
+      instance: new WorkflowInstance({
+        ...this,
+        status: "FAILED",
+        failure: {
+          code: `VERIFICATION_${verdict}`,
           message: error,
           stepId,
         },

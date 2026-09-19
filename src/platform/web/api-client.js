@@ -898,3 +898,34 @@ export async function cancelWorkflow(instanceId, reason) {
     body: JSON.stringify({ reason }),
   });
 }
+
+// --- Workflow Verification & Result Validation (Prompt 112 / Phase 63) ---
+
+export async function verifyWorkflowStep(verifyParams) {
+  return request("/verifications", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(verifyParams),
+  });
+}
+
+export async function listVerifications(options = {}) {
+  const params = new URLSearchParams();
+  if (options.limit) params.set("limit", String(options.limit));
+  if (options.offset) params.set("offset", String(options.offset));
+  const qs = params.toString();
+  return request(qs ? `/verifications?${qs}` : "/verifications");
+}
+
+export async function getVerification(id) {
+  return request(`/verifications/${encodeURIComponent(id)}`);
+}
+
+export async function listVerificationsByInstance(instanceId) {
+  return request(`/workflows/instances/${encodeURIComponent(instanceId)}/verifications`);
+}
+
+export async function listVerificationsByExecution(executionId) {
+  return request(`/executions/${encodeURIComponent(executionId)}/verifications`);
+}
+

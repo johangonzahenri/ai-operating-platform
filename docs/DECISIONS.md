@@ -54,6 +54,7 @@ Este documento consolida el índice oficial de los Registros de Decisiones Arqui
 | **ADR 0030** | Organizational Coordination Foundation | `0030-organizational-coordination-foundation.md` | APROBADO | Coordinación organizacional entre agentes, validación de ciclos, límites de profundidad, PolicyGateway y budgets. |
 | **ADR 0031** | Agent Role, Responsibility & Capability Governance | `0031-agent-role-responsibility-capability-governance.md` | APROBADO | Gobernanza formal de roles, responsabilidades y capacidades verificadas de agentes con descubrimiento multigriterio. |
 | **ADR 0032** | Workflow Orchestration & Governed Task Assignment | `0032-workflow-orchestration-governed-task-assignment.md` | APROBADO | Orquestación de flujos de trabajo como DAG, asignación gobernada de tareas a agentes mediante PolicyGateway y cuotas de equipo. |
+| **ADR 0033** | Workflow Verification & Result Validation | `0033-workflow-verification-and-result-validation.md` | APROBADO | Capa de verificación determinista que desacopla el estado de ejecución técnica del veredicto de validez de resultados con segregación de funciones. |
 
 
 ---

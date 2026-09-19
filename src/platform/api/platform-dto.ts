@@ -821,6 +821,16 @@ export interface WorkflowStepDefinitionDTO {
   readonly timeoutMs?: number | undefined;
   readonly maxRetries?: number | undefined;
   readonly requiresApproval?: boolean | undefined;
+  readonly verificationRule?: WorkflowStepVerificationRuleDTO | undefined;
+}
+
+export interface WorkflowStepVerificationRuleDTO {
+  readonly method?: "SCHEMA" | "INVARIANT" | "RULE" | "DETERMINISTIC" | "POLICY" | "SPECIALIZED" | undefined;
+  readonly requiredFields?: readonly string[] | undefined;
+  readonly fieldTypes?: Readonly<Record<string, "string" | "number" | "boolean" | "object" | "array">> | undefined;
+  readonly allowedValues?: Readonly<Record<string, readonly unknown[]>> | undefined;
+  readonly numericRanges?: Readonly<Record<string, { readonly min?: number; readonly max?: number }>> | undefined;
+  readonly customInvariants?: readonly string[] | undefined;
 }
 
 export interface WorkflowDefinitionDTO {
@@ -868,6 +878,8 @@ export interface WorkflowStepStateDTO {
   readonly input: Readonly<Record<string, unknown>>;
   readonly output?: Readonly<Record<string, unknown>> | undefined;
   readonly error?: string | undefined;
+  readonly verificationVerdict?: "PASS" | "FAIL" | "MISSING" | "MALFORMED" | "CONFLICT" | "AMBIGUOUS" | undefined;
+  readonly verificationId?: string | undefined;
   readonly startedAt?: string | undefined;
   readonly completedAt?: string | undefined;
 }
@@ -916,6 +928,37 @@ export interface AdvanceWorkflowResultDTO {
     readonly output?: Readonly<Record<string, unknown>> | undefined;
     readonly error?: { readonly code: string; readonly message: string } | undefined;
   }[];
+}
+
+export interface VerificationResultDTO {
+  readonly id: string;
+  readonly tenantId: string;
+  readonly workflowId: string;
+  readonly workflowInstanceId: string;
+  readonly workflowStepId: string;
+  readonly taskId?: string | undefined;
+  readonly executionId?: string | undefined;
+  readonly producerPrincipalId?: string | undefined;
+  readonly verifierPrincipalId: string;
+  readonly verifierSource: "SYSTEM" | "POLICY" | "AGENT" | "HUMAN";
+  readonly verdict: "PASS" | "FAIL" | "MISSING" | "MALFORMED" | "CONFLICT" | "AMBIGUOUS";
+  readonly method: "SCHEMA" | "INVARIANT" | "RULE" | "DETERMINISTIC" | "POLICY" | "SPECIALIZED";
+  readonly evidence?: Readonly<Record<string, unknown>> | undefined;
+  readonly reason?: string | undefined;
+  readonly verifiedAt: string;
+  readonly version: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export interface VerifyStepRequestDTO {
+  readonly workflowInstanceId: string;
+  readonly stepId: string;
+  readonly verifierPrincipalId?: string | undefined;
+  readonly verifierSource?: "SYSTEM" | "POLICY" | "AGENT" | "HUMAN" | undefined;
+  readonly producerPrincipalId?: string | undefined;
+  readonly explicitRule?: WorkflowStepVerificationRuleDTO | undefined;
+  readonly overrideOutput?: Readonly<Record<string, unknown>> | undefined;
 }
 
 

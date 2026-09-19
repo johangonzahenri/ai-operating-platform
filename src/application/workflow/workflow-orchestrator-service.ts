@@ -39,6 +39,8 @@ import {
   createWorkflowCancelledEvent,
 } from "../../domain/workflow/workflow-events.js";
 
+import { WorkflowVerificationService } from "./workflow-verification-service.js";
+
 export interface WorkflowOrchestratorServiceOptions {
   readonly definitionRepository: WorkflowDefinitionRepositoryPort;
   readonly instanceRepository: WorkflowInstanceRepositoryPort;
@@ -46,6 +48,7 @@ export interface WorkflowOrchestratorServiceOptions {
   readonly organizationRepository?: OrganizationHierarchyRepository | undefined;
   readonly policyGateway?: PolicyGateway | undefined;
   readonly budgetService?: TeamResourceBudgetService | undefined;
+  readonly verificationService?: WorkflowVerificationService | undefined;
   readonly runtime?: Runtime | undefined;
   readonly agentQuery?: AgentQueryPort | undefined;
   readonly events?: EventPublisher | undefined;
@@ -83,6 +86,7 @@ export class WorkflowOrchestratorService {
   private readonly orgRepo?: OrganizationHierarchyRepository | undefined;
   private readonly policy?: PolicyGateway | undefined;
   private readonly budgetService?: TeamResourceBudgetService | undefined;
+  private readonly verificationService?: WorkflowVerificationService | undefined;
   private readonly runtime?: Runtime | undefined;
   private readonly agentQuery?: AgentQueryPort | undefined;
   private readonly events?: EventPublisher | undefined;
@@ -94,6 +98,7 @@ export class WorkflowOrchestratorService {
     this.orgRepo = options.organizationRepository;
     this.policy = options.policyGateway;
     this.budgetService = options.budgetService;
+    this.verificationService = options.verificationService;
     this.runtime = options.runtime;
     this.agentQuery = options.agentQuery;
     this.events = options.events;
@@ -478,6 +483,36 @@ export class WorkflowOrchestratorService {
             this.events.publish(createWorkflowStepCompletedEvent(updatedInstance, completedStep, traceId));
           }
 
+          // Step Verification Validation if rule configured
+          if (this.verificationService && stepDef.verificationRule) {
+            const vResult = await this.verificationService.verifyStepResult(
+              {
+                tenantId: instance.tenantId,
+                workflowInstanceId: instance.id,
+                stepId: stepDef.stepId,
+                verifierPrincipalId: "system-verifier",
+                verifierSource: "SYSTEM",
+                producerPrincipalId: assignedAgentId,
+                overrideOutput: output,
+              },
+              traceId
+            );
+
+            if (!vResult.isPass()) {
+              return {
+                stepId: stepDef.stepId,
+                success: false,
+                assignedAgentId,
+                taskId: task.id,
+                executionId: execResult.execution.id,
+                error: {
+                  code: `VERIFICATION_${vResult.verdict}`,
+                  message: vResult.reason ?? `Verification yielded ${vResult.verdict}`,
+                },
+              };
+            }
+          }
+
           return {
             stepId: stepDef.stepId,
             success: true,
@@ -544,6 +579,34 @@ export class WorkflowOrchestratorService {
       const completedStep = updatedInstance.getStepState(stepDef.stepId)!;
       if (this.events) {
         this.events.publish(createWorkflowStepCompletedEvent(updatedInstance, completedStep, traceId));
+      }
+
+      if (this.verificationService && stepDef.verificationRule) {
+        const vResult = await this.verificationService.verifyStepResult(
+          {
+            tenantId: instance.tenantId,
+            workflowInstanceId: instance.id,
+            stepId: stepDef.stepId,
+            verifierPrincipalId: "system-verifier",
+            verifierSource: "SYSTEM",
+            producerPrincipalId: assignedAgentId,
+            overrideOutput: mockOutput,
+          },
+          traceId
+        );
+
+        if (!vResult.isPass()) {
+          return {
+            stepId: stepDef.stepId,
+            success: false,
+            assignedAgentId,
+            taskId: task.id,
+            error: {
+              code: `VERIFICATION_${vResult.verdict}`,
+              message: vResult.reason ?? `Verification yielded ${vResult.verdict}`,
+            },
+          };
+        }
       }
 
       return {

@@ -4,6 +4,7 @@ import {
   WorkflowCycleError,
   WorkflowStateTransitionError,
 } from "./workflow-errors.js";
+import { WorkflowStepVerificationRule } from "./verification-result.js";
 
 export type WorkflowStatus = "DRAFT" | "ACTIVE" | "ARCHIVED";
 
@@ -22,6 +23,7 @@ export interface WorkflowStepDefinition {
   readonly timeoutMs?: number | undefined;
   readonly maxRetries?: number | undefined;
   readonly requiresApproval?: boolean | undefined;
+  readonly verificationRule?: WorkflowStepVerificationRule | undefined;
 }
 
 export interface CreateWorkflowDefinitionProps {

@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { DomainEvent, event } from "../events/events.js";
 import { WorkflowDefinition } from "./workflow-definition.js";
 import { WorkflowInstance, WorkflowStepState } from "./workflow-instance.js";
+import { VerificationResult } from "./verification-result.js";
 
 export function createWorkflowCreatedEvent(
   definition: WorkflowDefinition,
@@ -208,6 +209,85 @@ export function createWorkflowCancelledEvent(
       tenantId: instance.tenantId,
       reason,
       completedAt: instance.completedAt?.toISOString(),
+    }
+  );
+}
+
+export function createWorkflowStepVerificationRequestedEvent(
+  instance: WorkflowInstance,
+  stepId: string,
+  verificationId: string,
+  verifierPrincipalId: string,
+  traceId: string = crypto.randomUUID()
+): DomainEvent {
+  return event(
+    "workflow.step.verification.requested",
+    traceId,
+    instance.id,
+    {
+      workflowInstanceId: instance.id,
+      workflowDefinitionId: instance.workflowDefinitionId,
+      tenantId: instance.tenantId,
+      stepId,
+      verificationId,
+      verifierPrincipalId,
+    }
+  );
+}
+
+export function createWorkflowStepVerificationCompletedEvent(
+  instance: WorkflowInstance,
+  verification: VerificationResult,
+  traceId: string = crypto.randomUUID()
+): DomainEvent {
+  const references: { taskId?: string; executionId?: string } = {};
+  if (verification.taskId) references.taskId = verification.taskId;
+  if (verification.executionId) references.executionId = verification.executionId;
+
+  return event(
+    "workflow.step.verification.completed",
+    traceId,
+    instance.id,
+    {
+      workflowInstanceId: instance.id,
+      workflowDefinitionId: instance.workflowDefinitionId,
+      tenantId: instance.tenantId,
+      stepId: verification.workflowStepId,
+      verificationId: verification.id,
+      verdict: verification.verdict,
+      method: verification.method,
+      verifierPrincipalId: verification.verifierPrincipalId,
+      verifierSource: verification.verifierSource,
+      evidence: verification.evidence,
+      reason: verification.reason,
+      verifiedAt: verification.verifiedAt.toISOString(),
+    },
+    crypto.randomUUID(),
+    new Date(),
+    references
+  );
+}
+
+export function createWorkflowStepVerificationFailedEvent(
+  instance: WorkflowInstance,
+  stepId: string,
+  verificationId: string,
+  verdict: string,
+  error: string,
+  traceId: string = crypto.randomUUID()
+): DomainEvent {
+  return event(
+    "workflow.step.verification.failed",
+    traceId,
+    instance.id,
+    {
+      workflowInstanceId: instance.id,
+      workflowDefinitionId: instance.workflowDefinitionId,
+      tenantId: instance.tenantId,
+      stepId,
+      verificationId,
+      verdict,
+      error,
     }
   );
 }

@@ -304,5 +304,27 @@ export default {
     "pause": "Pausar",
     "resume": "Reanudar",
     "cancel": "Cancelar"
+  },
+  "verifications": {
+    "title": "Verificación y Validación de Resultados",
+    "verdict": "Veredicto",
+    "verdictPass": "Aprobado (PASS)",
+    "verdictFail": "Fallido (FAIL)",
+    "verdictMissing": "Faltante (MISSING)",
+    "verdictMalformed": "Malformado (MALFORMED)",
+    "verdictConflict": "Conflicto (CONFLICT)",
+    "verdictAmbiguous": "Ambiguo (AMBIGUOUS)",
+    "method": "Método de Verificación",
+    "methodDeterministic": "Determinista",
+    "methodSchema": "Esquema",
+    "methodRule": "Regla",
+    "methodInvariant": "Invariante",
+    "methodHuman": "Humano en el Bucle",
+    "producerPrincipal": "Productor",
+    "verifierPrincipal": "Verificador",
+    "verifierSource": "Origen Verificador",
+    "verifiedAt": "Fecha Verificación",
+    "verifyStep": "Verificar Paso",
+    "selfVerificationBlocked": "Auto-certificación bloqueada por segregación de funciones"
   }
 };

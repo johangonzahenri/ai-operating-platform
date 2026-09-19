@@ -103,6 +103,7 @@ import {
   CoordinationExecutionResponseDTO,
   WorkflowDefinitionDTO,
   WorkflowInstanceDTO,
+  VerificationResultDTO,
 } from "./platform-dto.js";
 import { OrganizationService } from "../../application/organization/organization-service.js";
 import { InMemoryOrganizationRepository } from "../../infrastructure/organization/in-memory-organization-repository.js";
@@ -121,12 +122,15 @@ import { AgentMembership } from "../../domain/organization/agent-membership.js";
 import { TeamResourceBudget } from "../../domain/organization/team-resource-budget.js";
 import { AgentCoordinationRecord } from "../../domain/organization/organizational-coordination.js";
 import { WorkflowOrchestratorService } from "../../application/workflow/workflow-orchestrator-service.js";
+import { WorkflowVerificationService } from "../../application/workflow/workflow-verification-service.js";
 import {
   InMemoryWorkflowDefinitionRepository,
   InMemoryWorkflowInstanceRepository,
 } from "../../infrastructure/persistence/in-memory/in-memory-workflow-repository.js";
+import { InMemoryVerificationResultRepository } from "../../infrastructure/persistence/in-memory/in-memory-verification-repository.js";
 import { WorkflowDefinition } from "../../domain/workflow/workflow-definition.js";
 import { WorkflowInstance } from "../../domain/workflow/workflow-instance.js";
+import { VerificationResult } from "../../domain/workflow/verification-result.js";
 
 import { projectExecutionObservability } from "../product/execution-observability.js";
 import { Tenant, DEFAULT_PLAN_LIMITS } from "../../domain/tenant/tenant.js";
@@ -182,6 +186,7 @@ export interface PlatformDependencies {
   readonly organizationalCoordinationService?: OrganizationalCoordinationService | undefined;
   readonly agentProfileService?: AgentProfileService | undefined;
   readonly workflowOrchestratorService?: WorkflowOrchestratorService | undefined;
+  readonly workflowVerificationService?: WorkflowVerificationService | undefined;
   readonly eventStream?: EventStreamAdapter | undefined;
 }
 
@@ -202,6 +207,7 @@ export class PlatformService {
   private readonly organizationalCoordinationService: OrganizationalCoordinationService;
   private readonly agentProfileService: AgentProfileService;
   private readonly workflowOrchestratorService: WorkflowOrchestratorService;
+  private readonly workflowVerificationService?: WorkflowVerificationService | undefined;
   private readonly governanceService: EnterpriseGovernanceService;
   private readonly quotaService: QuotaService;
   private readonly integrationEngine: IntegrationTruthEngine;
@@ -263,13 +269,27 @@ export class PlatformService {
       organizationRepository: defaultOrgRepo,
       agentQuery: this.agents ?? { findById: () => undefined, list: () => [] },
     });
+    const defaultDefRepo = new InMemoryWorkflowDefinitionRepository();
+    const defaultInstRepo = new InMemoryWorkflowInstanceRepository();
+    const defaultVerificationRepo = new InMemoryVerificationResultRepository();
+    const defaultPolicy = new InMemoryPolicyGateway();
+
+    this.workflowVerificationService = deps.workflowVerificationService ?? new WorkflowVerificationService({
+      verificationRepo: defaultVerificationRepo,
+      instanceRepo: defaultInstRepo,
+      defRepo: defaultDefRepo,
+      policy: defaultPolicy,
+      budgetService: this.teamResourceBudgetService,
+    });
+
     this.workflowOrchestratorService = deps.workflowOrchestratorService ?? new WorkflowOrchestratorService({
-      definitionRepository: new InMemoryWorkflowDefinitionRepository(),
-      instanceRepository: new InMemoryWorkflowInstanceRepository(),
+      definitionRepository: defaultDefRepo,
+      instanceRepository: defaultInstRepo,
       agentProfileService: this.agentProfileService,
       organizationRepository: defaultOrgRepo,
       budgetService: this.teamResourceBudgetService,
-      policyGateway: new InMemoryPolicyGateway(),
+      policyGateway: defaultPolicy,
+      verificationService: this.workflowVerificationService,
       agentQuery: this.agents ?? { findById: () => undefined, list: () => [] },
     });
 
@@ -2317,6 +2337,10 @@ export class PlatformService {
     return this.workflowOrchestratorService;
   }
 
+  getWorkflowVerificationService(): WorkflowVerificationService | undefined {
+    return this.workflowVerificationService;
+  }
+
   toWorkflowDefinitionDTO(def: WorkflowDefinition): WorkflowDefinitionDTO {
     return {
       id: def.id,
@@ -2343,6 +2367,7 @@ export class PlatformService {
         timeoutMs: s.timeoutMs,
         maxRetries: s.maxRetries,
         requiresApproval: s.requiresApproval,
+        verificationRule: s.verificationRule ? { ...s.verificationRule } : undefined,
       })),
       createdAt: def.createdAt.toISOString(),
       updatedAt: def.updatedAt.toISOString(),
@@ -2365,6 +2390,8 @@ export class PlatformService {
         input: s.input,
         output: s.output,
         error: s.error,
+        verificationVerdict: s.verificationVerdict,
+        verificationId: s.verificationId,
         startedAt: s.startedAt?.toISOString(),
         completedAt: s.completedAt?.toISOString(),
       };
@@ -2397,6 +2424,29 @@ export class PlatformService {
       createdAt: inst.createdAt.toISOString(),
       updatedAt: inst.updatedAt.toISOString(),
       completedAt: inst.completedAt?.toISOString(),
+    };
+  }
+
+  toVerificationResultDTO(v: VerificationResult): VerificationResultDTO {
+    return {
+      id: v.id,
+      tenantId: v.tenantId,
+      workflowId: v.workflowId,
+      workflowInstanceId: v.workflowInstanceId,
+      workflowStepId: v.workflowStepId,
+      taskId: v.taskId,
+      executionId: v.executionId,
+      producerPrincipalId: v.producerPrincipalId,
+      verifierPrincipalId: v.verifierPrincipalId,
+      verifierSource: v.verifierSource,
+      verdict: v.verdict,
+      method: v.method,
+      evidence: v.evidence,
+      reason: v.reason,
+      verifiedAt: v.verifiedAt.toISOString(),
+      version: v.version,
+      createdAt: v.createdAt.toISOString(),
+      updatedAt: v.updatedAt.toISOString(),
     };
   }
 }

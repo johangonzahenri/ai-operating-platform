@@ -35,6 +35,7 @@ export type EventType =
   | "team.resource.consumption.authorized" | "team.resource.consumption.denied"
   | "workflow.created" | "workflow.updated" | "workflow.started"
   | "workflow.step.started" | "workflow.step.completed" | "workflow.step.failed"
+  | "workflow.step.verification.requested" | "workflow.step.verification.completed" | "workflow.step.verification.failed"
   | "workflow.completed" | "workflow.failed" | "workflow.cancelled";
 
 
