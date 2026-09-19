@@ -929,3 +929,73 @@ export async function listVerificationsByExecution(executionId) {
   return request(`/executions/${encodeURIComponent(executionId)}/verifications`);
 }
 
+// --- Human Oversight, Approval & Escalation Governance (Prompt 113 / Phase 64) ---
+
+export async function requestApproval(params) {
+  return request("/approvals", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+}
+
+export async function listApprovals(options = {}) {
+  const params = new URLSearchParams();
+  if (options.limit) params.set("limit", String(options.limit));
+  if (options.offset) params.set("offset", String(options.offset));
+  if (options.status) params.set("status", options.status);
+  if (options.workflowInstanceId) params.set("workflowInstanceId", options.workflowInstanceId);
+  if (options.workflowStepId) params.set("workflowStepId", options.workflowStepId);
+  const qs = params.toString();
+  return request(qs ? `/approvals?${qs}` : "/approvals");
+}
+
+export async function getApproval(id) {
+  return request(`/approvals/${encodeURIComponent(id)}`);
+}
+
+export async function startApprovalReview(id, body = {}) {
+  return request(`/approvals/${encodeURIComponent(id)}/review`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function approveApprovalRequest(id, body = {}) {
+  return request(`/approvals/${encodeURIComponent(id)}/approve`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function rejectApprovalRequest(id, body) {
+  return request(`/approvals/${encodeURIComponent(id)}/reject`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function cancelApprovalRequest(id, body = {}) {
+  return request(`/approvals/${encodeURIComponent(id)}/cancel`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function escalateApprovalRequest(id, body) {
+  return request(`/approvals/${encodeURIComponent(id)}/escalate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function listApprovalsByInstance(instanceId) {
+  return request(`/workflows/instances/${encodeURIComponent(instanceId)}/approvals`);
+}
+
+

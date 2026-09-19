@@ -119,6 +119,7 @@
 | **ORG-10** | Gobernanza de Roles, Responsabilidades y Capacidades de Agentes | Fase 61 | `DONE` | `src/domain/organization/agent-profile.ts`, `src/application/organization/agent-profile-service.ts` | 27 tests pass | ADR 0031 |
 | **ORG-11** | Orquestación de Flujos de Trabajo & Asignación Gobernada de Tareas | Fase 62 | `DONE` | `src/domain/workflow/`, `src/application/workflow/` | 29 tests pass | ADR 0032 |
 | **ORG-12** | Verificación y Validación de Resultados de Flujo | Fase 63 | `DONE` | `src/domain/workflow/verification-*`, `src/application/workflow/*verification*` | 28 tests pass | ADR 0033 |
+| **ORG-13** | Supervisión Humana, Aprobación & Escalamiento Gobernada | Fase 64 | `DONE` | `src/domain/workflow/approval-*`, `src/application/workflow/human-oversight-service.ts` | 26 tests pass | ADR 0034 |
 
 ---
 

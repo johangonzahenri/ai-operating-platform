@@ -1,8 +1,8 @@
 {
-  "traceId": "trace-verify-ar-9ebede11",
+  "traceId": "trace-verify-ar-776c2d96",
   "provider": "ar-provider",
   "environment": "production",
-  "verifiedAt": "2026-09-19T08:11:41.057Z",
+  "verifiedAt": "2026-09-19T12:30:48.760Z",
   "status": "OPERATIONAL",
   "latencyMs": 2,
   "metadata": {

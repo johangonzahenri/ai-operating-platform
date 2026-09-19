@@ -326,5 +326,29 @@ export default {
     "verifiedAt": "Fecha Verificación",
     "verifyStep": "Verificar Paso",
     "selfVerificationBlocked": "Auto-certificación bloqueada por segregación de funciones"
+  },
+  "approvals": {
+    "title": "Centro de Supervisión y Aprobación Humana",
+    "requestApproval": "Solicitar Aprobación",
+    "pendingApprovals": "Aprobaciones Pendientes",
+    "startReview": "Iniciar Revisión",
+    "approve": "Aprobar",
+    "reject": "Rechazar",
+    "cancel": "Cancelar",
+    "escalate": "Escalar",
+    "requester": "Solicitante",
+    "reviewer": "Revisor",
+    "approver": "Aprobador",
+    "purpose": "Propósito",
+    "authority": "Autoridad",
+    "statusRequested": "Solicitada",
+    "statusReviewing": "En Revisión",
+    "statusApproved": "Aprobada",
+    "statusRejected": "Rechazada",
+    "statusExpired": "Expirada",
+    "statusCancelled": "Cancelada",
+    "statusEscalated": "Escalada",
+    "selfApprovalBlocked": "Auto-aprobación bloqueada por segregación de funciones",
+    "expiredNotice": "La solicitud de aprobación ha expirado"
   }
 };

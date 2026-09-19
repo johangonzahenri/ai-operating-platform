@@ -326,5 +326,29 @@ export default {
     "verifiedAt": "Verified At",
     "verifyStep": "Verify Step",
     "selfVerificationBlocked": "Self-verification blocked by segregation of duties"
+  },
+  "approvals": {
+    "title": "Human Oversight & Approval Center",
+    "requestApproval": "Request Approval",
+    "pendingApprovals": "Pending Approvals",
+    "startReview": "Start Review",
+    "approve": "Approve",
+    "reject": "Reject",
+    "cancel": "Cancel",
+    "escalate": "Escalate",
+    "requester": "Requester",
+    "reviewer": "Reviewer",
+    "approver": "Approver",
+    "purpose": "Purpose",
+    "authority": "Authority",
+    "statusRequested": "Requested",
+    "statusReviewing": "Under Review",
+    "statusApproved": "Approved",
+    "statusRejected": "Rejected",
+    "statusExpired": "Expired",
+    "statusCancelled": "Cancelled",
+    "statusEscalated": "Escalated",
+    "selfApprovalBlocked": "Self-approval blocked by segregation of duties",
+    "expiredNotice": "Approval request has expired"
   }
 };

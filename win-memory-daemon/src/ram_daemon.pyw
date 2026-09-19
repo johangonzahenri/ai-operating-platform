@@ -18,11 +18,11 @@ import os
 import sys
 
 # ==========================================
-# CONFIGURATION CONSTANTS
+# CONFIGURATION CONSTANTS - MODO MÁXIMA OPTIMIZACIÓN
 # ==========================================
-RAM_THRESHOLD_PERCENT = 75.0    # Memory load threshold to trigger purge (>= 75%)
-CHECK_INTERVAL_SECONDS = 5.0    # Memory polling interval in seconds
-COOLDOWN_SECONDS = 15.0         # Cooldown period after a purge to prevent thrashing
+RAM_THRESHOLD_PERCENT = 60.0    # Disparador ultra-sensible (>= 60% uso de RAM)
+CHECK_INTERVAL_SECONDS = 3.0    # Verificación ultra-rápida cada 3 segundos
+COOLDOWN_SECONDS = 8.0          # Cooldown ágil de 8 segundos entre purgas
 
 # Exclusion list: Game engines, anti-cheat, graphics drivers,
 # and core Windows kernel components to avoid stuttering/frame drops.

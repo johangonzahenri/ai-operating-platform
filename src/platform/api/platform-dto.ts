@@ -961,4 +961,78 @@ export interface VerifyStepRequestDTO {
   readonly overrideOutput?: Readonly<Record<string, unknown>> | undefined;
 }
 
+export interface ApprovalAuthorityDTO {
+  readonly tenantId: string;
+  readonly organizationId?: string | undefined;
+  readonly areaId?: string | undefined;
+  readonly teamId?: string | undefined;
+  readonly requiredRole?: "LEAD" | "SPECIALIST" | "OPERATOR" | "REVIEWER" | undefined;
+  readonly requiredPermissions?: readonly string[] | undefined;
+  readonly operationType?: string | undefined;
+  readonly resourceScope?: string | undefined;
+}
+
+export interface ApprovalRequestDTO {
+  readonly id: string;
+  readonly tenantId: string;
+  readonly workflowId: string;
+  readonly workflowInstanceId: string;
+  readonly workflowStepId: string;
+  readonly taskId?: string | undefined;
+  readonly executionId?: string | undefined;
+  readonly verificationResultId?: string | undefined;
+  readonly requesterPrincipalId: string;
+  readonly producerPrincipalId?: string | undefined;
+  readonly reviewerPrincipalId?: string | undefined;
+  readonly approverPrincipalId?: string | undefined;
+  readonly purpose: string;
+  readonly requiredAuthority?: ApprovalAuthorityDTO | undefined;
+  readonly requiredRole?: "LEAD" | "SPECIALIST" | "OPERATOR" | "REVIEWER" | undefined;
+  readonly status: "REQUESTED" | "REVIEWING" | "APPROVED" | "REJECTED" | "EXPIRED" | "CANCELLED" | "ESCALATED";
+  readonly decisionReason?: string | undefined;
+  readonly decisionMetadata?: Readonly<Record<string, unknown>> | undefined;
+  readonly escalationTarget?: string | undefined;
+  readonly expiresAt?: string | undefined;
+  readonly decidedAt?: string | undefined;
+  readonly version: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export interface CreateApprovalRequestDTO {
+  readonly id?: string | undefined;
+  readonly workflowId: string;
+  readonly workflowInstanceId: string;
+  readonly workflowStepId: string;
+  readonly taskId?: string | undefined;
+  readonly executionId?: string | undefined;
+  readonly verificationResultId?: string | undefined;
+  readonly requesterPrincipalId?: string | undefined;
+  readonly producerPrincipalId?: string | undefined;
+  readonly purpose: string;
+  readonly requiredAuthority?: ApprovalAuthorityDTO | undefined;
+  readonly requiredRole?: "LEAD" | "SPECIALIST" | "OPERATOR" | "REVIEWER" | undefined;
+  readonly expiresAt?: string | undefined;
+}
+
+export interface StartReviewRequestDTO {
+  readonly reviewerPrincipalId?: string | undefined;
+}
+
+export interface DecideApprovalRequestDTO {
+  readonly approverPrincipalId?: string | undefined;
+  readonly reason?: string | undefined;
+  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+}
+
+export interface EscalateApprovalRequestDTO {
+  readonly escalationTarget: string;
+  readonly reason: string;
+}
+
+export interface CancelApprovalRequestDTO {
+  readonly reason?: string | undefined;
+}
+
+
 

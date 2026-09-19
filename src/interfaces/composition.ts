@@ -1,20 +1,21 @@
-import {
-  WorkflowDefinitionRepositoryPort,
-  WorkflowInstanceRepositoryPort,
-} from "../application/ports/workflow-repository-port.js";
+import { WorkflowDefinitionRepositoryPort, WorkflowInstanceRepositoryPort } from "../application/ports/workflow-repository-port.js";
 import { VerificationResultRepositoryPort } from "../application/ports/verification-repository-port.js";
+import { ApprovalRequestRepositoryPort } from "../application/ports/approval-repository-port.js";
 import {
   InMemoryWorkflowDefinitionRepository,
   InMemoryWorkflowInstanceRepository,
 } from "../infrastructure/persistence/in-memory/in-memory-workflow-repository.js";
 import { InMemoryVerificationResultRepository } from "../infrastructure/persistence/in-memory/in-memory-verification-repository.js";
+import { InMemoryApprovalRequestRepository } from "../infrastructure/persistence/in-memory/in-memory-approval-repository.js";
 import {
   SqliteWorkflowDefinitionRepository,
   SqliteWorkflowInstanceRepository,
 } from "../infrastructure/persistence/sqlite/sqlite-workflow-repository.js";
 import { SqliteVerificationResultRepository } from "../infrastructure/persistence/sqlite/sqlite-verification-repository.js";
+import { SqliteApprovalRequestRepository } from "../infrastructure/persistence/sqlite/sqlite-approval-repository.js";
 import { WorkflowOrchestratorService } from "../application/workflow/workflow-orchestrator-service.js";
 import { WorkflowVerificationService } from "../application/workflow/workflow-verification-service.js";
+import { HumanOversightService } from "../application/workflow/human-oversight-service.js";
 import { ExecuteTask } from "../application/execute-task.js";
 import { SubmitTask } from "../application/submit-task.js";
 import { ExecuteOrchestration } from "../application/orchestration/execute-orchestration.js";
@@ -133,6 +134,8 @@ export interface CreatePlatformOptions {
   readonly workflowOrchestratorService?: WorkflowOrchestratorService | undefined;
   readonly verificationResultRepository?: VerificationResultRepositoryPort | undefined;
   readonly workflowVerificationService?: WorkflowVerificationService | undefined;
+  readonly approvalRequestRepository?: ApprovalRequestRepositoryPort | undefined;
+  readonly humanOversightService?: HumanOversightService | undefined;
   readonly eventStream?: EventStreamAdapter | undefined;
 }
 
@@ -363,6 +366,12 @@ export const createPlatform = (
       ? new SqliteVerificationResultRepository(dbManager)
       : new InMemoryVerificationResultRepository();
 
+  const approvalRequestRepository: ApprovalRequestRepositoryPort = (!isLogger && (optionsOrLogger as CreatePlatformOptions).approvalRequestRepository)
+    ? (optionsOrLogger as CreatePlatformOptions).approvalRequestRepository!
+    : dbManager
+      ? new SqliteApprovalRequestRepository(dbManager)
+      : new InMemoryApprovalRequestRepository();
+
   const workflowVerificationService: WorkflowVerificationService = (!isLogger && (optionsOrLogger as CreatePlatformOptions).workflowVerificationService)
     ? (optionsOrLogger as CreatePlatformOptions).workflowVerificationService!
     : new WorkflowVerificationService({
@@ -371,6 +380,17 @@ export const createPlatform = (
         defRepo: workflowDefinitionRepository,
         policy,
         budgetService: teamResourceBudgetService,
+        events,
+      });
+
+  const humanOversightService: HumanOversightService = (!isLogger && (optionsOrLogger as CreatePlatformOptions).humanOversightService)
+    ? (optionsOrLogger as CreatePlatformOptions).humanOversightService!
+    : new HumanOversightService({
+        approvalRepository: approvalRequestRepository,
+        workflowInstanceRepository,
+        verificationService: workflowVerificationService,
+        organizationRepository,
+        policyGateway: policy,
         events,
       });
 
@@ -384,6 +404,7 @@ export const createPlatform = (
         budgetService: teamResourceBudgetService,
         policyGateway: policy,
         verificationService: workflowVerificationService,
+        humanOversightService,
         runtime: agentRuntime,
         agentQuery: agents,
         events,
@@ -508,5 +529,7 @@ export const createPlatform = (
     workflowOrchestratorService,
     verificationResultRepository,
     workflowVerificationService,
+    approvalRequestRepository,
+    humanOversightService,
   };
 };

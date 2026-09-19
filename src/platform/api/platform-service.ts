@@ -104,6 +104,7 @@ import {
   WorkflowDefinitionDTO,
   WorkflowInstanceDTO,
   VerificationResultDTO,
+  ApprovalRequestDTO,
 } from "./platform-dto.js";
 import { OrganizationService } from "../../application/organization/organization-service.js";
 import { InMemoryOrganizationRepository } from "../../infrastructure/organization/in-memory-organization-repository.js";
@@ -131,6 +132,9 @@ import { InMemoryVerificationResultRepository } from "../../infrastructure/persi
 import { WorkflowDefinition } from "../../domain/workflow/workflow-definition.js";
 import { WorkflowInstance } from "../../domain/workflow/workflow-instance.js";
 import { VerificationResult } from "../../domain/workflow/verification-result.js";
+import { ApprovalRequest } from "../../domain/workflow/approval-request.js";
+import { HumanOversightService } from "../../application/workflow/human-oversight-service.js";
+import { InMemoryApprovalRequestRepository } from "../../infrastructure/persistence/in-memory/in-memory-approval-repository.js";
 
 import { projectExecutionObservability } from "../product/execution-observability.js";
 import { Tenant, DEFAULT_PLAN_LIMITS } from "../../domain/tenant/tenant.js";
@@ -187,6 +191,7 @@ export interface PlatformDependencies {
   readonly agentProfileService?: AgentProfileService | undefined;
   readonly workflowOrchestratorService?: WorkflowOrchestratorService | undefined;
   readonly workflowVerificationService?: WorkflowVerificationService | undefined;
+  readonly humanOversightService?: HumanOversightService | undefined;
   readonly eventStream?: EventStreamAdapter | undefined;
 }
 
@@ -208,6 +213,7 @@ export class PlatformService {
   private readonly agentProfileService: AgentProfileService;
   private readonly workflowOrchestratorService: WorkflowOrchestratorService;
   private readonly workflowVerificationService?: WorkflowVerificationService | undefined;
+  private readonly humanOversightService?: HumanOversightService | undefined;
   private readonly governanceService: EnterpriseGovernanceService;
   private readonly quotaService: QuotaService;
   private readonly integrationEngine: IntegrationTruthEngine;
@@ -273,6 +279,7 @@ export class PlatformService {
     const defaultInstRepo = new InMemoryWorkflowInstanceRepository();
     const defaultVerificationRepo = new InMemoryVerificationResultRepository();
     const defaultPolicy = new InMemoryPolicyGateway();
+    const defaultApprovalRepo = new InMemoryApprovalRequestRepository();
 
     this.workflowVerificationService = deps.workflowVerificationService ?? new WorkflowVerificationService({
       verificationRepo: defaultVerificationRepo,
@@ -280,6 +287,14 @@ export class PlatformService {
       defRepo: defaultDefRepo,
       policy: defaultPolicy,
       budgetService: this.teamResourceBudgetService,
+    });
+
+    this.humanOversightService = deps.humanOversightService ?? new HumanOversightService({
+      approvalRepository: defaultApprovalRepo,
+      workflowInstanceRepository: defaultInstRepo,
+      verificationService: this.workflowVerificationService,
+      organizationRepository: defaultOrgRepo,
+      policyGateway: defaultPolicy,
     });
 
     this.workflowOrchestratorService = deps.workflowOrchestratorService ?? new WorkflowOrchestratorService({
@@ -290,6 +305,7 @@ export class PlatformService {
       budgetService: this.teamResourceBudgetService,
       policyGateway: defaultPolicy,
       verificationService: this.workflowVerificationService,
+      humanOversightService: this.humanOversightService,
       agentQuery: this.agents ?? { findById: () => undefined, list: () => [] },
     });
 
@@ -2427,6 +2443,10 @@ export class PlatformService {
     };
   }
 
+  get humanOversight(): HumanOversightService | undefined {
+    return this.humanOversightService;
+  }
+
   toVerificationResultDTO(v: VerificationResult): VerificationResultDTO {
     return {
       id: v.id,
@@ -2447,6 +2467,35 @@ export class PlatformService {
       version: v.version,
       createdAt: v.createdAt.toISOString(),
       updatedAt: v.updatedAt.toISOString(),
+    };
+  }
+
+  toApprovalRequestDTO(a: ApprovalRequest): ApprovalRequestDTO {
+    return {
+      id: a.id,
+      tenantId: a.tenantId,
+      workflowId: a.workflowId,
+      workflowInstanceId: a.workflowInstanceId,
+      workflowStepId: a.workflowStepId,
+      taskId: a.taskId,
+      executionId: a.executionId,
+      verificationResultId: a.verificationResultId,
+      requesterPrincipalId: a.requesterPrincipalId,
+      producerPrincipalId: a.producerPrincipalId,
+      reviewerPrincipalId: a.reviewerPrincipalId,
+      approverPrincipalId: a.approverPrincipalId,
+      purpose: a.purpose,
+      requiredAuthority: a.requiredAuthority,
+      requiredRole: a.requiredRole,
+      status: a.status,
+      decisionReason: a.decisionReason,
+      decisionMetadata: a.decisionMetadata,
+      escalationTarget: a.escalationTarget,
+      expiresAt: a.expiresAt?.toISOString(),
+      decidedAt: a.decidedAt?.toISOString(),
+      version: a.version,
+      createdAt: a.createdAt.toISOString(),
+      updatedAt: a.updatedAt.toISOString(),
     };
   }
 }

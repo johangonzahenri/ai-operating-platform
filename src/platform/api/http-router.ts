@@ -16,6 +16,18 @@ import {
   VerificationConcurrencyConflictError,
   VerificationPolicyDeniedError,
 } from "../../domain/workflow/verification-errors.js";
+import {
+  ApprovalError,
+  ApprovalValidationError,
+  ApprovalNotFoundError,
+  SelfApprovalError,
+  ApprovalExpiredError,
+  ApprovalConcurrencyConflictError,
+  ApprovalPolicyDeniedError,
+  ApprovalTenantMismatchError,
+  ApprovalInvalidStateTransitionError,
+  UnauthorizedApproverError,
+} from "../../domain/workflow/approval-errors.js";
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
@@ -3934,6 +3946,335 @@ export function createHttpServer(
               return;
             } catch (err: any) {
               handleVerificationError(err);
+              return;
+            }
+          }
+        }
+
+        const hService = service.humanOversight;
+        if (hService) {
+          const handleApprovalError = (err: any) => {
+            if (err instanceof ApprovalValidationError) {
+              sendError(400, err.message, "APPROVAL_VALIDATION_ERROR");
+            } else if (err instanceof ApprovalNotFoundError) {
+              sendError(404, err.message, "APPROVAL_NOT_FOUND");
+            } else if (err instanceof SelfApprovalError) {
+              sendError(403, err.message, "SELF_APPROVAL_PROHIBITED");
+            } else if (err instanceof UnauthorizedApproverError) {
+              sendError(403, err.message, "UNAUTHORIZED_APPROVER");
+            } else if (err instanceof ApprovalPolicyDeniedError) {
+              sendError(403, err.message, "APPROVAL_POLICY_DENIED");
+            } else if (err instanceof ApprovalTenantMismatchError) {
+              sendError(403, err.message, "APPROVAL_TENANT_MISMATCH");
+            } else if (err instanceof ApprovalExpiredError) {
+              sendError(409, err.message, "APPROVAL_EXPIRED");
+            } else if (err instanceof ApprovalConcurrencyConflictError) {
+              sendError(409, err.message, "APPROVAL_CONCURRENCY_CONFLICT");
+            } else if (err instanceof ApprovalInvalidStateTransitionError) {
+              sendError(409, err.message, "APPROVAL_INVALID_STATE_TRANSITION");
+            } else {
+              const msg = err instanceof Error ? err.message : "Internal approval error";
+              sendError(500, msg, "APPROVAL_INTERNAL_ERROR");
+            }
+          };
+
+          // POST /approvals (Create Approval Request)
+          if (subPath === "/approvals" && req.method === "POST") {
+            const bodyResult = await readJsonBody();
+            if (!bodyResult.ok) {
+              sendError(400, "Bad Request: Invalid JSON body", "INVALID_JSON");
+              return;
+            }
+            const body = bodyResult.body as any;
+            const targetTenant = body.tenantId ?? reqCtx.tenantId;
+            const authCheck = await authenticateAndAuthorize("workflow.approve", "API", body.workflowInstanceId ?? "", targetTenant);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? targetTenant;
+            const requesterId = body.requesterPrincipalId ?? authCheck.context?.principal?.id ?? reqCtx.principal?.id ?? "system";
+
+            try {
+              const approval = await hService.requestApproval({
+                id: body.id,
+                tenantId,
+                workflowId: body.workflowId,
+                workflowInstanceId: body.workflowInstanceId,
+                workflowStepId: body.workflowStepId,
+                taskId: body.taskId,
+                executionId: body.executionId,
+                verificationResultId: body.verificationResultId,
+                requesterPrincipalId: requesterId,
+                producerPrincipalId: body.producerPrincipalId,
+                purpose: body.purpose,
+                requiredAuthority: body.requiredAuthority,
+                requiredRole: body.requiredRole,
+                expiresAt: body.expiresAt ? new Date(body.expiresAt) : undefined,
+              });
+              sendJson(201, service.toApprovalRequestDTO(approval));
+              return;
+            } catch (err: any) {
+              handleApprovalError(err);
+              return;
+            }
+          }
+
+          // GET /approvals (List Approvals with filters)
+          if (subPath === "/approvals" && req.method === "GET") {
+            const authCheck = await authenticateAndAuthorize("workflow.read", "API", "", reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const limitParam = url.searchParams.get("limit");
+            const offsetParam = url.searchParams.get("offset");
+            const statusParam = url.searchParams.get("status");
+            const instanceIdParam = url.searchParams.get("workflowInstanceId");
+            const stepIdParam = url.searchParams.get("workflowStepId");
+
+            const limit = limitParam ? parseInt(limitParam, 10) : 50;
+            const offset = offsetParam ? parseInt(offsetParam, 10) : 0;
+
+            try {
+              const approvals = await hService.listApprovals(
+                {
+                  tenantId,
+                  status: statusParam as any,
+                  workflowInstanceId: instanceIdParam ?? undefined,
+                  workflowStepId: stepIdParam ?? undefined,
+                },
+                limit,
+                offset
+              );
+              sendJson(200, approvals.map((a) => service.toApprovalRequestDTO(a)));
+              return;
+            } catch (err: any) {
+              handleApprovalError(err);
+              return;
+            }
+          }
+
+          // GET /approvals/:id
+          const aGetMatch = subPath.match(/^\/approvals\/([^/]+)$/);
+          if (aGetMatch && req.method === "GET") {
+            const id = normalizeId(aGetMatch[1]);
+            if (!id) {
+              sendError(400, "Bad Request: Invalid ID format", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("workflow.read", "API", id, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            try {
+              const approval = await hService.getApproval(id, tenantId);
+              sendJson(200, service.toApprovalRequestDTO(approval));
+              return;
+            } catch (err: any) {
+              handleApprovalError(err);
+              return;
+            }
+          }
+
+          // POST /approvals/:id/review
+          const aReviewMatch = subPath.match(/^\/approvals\/([^/]+)\/review$/);
+          if (aReviewMatch && req.method === "POST") {
+            const id = normalizeId(aReviewMatch[1]);
+            if (!id) {
+              sendError(400, "Bad Request: Invalid ID format", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("workflow.approve", "API", id, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const bodyResult = await readJsonBody();
+            const body = bodyResult.ok ? (bodyResult.body as any) : {};
+            const reviewerId = body.reviewerPrincipalId ?? authCheck.context?.principal?.id ?? reqCtx.principal?.id ?? "reviewer";
+
+            try {
+              const approval = await hService.startReview({
+                approvalId: id,
+                tenantId,
+                reviewerPrincipalId: reviewerId,
+              });
+              sendJson(200, service.toApprovalRequestDTO(approval));
+              return;
+            } catch (err: any) {
+              handleApprovalError(err);
+              return;
+            }
+          }
+
+          // POST /approvals/:id/approve
+          const aApproveMatch = subPath.match(/^\/approvals\/([^/]+)\/approve$/);
+          if (aApproveMatch && req.method === "POST") {
+            const id = normalizeId(aApproveMatch[1]);
+            if (!id) {
+              sendError(400, "Bad Request: Invalid ID format", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("workflow.approve", "API", id, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const bodyResult = await readJsonBody();
+            const body = bodyResult.ok ? (bodyResult.body as any) : {};
+            const approverId = body.approverPrincipalId ?? authCheck.context?.principal?.id ?? reqCtx.principal?.id ?? "approver";
+
+            try {
+              const approval = await hService.approve({
+                approvalId: id,
+                tenantId,
+                approverPrincipalId: approverId,
+                reason: body.reason,
+                metadata: body.metadata,
+              });
+              sendJson(200, service.toApprovalRequestDTO(approval));
+              return;
+            } catch (err: any) {
+              handleApprovalError(err);
+              return;
+            }
+          }
+
+          // POST /approvals/:id/reject
+          const aRejectMatch = subPath.match(/^\/approvals\/([^/]+)\/reject$/);
+          if (aRejectMatch && req.method === "POST") {
+            const id = normalizeId(aRejectMatch[1]);
+            if (!id) {
+              sendError(400, "Bad Request: Invalid ID format", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("workflow.approve", "API", id, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const bodyResult = await readJsonBody();
+            if (!bodyResult.ok) {
+              sendError(400, "Bad Request: Invalid JSON body", "INVALID_JSON");
+              return;
+            }
+            const body = bodyResult.body as any;
+            const approverId = body.approverPrincipalId ?? authCheck.context?.principal?.id ?? reqCtx.principal?.id ?? "approver";
+
+            try {
+              const approval = await hService.reject({
+                approvalId: id,
+                tenantId,
+                approverPrincipalId: approverId,
+                reason: body.reason ?? "Rejected by human oversight",
+                metadata: body.metadata,
+              });
+              sendJson(200, service.toApprovalRequestDTO(approval));
+              return;
+            } catch (err: any) {
+              handleApprovalError(err);
+              return;
+            }
+          }
+
+          // POST /approvals/:id/cancel
+          const aCancelMatch = subPath.match(/^\/approvals\/([^/]+)\/cancel$/);
+          if (aCancelMatch && req.method === "POST") {
+            const id = normalizeId(aCancelMatch[1]);
+            if (!id) {
+              sendError(400, "Bad Request: Invalid ID format", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("workflow.approve", "API", id, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const bodyResult = await readJsonBody();
+            const body = bodyResult.ok ? (bodyResult.body as any) : {};
+            const principalId = authCheck.context?.principal?.id ?? reqCtx.principal?.id ?? "system";
+
+            try {
+              const approval = await hService.cancel({
+                approvalId: id,
+                tenantId,
+                principalId,
+                reason: body.reason,
+              });
+              sendJson(200, service.toApprovalRequestDTO(approval));
+              return;
+            } catch (err: any) {
+              handleApprovalError(err);
+              return;
+            }
+          }
+
+          // POST /approvals/:id/escalate
+          const aEscalateMatch = subPath.match(/^\/approvals\/([^/]+)\/escalate$/);
+          if (aEscalateMatch && req.method === "POST") {
+            const id = normalizeId(aEscalateMatch[1]);
+            if (!id) {
+              sendError(400, "Bad Request: Invalid ID format", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("workflow.approve", "API", id, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const bodyResult = await readJsonBody();
+            if (!bodyResult.ok) {
+              sendError(400, "Bad Request: Invalid JSON body", "INVALID_JSON");
+              return;
+            }
+            const body = bodyResult.body as any;
+            const principalId = authCheck.context?.principal?.id ?? reqCtx.principal?.id ?? "system";
+
+            try {
+              const approval = await hService.escalate({
+                approvalId: id,
+                tenantId,
+                principalId,
+                escalationTarget: body.escalationTarget,
+                reason: body.reason ?? "Escalated by reviewer",
+              });
+              sendJson(200, service.toApprovalRequestDTO(approval));
+              return;
+            } catch (err: any) {
+              handleApprovalError(err);
+              return;
+            }
+          }
+
+          // GET /workflows/instances/:instanceId/approvals
+          const aInstMatch = subPath.match(/^\/workflows\/instances\/([^/]+)\/approvals$/);
+          if (aInstMatch && req.method === "GET") {
+            const instanceId = normalizeId(aInstMatch[1]);
+            if (!instanceId) {
+              sendError(400, "Bad Request: Invalid ID format", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("workflow.read", "API", instanceId, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            try {
+              const approvals = await hService.listByInstance(instanceId, tenantId);
+              sendJson(200, approvals.map((a) => service.toApprovalRequestDTO(a)));
+              return;
+            } catch (err: any) {
+              handleApprovalError(err);
               return;
             }
           }

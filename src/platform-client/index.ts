@@ -33,6 +33,13 @@ import type {
   WorkflowStepVerificationRuleDTO,
   VerificationResultDTO,
   VerifyStepRequestDTO,
+  ApprovalAuthorityDTO,
+  ApprovalRequestDTO,
+  CreateApprovalRequestDTO,
+  StartReviewRequestDTO,
+  DecideApprovalRequestDTO,
+  EscalateApprovalRequestDTO,
+  CancelApprovalRequestDTO,
 } from "../platform/api/platform-dto.js";
 import {
   toEventDTO,
@@ -793,6 +800,67 @@ export function createPlatformClient(options: PlatformClientOptions) {
     },
   };
 
+  const approvals = {
+    async request(body: CreateApprovalRequestDTO): Promise<ApprovalRequestDTO> {
+      return request<ApprovalRequestDTO>("/approvals", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+    },
+    async list(options?: {
+      limit?: number;
+      offset?: number;
+      status?: string;
+      workflowInstanceId?: string;
+      workflowStepId?: string;
+    }): Promise<readonly ApprovalRequestDTO[]> {
+      const params = new URLSearchParams();
+      if (options?.limit) params.set("limit", String(options.limit));
+      if (options?.offset) params.set("offset", String(options.offset));
+      if (options?.status) params.set("status", options.status);
+      if (options?.workflowInstanceId) params.set("workflowInstanceId", options.workflowInstanceId);
+      if (options?.workflowStepId) params.set("workflowStepId", options.workflowStepId);
+      const qs = params.toString();
+      return request<readonly ApprovalRequestDTO[]>(`/approvals${qs ? `?${qs}` : ""}`);
+    },
+    async get(id: string): Promise<ApprovalRequestDTO> {
+      return request<ApprovalRequestDTO>(`/approvals/${encodeURIComponent(id)}`);
+    },
+    async startReview(id: string, body?: StartReviewRequestDTO): Promise<ApprovalRequestDTO> {
+      return request<ApprovalRequestDTO>(`/approvals/${encodeURIComponent(id)}/review`, {
+        method: "POST",
+        body: JSON.stringify(body ?? {}),
+      });
+    },
+    async approve(id: string, body?: DecideApprovalRequestDTO): Promise<ApprovalRequestDTO> {
+      return request<ApprovalRequestDTO>(`/approvals/${encodeURIComponent(id)}/approve`, {
+        method: "POST",
+        body: JSON.stringify(body ?? {}),
+      });
+    },
+    async reject(id: string, body: DecideApprovalRequestDTO): Promise<ApprovalRequestDTO> {
+      return request<ApprovalRequestDTO>(`/approvals/${encodeURIComponent(id)}/reject`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+    },
+    async cancel(id: string, body?: CancelApprovalRequestDTO): Promise<ApprovalRequestDTO> {
+      return request<ApprovalRequestDTO>(`/approvals/${encodeURIComponent(id)}/cancel`, {
+        method: "POST",
+        body: JSON.stringify(body ?? {}),
+      });
+    },
+    async escalate(id: string, body: EscalateApprovalRequestDTO): Promise<ApprovalRequestDTO> {
+      return request<ApprovalRequestDTO>(`/approvals/${encodeURIComponent(id)}/escalate`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+    },
+    async listByInstance(instanceId: string): Promise<readonly ApprovalRequestDTO[]> {
+      return request<readonly ApprovalRequestDTO[]>(`/workflows/instances/${encodeURIComponent(instanceId)}/approvals`);
+    },
+  };
+
   return {
     tasks,
     executions,
@@ -814,6 +882,7 @@ export function createPlatformClient(options: PlatformClientOptions) {
     agentProfiles,
     workflows,
     verifications,
+    approvals,
     connect: () => healthGet(),
     health: Object.assign(healthGet, { get: healthGet }),
     getPlatformInfo: () => platform.get(),
@@ -866,4 +935,11 @@ export type {
   WorkflowStepVerificationRuleDTO,
   VerificationResultDTO,
   VerifyStepRequestDTO,
+  ApprovalAuthorityDTO,
+  ApprovalRequestDTO,
+  CreateApprovalRequestDTO,
+  StartReviewRequestDTO,
+  DecideApprovalRequestDTO,
+  EscalateApprovalRequestDTO,
+  CancelApprovalRequestDTO,
 };

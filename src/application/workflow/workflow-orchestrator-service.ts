@@ -40,6 +40,7 @@ import {
 } from "../../domain/workflow/workflow-events.js";
 
 import { WorkflowVerificationService } from "./workflow-verification-service.js";
+import { HumanOversightService } from "./human-oversight-service.js";
 
 export interface WorkflowOrchestratorServiceOptions {
   readonly definitionRepository: WorkflowDefinitionRepositoryPort;
@@ -49,6 +50,7 @@ export interface WorkflowOrchestratorServiceOptions {
   readonly policyGateway?: PolicyGateway | undefined;
   readonly budgetService?: TeamResourceBudgetService | undefined;
   readonly verificationService?: WorkflowVerificationService | undefined;
+  readonly humanOversightService?: HumanOversightService | undefined;
   readonly runtime?: Runtime | undefined;
   readonly agentQuery?: AgentQueryPort | undefined;
   readonly events?: EventPublisher | undefined;
@@ -87,6 +89,7 @@ export class WorkflowOrchestratorService {
   private readonly policy?: PolicyGateway | undefined;
   private readonly budgetService?: TeamResourceBudgetService | undefined;
   private readonly verificationService?: WorkflowVerificationService | undefined;
+  private readonly humanOversightService?: HumanOversightService | undefined;
   private readonly runtime?: Runtime | undefined;
   private readonly agentQuery?: AgentQueryPort | undefined;
   private readonly events?: EventPublisher | undefined;
@@ -99,6 +102,7 @@ export class WorkflowOrchestratorService {
     this.policy = options.policyGateway;
     this.budgetService = options.budgetService;
     this.verificationService = options.verificationService;
+    this.humanOversightService = options.humanOversightService;
     this.runtime = options.runtime;
     this.agentQuery = options.agentQuery;
     this.events = options.events;
@@ -511,6 +515,25 @@ export class WorkflowOrchestratorService {
                 },
               };
             }
+          }
+
+          // Human Approval Request if step requires approval
+          if (stepDef.requiresApproval && this.humanOversightService) {
+            await this.humanOversightService.requestApproval(
+              {
+                tenantId: instance.tenantId,
+                workflowId: definition.id,
+                workflowInstanceId: instance.id,
+                workflowStepId: stepDef.stepId,
+                taskId: task.id,
+                executionId: execResult.execution.id,
+                requesterPrincipalId: assignedAgentId,
+                producerPrincipalId: assignedAgentId,
+                purpose: `Human approval required for step '${stepDef.name}'`,
+                requiredRole: stepDef.requiredRole,
+              },
+              traceId
+            );
           }
 
           return {
