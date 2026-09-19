@@ -210,3 +210,15 @@ Este registro documenta de forma exhaustiva los componentes del sistema, organiz
 * **Documentación:** `docs/decisions/0037-ai-enterprise-operating-system-and-executive-governance.md`.
 * **Estado:** `IMPLEMENTED / OPERATIONAL`
 
+### 5.7 Repositorios Relacionales de Orquestación Ejecutiva & Operaciones de Bucle Cerrado
+* **Componente:** `src/infrastructure/persistence/sqlite/sqlite-executive-repository.ts`
+* **Capa:** Infraestructura / Almacenamiento Relacional de Orquestación Ejecutiva
+* **Responsabilidad:** Persistir y consultar ExecutiveCycles, ExecutiveContextSnapshots, ExecutiveAnalyses y ExecutivePlans en SQLite WAL con control OCC e índices compuestos `(enterprise_id, tenant_id)`.
+* **Dependencias:** Node.js 22+ `node:sqlite`, `SqliteDatabase`.
+* **Public API:** Implementación de `ExecutiveCycleRepositoryPort`, `ExecutiveContextSnapshotRepositoryPort`, `ExecutiveAnalysisRepositoryPort`, `ExecutivePlanRepositoryPort`.
+* **Security Boundary:** Aislamiento multi-tenant fail-closed forzado en todas las consultas y claves primarias compuestas `(id, tenant_id)`.
+* **Persistencia:** Tablas `executive_cycles`, `executive_context_snapshots`, `executive_analyses`, `executive_plans` en `data/app.db`.
+* **Tests:** `tests/unit/executive-orchestrator.test.ts`, `tests/platform/executive-orchestrator-api.test.ts`, `tests/unit/executive-closed-loop-e2e.test.ts` (28 tests).
+* **Documentación:** `docs/decisions/0038-executive-orchestrator-and-closed-loop-business-operations.md`.
+* **Estado:** `IMPLEMENTED / OPERATIONAL`
+

@@ -439,5 +439,23 @@ export default {
     "current": "Current",
     "gap": "Gap",
     "governanceNote": "All strategic operations and executive decisions require explicit authority and human oversight."
+  },
+  "executiveOrchestrator": {
+    "title": "Executive Orchestrator & Closed-Loop Operations",
+    "subtitle": "Autonomous closed-loop business cycle governance from strategy to verification and KPI impact",
+    "cycles": "Executive Cycles",
+    "signals": "Observed Signals",
+    "contextSnapshot": "Context Snapshot",
+    "analysis": "Executive Analysis",
+    "plan": "Executive Plan",
+    "actions": "Plan Actions",
+    "measurements": "KPI Measurements",
+    "startCycle": "Start Executive Cycle",
+    "approvePlan": "Approve Plan",
+    "executeAction": "Execute Action",
+    "reassessCycle": "Reassess Cycle",
+    "completeCycle": "Complete Cycle",
+    "boundedReplanning": "Bounded Replanning",
+    "governanceEnforced": "Zero AI CEO Sovereignty: Bounded by Identity, Authority, Budgets, and Human Oversight"
   }
 };

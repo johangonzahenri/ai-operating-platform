@@ -1285,3 +1285,66 @@ export async function getBusinessOperatingContext() {
   return request("/business/context");
 }
 
+// ============================================================================
+// Executive Orchestrator & Closed-Loop Operations API (Prompt 117 / Phase 68)
+// ============================================================================
+
+export async function startExecutiveCycle(data) {
+  return request("/executive/cycles", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function listExecutiveCycles(enterpriseId) {
+  const query = enterpriseId ? `?enterpriseId=${encodeURIComponent(enterpriseId)}` : "";
+  return request(`/executive/cycles${query}`);
+}
+
+export async function getExecutiveCycle(cycleId) {
+  return request(`/executive/cycles/${encodeURIComponent(cycleId)}`);
+}
+
+export async function getExecutiveCycleContext(cycleId) {
+  return request(`/executive/cycles/${encodeURIComponent(cycleId)}/context`);
+}
+
+export async function getExecutiveCycleAnalysis(cycleId) {
+  return request(`/executive/cycles/${encodeURIComponent(cycleId)}/analysis`);
+}
+
+export async function getExecutiveCyclePlan(cycleId) {
+  return request(`/executive/cycles/${encodeURIComponent(cycleId)}/plan`);
+}
+
+export async function approveExecutivePlan(cycleId, data) {
+  return request(`/executive/cycles/${encodeURIComponent(cycleId)}/approve`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function executeExecutivePlanAction(cycleId, data) {
+  return request(`/executive/cycles/${encodeURIComponent(cycleId)}/execute-action`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function reassessExecutiveCycle(cycleId, data) {
+  return request(`/executive/cycles/${encodeURIComponent(cycleId)}/reassess`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function completeExecutiveCycle(cycleId) {
+  return request(`/executive/cycles/${encodeURIComponent(cycleId)}/complete`, {
+    method: "POST",
+  });
+}
+

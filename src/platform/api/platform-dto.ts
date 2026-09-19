@@ -1474,4 +1474,162 @@ export interface BusinessOperatingContextDTO {
   readonly generatedAt: string;
 }
 
+// ---------------------------------------------------------------------------
+// Phase 68: Executive Orchestrator & Closed-Loop Business Operations DTOs
+// ---------------------------------------------------------------------------
+
+export interface ExecutiveSignalDTO {
+  readonly id: string;
+  readonly type: string;
+  readonly severity: string;
+  readonly source: string;
+  readonly targetType: string;
+  readonly targetId: string;
+  readonly description: string;
+  readonly evidenceReference: string;
+  readonly detectedAt: string;
+}
+
+export interface ExecutiveContextSnapshotDTO {
+  readonly id: string;
+  readonly cycleId: string;
+  readonly tenantId: string;
+  readonly enterpriseId: string;
+  readonly enterpriseName: string;
+  readonly enterpriseStatus: string;
+  readonly capturedAt: string;
+  readonly objectives: readonly {
+    readonly id: string;
+    readonly title: string;
+    readonly type: string;
+    readonly status: string;
+    readonly concurrencyVersion: number;
+  }[];
+  readonly initiatives: readonly {
+    readonly id: string;
+    readonly objectiveId: string;
+    readonly title: string;
+    readonly lifecycleState: string;
+    readonly linkedSolutionIds: readonly string[];
+    readonly linkedWorkflowIds: readonly string[];
+    readonly concurrencyVersion: number;
+  }[];
+  readonly metrics: readonly {
+    readonly id: string;
+    readonly objectiveId: string;
+    readonly name: string;
+    readonly targetValue: number;
+    readonly currentValue?: number | undefined;
+    readonly gap?: number | undefined;
+    readonly status: string;
+    readonly source: string;
+    readonly lastUpdated: string;
+    readonly concurrencyVersion: number;
+  }[];
+  readonly metadata: Readonly<Record<string, unknown>>;
+}
+
+export interface ExecutiveAnalysisDTO {
+  readonly id: string;
+  readonly cycleId: string;
+  readonly tenantId: string;
+  readonly enterpriseId: string;
+  readonly observedSignals: readonly ExecutiveSignalDTO[];
+  readonly affectedObjectiveIds: readonly string[];
+  readonly affectedInitiativeIds: readonly string[];
+  readonly impactedSolutionIds: readonly string[];
+  readonly impactedWorkflowIds: readonly string[];
+  readonly budgetConstraints: readonly string[];
+  readonly evidenceReferences: readonly string[];
+  readonly recommendedActionCategory: string;
+  readonly summary: string;
+  readonly createdAt: string;
+}
+
+export interface ExecutivePlanActionDTO {
+  readonly actionId: string;
+  readonly order: number;
+  readonly actionType: string;
+  readonly targetId: string;
+  readonly solutionId?: string | undefined;
+  readonly solutionVersion?: number | undefined;
+  readonly workflowDefinitionId?: string | undefined;
+  readonly requiredCapabilities: readonly string[];
+  readonly expectedOutcome: string;
+  readonly requiresApproval: boolean;
+  readonly requiresVerification: boolean;
+  readonly policyReferences: readonly string[];
+}
+
+export interface ExecutivePlanDTO {
+  readonly id: string;
+  readonly cycleId: string;
+  readonly tenantId: string;
+  readonly enterpriseId: string;
+  readonly objectiveId: string;
+  readonly initiativeId?: string | undefined;
+  readonly rationale: string;
+  readonly actions: readonly ExecutivePlanActionDTO[];
+  readonly status: string;
+  readonly validationViolations: readonly string[];
+  readonly rejectionReason?: string | undefined;
+  readonly concurrencyVersion: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export interface ExecutiveCycleDTO {
+  readonly id: string;
+  readonly tenantId: string;
+  readonly enterpriseId: string;
+  readonly status: string;
+  readonly contextSnapshotId?: string | undefined;
+  readonly analysisId?: string | undefined;
+  readonly planId?: string | undefined;
+  readonly activeActionIndex: number;
+  readonly decisionRecordIds: readonly string[];
+  readonly workflowInstanceIds: readonly string[];
+  readonly verificationResultIds: readonly string[];
+  readonly approvalRequestId?: string | undefined;
+  readonly replanningCount: number;
+  readonly maxReplanningAttempts: number;
+  readonly maxActionsPerCycle: number;
+  readonly outcomeSummary?: string | undefined;
+  readonly failureReason?: string | undefined;
+  readonly concurrencyVersion: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export interface StartExecutiveCycleRequestDTO {
+  readonly id: string;
+  readonly enterpriseId: string;
+  readonly autonomyLevel?: string | undefined;
+  readonly maxReplanningAttempts?: number | undefined;
+}
+
+export interface StartExecutiveCycleResponseDTO {
+  readonly cycle: ExecutiveCycleDTO;
+  readonly snapshot: ExecutiveContextSnapshotDTO;
+  readonly analysis: ExecutiveAnalysisDTO;
+  readonly plan: ExecutivePlanDTO;
+}
+
+export interface ApproveExecutivePlanRequestDTO {
+  readonly approverPrincipalId?: string | undefined;
+}
+
+export interface ExecuteExecutiveActionRequestDTO {
+  readonly actionIndex?: number | undefined;
+}
+
+export interface ReassessExecutiveCycleRequestDTO {
+  readonly reason: string;
+}
+
+export interface CompleteExecutiveCycleRequestDTO {
+  readonly outcomeSummary: string;
+}
+
+
 

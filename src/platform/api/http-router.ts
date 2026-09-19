@@ -6015,6 +6015,258 @@ export function createHttpServer(
           }
         }
 
+        // =====================================================================
+        // Phase 68: Executive Orchestrator & Closed-Loop Operations (/executive/*)
+        // =====================================================================
+        if (subPath.startsWith("/executive/")) {
+          const execService = service.getExecutiveOrchestratorService();
+
+          const handleExecutiveError = (err: any) => {
+            if (
+              err.name === "ExecutiveCycleValidationError" ||
+              err.name === "ExecutivePlanValidationError"
+            ) {
+              sendError(400, err.message, "EXECUTIVE_VALIDATION_ERROR");
+              return;
+            }
+            if (err.name === "ExecutiveResourceNotFoundError") {
+              sendError(404, err.message, "RESOURCE_NOT_FOUND");
+              return;
+            }
+            if (err.name === "InvalidExecutiveCycleTransitionError") {
+              sendError(409, err.message, "INVALID_CYCLE_TRANSITION");
+              return;
+            }
+            if (err.name === "ExecutiveConcurrencyConflictError") {
+              sendError(409, err.message, "CONCURRENCY_CONFLICT");
+              return;
+            }
+            if (
+              err.name === "ExecutiveGovernanceViolationError" ||
+              err.name === "AutonomyRestrictionError"
+            ) {
+              sendError(403, err.message, "FORBIDDEN");
+              return;
+            }
+            if (err.name === "ExecutiveCycleExhaustedError") {
+              sendError(429, err.message, "CYCLE_LIMIT_EXHAUSTED");
+              return;
+            }
+            console.error("[Executive Routes Error]", err);
+            sendError(500, err.message ?? "Internal Executive Error", "INTERNAL_EXECUTIVE_ERROR");
+          };
+
+          // 1. POST /executive/cycles & GET /executive/cycles
+          if (subPath === "/executive/cycles") {
+            if (req.method === "POST") {
+              const authCheck = await authenticateAndAuthorize("organization.manage", "SYSTEM", "executive-cycle", reqCtx.tenantId);
+              if (!authCheck.ok) {
+                sendError(authCheck.status, authCheck.message, authCheck.code);
+                return;
+              }
+              const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+              const bodyResult = await readJsonBody();
+              if (!bodyResult.ok) {
+                sendError(400, "Bad Request: Invalid JSON body", "INVALID_JSON");
+                return;
+              }
+              const body = bodyResult.body as any;
+              try {
+                const result = await execService.startCycle({
+                  id: normalizeId(body.id) ?? String(body.id ?? ""),
+                  tenantId,
+                  enterpriseId: normalizeId(body.enterpriseId) ?? String(body.enterpriseId ?? ""),
+                  autonomyLevel: body.autonomyLevel,
+                  maxReplanningAttempts: body.maxReplanningAttempts,
+                }, reqCtx.correlationId);
+
+                sendJson(201, {
+                  cycle: service.toExecutiveCycleDTO(result.cycle),
+                  snapshot: service.toExecutiveContextSnapshotDTO(result.snapshot),
+                  analysis: service.toExecutiveAnalysisDTO(result.analysis),
+                  plan: service.toExecutivePlanDTO(result.plan),
+                });
+                return;
+              } catch (err: any) {
+                handleExecutiveError(err);
+                return;
+              }
+            } else if (req.method === "GET") {
+              const authCheck = await authenticateAndAuthorize("organization.read", "SYSTEM", "executive-cycle", reqCtx.tenantId);
+              if (!authCheck.ok) {
+                sendError(authCheck.status, authCheck.message, authCheck.code);
+                return;
+              }
+              const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "";
+              const enterpriseId = url.searchParams.get("enterpriseId") ?? undefined;
+              try {
+                const list = await execService.listCycles(tenantId, enterpriseId);
+                sendJson(200, list.map((c) => service.toExecutiveCycleDTO(c)));
+                return;
+              } catch (err: any) {
+                handleExecutiveError(err);
+                return;
+              }
+            }
+          }
+
+          // 2. GET /executive/cycles/:id
+          const cycleIdMatch = subPath.match(/^\/executive\/cycles\/([^/]+)$/);
+          if (cycleIdMatch && req.method === "GET") {
+            const id = normalizeId(cycleIdMatch[1] ?? "") ?? cycleIdMatch[1] ?? "";
+            const authCheck = await authenticateAndAuthorize("organization.read", "SYSTEM", id, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "";
+            try {
+              const cycle = await execService.getCycle(id, tenantId);
+              sendJson(200, service.toExecutiveCycleDTO(cycle));
+              return;
+            } catch (err: any) {
+              handleExecutiveError(err);
+              return;
+            }
+          }
+
+          // 3. GET /executive/cycles/:id/context
+          const cycleCtxMatch = subPath.match(/^\/executive\/cycles\/([^/]+)\/context$/);
+          if (cycleCtxMatch && req.method === "GET") {
+            const id = normalizeId(cycleCtxMatch[1] ?? "") ?? cycleCtxMatch[1] ?? "";
+            const authCheck = await authenticateAndAuthorize("organization.read", "SYSTEM", id, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "";
+            try {
+              const snapshot = await execService.getContextSnapshot(id, tenantId);
+              sendJson(200, service.toExecutiveContextSnapshotDTO(snapshot));
+              return;
+            } catch (err: any) {
+              handleExecutiveError(err);
+              return;
+            }
+          }
+
+          // 4. GET /executive/cycles/:id/analysis
+          const cycleAnalysisMatch = subPath.match(/^\/executive\/cycles\/([^/]+)\/analysis$/);
+          if (cycleAnalysisMatch && req.method === "GET") {
+            const id = normalizeId(cycleAnalysisMatch[1] ?? "") ?? cycleAnalysisMatch[1] ?? "";
+            const authCheck = await authenticateAndAuthorize("organization.read", "SYSTEM", id, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "";
+            try {
+              const analysis = await execService.getAnalysis(id, tenantId);
+              sendJson(200, service.toExecutiveAnalysisDTO(analysis));
+              return;
+            } catch (err: any) {
+              handleExecutiveError(err);
+              return;
+            }
+          }
+
+          // 5. GET /executive/cycles/:id/plan
+          const cyclePlanMatch = subPath.match(/^\/executive\/cycles\/([^/]+)\/plan$/);
+          if (cyclePlanMatch && req.method === "GET") {
+            const id = normalizeId(cyclePlanMatch[1] ?? "") ?? cyclePlanMatch[1] ?? "";
+            const authCheck = await authenticateAndAuthorize("organization.read", "SYSTEM", id, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "";
+            try {
+              const plan = await execService.getPlan(id, tenantId);
+              sendJson(200, service.toExecutivePlanDTO(plan));
+              return;
+            } catch (err: any) {
+              handleExecutiveError(err);
+              return;
+            }
+          }
+
+          // 6. POST /executive/cycles/:id/approve
+          const cycleApproveMatch = subPath.match(/^\/executive\/cycles\/([^/]+)\/approve$/);
+          if (cycleApproveMatch && req.method === "POST") {
+            const id = normalizeId(cycleApproveMatch[1] ?? "") ?? cycleApproveMatch[1] ?? "";
+            const authCheck = await authenticateAndAuthorize("organization.manage", "SYSTEM", id, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "";
+            const bodyResult = await readJsonBody();
+            const approver = (bodyResult.ok ? (bodyResult.body as any)?.approverPrincipalId : undefined) ??
+              authCheck.context?.principal?.id ?? reqCtx.principal?.id ?? "executive-admin";
+
+            try {
+              const result = await execService.approvePlan(id, tenantId, approver, reqCtx.correlationId);
+              sendJson(200, {
+                cycle: service.toExecutiveCycleDTO(result.cycle),
+                plan: service.toExecutivePlanDTO(result.plan),
+              });
+              return;
+            } catch (err: any) {
+              handleExecutiveError(err);
+              return;
+            }
+          }
+
+          // 7. POST /executive/cycles/:id/execute-action
+          const cycleActionMatch = subPath.match(/^\/executive\/cycles\/([^/]+)\/execute-action$/);
+          if (cycleActionMatch && req.method === "POST") {
+            const id = normalizeId(cycleActionMatch[1] ?? "") ?? cycleActionMatch[1] ?? "";
+            const authCheck = await authenticateAndAuthorize("organization.manage", "SYSTEM", id, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "";
+            const bodyResult = await readJsonBody();
+            const actionIndex = bodyResult.ok ? (bodyResult.body as any)?.actionIndex ?? 0 : 0;
+
+            try {
+              const result = await execService.executePlanAction(id, tenantId, actionIndex, reqCtx.correlationId);
+              sendJson(200, {
+                cycle: service.toExecutiveCycleDTO(result.cycle),
+                outcome: result.outcome,
+              });
+              return;
+            } catch (err: any) {
+              handleExecutiveError(err);
+              return;
+            }
+          }
+
+          // 8. POST /executive/cycles/:id/reassess
+          const cycleReassessMatch = subPath.match(/^\/executive\/cycles\/([^/]+)\/reassess$/);
+          if (cycleReassessMatch && req.method === "POST") {
+            const id = normalizeId(cycleReassessMatch[1] ?? "") ?? cycleReassessMatch[1] ?? "";
+            const authCheck = await authenticateAndAuthorize("organization.manage", "SYSTEM", id, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "";
+            const bodyResult = await readJsonBody();
+            const reason = bodyResult.ok ? (bodyResult.body as any)?.reason ?? "Manual reassessment requested" : "Manual reassessment";
+
+            try {
+              const cycle = await execService.reassessCycle(id, tenantId, reason, reqCtx.correlationId);
+              sendJson(200, service.toExecutiveCycleDTO(cycle));
+              return;
+            } catch (err: any) {
+              handleExecutiveError(err);
+              return;
+            }
+          }
+        }
+
         sendError(404, `Endpoint not found: ${req.method} ${pathname}`, "ENDPOINT_NOT_FOUND");
         return;
       }

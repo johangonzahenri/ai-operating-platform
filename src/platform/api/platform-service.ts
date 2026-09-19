@@ -187,7 +187,25 @@ import {
   BusinessMetricDTO,
   ExecutiveDecisionRecordDTO,
   BusinessOperatingContextDTO,
+  ExecutiveCycleDTO,
+  ExecutiveContextSnapshotDTO,
+  ExecutiveAnalysisDTO,
+  ExecutivePlanDTO,
+  ExecutiveSignalDTO,
+  ExecutivePlanActionDTO,
 } from "./platform-dto.js";
+import { ExecutiveOrchestratorService } from "../../application/executive/executive-orchestrator-service.js";
+import { ExecutiveCycle } from "../../domain/executive/executive-cycle.js";
+import { ExecutiveSignal } from "../../domain/executive/executive-signal.js";
+import { ExecutiveContextSnapshot } from "../../domain/executive/executive-context-snapshot.js";
+import { ExecutiveAnalysis } from "../../domain/executive/executive-analysis.js";
+import { ExecutivePlan } from "../../domain/executive/executive-plan.js";
+import {
+  InMemoryExecutiveCycleRepository,
+  InMemoryExecutiveContextSnapshotRepository,
+  InMemoryExecutiveAnalysisRepository,
+  InMemoryExecutivePlanRepository,
+} from "../../infrastructure/persistence/in-memory/in-memory-executive-repository.js";
 
 import { projectExecutionObservability } from "../product/execution-observability.js";
 import { Tenant, DEFAULT_PLAN_LIMITS } from "../../domain/tenant/tenant.js";
@@ -248,6 +266,7 @@ export interface PlatformDependencies {
   readonly agentLifecycleService?: AgentLifecycleService | undefined;
   readonly solutionFactoryService?: SolutionFactoryService | undefined;
   readonly enterpriseOperatingService?: EnterpriseOperatingService | undefined;
+  readonly executiveOrchestratorService?: ExecutiveOrchestratorService | undefined;
   readonly eventStream?: EventStreamAdapter | undefined;
 }
 
@@ -270,6 +289,7 @@ export class PlatformService {
   private readonly agentLifecycleService?: AgentLifecycleService | undefined;
   private readonly solutionFactoryService?: SolutionFactoryService | undefined;
   private readonly enterpriseOperatingService?: EnterpriseOperatingService | undefined;
+  private readonly executiveOrchestratorService: ExecutiveOrchestratorService;
   private readonly workflowOrchestratorService: WorkflowOrchestratorService;
   private readonly workflowVerificationService?: WorkflowVerificationService | undefined;
   private readonly humanOversightService?: HumanOversightService | undefined;
@@ -383,6 +403,19 @@ export class PlatformService {
       initiativeRepo: new InMemoryBusinessInitiativeRepository(),
       metricRepo: new InMemoryBusinessMetricRepository(),
       decisionRepo: new InMemoryExecutiveDecisionRepository(),
+    });
+
+    this.executiveOrchestratorService = deps.executiveOrchestratorService ?? new ExecutiveOrchestratorService({
+      cycleRepo: new InMemoryExecutiveCycleRepository(),
+      snapshotRepo: new InMemoryExecutiveContextSnapshotRepository(),
+      analysisRepo: new InMemoryExecutiveAnalysisRepository(),
+      planRepo: new InMemoryExecutivePlanRepository(),
+      enterpriseOperatingService: this.enterpriseOperatingService,
+      workflowOrchestratorService: deps.workflowOrchestratorService,
+      workflowVerificationService: this.workflowVerificationService,
+      humanOversightService: this.humanOversightService,
+      policyGateway: defaultPolicy,
+      eventPublisher: deps.eventStore ? { publish: (e) => deps.eventStore!.append(e as any) } : undefined,
     });
 
     this.workflowOrchestratorService = deps.workflowOrchestratorService ?? new WorkflowOrchestratorService({
@@ -2867,6 +2900,116 @@ export class PlatformService {
       metrics: c.metrics.map((m) => this.toBusinessMetricDTO(m)),
       recentDecisions: c.recentDecisions.map((d) => this.toExecutiveDecisionRecordDTO(d)),
       generatedAt: c.generatedAt.toISOString(),
+    };
+  }
+
+  getExecutiveOrchestratorService(): ExecutiveOrchestratorService {
+    return this.executiveOrchestratorService;
+  }
+
+  toExecutiveSignalDTO(s: ExecutiveSignal): ExecutiveSignalDTO {
+    return {
+      id: s.id,
+      type: s.type,
+      severity: s.severity,
+      source: s.source,
+      targetType: s.targetType,
+      targetId: s.targetId,
+      description: s.description,
+      evidenceReference: s.evidenceReference,
+      detectedAt: s.detectedAt.toISOString(),
+    };
+  }
+
+  toExecutiveContextSnapshotDTO(s: ExecutiveContextSnapshot): ExecutiveContextSnapshotDTO {
+    return {
+      id: s.id,
+      cycleId: s.cycleId,
+      tenantId: s.tenantId,
+      enterpriseId: s.enterpriseId,
+      enterpriseName: s.enterpriseName,
+      enterpriseStatus: s.enterpriseStatus,
+      capturedAt: s.capturedAt.toISOString(),
+      objectives: s.objectives.map((o) => ({ ...o })),
+      initiatives: s.initiatives.map((i) => ({ ...i })),
+      metrics: s.metrics.map((m) => ({ ...m, lastUpdated: m.lastUpdated.toISOString() })),
+      metadata: s.metadata,
+    };
+  }
+
+  toExecutiveAnalysisDTO(a: ExecutiveAnalysis): ExecutiveAnalysisDTO {
+    return {
+      id: a.id,
+      cycleId: a.cycleId,
+      tenantId: a.tenantId,
+      enterpriseId: a.enterpriseId,
+      observedSignals: a.observedSignals.map((s) => this.toExecutiveSignalDTO(s)),
+      affectedObjectiveIds: a.affectedObjectiveIds,
+      affectedInitiativeIds: a.affectedInitiativeIds,
+      impactedSolutionIds: a.impactedSolutionIds,
+      impactedWorkflowIds: a.impactedWorkflowIds,
+      budgetConstraints: a.budgetConstraints,
+      evidenceReferences: a.evidenceReferences,
+      recommendedActionCategory: a.recommendedActionCategory,
+      summary: a.summary,
+      createdAt: a.createdAt.toISOString(),
+    };
+  }
+
+  toExecutivePlanDTO(p: ExecutivePlan): ExecutivePlanDTO {
+    return {
+      id: p.id,
+      cycleId: p.cycleId,
+      tenantId: p.tenantId,
+      enterpriseId: p.enterpriseId,
+      objectiveId: p.objectiveId,
+      initiativeId: p.initiativeId,
+      rationale: p.rationale,
+      actions: p.actions.map((act) => ({
+        actionId: act.actionId,
+        order: act.order,
+        actionType: act.actionType,
+        targetId: act.targetId,
+        solutionId: act.solutionId,
+        solutionVersion: act.solutionVersion,
+        workflowDefinitionId: act.workflowDefinitionId,
+        requiredCapabilities: act.requiredCapabilities,
+        expectedOutcome: act.expectedOutcome,
+        requiresApproval: act.requiresApproval,
+        requiresVerification: act.requiresVerification,
+        policyReferences: act.policyReferences,
+      })),
+      status: p.status,
+      validationViolations: p.validationViolations,
+      rejectionReason: p.rejectionReason,
+      concurrencyVersion: p.concurrencyVersion,
+      createdAt: p.createdAt.toISOString(),
+      updatedAt: p.updatedAt.toISOString(),
+    };
+  }
+
+  toExecutiveCycleDTO(c: ExecutiveCycle): ExecutiveCycleDTO {
+    return {
+      id: c.id,
+      tenantId: c.tenantId,
+      enterpriseId: c.enterpriseId,
+      status: c.status,
+      contextSnapshotId: c.contextSnapshotId,
+      analysisId: c.analysisId,
+      planId: c.planId,
+      activeActionIndex: c.activeActionIndex,
+      decisionRecordIds: c.decisionRecordIds,
+      workflowInstanceIds: c.workflowInstanceIds,
+      verificationResultIds: c.verificationResultIds,
+      approvalRequestId: c.approvalRequestId,
+      replanningCount: c.replanningCount,
+      maxReplanningAttempts: c.maxReplanningAttempts,
+      maxActionsPerCycle: c.maxActionsPerCycle,
+      outcomeSummary: c.outcomeSummary,
+      failureReason: c.failureReason,
+      concurrencyVersion: c.concurrencyVersion,
+      createdAt: c.createdAt.toISOString(),
+      updatedAt: c.updatedAt.toISOString(),
     };
   }
 }

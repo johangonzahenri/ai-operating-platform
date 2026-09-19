@@ -439,5 +439,23 @@ export default {
     "current": "Actual",
     "gap": "Brecha",
     "governanceNote": "Todas las operaciones estratégicas y decisiones ejecutivas requieren autoridad explícita y supervisión humana."
+  },
+  "executiveOrchestrator": {
+    "title": "Orquestador Ejecutivo y Operaciones de Bucle Cerrado",
+    "subtitle": "Gobernanza de ciclo empresarial en bucle cerrado desde la estrategia hasta la verificación e impacto en KPIs",
+    "cycles": "Ciclos Ejecutivos",
+    "signals": "Señales Observadas",
+    "contextSnapshot": "Instantánea de Contexto",
+    "analysis": "Análisis Ejecutivo",
+    "plan": "Plan Ejecutivo",
+    "actions": "Acciones del Plan",
+    "measurements": "Mediciones de KPIs",
+    "startCycle": "Iniciar Ciclo Ejecutivo",
+    "approvePlan": "Aprobar Plan",
+    "executeAction": "Ejecutar Acción",
+    "reassessCycle": "Reevaluar Ciclo",
+    "completeCycle": "Completar Ciclo",
+    "boundedReplanning": "Replanificación Acotada",
+    "governanceEnforced": "Cero Soberanía de IA CEO: Acotado por Identidad, Autoridad, Presupuestos y Supervisión Humana"
   }
 };

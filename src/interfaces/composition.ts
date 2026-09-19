@@ -150,6 +150,25 @@ import {
   SqliteExecutiveDecisionRepository,
 } from "../infrastructure/persistence/sqlite/sqlite-business-repository.js";
 import { EnterpriseOperatingService } from "../application/business/enterprise-operating-service.js";
+import {
+  ExecutiveCycleRepositoryPort,
+  ExecutiveContextSnapshotRepositoryPort,
+  ExecutiveAnalysisRepositoryPort,
+  ExecutivePlanRepositoryPort,
+} from "../application/ports/executive-repository-port.js";
+import {
+  InMemoryExecutiveCycleRepository,
+  InMemoryExecutiveContextSnapshotRepository,
+  InMemoryExecutiveAnalysisRepository,
+  InMemoryExecutivePlanRepository,
+} from "../infrastructure/persistence/in-memory/in-memory-executive-repository.js";
+import {
+  SqliteExecutiveCycleRepository,
+  SqliteExecutiveContextSnapshotRepository,
+  SqliteExecutiveAnalysisRepository,
+  SqliteExecutivePlanRepository,
+} from "../infrastructure/persistence/sqlite/sqlite-executive-repository.js";
+import { ExecutiveOrchestratorService } from "../application/executive/executive-orchestrator-service.js";
 
 export interface CreatePlatformOptions {
   readonly logger?: StructuredLogger | undefined;
@@ -559,6 +578,35 @@ export const createPlatform = (
         eventPublisher: events,
       });
 
+  const executiveCycleRepository: ExecutiveCycleRepositoryPort = dbManager
+    ? new SqliteExecutiveCycleRepository(dbManager)
+    : new InMemoryExecutiveCycleRepository();
+
+  const executiveContextSnapshotRepository: ExecutiveContextSnapshotRepositoryPort = dbManager
+    ? new SqliteExecutiveContextSnapshotRepository(dbManager)
+    : new InMemoryExecutiveContextSnapshotRepository();
+
+  const executiveAnalysisRepository: ExecutiveAnalysisRepositoryPort = dbManager
+    ? new SqliteExecutiveAnalysisRepository(dbManager)
+    : new InMemoryExecutiveAnalysisRepository();
+
+  const executivePlanRepository: ExecutivePlanRepositoryPort = dbManager
+    ? new SqliteExecutivePlanRepository(dbManager)
+    : new InMemoryExecutivePlanRepository();
+
+  const executiveOrchestratorService = new ExecutiveOrchestratorService({
+    cycleRepo: executiveCycleRepository,
+    snapshotRepo: executiveContextSnapshotRepository,
+    analysisRepo: executiveAnalysisRepository,
+    planRepo: executivePlanRepository,
+    enterpriseOperatingService,
+    workflowOrchestratorService,
+    workflowVerificationService,
+    humanOversightService,
+    policyGateway: policy,
+    eventPublisher: events,
+  });
+
   // Orchestrated execution runtime & use case
   const orchestrator = new SequentialOrchestrator(models, toolGateway, events, policy);
   const orchestratedStrategy = new OrchestratedExecutionStrategy(orchestrator, (context, task) => ({
@@ -693,5 +741,10 @@ export const createPlatform = (
     businessMetricRepository,
     executiveDecisionRepository,
     enterpriseOperatingService,
+    executiveCycleRepository,
+    executiveContextSnapshotRepository,
+    executiveAnalysisRepository,
+    executivePlanRepository,
+    executiveOrchestratorService,
   };
 };

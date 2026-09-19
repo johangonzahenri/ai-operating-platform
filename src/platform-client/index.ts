@@ -69,6 +69,18 @@ import type {
   CreateBusinessMetricRequestDTO,
   RecordMetricMeasurementRequestDTO,
   CreateExecutiveDecisionRequestDTO,
+  ExecutiveCycleDTO,
+  ExecutiveContextSnapshotDTO,
+  ExecutiveAnalysisDTO,
+  ExecutivePlanActionDTO,
+  ExecutivePlanDTO,
+  ExecutiveSignalDTO,
+  StartExecutiveCycleRequestDTO,
+  StartExecutiveCycleResponseDTO,
+  ApproveExecutivePlanRequestDTO,
+  ExecuteExecutiveActionRequestDTO,
+  ReassessExecutiveCycleRequestDTO,
+  CompleteExecutiveCycleRequestDTO,
 } from "../platform/api/platform-dto.js";
 import {
   toEventDTO,
@@ -1150,6 +1162,57 @@ export function createPlatformClient(options: PlatformClientOptions) {
     },
   };
 
+  const executive = {
+    cycles: {
+      async start(body: StartExecutiveCycleRequestDTO): Promise<StartExecutiveCycleResponseDTO> {
+        return request<StartExecutiveCycleResponseDTO>("/executive/cycles", {
+          method: "POST",
+          body: JSON.stringify(body),
+        });
+      },
+      async list(enterpriseId?: string): Promise<readonly ExecutiveCycleDTO[]> {
+        const query = enterpriseId ? `?enterpriseId=${encodeURIComponent(enterpriseId)}` : "";
+        return request<readonly ExecutiveCycleDTO[]>(`/executive/cycles${query}`);
+      },
+      async get(id: string): Promise<ExecutiveCycleDTO> {
+        return request<ExecutiveCycleDTO>(`/executive/cycles/${encodeURIComponent(id)}`);
+      },
+      async getContext(id: string): Promise<ExecutiveContextSnapshotDTO> {
+        return request<ExecutiveContextSnapshotDTO>(`/executive/cycles/${encodeURIComponent(id)}/context`);
+      },
+      async getAnalysis(id: string): Promise<ExecutiveAnalysisDTO> {
+        return request<ExecutiveAnalysisDTO>(`/executive/cycles/${encodeURIComponent(id)}/analysis`);
+      },
+      async getPlan(id: string): Promise<ExecutivePlanDTO> {
+        return request<ExecutivePlanDTO>(`/executive/cycles/${encodeURIComponent(id)}/plan`);
+      },
+      async approve(id: string, body: ApproveExecutivePlanRequestDTO): Promise<{ cycle: ExecutiveCycleDTO; plan: ExecutivePlanDTO }> {
+        return request<{ cycle: ExecutiveCycleDTO; plan: ExecutivePlanDTO }>(`/executive/cycles/${encodeURIComponent(id)}/approve`, {
+          method: "POST",
+          body: JSON.stringify(body),
+        });
+      },
+      async executeAction(id: string, body?: ExecuteExecutiveActionRequestDTO): Promise<{ cycle: ExecutiveCycleDTO; outcome: string }> {
+        return request<{ cycle: ExecutiveCycleDTO; outcome: string }>(`/executive/cycles/${encodeURIComponent(id)}/execute-action`, {
+          method: "POST",
+          body: JSON.stringify(body ?? {}),
+        });
+      },
+      async reassess(id: string, body: ReassessExecutiveCycleRequestDTO): Promise<ExecutiveCycleDTO> {
+        return request<ExecutiveCycleDTO>(`/executive/cycles/${encodeURIComponent(id)}/reassess`, {
+          method: "POST",
+          body: JSON.stringify(body),
+        });
+      },
+      async complete(id: string, body: CompleteExecutiveCycleRequestDTO): Promise<ExecutiveCycleDTO> {
+        return request<ExecutiveCycleDTO>(`/executive/cycles/${encodeURIComponent(id)}/complete`, {
+          method: "POST",
+          body: JSON.stringify(body),
+        });
+      },
+    },
+  };
+
   return {
     tasks,
     executions,
@@ -1176,6 +1239,7 @@ export function createPlatformClient(options: PlatformClientOptions) {
     agentEvaluations,
     solutions,
     business,
+    executive,
     connect: () => healthGet(),
     health: Object.assign(healthGet, { get: healthGet }),
     getPlatformInfo: () => platform.get(),
@@ -1264,4 +1328,16 @@ export type {
   CreateBusinessMetricRequestDTO,
   RecordMetricMeasurementRequestDTO,
   CreateExecutiveDecisionRequestDTO,
+  ExecutiveSignalDTO,
+  ExecutiveContextSnapshotDTO,
+  ExecutiveAnalysisDTO,
+  ExecutivePlanActionDTO,
+  ExecutivePlanDTO,
+  ExecutiveCycleDTO,
+  StartExecutiveCycleRequestDTO,
+  StartExecutiveCycleResponseDTO,
+  ApproveExecutivePlanRequestDTO,
+  ExecuteExecutiveActionRequestDTO,
+  ReassessExecutiveCycleRequestDTO,
+  CompleteExecutiveCycleRequestDTO,
 };

@@ -46,6 +46,10 @@ export type EventType =
   | "objective.created" | "objective.updated" | "objective.state_changed"
   | "initiative.created" | "initiative.updated" | "initiative.state_changed"
   | "metric.updated" | "decision.recorded"
+  | "executive.cycle.started" | "executive.signal.detected" | "executive.analysis.created"
+  | "executive.plan.created" | "executive.plan.validated" | "executive.plan.rejected"
+  | "executive.action.started" | "executive.action.completed" | "executive.reassessment.requested"
+  | "executive.cycle.completed" | "executive.cycle.failed" | "executive.cycle.blocked"
   | "workflow.completed" | "workflow.failed" | "workflow.cancelled";
 
 

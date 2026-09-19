@@ -123,6 +123,7 @@
 | **ORG-14** | Ciclo de Vida, Evaluación y Gobernanza de Agentes | Fase 65 | `DONE` | `src/domain/agent/agent-lifecycle*`, `src/application/agent/agent-lifecycle-service.ts` | 28 tests pass | ADR 0035 |
 | **ORG-15** | AI Solutions Factory & Application Blueprint Governance | Fase 66 | `DONE` | `src/domain/solution/`, `src/application/solution/`, `sqlite-solution-repository.ts` | 32 tests pass | ADR 0036 |
 | **ORG-16** | AI Enterprise Operating System & Executive Governance Foundation | Fase 67 | `DONE` | `src/domain/business/`, `src/application/business/`, `sqlite-business-repository.ts` | 26 tests pass | ADR 0037 |
+| **ORG-17** | Executive Orchestrator & Closed-Loop Business Operations | Fase 68 | `DONE` | `src/domain/executive/`, `src/application/executive/`, `sqlite-executive-repository.ts` | 28 tests pass | ADR 0038 |
 
 ---
 
