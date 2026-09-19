@@ -164,6 +164,30 @@ import {
   InMemoryAISolutionInstanceRepository,
 } from "../../infrastructure/persistence/in-memory/in-memory-solution-repository.js";
 import { SolutionBlueprintValidator } from "../../application/solution/solution-blueprint-validator.js";
+import { Enterprise } from "../../domain/business/enterprise.js";
+import { BusinessObjective } from "../../domain/business/business-objective.js";
+import { BusinessInitiative } from "../../domain/business/business-initiative.js";
+import { BusinessMetric } from "../../domain/business/business-metric.js";
+import { ExecutiveDecisionRecord } from "../../domain/business/executive-decision-record.js";
+import {
+  EnterpriseOperatingService,
+  BusinessOperatingContext,
+} from "../../application/business/enterprise-operating-service.js";
+import {
+  InMemoryEnterpriseRepository,
+  InMemoryBusinessObjectiveRepository,
+  InMemoryBusinessInitiativeRepository,
+  InMemoryBusinessMetricRepository,
+  InMemoryExecutiveDecisionRepository,
+} from "../../infrastructure/persistence/in-memory/in-memory-business-repository.js";
+import {
+  EnterpriseDTO,
+  BusinessObjectiveDTO,
+  BusinessInitiativeDTO,
+  BusinessMetricDTO,
+  ExecutiveDecisionRecordDTO,
+  BusinessOperatingContextDTO,
+} from "./platform-dto.js";
 
 import { projectExecutionObservability } from "../product/execution-observability.js";
 import { Tenant, DEFAULT_PLAN_LIMITS } from "../../domain/tenant/tenant.js";
@@ -223,6 +247,7 @@ export interface PlatformDependencies {
   readonly humanOversightService?: HumanOversightService | undefined;
   readonly agentLifecycleService?: AgentLifecycleService | undefined;
   readonly solutionFactoryService?: SolutionFactoryService | undefined;
+  readonly enterpriseOperatingService?: EnterpriseOperatingService | undefined;
   readonly eventStream?: EventStreamAdapter | undefined;
 }
 
@@ -244,6 +269,7 @@ export class PlatformService {
   private readonly agentProfileService: AgentProfileService;
   private readonly agentLifecycleService?: AgentLifecycleService | undefined;
   private readonly solutionFactoryService?: SolutionFactoryService | undefined;
+  private readonly enterpriseOperatingService?: EnterpriseOperatingService | undefined;
   private readonly workflowOrchestratorService: WorkflowOrchestratorService;
   private readonly workflowVerificationService?: WorkflowVerificationService | undefined;
   private readonly humanOversightService?: HumanOversightService | undefined;
@@ -349,6 +375,14 @@ export class PlatformService {
       solutionRepo: defaultSolRepo,
       instanceRepo: defaultSolInstRepo,
       validator: defaultSolValidator,
+    });
+
+    this.enterpriseOperatingService = deps.enterpriseOperatingService ?? new EnterpriseOperatingService({
+      enterpriseRepo: new InMemoryEnterpriseRepository(),
+      objectiveRepo: new InMemoryBusinessObjectiveRepository(),
+      initiativeRepo: new InMemoryBusinessInitiativeRepository(),
+      metricRepo: new InMemoryBusinessMetricRepository(),
+      decisionRepo: new InMemoryExecutiveDecisionRepository(),
     });
 
     this.workflowOrchestratorService = deps.workflowOrchestratorService ?? new WorkflowOrchestratorService({
@@ -2702,6 +2736,137 @@ export class PlatformService {
       operatorPrincipalId: i.operatorPrincipalId,
       createdAt: i.createdAt.toISOString(),
       updatedAt: i.updatedAt.toISOString(),
+    };
+  }
+
+  getEnterpriseOperatingService(): EnterpriseOperatingService {
+    if (!this.enterpriseOperatingService) {
+      throw new Error("EnterpriseOperatingService is not configured");
+    }
+    return this.enterpriseOperatingService;
+  }
+
+  toEnterpriseDTO(e: Enterprise): EnterpriseDTO {
+    return {
+      id: e.id,
+      tenantId: e.tenantId,
+      name: e.name,
+      description: e.description,
+      industry: e.industry,
+      status: e.status,
+      vision: e.vision,
+      strategicMission: e.strategicMission,
+      version: e.version,
+      concurrencyVersion: e.concurrencyVersion,
+      createdAt: e.createdAt.toISOString(),
+      updatedAt: e.updatedAt.toISOString(),
+    };
+  }
+
+  toBusinessObjectiveDTO(o: BusinessObjective): BusinessObjectiveDTO {
+    return {
+      id: o.id,
+      tenantId: o.tenantId,
+      enterpriseId: o.enterpriseId,
+      organizationId: o.organizationId,
+      areaId: o.areaId,
+      teamId: o.teamId,
+      title: o.title,
+      description: o.description,
+      ownerPrincipalId: o.ownerPrincipalId,
+      type: o.type,
+      lifecycleState: o.lifecycleState,
+      targetMetric: o.targetMetric,
+      startDate: o.startDate?.toISOString(),
+      targetDate: o.targetDate?.toISOString(),
+      achievedAt: o.achievedAt?.toISOString(),
+      linkedInitiativeIds: o.linkedInitiativeIds,
+      linkedSolutionIds: o.linkedSolutionIds,
+      linkedWorkflowIds: o.linkedWorkflowIds,
+      version: o.version,
+      concurrencyVersion: o.concurrencyVersion,
+      createdAt: o.createdAt.toISOString(),
+      updatedAt: o.updatedAt.toISOString(),
+    };
+  }
+
+  toBusinessInitiativeDTO(i: BusinessInitiative): BusinessInitiativeDTO {
+    return {
+      id: i.id,
+      tenantId: i.tenantId,
+      enterpriseId: i.enterpriseId,
+      objectiveId: i.objectiveId,
+      title: i.title,
+      description: i.description,
+      ownerPrincipalId: i.ownerPrincipalId,
+      organizationId: i.organizationId,
+      areaId: i.areaId,
+      teamId: i.teamId,
+      lifecycleState: i.lifecycleState,
+      targetStartDate: i.targetStartDate?.toISOString(),
+      targetEndDate: i.targetEndDate?.toISOString(),
+      linkedSolutionIds: i.linkedSolutionIds,
+      linkedWorkflowIds: i.linkedWorkflowIds,
+      expectedOutcome: i.expectedOutcome,
+      actualOutcome: i.actualOutcome,
+      version: i.version,
+      concurrencyVersion: i.concurrencyVersion,
+      createdAt: i.createdAt.toISOString(),
+      updatedAt: i.updatedAt.toISOString(),
+    };
+  }
+
+  toBusinessMetricDTO(m: BusinessMetric): BusinessMetricDTO {
+    return {
+      id: m.id,
+      tenantId: m.tenantId,
+      enterpriseId: m.enterpriseId,
+      objectiveId: m.objectiveId,
+      name: m.name,
+      unit: m.unit,
+      targetValue: m.targetValue,
+      currentValue: m.currentValue,
+      gap: m.gap,
+      period: m.period,
+      source: m.source,
+      lastUpdated: m.lastUpdated.toISOString(),
+      status: m.status,
+      version: m.version,
+      concurrencyVersion: m.concurrencyVersion,
+      createdAt: m.createdAt.toISOString(),
+      updatedAt: m.updatedAt.toISOString(),
+    };
+  }
+
+  toExecutiveDecisionRecordDTO(d: ExecutiveDecisionRecord): ExecutiveDecisionRecordDTO {
+    return {
+      id: d.id,
+      tenantId: d.tenantId,
+      enterpriseId: d.enterpriseId,
+      decisionMakerPrincipalId: d.decisionMakerPrincipalId,
+      authorityScope: d.authorityScope,
+      decisionType: d.decisionType,
+      targetType: d.targetType,
+      targetId: d.targetId,
+      rationale: d.rationale,
+      policyContext: d.policyContext,
+      resultingAction: d.resultingAction,
+      metadata: d.metadata,
+      timestamp: d.timestamp.toISOString(),
+      version: d.version,
+      concurrencyVersion: d.concurrencyVersion,
+      createdAt: d.createdAt.toISOString(),
+    };
+  }
+
+  toBusinessOperatingContextDTO(c: BusinessOperatingContext): BusinessOperatingContextDTO {
+    return {
+      enterprise: this.toEnterpriseDTO(c.enterprise),
+      objectives: c.objectives.map((o) => this.toBusinessObjectiveDTO(o)),
+      initiatives: c.initiatives.map((i) => this.toBusinessInitiativeDTO(i)),
+      metrics: c.metrics.map((m) => this.toBusinessMetricDTO(m)),
+      recentDecisions: c.recentDecisions.map((d) => this.toExecutiveDecisionRecordDTO(d)),
+      generatedAt: c.generatedAt.toISOString(),
     };
   }
 }

@@ -422,5 +422,22 @@ export default {
     "statePublished": "Publicado",
     "stateArchived": "Archivado",
     "stateDeprecated": "Obsoleto"
+  },
+  "businessOperating": {
+    "title": "Sistema Operativo Empresarial y Gobernanza Ejecutiva",
+    "subtitle": "Alineación estratégica desde la visión hasta la ejecución de agentes autónomos",
+    "enterprises": "Empresas",
+    "objectives": "Objetivos de Negocio",
+    "initiatives": "Iniciativas Estratégicas",
+    "metrics": "Métricas de Negocio y KPIs",
+    "decisions": "Decisiones Ejecutivas",
+    "context": "Contexto Operativo",
+    "autonomyLevel": "Nivel de Autonomía",
+    "status": "Estado",
+    "progress": "Progreso",
+    "target": "Meta",
+    "current": "Actual",
+    "gap": "Brecha",
+    "governanceNote": "Todas las operaciones estratégicas y decisiones ejecutivas requieren autoridad explícita y supervisión humana."
   }
 };

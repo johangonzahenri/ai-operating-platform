@@ -128,6 +128,28 @@ import { AgentProfileRepositoryPort } from "../application/ports/agent-profile-r
 import { AgentProfileService } from "../application/organization/agent-profile-service.js";
 import { InMemoryAgentProfileRepository } from "../infrastructure/persistence/in-memory/in-memory-agent-profile-repository.js";
 import { SqliteAgentProfileRepository } from "../infrastructure/persistence/sqlite/sqlite-agent-profile-repository.js";
+import {
+  EnterpriseRepositoryPort,
+  BusinessObjectiveRepositoryPort,
+  BusinessInitiativeRepositoryPort,
+  BusinessMetricRepositoryPort,
+  ExecutiveDecisionRepositoryPort,
+} from "../application/ports/business-repository-port.js";
+import {
+  InMemoryEnterpriseRepository,
+  InMemoryBusinessObjectiveRepository,
+  InMemoryBusinessInitiativeRepository,
+  InMemoryBusinessMetricRepository,
+  InMemoryExecutiveDecisionRepository,
+} from "../infrastructure/persistence/in-memory/in-memory-business-repository.js";
+import {
+  SqliteEnterpriseRepository,
+  SqliteBusinessObjectiveRepository,
+  SqliteBusinessInitiativeRepository,
+  SqliteBusinessMetricRepository,
+  SqliteExecutiveDecisionRepository,
+} from "../infrastructure/persistence/sqlite/sqlite-business-repository.js";
+import { EnterpriseOperatingService } from "../application/business/enterprise-operating-service.js";
 
 export interface CreatePlatformOptions {
   readonly logger?: StructuredLogger | undefined;
@@ -166,6 +188,12 @@ export interface CreatePlatformOptions {
   readonly solutionRepository?: AISolutionRepositoryPort | undefined;
   readonly solutionInstanceRepository?: AISolutionInstanceRepositoryPort | undefined;
   readonly solutionFactoryService?: SolutionFactoryService | undefined;
+  readonly enterpriseRepository?: EnterpriseRepositoryPort | undefined;
+  readonly businessObjectiveRepository?: BusinessObjectiveRepositoryPort | undefined;
+  readonly businessInitiativeRepository?: BusinessInitiativeRepositoryPort | undefined;
+  readonly businessMetricRepository?: BusinessMetricRepositoryPort | undefined;
+  readonly executiveDecisionRepository?: ExecutiveDecisionRepositoryPort | undefined;
+  readonly enterpriseOperatingService?: EnterpriseOperatingService | undefined;
   readonly eventStream?: EventStreamAdapter | undefined;
 }
 
@@ -490,6 +518,47 @@ export const createPlatform = (
         eventPublisher: events,
       });
 
+  const enterpriseRepository: EnterpriseRepositoryPort = (!isLogger && (optionsOrLogger as CreatePlatformOptions).enterpriseRepository)
+    ? (optionsOrLogger as CreatePlatformOptions).enterpriseRepository!
+    : dbManager
+      ? new SqliteEnterpriseRepository(dbManager)
+      : new InMemoryEnterpriseRepository();
+
+  const businessObjectiveRepository: BusinessObjectiveRepositoryPort = (!isLogger && (optionsOrLogger as CreatePlatformOptions).businessObjectiveRepository)
+    ? (optionsOrLogger as CreatePlatformOptions).businessObjectiveRepository!
+    : dbManager
+      ? new SqliteBusinessObjectiveRepository(dbManager)
+      : new InMemoryBusinessObjectiveRepository();
+
+  const businessInitiativeRepository: BusinessInitiativeRepositoryPort = (!isLogger && (optionsOrLogger as CreatePlatformOptions).businessInitiativeRepository)
+    ? (optionsOrLogger as CreatePlatformOptions).businessInitiativeRepository!
+    : dbManager
+      ? new SqliteBusinessInitiativeRepository(dbManager)
+      : new InMemoryBusinessInitiativeRepository();
+
+  const businessMetricRepository: BusinessMetricRepositoryPort = (!isLogger && (optionsOrLogger as CreatePlatformOptions).businessMetricRepository)
+    ? (optionsOrLogger as CreatePlatformOptions).businessMetricRepository!
+    : dbManager
+      ? new SqliteBusinessMetricRepository(dbManager)
+      : new InMemoryBusinessMetricRepository();
+
+  const executiveDecisionRepository: ExecutiveDecisionRepositoryPort = (!isLogger && (optionsOrLogger as CreatePlatformOptions).executiveDecisionRepository)
+    ? (optionsOrLogger as CreatePlatformOptions).executiveDecisionRepository!
+    : dbManager
+      ? new SqliteExecutiveDecisionRepository(dbManager)
+      : new InMemoryExecutiveDecisionRepository();
+
+  const enterpriseOperatingService: EnterpriseOperatingService = (!isLogger && (optionsOrLogger as CreatePlatformOptions).enterpriseOperatingService)
+    ? (optionsOrLogger as CreatePlatformOptions).enterpriseOperatingService!
+    : new EnterpriseOperatingService({
+        enterpriseRepo: enterpriseRepository,
+        objectiveRepo: businessObjectiveRepository,
+        initiativeRepo: businessInitiativeRepository,
+        metricRepo: businessMetricRepository,
+        decisionRepo: executiveDecisionRepository,
+        eventPublisher: events,
+      });
+
   // Orchestrated execution runtime & use case
   const orchestrator = new SequentialOrchestrator(models, toolGateway, events, policy);
   const orchestratedStrategy = new OrchestratedExecutionStrategy(orchestrator, (context, task) => ({
@@ -618,5 +687,11 @@ export const createPlatform = (
     solutionInstanceRepository,
     solutionBlueprintValidator,
     solutionFactoryService,
+    enterpriseRepository,
+    businessObjectiveRepository,
+    businessInitiativeRepository,
+    businessMetricRepository,
+    executiveDecisionRepository,
+    enterpriseOperatingService,
   };
 };

@@ -5350,6 +5350,670 @@ export function createHttpServer(
           }
         }
 
+        // =====================================================================
+        // Phase 67: AI Enterprise Operating System & Executive Governance Routes (/business/*)
+        // =====================================================================
+        if (subPath.startsWith("/business/")) {
+          const bizService = service.getEnterpriseOperatingService();
+
+          const handleBusinessError = (err: any) => {
+            if (
+              err.name === "BusinessValidationError" ||
+              err.name === "BusinessMetricValidationError"
+            ) {
+              sendError(400, err.message, "BUSINESS_VALIDATION_ERROR");
+              return;
+            }
+            if (
+              err.name === "EnterpriseNotFoundError" ||
+              err.name === "BusinessObjectiveNotFoundError" ||
+              err.name === "BusinessInitiativeNotFoundError" ||
+              err.name === "BusinessMetricNotFoundError" ||
+              err.name === "ExecutiveDecisionNotFoundError"
+            ) {
+              sendError(404, err.message, "RESOURCE_NOT_FOUND");
+              return;
+            }
+            if (err.name === "InvalidBusinessLifecycleTransitionError") {
+              sendError(409, err.message, "INVALID_LIFECYCLE_TRANSITION");
+              return;
+            }
+            if (err.name === "BusinessConcurrencyConflictError") {
+              sendError(409, err.message, "CONCURRENCY_CONFLICT");
+              return;
+            }
+            if (
+              err.name === "UnauthorizedExecutiveDecisionError" ||
+              err.name === "AutonomyRestrictionError" ||
+              err.name === "BusinessTenantMismatchError"
+            ) {
+              sendError(403, err.message, "FORBIDDEN");
+              return;
+            }
+            console.error("[Business Routes Error]", err);
+            sendError(500, err.message ?? "Internal Business Error", "INTERNAL_BUSINESS_ERROR");
+          };
+
+          // 1. Enterprises: POST /business/enterprises & GET /business/enterprises
+          if (subPath === "/business/enterprises") {
+            if (req.method === "POST") {
+              const authCheck = await authenticateAndAuthorize("organization.manage", "SYSTEM", "enterprise", reqCtx.tenantId);
+              if (!authCheck.ok) {
+                sendError(authCheck.status, authCheck.message, authCheck.code);
+                return;
+              }
+              const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+              const bodyResult = await readJsonBody();
+              if (!bodyResult.ok) {
+                sendError(400, "Bad Request: Invalid JSON body", "INVALID_JSON");
+                return;
+              }
+              const body = bodyResult.body as any;
+              try {
+                const enterprise = await bizService.createEnterprise({
+                  id: normalizeId(body.id) ?? String(body.id ?? ""),
+                  tenantId,
+                  name: body.name ?? "",
+                  description: body.description ?? "",
+                  industry: body.industry ?? "",
+                  vision: body.vision ?? "",
+                  strategicMission: body.strategicMission ?? "",
+                }, reqCtx.correlationId);
+                sendJson(201, service.toEnterpriseDTO(enterprise));
+                return;
+              } catch (err: any) {
+                handleBusinessError(err);
+                return;
+              }
+            } else if (req.method === "GET") {
+              const authCheck = await authenticateAndAuthorize("organization.read", "SYSTEM", "enterprise", reqCtx.tenantId);
+              if (!authCheck.ok) {
+                sendError(authCheck.status, authCheck.message, authCheck.code);
+                return;
+              }
+              const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "";
+              try {
+                const list = await bizService.listEnterprises(tenantId);
+                sendJson(200, list.map((e) => service.toEnterpriseDTO(e)));
+                return;
+              } catch (err: any) {
+                handleBusinessError(err);
+                return;
+              }
+            }
+          }
+
+          // GET /business/enterprises/:id & PATCH /business/enterprises/:id
+          const entIdMatch = subPath.match(/^\/business\/enterprises\/([^/]+)$/);
+          if (entIdMatch) {
+            const id = normalizeId(entIdMatch[1] ?? "") ?? entIdMatch[1] ?? "";
+            if (!id) {
+              sendError(400, "Bad Request: Invalid Enterprise ID", "INVALID_ID");
+              return;
+            }
+            if (req.method === "GET") {
+              const authCheck = await authenticateAndAuthorize("organization.read", "SYSTEM", id, reqCtx.tenantId);
+              if (!authCheck.ok) {
+                sendError(authCheck.status, authCheck.message, authCheck.code);
+                return;
+              }
+              const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "";
+              try {
+                const ent = await bizService.getEnterprise(id, tenantId);
+                sendJson(200, service.toEnterpriseDTO(ent));
+                return;
+              } catch (err: any) {
+                handleBusinessError(err);
+                return;
+              }
+            } else if (req.method === "PATCH") {
+              const authCheck = await authenticateAndAuthorize("organization.manage", "SYSTEM", id, reqCtx.tenantId);
+              if (!authCheck.ok) {
+                sendError(authCheck.status, authCheck.message, authCheck.code);
+                return;
+              }
+              const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "";
+              const bodyResult = await readJsonBody();
+              if (!bodyResult.ok) {
+                sendError(400, "Bad Request: Invalid JSON body", "INVALID_JSON");
+                return;
+              }
+              try {
+                const updated = await bizService.updateEnterprise(id, tenantId, bodyResult.body as any);
+                sendJson(200, service.toEnterpriseDTO(updated));
+                return;
+              } catch (err: any) {
+                handleBusinessError(err);
+                return;
+              }
+            }
+          }
+
+          // 2. Objectives: POST /business/objectives & GET /business/objectives
+          if (subPath === "/business/objectives") {
+            if (req.method === "POST") {
+              const authCheck = await authenticateAndAuthorize("organization.manage", "SYSTEM", "objective", reqCtx.tenantId);
+              if (!authCheck.ok) {
+                sendError(authCheck.status, authCheck.message, authCheck.code);
+                return;
+              }
+              const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "";
+              const bodyResult = await readJsonBody();
+              if (!bodyResult.ok) {
+                sendError(400, "Bad Request: Invalid JSON body", "INVALID_JSON");
+                return;
+              }
+              const body = bodyResult.body as any;
+              const principalId = authCheck.context?.principal?.id ?? reqCtx.principal?.id ?? "system";
+              try {
+                const obj = await bizService.createObjective({
+                  id: normalizeId(body.id) ?? String(body.id ?? ""),
+                  tenantId,
+                  enterpriseId: normalizeId(body.enterpriseId) ?? String(body.enterpriseId ?? ""),
+                  organizationId: body.organizationId,
+                  areaId: body.areaId,
+                  teamId: body.teamId,
+                  title: body.title ?? "",
+                  description: body.description ?? "",
+                  ownerPrincipalId: body.ownerPrincipalId ?? principalId,
+                  type: body.type,
+                  targetMetric: body.targetMetric,
+                  startDate: body.startDate ? new Date(body.startDate) : undefined,
+                  targetDate: body.targetDate ? new Date(body.targetDate) : undefined,
+                  linkedInitiativeIds: body.linkedInitiativeIds,
+                  linkedSolutionIds: body.linkedSolutionIds,
+                  linkedWorkflowIds: body.linkedWorkflowIds,
+                }, reqCtx.correlationId);
+                sendJson(201, service.toBusinessObjectiveDTO(obj));
+                return;
+              } catch (err: any) {
+                handleBusinessError(err);
+                return;
+              }
+            } else if (req.method === "GET") {
+              const authCheck = await authenticateAndAuthorize("organization.read", "SYSTEM", "objective", reqCtx.tenantId);
+              if (!authCheck.ok) {
+                sendError(authCheck.status, authCheck.message, authCheck.code);
+                return;
+              }
+              const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "";
+              const enterpriseId = url.searchParams.get("enterpriseId") ?? undefined;
+              try {
+                const list = await bizService.listObjectives(tenantId, enterpriseId);
+                sendJson(200, list.map((o) => service.toBusinessObjectiveDTO(o)));
+                return;
+              } catch (err: any) {
+                handleBusinessError(err);
+                return;
+              }
+            }
+          }
+
+          // GET /business/objectives/:id & PATCH /business/objectives/:id
+          const objIdMatch = subPath.match(/^\/business\/objectives\/([^/]+)$/);
+          if (objIdMatch) {
+            const id = normalizeId(objIdMatch[1] ?? "") ?? objIdMatch[1] ?? "";
+            if (!id) {
+              sendError(400, "Bad Request: Invalid Objective ID", "INVALID_ID");
+              return;
+            }
+            if (req.method === "GET") {
+              const authCheck = await authenticateAndAuthorize("organization.read", "SYSTEM", id, reqCtx.tenantId);
+              if (!authCheck.ok) {
+                sendError(authCheck.status, authCheck.message, authCheck.code);
+                return;
+              }
+              const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "";
+              try {
+                const obj = await bizService.getObjective(id, tenantId);
+                sendJson(200, service.toBusinessObjectiveDTO(obj));
+                return;
+              } catch (err: any) {
+                handleBusinessError(err);
+                return;
+              }
+            } else if (req.method === "PATCH") {
+              const authCheck = await authenticateAndAuthorize("organization.manage", "SYSTEM", id, reqCtx.tenantId);
+              if (!authCheck.ok) {
+                sendError(authCheck.status, authCheck.message, authCheck.code);
+                return;
+              }
+              const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "";
+              const bodyResult = await readJsonBody();
+              if (!bodyResult.ok) {
+                sendError(400, "Bad Request: Invalid JSON body", "INVALID_JSON");
+                return;
+              }
+              const body = bodyResult.body as any;
+              try {
+                const updated = await bizService.updateObjective(id, tenantId, {
+                  title: body.title,
+                  description: body.description,
+                  organizationId: body.organizationId,
+                  areaId: body.areaId,
+                  teamId: body.teamId,
+                  targetMetric: body.targetMetric,
+                  startDate: body.startDate ? new Date(body.startDate) : undefined,
+                  targetDate: body.targetDate ? new Date(body.targetDate) : undefined,
+                  expectedConcurrencyVersion: body.expectedConcurrencyVersion,
+                });
+                sendJson(200, service.toBusinessObjectiveDTO(updated));
+                return;
+              } catch (err: any) {
+                handleBusinessError(err);
+                return;
+              }
+            }
+          }
+
+          // PATCH /business/objectives/:id/status
+          const objStatusMatch = subPath.match(/^\/business\/objectives\/([^/]+)\/status$/);
+          if (objStatusMatch && req.method === "PATCH") {
+            const id = normalizeId(objStatusMatch[1] ?? "") ?? objStatusMatch[1] ?? "";
+            const authCheck = await authenticateAndAuthorize("organization.manage", "SYSTEM", id, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "";
+            const bodyResult = await readJsonBody();
+            if (!bodyResult.ok) {
+              sendError(400, "Bad Request: Invalid JSON body", "INVALID_JSON");
+              return;
+            }
+            const body = bodyResult.body as any;
+            const targetStatus = body.status;
+            try {
+              let updated: any;
+              if (targetStatus === "ACTIVE") {
+                updated = await bizService.activateObjective(id, tenantId, reqCtx.correlationId);
+              } else if (targetStatus === "AT_RISK") {
+                updated = await bizService.markObjectiveAtRisk(id, tenantId, body.reason, reqCtx.correlationId);
+              } else if (targetStatus === "ACHIEVED") {
+                updated = await bizService.markObjectiveAchieved(id, tenantId, reqCtx.correlationId);
+              } else if (targetStatus === "MISSED") {
+                updated = await bizService.markObjectiveMissed(id, tenantId, reqCtx.correlationId);
+              } else if (targetStatus === "CANCELLED") {
+                updated = await bizService.cancelObjective(id, tenantId, reqCtx.correlationId);
+              } else if (targetStatus === "ARCHIVED") {
+                updated = await bizService.archiveObjective(id, tenantId);
+              } else {
+                sendError(400, `Invalid objective status: ${targetStatus}`, "INVALID_STATUS");
+                return;
+              }
+              sendJson(200, service.toBusinessObjectiveDTO(updated));
+              return;
+            } catch (err: any) {
+              handleBusinessError(err);
+              return;
+            }
+          }
+
+          // 3. Initiatives: POST /business/initiatives & GET /business/initiatives
+          if (subPath === "/business/initiatives") {
+            if (req.method === "POST") {
+              const authCheck = await authenticateAndAuthorize("organization.manage", "SYSTEM", "initiative", reqCtx.tenantId);
+              if (!authCheck.ok) {
+                sendError(authCheck.status, authCheck.message, authCheck.code);
+                return;
+              }
+              const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "";
+              const bodyResult = await readJsonBody();
+              if (!bodyResult.ok) {
+                sendError(400, "Bad Request: Invalid JSON body", "INVALID_JSON");
+                return;
+              }
+              const body = bodyResult.body as any;
+              const principalId = authCheck.context?.principal?.id ?? reqCtx.principal?.id ?? "system";
+              try {
+                const init = await bizService.createInitiative({
+                  id: normalizeId(body.id) ?? String(body.id ?? ""),
+                  tenantId,
+                  enterpriseId: normalizeId(body.enterpriseId) ?? String(body.enterpriseId ?? ""),
+                  objectiveId: normalizeId(body.objectiveId) ?? String(body.objectiveId ?? ""),
+                  title: body.title ?? "",
+                  description: body.description ?? "",
+                  ownerPrincipalId: body.ownerPrincipalId ?? principalId,
+                  organizationId: body.organizationId,
+                  areaId: body.areaId,
+                  teamId: body.teamId,
+                  targetStartDate: body.targetStartDate ? new Date(body.targetStartDate) : undefined,
+                  targetEndDate: body.targetEndDate ? new Date(body.targetEndDate) : undefined,
+                  linkedSolutionIds: body.linkedSolutionIds,
+                  linkedWorkflowIds: body.linkedWorkflowIds,
+                  expectedOutcome: body.expectedOutcome,
+                }, reqCtx.correlationId);
+                sendJson(201, service.toBusinessInitiativeDTO(init));
+                return;
+              } catch (err: any) {
+                handleBusinessError(err);
+                return;
+              }
+            } else if (req.method === "GET") {
+              const authCheck = await authenticateAndAuthorize("organization.read", "SYSTEM", "initiative", reqCtx.tenantId);
+              if (!authCheck.ok) {
+                sendError(authCheck.status, authCheck.message, authCheck.code);
+                return;
+              }
+              const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "";
+              const enterpriseId = url.searchParams.get("enterpriseId") ?? undefined;
+              const objectiveId = url.searchParams.get("objectiveId") ?? undefined;
+              try {
+                const list = await bizService.listInitiatives(tenantId, enterpriseId, objectiveId);
+                sendJson(200, list.map((i) => service.toBusinessInitiativeDTO(i)));
+                return;
+              } catch (err: any) {
+                handleBusinessError(err);
+                return;
+              }
+            }
+          }
+
+          // GET /business/initiatives/:id & PATCH /business/initiatives/:id
+          const initIdMatch = subPath.match(/^\/business\/initiatives\/([^/]+)$/);
+          if (initIdMatch) {
+            const id = normalizeId(initIdMatch[1] ?? "") ?? initIdMatch[1] ?? "";
+            if (!id) {
+              sendError(400, "Bad Request: Invalid Initiative ID", "INVALID_ID");
+              return;
+            }
+            if (req.method === "GET") {
+              const authCheck = await authenticateAndAuthorize("organization.read", "SYSTEM", id, reqCtx.tenantId);
+              if (!authCheck.ok) {
+                sendError(authCheck.status, authCheck.message, authCheck.code);
+                return;
+              }
+              const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "";
+              try {
+                const init = await bizService.getInitiative(id, tenantId);
+                sendJson(200, service.toBusinessInitiativeDTO(init));
+                return;
+              } catch (err: any) {
+                handleBusinessError(err);
+                return;
+              }
+            } else if (req.method === "PATCH") {
+              const authCheck = await authenticateAndAuthorize("organization.manage", "SYSTEM", id, reqCtx.tenantId);
+              if (!authCheck.ok) {
+                sendError(authCheck.status, authCheck.message, authCheck.code);
+                return;
+              }
+              const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "";
+              const bodyResult = await readJsonBody();
+              if (!bodyResult.ok) {
+                sendError(400, "Bad Request: Invalid JSON body", "INVALID_JSON");
+                return;
+              }
+              const body = bodyResult.body as any;
+              try {
+                const updated = await bizService.updateInitiative(id, tenantId, {
+                  title: body.title,
+                  description: body.description,
+                  organizationId: body.organizationId,
+                  areaId: body.areaId,
+                  teamId: body.teamId,
+                  targetStartDate: body.targetStartDate ? new Date(body.targetStartDate) : undefined,
+                  targetEndDate: body.targetEndDate ? new Date(body.targetEndDate) : undefined,
+                  expectedOutcome: body.expectedOutcome,
+                  expectedConcurrencyVersion: body.expectedConcurrencyVersion,
+                });
+                sendJson(200, service.toBusinessInitiativeDTO(updated));
+                return;
+              } catch (err: any) {
+                handleBusinessError(err);
+                return;
+              }
+            }
+          }
+
+          // PATCH /business/initiatives/:id/status
+          const initStatusMatch = subPath.match(/^\/business\/initiatives\/([^/]+)\/status$/);
+          if (initStatusMatch && req.method === "PATCH") {
+            const id = normalizeId(initStatusMatch[1] ?? "") ?? initStatusMatch[1] ?? "";
+            const authCheck = await authenticateAndAuthorize("organization.manage", "SYSTEM", id, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "";
+            const bodyResult = await readJsonBody();
+            if (!bodyResult.ok) {
+              sendError(400, "Bad Request: Invalid JSON body", "INVALID_JSON");
+              return;
+            }
+            const body = bodyResult.body as any;
+            const targetStatus = body.status;
+            try {
+              let updated: any;
+              if (targetStatus === "ACTIVE") {
+                updated = await bizService.activateInitiative(id, tenantId, reqCtx.correlationId);
+              } else if (targetStatus === "BLOCKED") {
+                updated = await bizService.blockInitiative(id, tenantId, body.reason, reqCtx.correlationId);
+              } else if (targetStatus === "COMPLETED") {
+                updated = await bizService.completeInitiative(id, tenantId, body.actualOutcome, reqCtx.correlationId);
+              } else if (targetStatus === "CANCELLED") {
+                updated = await bizService.cancelInitiative(id, tenantId, body.reason, reqCtx.correlationId);
+              } else {
+                sendError(400, `Invalid initiative status: ${targetStatus}`, "INVALID_STATUS");
+                return;
+              }
+              sendJson(200, service.toBusinessInitiativeDTO(updated));
+              return;
+            } catch (err: any) {
+              handleBusinessError(err);
+              return;
+            }
+          }
+
+          // 4. Metrics: POST /business/metrics & GET /business/metrics
+          if (subPath === "/business/metrics") {
+            if (req.method === "POST") {
+              const authCheck = await authenticateAndAuthorize("organization.manage", "SYSTEM", "metric", reqCtx.tenantId);
+              if (!authCheck.ok) {
+                sendError(authCheck.status, authCheck.message, authCheck.code);
+                return;
+              }
+              const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "";
+              const bodyResult = await readJsonBody();
+              if (!bodyResult.ok) {
+                sendError(400, "Bad Request: Invalid JSON body", "INVALID_JSON");
+                return;
+              }
+              const body = bodyResult.body as any;
+              try {
+                const metric = await bizService.createMetric({
+                  id: normalizeId(body.id) ?? String(body.id ?? ""),
+                  tenantId,
+                  enterpriseId: normalizeId(body.enterpriseId) ?? String(body.enterpriseId ?? ""),
+                  objectiveId: normalizeId(body.objectiveId) ?? String(body.objectiveId ?? ""),
+                  name: body.name ?? "",
+                  unit: body.unit ?? "",
+                  targetValue: body.targetValue,
+                  currentValue: body.currentValue,
+                  period: body.period,
+                  source: body.source ?? "",
+                }, reqCtx.correlationId);
+                sendJson(201, service.toBusinessMetricDTO(metric));
+                return;
+              } catch (err: any) {
+                handleBusinessError(err);
+                return;
+              }
+            } else if (req.method === "GET") {
+              const authCheck = await authenticateAndAuthorize("organization.read", "SYSTEM", "metric", reqCtx.tenantId);
+              if (!authCheck.ok) {
+                sendError(authCheck.status, authCheck.message, authCheck.code);
+                return;
+              }
+              const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "";
+              const enterpriseId = url.searchParams.get("enterpriseId") ?? undefined;
+              const objectiveId = url.searchParams.get("objectiveId") ?? undefined;
+              try {
+                const list = await bizService.listMetrics(tenantId, enterpriseId, objectiveId);
+                sendJson(200, list.map((m) => service.toBusinessMetricDTO(m)));
+                return;
+              } catch (err: any) {
+                handleBusinessError(err);
+                return;
+              }
+            }
+          }
+
+          // GET /business/metrics/:id & POST /business/metrics/:id/measurements
+          const metricIdMatch = subPath.match(/^\/business\/metrics\/([^/]+)$/);
+          if (metricIdMatch && req.method === "GET") {
+            const id = normalizeId(metricIdMatch[1] ?? "") ?? metricIdMatch[1] ?? "";
+            const authCheck = await authenticateAndAuthorize("organization.read", "SYSTEM", id, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "";
+            try {
+              const metric = await bizService.getMetric(id, tenantId);
+              sendJson(200, service.toBusinessMetricDTO(metric));
+              return;
+            } catch (err: any) {
+              handleBusinessError(err);
+              return;
+            }
+          }
+
+          const metricMeasureMatch = subPath.match(/^\/business\/metrics\/([^/]+)\/(?:measurements|measure)$/);
+          if (metricMeasureMatch && req.method === "POST") {
+            const id = normalizeId(metricMeasureMatch[1] ?? "") ?? metricMeasureMatch[1] ?? "";
+            const authCheck = await authenticateAndAuthorize("organization.manage", "SYSTEM", id, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "";
+            const bodyResult = await readJsonBody();
+            if (!bodyResult.ok) {
+              sendError(400, "Bad Request: Invalid JSON body", "INVALID_JSON");
+              return;
+            }
+            const body = bodyResult.body as any;
+            try {
+              const updated = await bizService.recordMetricMeasurement(id, tenantId, {
+                value: body.value,
+                source: body.source ?? "",
+                recordedAt: body.recordedAt ? new Date(body.recordedAt) : undefined,
+                expectedConcurrencyVersion: body.expectedConcurrencyVersion,
+              }, reqCtx.correlationId);
+              sendJson(200, service.toBusinessMetricDTO(updated));
+              return;
+            } catch (err: any) {
+              handleBusinessError(err);
+              return;
+            }
+          }
+
+          // 5. Decisions: POST /business/decisions & GET /business/decisions
+          if (subPath === "/business/decisions") {
+            if (req.method === "POST") {
+              const authCheck = await authenticateAndAuthorize("organization.manage", "SYSTEM", "decision", reqCtx.tenantId);
+              if (!authCheck.ok) {
+                sendError(authCheck.status, authCheck.message, authCheck.code);
+                return;
+              }
+              const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "";
+              const bodyResult = await readJsonBody();
+              if (!bodyResult.ok) {
+                sendError(400, "Bad Request: Invalid JSON body", "INVALID_JSON");
+                return;
+              }
+              const body = bodyResult.body as any;
+              const principalId = authCheck.context?.principal?.id ?? reqCtx.principal?.id ?? "system";
+              try {
+                const decision = await bizService.recordDecision({
+                  id: normalizeId(body.id) ?? String(body.id ?? ""),
+                  tenantId,
+                  enterpriseId: normalizeId(body.enterpriseId) ?? String(body.enterpriseId ?? ""),
+                  decisionMakerPrincipalId: body.decisionMakerPrincipalId ?? principalId,
+                  authorityScope: body.authorityScope,
+                  decisionType: body.decisionType,
+                  targetType: body.targetType,
+                  targetId: body.targetId ?? "",
+                  rationale: body.rationale ?? "",
+                  policyContext: body.policyContext,
+                  resultingAction: body.resultingAction,
+                  metadata: body.metadata,
+                }, reqCtx.correlationId);
+                sendJson(201, service.toExecutiveDecisionRecordDTO(decision));
+                return;
+              } catch (err: any) {
+                handleBusinessError(err);
+                return;
+              }
+            } else if (req.method === "GET") {
+              const authCheck = await authenticateAndAuthorize("organization.read", "SYSTEM", "decision", reqCtx.tenantId);
+              if (!authCheck.ok) {
+                sendError(authCheck.status, authCheck.message, authCheck.code);
+                return;
+              }
+              const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "";
+              const enterpriseId = url.searchParams.get("enterpriseId") ?? undefined;
+              const targetId = url.searchParams.get("targetId") ?? undefined;
+              try {
+                const list = await bizService.listDecisions(tenantId, enterpriseId, targetId);
+                sendJson(200, list.map((d) => service.toExecutiveDecisionRecordDTO(d)));
+                return;
+              } catch (err: any) {
+                handleBusinessError(err);
+                return;
+              }
+            }
+          }
+
+          // GET /business/decisions/:id
+          const decIdMatch = subPath.match(/^\/business\/decisions\/([^/]+)$/);
+          if (decIdMatch && req.method === "GET") {
+            const id = normalizeId(decIdMatch[1] ?? "") ?? decIdMatch[1] ?? "";
+            const authCheck = await authenticateAndAuthorize("organization.read", "SYSTEM", id, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "";
+            try {
+              const decision = await bizService.getDecision(id, tenantId);
+              sendJson(200, service.toExecutiveDecisionRecordDTO(decision));
+              return;
+            } catch (err: any) {
+              handleBusinessError(err);
+              return;
+            }
+          }
+
+          // 6. Context: GET /business/context or GET /business/context/:enterpriseId
+          const ctxMatch = subPath.match(/^\/business\/context(?:\/([^/]+))?$/);
+          if (ctxMatch && req.method === "GET") {
+            const authCheck = await authenticateAndAuthorize("organization.read", "SYSTEM", "context", reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "";
+            let enterpriseId: string | undefined = (ctxMatch[1] ? (normalizeId(ctxMatch[1]) ?? ctxMatch[1]) : url.searchParams.get("enterpriseId")) ?? undefined;
+            if (!enterpriseId) {
+              const enterprises = await bizService.listEnterprises(tenantId);
+              enterpriseId = enterprises[0]?.id;
+            }
+            if (!enterpriseId) {
+              sendError(404, "No enterprise found for tenant context", "ENTERPRISE_NOT_FOUND");
+              return;
+            }
+            try {
+              const context = await bizService.getBusinessOperatingContext(enterpriseId, tenantId);
+              sendJson(200, service.toBusinessOperatingContextDTO(context));
+              return;
+            } catch (err: any) {
+              handleBusinessError(err);
+              return;
+            }
+          }
+        }
 
         sendError(404, `Endpoint not found: ${req.method} ${pathname}`, "ENDPOINT_NOT_FOUND");
         return;
@@ -5366,8 +6030,6 @@ export function createHttpServer(
       // Resolve safely within WEB_DIR
       const resolvedPath = path.resolve(WEB_DIR, "." + path.normalize("/" + reqPath));
       const relative = path.relative(WEB_DIR, resolvedPath);
-
-      // Path traversal check: must not escape WEB_DIR
       if (relative.startsWith("..") || path.isAbsolute(relative)) {
         sendError(403, "Forbidden", "FORBIDDEN");
         return;

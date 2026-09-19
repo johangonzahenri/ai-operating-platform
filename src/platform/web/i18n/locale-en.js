@@ -422,5 +422,22 @@ export default {
     "statePublished": "Published",
     "stateArchived": "Archived",
     "stateDeprecated": "Deprecated"
+  },
+  "businessOperating": {
+    "title": "Enterprise Operating System & Executive Governance",
+    "subtitle": "Strategic alignment from vision to autonomous agent execution",
+    "enterprises": "Enterprises",
+    "objectives": "Business Objectives",
+    "initiatives": "Strategic Initiatives",
+    "metrics": "Business Metrics & KPIs",
+    "decisions": "Executive Decisions",
+    "context": "Operating Context",
+    "autonomyLevel": "Autonomy Level",
+    "status": "Status",
+    "progress": "Progress",
+    "target": "Target",
+    "current": "Current",
+    "gap": "Gap",
+    "governanceNote": "All strategic operations and executive decisions require explicit authority and human oversight."
   }
 };

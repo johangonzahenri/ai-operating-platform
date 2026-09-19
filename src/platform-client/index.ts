@@ -54,6 +54,21 @@ import type {
   UpdateSolutionRequestDTO,
   PublishSolutionRequestDTO,
   InstantiateSolutionRequestDTO,
+  EnterpriseDTO,
+  BusinessObjectiveDTO,
+  BusinessInitiativeDTO,
+  BusinessMetricDTO,
+  ExecutiveDecisionRecordDTO,
+  BusinessOperatingContextDTO,
+  CreateEnterpriseRequestDTO,
+  UpdateEnterpriseRequestDTO,
+  CreateBusinessObjectiveRequestDTO,
+  TransitionObjectiveStatusRequestDTO,
+  CreateBusinessInitiativeRequestDTO,
+  TransitionInitiativeStatusRequestDTO,
+  CreateBusinessMetricRequestDTO,
+  RecordMetricMeasurementRequestDTO,
+  CreateExecutiveDecisionRequestDTO,
 } from "../platform/api/platform-dto.js";
 import {
   toEventDTO,
@@ -1031,6 +1046,110 @@ export function createPlatformClient(options: PlatformClientOptions) {
     },
   };
 
+  const business = {
+    enterprises: {
+      async create(body: CreateEnterpriseRequestDTO): Promise<EnterpriseDTO> {
+        return request<EnterpriseDTO>("/business/enterprises", {
+          method: "POST",
+          body: JSON.stringify(body),
+        });
+      },
+      async get(id: string): Promise<EnterpriseDTO> {
+        return request<EnterpriseDTO>(`/business/enterprises/${encodeURIComponent(id)}`);
+      },
+      async list(): Promise<readonly EnterpriseDTO[]> {
+        return request<readonly EnterpriseDTO[]>("/business/enterprises");
+      },
+      async update(id: string, body: UpdateEnterpriseRequestDTO): Promise<EnterpriseDTO> {
+        return request<EnterpriseDTO>(`/business/enterprises/${encodeURIComponent(id)}`, {
+          method: "PATCH",
+          body: JSON.stringify(body),
+        });
+      },
+    },
+    objectives: {
+      async create(body: CreateBusinessObjectiveRequestDTO): Promise<BusinessObjectiveDTO> {
+        return request<BusinessObjectiveDTO>("/business/objectives", {
+          method: "POST",
+          body: JSON.stringify(body),
+        });
+      },
+      async get(id: string): Promise<BusinessObjectiveDTO> {
+        return request<BusinessObjectiveDTO>(`/business/objectives/${encodeURIComponent(id)}`);
+      },
+      async list(enterpriseId?: string): Promise<readonly BusinessObjectiveDTO[]> {
+        const query = enterpriseId ? `?enterpriseId=${encodeURIComponent(enterpriseId)}` : "";
+        return request<readonly BusinessObjectiveDTO[]>(`/business/objectives${query}`);
+      },
+      async transitionStatus(id: string, body: TransitionObjectiveStatusRequestDTO): Promise<BusinessObjectiveDTO> {
+        return request<BusinessObjectiveDTO>(`/business/objectives/${encodeURIComponent(id)}/status`, {
+          method: "PATCH",
+          body: JSON.stringify(body),
+        });
+      },
+    },
+    initiatives: {
+      async create(body: CreateBusinessInitiativeRequestDTO): Promise<BusinessInitiativeDTO> {
+        return request<BusinessInitiativeDTO>("/business/initiatives", {
+          method: "POST",
+          body: JSON.stringify(body),
+        });
+      },
+      async get(id: string): Promise<BusinessInitiativeDTO> {
+        return request<BusinessInitiativeDTO>(`/business/initiatives/${encodeURIComponent(id)}`);
+      },
+      async list(objectiveId?: string): Promise<readonly BusinessInitiativeDTO[]> {
+        const query = objectiveId ? `?objectiveId=${encodeURIComponent(objectiveId)}` : "";
+        return request<readonly BusinessInitiativeDTO[]>(`/business/initiatives${query}`);
+      },
+      async transitionStatus(id: string, body: TransitionInitiativeStatusRequestDTO): Promise<BusinessInitiativeDTO> {
+        return request<BusinessInitiativeDTO>(`/business/initiatives/${encodeURIComponent(id)}/status`, {
+          method: "PATCH",
+          body: JSON.stringify(body),
+        });
+      },
+    },
+    metrics: {
+      async create(body: CreateBusinessMetricRequestDTO): Promise<BusinessMetricDTO> {
+        return request<BusinessMetricDTO>("/business/metrics", {
+          method: "POST",
+          body: JSON.stringify(body),
+        });
+      },
+      async get(id: string): Promise<BusinessMetricDTO> {
+        return request<BusinessMetricDTO>(`/business/metrics/${encodeURIComponent(id)}`);
+      },
+      async list(enterpriseId?: string): Promise<readonly BusinessMetricDTO[]> {
+        const query = enterpriseId ? `?enterpriseId=${encodeURIComponent(enterpriseId)}` : "";
+        return request<readonly BusinessMetricDTO[]>(`/business/metrics${query}`);
+      },
+      async recordMeasurement(id: string, body: RecordMetricMeasurementRequestDTO): Promise<BusinessMetricDTO> {
+        return request<BusinessMetricDTO>(`/business/metrics/${encodeURIComponent(id)}/measurements`, {
+          method: "POST",
+          body: JSON.stringify(body),
+        });
+      },
+    },
+    decisions: {
+      async create(body: CreateExecutiveDecisionRequestDTO): Promise<ExecutiveDecisionRecordDTO> {
+        return request<ExecutiveDecisionRecordDTO>("/business/decisions", {
+          method: "POST",
+          body: JSON.stringify(body),
+        });
+      },
+      async get(id: string): Promise<ExecutiveDecisionRecordDTO> {
+        return request<ExecutiveDecisionRecordDTO>(`/business/decisions/${encodeURIComponent(id)}`);
+      },
+      async list(enterpriseId?: string): Promise<readonly ExecutiveDecisionRecordDTO[]> {
+        const query = enterpriseId ? `?enterpriseId=${encodeURIComponent(enterpriseId)}` : "";
+        return request<readonly ExecutiveDecisionRecordDTO[]>(`/business/decisions${query}`);
+      },
+    },
+    async getContext(): Promise<BusinessOperatingContextDTO> {
+      return request<BusinessOperatingContextDTO>("/business/context");
+    },
+  };
+
   return {
     tasks,
     executions,
@@ -1056,6 +1175,7 @@ export function createPlatformClient(options: PlatformClientOptions) {
     agentLifecycle,
     agentEvaluations,
     solutions,
+    business,
     connect: () => healthGet(),
     health: Object.assign(healthGet, { get: healthGet }),
     getPlatformInfo: () => platform.get(),
@@ -1129,4 +1249,19 @@ export type {
   UpdateSolutionRequestDTO,
   PublishSolutionRequestDTO,
   InstantiateSolutionRequestDTO,
+  EnterpriseDTO,
+  BusinessObjectiveDTO,
+  BusinessInitiativeDTO,
+  BusinessMetricDTO,
+  ExecutiveDecisionRecordDTO,
+  BusinessOperatingContextDTO,
+  CreateEnterpriseRequestDTO,
+  UpdateEnterpriseRequestDTO,
+  CreateBusinessObjectiveRequestDTO,
+  TransitionObjectiveStatusRequestDTO,
+  CreateBusinessInitiativeRequestDTO,
+  TransitionInitiativeStatusRequestDTO,
+  CreateBusinessMetricRequestDTO,
+  RecordMetricMeasurementRequestDTO,
+  CreateExecutiveDecisionRequestDTO,
 };

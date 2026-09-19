@@ -1232,3 +1232,246 @@ export interface InstantiateSolutionRequestDTO {
   readonly operatorPrincipalId?: string | undefined;
 }
 
+// =============================================================================
+// Phase 67: AI Enterprise Operating System & Executive Governance DTOs (Prompt 116)
+// =============================================================================
+
+export interface EnterpriseDTO {
+  readonly id: string;
+  readonly tenantId: string;
+  readonly name: string;
+  readonly description: string;
+  readonly industry: string;
+  readonly status: "ACTIVE" | "SUSPENDED" | "ARCHIVED";
+  readonly vision?: string | undefined;
+  readonly strategicMission?: string | undefined;
+  readonly version: number;
+  readonly concurrencyVersion: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export interface CreateEnterpriseRequestDTO {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+  readonly industry?: string | undefined;
+  readonly vision?: string | undefined;
+  readonly strategicMission?: string | undefined;
+}
+
+export interface UpdateEnterpriseRequestDTO {
+  readonly name?: string | undefined;
+  readonly description?: string | undefined;
+  readonly industry?: string | undefined;
+  readonly vision?: string | undefined;
+  readonly strategicMission?: string | undefined;
+  readonly expectedConcurrencyVersion?: number | undefined;
+}
+
+export interface BusinessObjectiveDTO {
+  readonly id: string;
+  readonly tenantId: string;
+  readonly enterpriseId: string;
+  readonly organizationId?: string | undefined;
+  readonly areaId?: string | undefined;
+  readonly teamId?: string | undefined;
+  readonly title: string;
+  readonly description: string;
+  readonly ownerPrincipalId: string;
+  readonly type: "STRATEGIC" | "OPERATIONAL" | "TACTICAL";
+  readonly lifecycleState: "DRAFT" | "ACTIVE" | "AT_RISK" | "ACHIEVED" | "MISSED" | "CANCELLED" | "ARCHIVED";
+  readonly targetMetric?: { readonly name: string; readonly unit: string; readonly targetValue: number } | undefined;
+  readonly startDate?: string | undefined;
+  readonly targetDate?: string | undefined;
+  readonly achievedAt?: string | undefined;
+  readonly linkedInitiativeIds: readonly string[];
+  readonly linkedSolutionIds: readonly string[];
+  readonly linkedWorkflowIds: readonly string[];
+  readonly version: number;
+  readonly concurrencyVersion: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export interface CreateBusinessObjectiveRequestDTO {
+  readonly id: string;
+  readonly enterpriseId: string;
+  readonly organizationId?: string | undefined;
+  readonly areaId?: string | undefined;
+  readonly teamId?: string | undefined;
+  readonly title: string;
+  readonly description?: string | undefined;
+  readonly ownerPrincipalId?: string | undefined;
+  readonly type?: "STRATEGIC" | "OPERATIONAL" | "TACTICAL" | undefined;
+  readonly targetMetric?: { readonly name: string; readonly unit: string; readonly targetValue: number } | undefined;
+  readonly startDate?: string | undefined;
+  readonly targetDate?: string | undefined;
+  readonly linkedInitiativeIds?: readonly string[] | undefined;
+  readonly linkedSolutionIds?: readonly string[] | undefined;
+  readonly linkedWorkflowIds?: readonly string[] | undefined;
+}
+
+export interface UpdateBusinessObjectiveRequestDTO {
+  readonly title?: string | undefined;
+  readonly description?: string | undefined;
+  readonly organizationId?: string | undefined;
+  readonly areaId?: string | undefined;
+  readonly teamId?: string | undefined;
+  readonly targetMetric?: { readonly name: string; readonly unit: string; readonly targetValue: number } | undefined;
+  readonly startDate?: string | undefined;
+  readonly targetDate?: string | undefined;
+  readonly expectedConcurrencyVersion?: number | undefined;
+}
+
+export interface BusinessInitiativeDTO {
+  readonly id: string;
+  readonly tenantId: string;
+  readonly enterpriseId: string;
+  readonly objectiveId: string;
+  readonly title: string;
+  readonly description: string;
+  readonly ownerPrincipalId: string;
+  readonly organizationId?: string | undefined;
+  readonly areaId?: string | undefined;
+  readonly teamId?: string | undefined;
+  readonly lifecycleState: "PLANNED" | "ACTIVE" | "BLOCKED" | "COMPLETED" | "CANCELLED";
+  readonly targetStartDate?: string | undefined;
+  readonly targetEndDate?: string | undefined;
+  readonly linkedSolutionIds: readonly string[];
+  readonly linkedWorkflowIds: readonly string[];
+  readonly expectedOutcome?: string | undefined;
+  readonly actualOutcome?: string | undefined;
+  readonly version: number;
+  readonly concurrencyVersion: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export interface CreateBusinessInitiativeRequestDTO {
+  readonly id: string;
+  readonly enterpriseId: string;
+  readonly objectiveId: string;
+  readonly title: string;
+  readonly description?: string | undefined;
+  readonly ownerPrincipalId?: string | undefined;
+  readonly organizationId?: string | undefined;
+  readonly areaId?: string | undefined;
+  readonly teamId?: string | undefined;
+  readonly targetStartDate?: string | undefined;
+  readonly targetEndDate?: string | undefined;
+  readonly linkedSolutionIds?: readonly string[] | undefined;
+  readonly linkedWorkflowIds?: readonly string[] | undefined;
+  readonly expectedOutcome?: string | undefined;
+}
+
+export interface UpdateBusinessInitiativeRequestDTO {
+  readonly title?: string | undefined;
+  readonly description?: string | undefined;
+  readonly organizationId?: string | undefined;
+  readonly areaId?: string | undefined;
+  readonly teamId?: string | undefined;
+  readonly targetStartDate?: string | undefined;
+  readonly targetEndDate?: string | undefined;
+  readonly expectedOutcome?: string | undefined;
+  readonly expectedConcurrencyVersion?: number | undefined;
+}
+
+export interface BusinessMetricDTO {
+  readonly id: string;
+  readonly tenantId: string;
+  readonly enterpriseId: string;
+  readonly objectiveId: string;
+  readonly name: string;
+  readonly unit: string;
+  readonly targetValue: number;
+  readonly currentValue?: number | undefined;
+  readonly gap?: number | undefined;
+  readonly period: "REAL_TIME" | "DAILY" | "WEEKLY" | "MONTHLY" | "QUARTERLY" | "ANNUAL";
+  readonly source: string;
+  readonly lastUpdated: string;
+  readonly status: "ON_TRACK" | "AT_RISK" | "OFF_TRACK" | "MEASURED" | "MISSING";
+  readonly version: number;
+  readonly concurrencyVersion: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export interface CreateBusinessMetricRequestDTO {
+  readonly id: string;
+  readonly enterpriseId: string;
+  readonly objectiveId: string;
+  readonly name: string;
+  readonly unit: string;
+  readonly targetValue: number;
+  readonly currentValue?: number | undefined;
+  readonly period?: "REAL_TIME" | "DAILY" | "WEEKLY" | "MONTHLY" | "QUARTERLY" | "ANNUAL" | undefined;
+  readonly source: string;
+}
+
+export interface RecordMeasurementRequestDTO {
+  readonly value: number;
+  readonly source: string;
+  readonly recordedAt?: string | undefined;
+  readonly expectedConcurrencyVersion?: number | undefined;
+}
+
+export interface ExecutiveDecisionRecordDTO {
+  readonly id: string;
+  readonly tenantId: string;
+  readonly enterpriseId: string;
+  readonly decisionMakerPrincipalId: string;
+  readonly authorityScope: "STRATEGIC_OBJECTIVE" | "INITIATIVE_GOVERNANCE" | "BUDGET_ADJUSTMENT" | "POLICY_EXCEPTION" | "SOLUTION_AUTHORIZATION" | "HIGH_IMPACT_APPROVAL";
+  readonly decisionType: "APPROVE" | "REJECT" | "OVERRIDE" | "DELEGATE" | "ESCALATE" | "SUSPEND";
+  readonly targetType: "OBJECTIVE" | "INITIATIVE" | "SOLUTION" | "WORKFLOW" | "BUDGET" | "POLICY" | "HIGH_IMPACT_OPERATION";
+  readonly targetId: string;
+  readonly rationale: string;
+  readonly policyContext?: string | undefined;
+  readonly resultingAction?: string | undefined;
+  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+  readonly timestamp: string;
+  readonly version: number;
+  readonly concurrencyVersion: number;
+  readonly createdAt: string;
+}
+
+export interface CreateExecutiveDecisionRecordRequestDTO {
+  readonly id: string;
+  readonly enterpriseId: string;
+  readonly decisionMakerPrincipalId?: string | undefined;
+  readonly authorityScope: "STRATEGIC_OBJECTIVE" | "INITIATIVE_GOVERNANCE" | "BUDGET_ADJUSTMENT" | "POLICY_EXCEPTION" | "SOLUTION_AUTHORIZATION" | "HIGH_IMPACT_APPROVAL";
+  readonly decisionType: "APPROVE" | "REJECT" | "OVERRIDE" | "DELEGATE" | "ESCALATE" | "SUSPEND";
+  readonly targetType: "OBJECTIVE" | "INITIATIVE" | "SOLUTION" | "WORKFLOW" | "BUDGET" | "POLICY" | "HIGH_IMPACT_OPERATION";
+  readonly targetId: string;
+  readonly rationale: string;
+  readonly policyContext?: string | undefined;
+  readonly resultingAction?: string | undefined;
+  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+}
+
+export interface TransitionObjectiveStatusRequestDTO {
+  readonly status: "ACTIVE" | "AT_RISK" | "ACHIEVED" | "MISSED" | "CANCELLED" | "ARCHIVED";
+  readonly reason?: string | undefined;
+  readonly expectedConcurrencyVersion?: number | undefined;
+}
+
+export interface TransitionInitiativeStatusRequestDTO {
+  readonly status: "ACTIVE" | "BLOCKED" | "COMPLETED" | "CANCELLED";
+  readonly reason?: string | undefined;
+  readonly actualOutcome?: string | undefined;
+  readonly expectedConcurrencyVersion?: number | undefined;
+}
+
+export type RecordMetricMeasurementRequestDTO = RecordMeasurementRequestDTO;
+export type CreateExecutiveDecisionRequestDTO = CreateExecutiveDecisionRecordRequestDTO;
+
+export interface BusinessOperatingContextDTO {
+  readonly enterprise: EnterpriseDTO;
+  readonly objectives: readonly BusinessObjectiveDTO[];
+  readonly initiatives: readonly BusinessInitiativeDTO[];
+  readonly metrics: readonly BusinessMetricDTO[];
+  readonly recentDecisions: readonly ExecutiveDecisionRecordDTO[];
+  readonly generatedAt: string;
+}
+
+

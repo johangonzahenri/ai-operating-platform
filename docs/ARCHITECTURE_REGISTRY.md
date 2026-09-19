@@ -198,3 +198,15 @@ Este registro documenta de forma exhaustiva los componentes del sistema, organiz
 * **Documentación:** `docs/decisions/0036-ai-solutions-factory-and-blueprint-governance.md`.
 * **Estado:** `IMPLEMENTED / OPERATIONAL`
 
+### 5.6 Repositorios Relacionales de Sistema Operativo Empresarial & Gobernanza Ejecutiva
+* **Componente:** `src/infrastructure/persistence/sqlite/sqlite-business-repository.ts`
+* **Capa:** Infraestructura / Almacenamiento Relacional de Estrategia y Negocio
+* **Responsabilidad:** Persistir y consultar Enterprises, BusinessObjectives, BusinessInitiatives, BusinessMetrics (con mediciones históricas) y ExecutiveDecisionRecords en SQLite WAL con control OCC e índices compuestos.
+* **Dependencias:** Node.js 22+ `node:sqlite`, `SqliteDatabase`.
+* **Public API:** Implementación de `EnterpriseRepositoryPort`, `BusinessObjectiveRepositoryPort`, `BusinessInitiativeRepositoryPort`, `BusinessMetricRepositoryPort`, `ExecutiveDecisionRecordRepositoryPort`.
+* **Security Boundary:** Aislamiento multi-tenant fail-closed en todas las tablas (`enterprises`, `business_objectives`, `business_initiatives`, `business_metrics`, `business_metric_measurements`, `executive_decision_records`).
+* **Persistencia:** Tablas correspondientes en `data/app.db`.
+* **Tests:** `tests/unit/enterprise-operating-system.test.ts`, `tests/platform/enterprise-operating-system-api.test.ts` (26 tests).
+* **Documentación:** `docs/decisions/0037-ai-enterprise-operating-system-and-executive-governance.md`.
+* **Estado:** `IMPLEMENTED / OPERATIONAL`
+

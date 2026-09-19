@@ -1161,3 +1161,127 @@ export async function listSolutionInstances(solutionId) {
   return request(`/solutions/${encodeURIComponent(solutionId)}/instances`);
 }
 
+// ============================================================================
+// AI Enterprise Operating System & Executive Governance API (Prompt 116 / Phase 67)
+// ============================================================================
+
+export async function createEnterprise(data) {
+  return request("/business/enterprises", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getEnterprise(enterpriseId) {
+  return request(`/business/enterprises/${encodeURIComponent(enterpriseId)}`);
+}
+
+export async function listEnterprises() {
+  return request("/business/enterprises");
+}
+
+export async function updateEnterprise(enterpriseId, data) {
+  return request(`/business/enterprises/${encodeURIComponent(enterpriseId)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function createBusinessObjective(data) {
+  return request("/business/objectives", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getBusinessObjective(objectiveId) {
+  return request(`/business/objectives/${encodeURIComponent(objectiveId)}`);
+}
+
+export async function listBusinessObjectives(enterpriseId) {
+  const query = enterpriseId ? `?enterpriseId=${encodeURIComponent(enterpriseId)}` : "";
+  return request(`/business/objectives${query}`);
+}
+
+export async function transitionBusinessObjectiveStatus(objectiveId, data) {
+  return request(`/business/objectives/${encodeURIComponent(objectiveId)}/status`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function createBusinessInitiative(data) {
+  return request("/business/initiatives", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getBusinessInitiative(initiativeId) {
+  return request(`/business/initiatives/${encodeURIComponent(initiativeId)}`);
+}
+
+export async function listBusinessInitiatives(objectiveId) {
+  const query = objectiveId ? `?objectiveId=${encodeURIComponent(objectiveId)}` : "";
+  return request(`/business/initiatives${query}`);
+}
+
+export async function transitionBusinessInitiativeStatus(initiativeId, data) {
+  return request(`/business/initiatives/${encodeURIComponent(initiativeId)}/status`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function createBusinessMetric(data) {
+  return request("/business/metrics", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getBusinessMetric(metricId) {
+  return request(`/business/metrics/${encodeURIComponent(metricId)}`);
+}
+
+export async function listBusinessMetrics(enterpriseId) {
+  const query = enterpriseId ? `?enterpriseId=${encodeURIComponent(enterpriseId)}` : "";
+  return request(`/business/metrics${query}`);
+}
+
+export async function recordBusinessMetricMeasurement(metricId, data) {
+  return request(`/business/metrics/${encodeURIComponent(metricId)}/measurements`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function createExecutiveDecision(data) {
+  return request("/business/decisions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getExecutiveDecision(decisionId) {
+  return request(`/business/decisions/${encodeURIComponent(decisionId)}`);
+}
+
+export async function listExecutiveDecisions(enterpriseId) {
+  const query = enterpriseId ? `?enterpriseId=${encodeURIComponent(enterpriseId)}` : "";
+  return request(`/business/decisions${query}`);
+}
+
+export async function getBusinessOperatingContext() {
+  return request("/business/context");
+}
+

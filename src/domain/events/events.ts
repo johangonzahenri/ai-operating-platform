@@ -42,6 +42,10 @@ export type EventType =
   | "approval.expired" | "approval.cancelled" | "approval.escalated"
   | "solution.created" | "solution.updated" | "solution.validation.started" | "solution.validation.completed"
   | "solution.published" | "solution.archived" | "solution.deprecated" | "solution.instance.created"
+  | "enterprise.created" | "enterprise.updated" | "enterprise.status_changed"
+  | "objective.created" | "objective.updated" | "objective.state_changed"
+  | "initiative.created" | "initiative.updated" | "initiative.state_changed"
+  | "metric.updated" | "decision.recorded"
   | "workflow.completed" | "workflow.failed" | "workflow.cancelled";
 
 
