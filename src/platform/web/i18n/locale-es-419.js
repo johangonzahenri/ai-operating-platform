@@ -457,5 +457,25 @@ export default {
     "completeCycle": "Completar Ciclo",
     "boundedReplanning": "Replanificación Acotada",
     "governanceEnforced": "Cero Soberanía de IA CEO: Acotado por Identidad, Autoridad, Presupuestos y Supervisión Humana"
+  },
+  "autonomousOperations": {
+    "title": "Tiempo de Ejecución Autónomo y Gobernanza Continua",
+    "subtitle": "Ejecución continua, reactiva por eventos y programada de ciclos ejecutivos gobernados con detención de seguridad por circuit breaker",
+    "runtime": "Estado del Runtime",
+    "triggers": "Disparadores Autónomos",
+    "leases": "Arrendamientos de Ejecución",
+    "startRuntime": "Iniciar Runtime",
+    "stopRuntime": "Detener Runtime",
+    "pauseRuntime": "Pausar Runtime",
+    "resumeRuntime": "Reanudar Runtime",
+    "createTrigger": "Crear Disparador",
+    "enableTrigger": "Habilitar Disparador",
+    "disableTrigger": "Deshabilitar Disparador",
+    "fireTrigger": "Disparar Gatillo",
+    "scheduled": "Programado",
+    "eventDriven": "Reactivo por Eventos",
+    "threshold": "Umbral de Métrica",
+    "safetyHalted": "Detenido por Seguridad (Circuit Breaker)",
+    "noSovereign": "Runtime Autónomo Acotado: Disparador != Decisión != Plan != Ejecución"
   }
 };

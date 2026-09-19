@@ -206,6 +206,7 @@ import {
   InMemoryExecutiveAnalysisRepository,
   InMemoryExecutivePlanRepository,
 } from "../../infrastructure/persistence/in-memory/in-memory-executive-repository.js";
+import { AutonomousOperationsRuntime } from "../../application/autonomous/autonomous-operations-runtime.js";
 
 import { projectExecutionObservability } from "../product/execution-observability.js";
 import { Tenant, DEFAULT_PLAN_LIMITS } from "../../domain/tenant/tenant.js";
@@ -267,6 +268,7 @@ export interface PlatformDependencies {
   readonly solutionFactoryService?: SolutionFactoryService | undefined;
   readonly enterpriseOperatingService?: EnterpriseOperatingService | undefined;
   readonly executiveOrchestratorService?: ExecutiveOrchestratorService | undefined;
+  readonly autonomousOperationsRuntime?: AutonomousOperationsRuntime | undefined;
   readonly eventStream?: EventStreamAdapter | undefined;
 }
 
@@ -290,6 +292,7 @@ export class PlatformService {
   private readonly solutionFactoryService?: SolutionFactoryService | undefined;
   private readonly enterpriseOperatingService?: EnterpriseOperatingService | undefined;
   private readonly executiveOrchestratorService: ExecutiveOrchestratorService;
+  private readonly autonomousOperationsRuntime?: AutonomousOperationsRuntime | undefined;
   private readonly workflowOrchestratorService: WorkflowOrchestratorService;
   private readonly workflowVerificationService?: WorkflowVerificationService | undefined;
   private readonly humanOversightService?: HumanOversightService | undefined;
@@ -431,6 +434,8 @@ export class PlatformService {
       agentQuery: this.agents ?? { findById: () => undefined, list: () => [] },
     });
 
+    this.autonomousOperationsRuntime = deps.autonomousOperationsRuntime;
+
     this.governanceService = new EnterpriseGovernanceService();
     this.quotaService = new QuotaService();
     this.integrationEngine = deps.integrationEngine ?? new IntegrationTruthEngine();
@@ -469,6 +474,10 @@ export class PlatformService {
 
   getGovernanceService(): EnterpriseGovernanceService {
     return this.governanceService;
+  }
+
+  getAutonomousOperationsRuntime(): AutonomousOperationsRuntime | undefined {
+    return this.autonomousOperationsRuntime;
   }
 
   getLiveness(): { status: "UP"; liveness: "ALIVE"; uptimeSeconds: number; timestamp: string } {
@@ -3010,6 +3019,50 @@ export class PlatformService {
       concurrencyVersion: c.concurrencyVersion,
       createdAt: c.createdAt.toISOString(),
       updatedAt: c.updatedAt.toISOString(),
+    };
+  }
+
+  toAutonomousTriggerDTO(t: any): any {
+    return {
+      id: t.id,
+      tenantId: t.tenantId,
+      enterpriseId: t.enterpriseId,
+      name: t.name,
+      description: t.description,
+      triggerType: t.triggerType,
+      status: t.status,
+      targetObjectiveId: t.targetObjectiveId,
+      targetInitiativeId: t.targetInitiativeId,
+      autonomyLevel: t.autonomyLevel,
+      scheduleConfig: t.scheduleConfig ? {
+        intervalMs: t.scheduleConfig.intervalMs,
+        lastFiredAt: t.scheduleConfig.lastFiredAt?.toISOString(),
+        nextRunAt: t.scheduleConfig.nextRunAt.toISOString(),
+      } : undefined,
+      eventConfig: t.eventConfig,
+      thresholdConfig: t.thresholdConfig,
+      fireCount: t.fireCount,
+      lastFiredAt: t.lastFiredAt?.toISOString(),
+      lastFiredCycleId: t.lastFiredCycleId,
+      concurrencyVersion: t.concurrencyVersion,
+      createdAt: t.createdAt.toISOString(),
+      updatedAt: t.updatedAt.toISOString(),
+    };
+  }
+
+  toAutonomousRuntimeStateDTO(s: any): any {
+    return {
+      tenantId: s.tenantId,
+      status: s.status,
+      runtimeInstanceId: s.runtimeInstanceId,
+      activeCycleIds: s.activeCycleIds,
+      consecutiveFailureCount: s.consecutiveFailureCount,
+      maxConsecutiveFailures: s.maxConsecutiveFailures,
+      safetyHaltReason: s.safetyHaltReason,
+      lastHeartbeatAt: s.lastHeartbeatAt.toISOString(),
+      concurrencyVersion: s.concurrencyVersion,
+      createdAt: s.createdAt.toISOString(),
+      updatedAt: s.updatedAt.toISOString(),
     };
   }
 }

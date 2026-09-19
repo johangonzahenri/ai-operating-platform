@@ -169,6 +169,22 @@ import {
   SqliteExecutivePlanRepository,
 } from "../infrastructure/persistence/sqlite/sqlite-executive-repository.js";
 import { ExecutiveOrchestratorService } from "../application/executive/executive-orchestrator-service.js";
+import {
+  AutonomousTriggerRepositoryPort,
+  RuntimeLeaseRepositoryPort,
+  AutonomousRuntimeStateRepositoryPort,
+} from "../application/ports/autonomous-runtime-port.js";
+import {
+  InMemoryAutonomousTriggerRepository,
+  InMemoryRuntimeLeaseRepository,
+  InMemoryAutonomousRuntimeStateRepository,
+} from "../infrastructure/persistence/in-memory/in-memory-autonomous-repository.js";
+import {
+  SqliteAutonomousTriggerRepository,
+  SqliteRuntimeLeaseRepository,
+  SqliteAutonomousRuntimeStateRepository,
+} from "../infrastructure/persistence/sqlite/sqlite-autonomous-repository.js";
+import { AutonomousOperationsRuntime } from "../application/autonomous/autonomous-operations-runtime.js";
 
 export interface CreatePlatformOptions {
   readonly logger?: StructuredLogger | undefined;
@@ -263,6 +279,10 @@ export const createPlatform = (
     : dbManager
       ? new SqliteEventStore(dbManager)
       : new InMemoryEventStore();
+
+  const eventStream: EventStreamAdapter = (!isLogger && (optionsOrLogger as CreatePlatformOptions).eventStream)
+    ? (optionsOrLogger as CreatePlatformOptions).eventStream!
+    : new EventStreamAdapter(events, eventStore);
 
   // Autonomous operations persistence (InMemory default for isolation/testing, Sqlite for durable)
   const operationRepository: OperationRepositoryPort & OperationQueryPort =
@@ -665,50 +685,71 @@ export const createPlatform = (
     ? (optionsOrLogger as CreatePlatformOptions).rbacEvaluator!
     : new RbacAuthorizationEvaluator(roleRepository, events);
 
-  const eventStream: EventStreamAdapter = (!isLogger && (optionsOrLogger as CreatePlatformOptions).eventStream)
-    ? (optionsOrLogger as CreatePlatformOptions).eventStream!
-    : new EventStreamAdapter(events, eventStore);
+  const autonomousTriggerRepository: AutonomousTriggerRepositoryPort = dbManager
+    ? new SqliteAutonomousTriggerRepository(dbManager)
+    : new InMemoryAutonomousTriggerRepository();
+
+  const runtimeLeaseRepository: RuntimeLeaseRepositoryPort = dbManager
+    ? new SqliteRuntimeLeaseRepository(dbManager)
+    : new InMemoryRuntimeLeaseRepository();
+
+  const autonomousRuntimeStateRepository: AutonomousRuntimeStateRepositoryPort = dbManager
+    ? new SqliteAutonomousRuntimeStateRepository(dbManager)
+    : new InMemoryAutonomousRuntimeStateRepository();
+
+  const autonomousOperationsRuntime = new AutonomousOperationsRuntime({
+    triggerRepo: autonomousTriggerRepository,
+    leaseRepo: runtimeLeaseRepository,
+    stateRepo: autonomousRuntimeStateRepository,
+    executiveOrchestrator: executiveOrchestratorService,
+    policyGateway: policy,
+    eventPublisher: events,
+  });
+
+  events.subscribe(autonomousOperationsRuntime.handleDomainEvent.bind(autonomousOperationsRuntime));
 
   return {
+    config: optionsOrLogger,
     tasks,
-    taskRepository: tasks as unknown as TaskRepository,
+    taskRepository: tasks,
     executions,
-    events,
-    eventStream,
-    audit,
-    metrics,
-    policy,
+    executionRepository: executions,
+    agents,
     memory,
     memoryService,
+    models,
+    modelRegistry,
     tools,
     toolGateway,
     toolInvocationRuntime,
     planExecutionEngine,
-    models,
-    modelRegistry,
-    agents,
-    agentRegistry: agents,
-    agentService,
-    agentRuntime,
-    multiAgentCoordinator,
-    agentStrategy,
-    runtime,
-    orchestratedRuntime,
-    orchestrator,
-    executeTask,
-    submitTask,
-    executeOrchestration,
+    events,
+    audit,
+    metrics,
     operations: operationRepository,
     operationRepository,
     operationService,
-    autonomousOrchestrator,
-    planner,
-    evaluator,
+    eventStore,
+    eventStream,
+    transactionRunner,
+    diagnostics,
     db: dbManager,
     recovery: recoveryService,
     recoveryResult,
-    eventStore,
-    diagnostics,
+    runtime,
+    executeTask,
+    submitTask,
+    agentStrategy,
+    agentRuntime,
+    agentService,
+    multiAgentCoordinator,
+    orchestrator,
+    orchestratedStrategy,
+    orchestratedRuntime,
+    executeOrchestration,
+    planner,
+    evaluator,
+    autonomousOrchestrator,
     apiKeyRepository,
     roleRepository,
     authenticationService,
@@ -746,5 +787,9 @@ export const createPlatform = (
     executiveAnalysisRepository,
     executivePlanRepository,
     executiveOrchestratorService,
+    autonomousTriggerRepository,
+    runtimeLeaseRepository,
+    autonomousRuntimeStateRepository,
+    autonomousOperationsRuntime,
   };
 };

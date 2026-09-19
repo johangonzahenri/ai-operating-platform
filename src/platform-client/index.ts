@@ -81,6 +81,9 @@ import type {
   ExecuteExecutiveActionRequestDTO,
   ReassessExecutiveCycleRequestDTO,
   CompleteExecutiveCycleRequestDTO,
+  AutonomousTriggerDTO,
+  CreateAutonomousTriggerRequestDTO,
+  AutonomousRuntimeStateDTO,
 } from "../platform/api/platform-dto.js";
 import {
   toEventDTO,
@@ -1213,6 +1216,61 @@ export function createPlatformClient(options: PlatformClientOptions) {
     },
   };
 
+  const autonomous = {
+    runtime: {
+      async getState(): Promise<AutonomousRuntimeStateDTO> {
+        return request<AutonomousRuntimeStateDTO>("/autonomous/runtime");
+      },
+      async start(): Promise<AutonomousRuntimeStateDTO> {
+        return request<AutonomousRuntimeStateDTO>("/autonomous/runtime/start", {
+          method: "POST",
+        });
+      },
+      async stop(): Promise<AutonomousRuntimeStateDTO> {
+        return request<AutonomousRuntimeStateDTO>("/autonomous/runtime/stop", {
+          method: "POST",
+        });
+      },
+      async pause(): Promise<AutonomousRuntimeStateDTO> {
+        return request<AutonomousRuntimeStateDTO>("/autonomous/runtime/pause", {
+          method: "POST",
+        });
+      },
+      async resume(): Promise<AutonomousRuntimeStateDTO> {
+        return request<AutonomousRuntimeStateDTO>("/autonomous/runtime/resume", {
+          method: "POST",
+        });
+      },
+    },
+    triggers: {
+      async list(enterpriseId?: string): Promise<readonly AutonomousTriggerDTO[]> {
+        const query = enterpriseId ? `?enterpriseId=${encodeURIComponent(enterpriseId)}` : "";
+        return request<readonly AutonomousTriggerDTO[]>(`/autonomous/triggers${query}`);
+      },
+      async create(body: CreateAutonomousTriggerRequestDTO): Promise<AutonomousTriggerDTO> {
+        return request<AutonomousTriggerDTO>("/autonomous/triggers", {
+          method: "POST",
+          body: JSON.stringify(body),
+        });
+      },
+      async enable(id: string): Promise<AutonomousTriggerDTO> {
+        return request<AutonomousTriggerDTO>(`/autonomous/triggers/${encodeURIComponent(id)}/enable`, {
+          method: "POST",
+        });
+      },
+      async disable(id: string): Promise<AutonomousTriggerDTO> {
+        return request<AutonomousTriggerDTO>(`/autonomous/triggers/${encodeURIComponent(id)}/disable`, {
+          method: "POST",
+        });
+      },
+      async fire(id: string): Promise<{ cycle: ExecutiveCycleDTO; leaseId: string }> {
+        return request<{ cycle: ExecutiveCycleDTO; leaseId: string }>(`/autonomous/triggers/${encodeURIComponent(id)}/fire`, {
+          method: "POST",
+        });
+      },
+    },
+  };
+
   return {
     tasks,
     executions,
@@ -1240,6 +1298,7 @@ export function createPlatformClient(options: PlatformClientOptions) {
     solutions,
     business,
     executive,
+    autonomous,
     connect: () => healthGet(),
     health: Object.assign(healthGet, { get: healthGet }),
     getPlatformInfo: () => platform.get(),
@@ -1340,4 +1399,7 @@ export type {
   ExecuteExecutiveActionRequestDTO,
   ReassessExecutiveCycleRequestDTO,
   CompleteExecutiveCycleRequestDTO,
+  AutonomousTriggerDTO,
+  CreateAutonomousTriggerRequestDTO,
+  AutonomousRuntimeStateDTO,
 };

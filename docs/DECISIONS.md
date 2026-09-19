@@ -60,6 +60,7 @@ Este documento consolida el índice oficial de los Registros de Decisiones Arqui
 | **ADR 0036** | AI Solutions Factory & Application Blueprint Governance | `0036-ai-solutions-factory-and-blueprint-governance.md` | APROBADO | Gobernanza formal de la fábrica de soluciones de IA, planos arquitectónicos declarativos inmutables, puerta de publicación determinista y ciclo de vida. |
 | **ADR 0037** | AI Enterprise Operating System & Executive Governance Foundation | `0037-ai-enterprise-operating-system-and-executive-governance.md` | APROBADO | Capa de sistema operativo empresarial y gobernanza ejecutiva acoplando estrategia, objetivos, iniciativas, soluciones, KPIs y registros de decisiones ejecutivas con supervisión humana estricta. |
 | **ADR 0038** | Executive Orchestrator & Closed-Loop Business Operations | `0038-executive-orchestrator-and-closed-loop-business-operations.md` | APROBADO | Orquestador ejecutivo y operaciones empresariales de bucle cerrado con captura de instantáneas inmutables, síntesis y validación determinista de planes, evaluación de gobernanza, re-planificación acotada y convergencia de KPIs. |
+| **ADR 0039** | Autonomous Operations Runtime & Continuous Business Governance | `0039-autonomous-operations-runtime-and-continuous-business-governance.md` | APROBADO | Daemon de operaciones autónomas continuas 24/7 con disparadores temporizados/por eventos, exclusión mutua mediante leases distribuidos, disyuntor de seguridad (circuit breaker) y gobierno continuo. |
 
 
 ---

@@ -222,3 +222,16 @@ Este registro documenta de forma exhaustiva los componentes del sistema, organiz
 * **Documentación:** `docs/decisions/0038-executive-orchestrator-and-closed-loop-business-operations.md`.
 * **Estado:** `IMPLEMENTED / OPERATIONAL`
 
+### 5.8 Repositorios Relacionales de Runtime de Operaciones Autónomas & Leases Distribuidos
+* **Componente:** `src/infrastructure/persistence/sqlite/sqlite-autonomous-repository.ts`
+* **Capa:** Infraestructura / Daemon de Operaciones Autónomas & Exclusión Mutua
+* **Responsabilidad:** Persistir y consultar disparadores autónomos (`AutonomousTrigger`), contratos de exclusión mutua (`RuntimeLease`) y estados de daemon de tenant (`AutonomousRuntimeState`) con control OCC e índices WAL.
+* **Dependencias:** Node.js 22+ `node:sqlite`, `SqliteDatabase`.
+* **Public API:** Implementación de `AutonomousTriggerRepositoryPort`, `RuntimeLeaseRepositoryPort`, `AutonomousRuntimeStateRepositoryPort`.
+* **Security Boundary:** Aislamiento multi-tenant fail-closed y exclusión mutua distribuida con prevención de carreras y transiciones idempotentes.
+* **Persistencia:** Tablas `autonomous_triggers`, `autonomous_runtime_leases`, `autonomous_runtime_states` en `data/app.db`.
+* **Tests:** `tests/unit/autonomous-runtime.test.ts`, `tests/platform/autonomous-runtime-api.test.ts`, `tests/unit/autonomous-closed-loop-e2e.test.ts` (16 tests).
+* **Documentación:** `docs/decisions/0039-autonomous-operations-runtime-and-continuous-business-governance.md`.
+* **Estado:** `IMPLEMENTED / OPERATIONAL`
+
+

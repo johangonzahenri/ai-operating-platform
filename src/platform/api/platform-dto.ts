@@ -1631,5 +1631,80 @@ export interface CompleteExecutiveCycleRequestDTO {
   readonly outcomeSummary: string;
 }
 
+export interface AutonomousTriggerDTO {
+  readonly id: string;
+  readonly tenantId: string;
+  readonly enterpriseId: string;
+  readonly name: string;
+  readonly description?: string | undefined;
+  readonly triggerType: string;
+  readonly status: string;
+  readonly targetObjectiveId?: string | undefined;
+  readonly targetInitiativeId?: string | undefined;
+  readonly autonomyLevel: string;
+  readonly scheduleConfig?: {
+    readonly intervalMs: number;
+    readonly lastFiredAt?: string | undefined;
+    readonly nextRunAt: string;
+  } | undefined;
+  readonly eventConfig?: {
+    readonly sourceEventType: string;
+    readonly filterKey?: string | undefined;
+    readonly filterValue?: string | undefined;
+    readonly debounceMs?: number | undefined;
+  } | undefined;
+  readonly thresholdConfig?: {
+    readonly metricId: string;
+    readonly operator: string;
+    readonly thresholdValue: number;
+  } | undefined;
+  readonly fireCount: number;
+  readonly lastFiredAt?: string | undefined;
+  readonly lastFiredCycleId?: string | undefined;
+  readonly concurrencyVersion: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export interface CreateAutonomousTriggerRequestDTO {
+  readonly id: string;
+  readonly enterpriseId: string;
+  readonly name: string;
+  readonly description?: string | undefined;
+  readonly triggerType: "SCHEDULED" | "EVENT_DRIVEN" | "THRESHOLD" | "MANUAL";
+  readonly targetObjectiveId?: string | undefined;
+  readonly targetInitiativeId?: string | undefined;
+  readonly autonomyLevel?: string | undefined;
+  readonly scheduleConfig?: {
+    readonly intervalMs: number;
+  } | undefined;
+  readonly eventConfig?: {
+    readonly sourceEventType: string;
+    readonly filterKey?: string | undefined;
+    readonly filterValue?: string | undefined;
+    readonly debounceMs?: number | undefined;
+  } | undefined;
+  readonly thresholdConfig?: {
+    readonly metricId: string;
+    readonly operator: "GREATER_THAN" | "LESS_THAN" | "EQUALS" | "NOT_EQUALS";
+    readonly thresholdValue: number;
+  } | undefined;
+}
+
+export interface AutonomousRuntimeStateDTO {
+  readonly tenantId: string;
+  readonly status: string;
+  readonly runtimeInstanceId: string;
+  readonly activeCycleIds: readonly string[];
+  readonly consecutiveFailureCount: number;
+  readonly maxConsecutiveFailures: number;
+  readonly safetyHaltReason?: string | undefined;
+  readonly lastHeartbeatAt: string;
+  readonly concurrencyVersion: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+
 
 

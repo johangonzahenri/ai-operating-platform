@@ -457,5 +457,25 @@ export default {
     "completeCycle": "Complete Cycle",
     "boundedReplanning": "Bounded Replanning",
     "governanceEnforced": "Zero AI CEO Sovereignty: Bounded by Identity, Authority, Budgets, and Human Oversight"
+  },
+  "autonomousOperations": {
+    "title": "Autonomous Operations Runtime & Continuous Business Governance",
+    "subtitle": "Continuous, event-driven and scheduled execution of governed executive cycles with circuit-breaker safety halts",
+    "runtime": "Runtime State",
+    "triggers": "Autonomous Triggers",
+    "leases": "Execution Leases",
+    "startRuntime": "Start Runtime",
+    "stopRuntime": "Stop Runtime",
+    "pauseRuntime": "Pause Runtime",
+    "resumeRuntime": "Resume Runtime",
+    "createTrigger": "Create Trigger",
+    "enableTrigger": "Enable Trigger",
+    "disableTrigger": "Disable Trigger",
+    "fireTrigger": "Fire Trigger",
+    "scheduled": "Scheduled",
+    "eventDriven": "Event-Driven",
+    "threshold": "Threshold",
+    "safetyHalted": "Safety Halted (Circuit Breaker)",
+    "noSovereign": "Bounded Autonomous Runtime: Trigger != Decision != Plan != Execution"
   }
 };

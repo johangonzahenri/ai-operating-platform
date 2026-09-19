@@ -1348,3 +1348,65 @@ export async function completeExecutiveCycle(cycleId) {
   });
 }
 
+// --- Autonomous Operations Runtime & Continuous Governance (Phase 69) ---
+
+export async function getAutonomousRuntimeState() {
+  return request("/autonomous/runtime");
+}
+
+export async function startAutonomousRuntime() {
+  return request("/autonomous/runtime/start", {
+    method: "POST",
+  });
+}
+
+export async function stopAutonomousRuntime() {
+  return request("/autonomous/runtime/stop", {
+    method: "POST",
+  });
+}
+
+export async function pauseAutonomousRuntime() {
+  return request("/autonomous/runtime/pause", {
+    method: "POST",
+  });
+}
+
+export async function resumeAutonomousRuntime() {
+  return request("/autonomous/runtime/resume", {
+    method: "POST",
+  });
+}
+
+export async function listAutonomousTriggers(enterpriseId) {
+  const query = enterpriseId ? `?enterpriseId=${encodeURIComponent(enterpriseId)}` : "";
+  return request(`/autonomous/triggers${query}`);
+}
+
+export async function createAutonomousTrigger(data) {
+  return request("/autonomous/triggers", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function enableAutonomousTrigger(triggerId) {
+  return request(`/autonomous/triggers/${encodeURIComponent(triggerId)}/enable`, {
+    method: "POST",
+  });
+}
+
+export async function disableAutonomousTrigger(triggerId) {
+  return request(`/autonomous/triggers/${encodeURIComponent(triggerId)}/disable`, {
+    method: "POST",
+  });
+}
+
+export async function fireAutonomousTrigger(triggerId) {
+  return request(`/autonomous/triggers/${encodeURIComponent(triggerId)}/fire`, {
+    method: "POST",
+  });
+}
+
+

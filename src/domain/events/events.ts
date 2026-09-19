@@ -50,6 +50,9 @@ export type EventType =
   | "executive.plan.created" | "executive.plan.validated" | "executive.plan.rejected"
   | "executive.action.started" | "executive.action.completed" | "executive.reassessment.requested"
   | "executive.cycle.completed" | "executive.cycle.failed" | "executive.cycle.blocked"
+  | "autonomous.runtime.started" | "autonomous.runtime.paused" | "autonomous.runtime.resumed" | "autonomous.runtime.stopped"
+  | "autonomous.trigger.created" | "autonomous.trigger.enabled" | "autonomous.trigger.disabled" | "autonomous.trigger.fired"
+  | "autonomous.cycle.queued" | "autonomous.safety.halted" | "autonomous.lease.acquired" | "autonomous.lease.released"
   | "workflow.completed" | "workflow.failed" | "workflow.cancelled";
 
 

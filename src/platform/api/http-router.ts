@@ -6267,6 +6267,233 @@ export function createHttpServer(
           }
         }
 
+        // =====================================================================
+        // AUTONOMOUS OPERATIONS RUNTIME & CONTINUOUS GOVERNANCE ENDPOINTS
+        // =====================================================================
+        if (subPath.startsWith("/autonomous")) {
+          const autoRuntime = service.getAutonomousOperationsRuntime();
+          if (!autoRuntime) {
+            sendError(503, "Autonomous operations runtime not configured", "RUNTIME_UNAVAILABLE");
+            return;
+          }
+
+          const handleAutoError = (err: any) => {
+            const status = typeof err?.status === "number" ? err.status : 500;
+            const code = err?.code || "AUTONOMOUS_ERROR";
+            sendError(status, err?.message || "Autonomous operations error", code);
+          };
+
+          // 1. GET /autonomous/runtime
+          if (subPath === "/autonomous/runtime" && req.method === "GET") {
+            const authCheck = await authenticateAndAuthorize("organization.read", "SYSTEM", "autonomous-runtime", reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "";
+            try {
+              const state = await autoRuntime.getRuntimeState(tenantId);
+              sendJson(200, service.toAutonomousRuntimeStateDTO(state));
+              return;
+            } catch (err: any) {
+              handleAutoError(err);
+              return;
+            }
+          }
+
+          // 2. POST /autonomous/runtime/start
+          if (subPath === "/autonomous/runtime/start" && req.method === "POST") {
+            const authCheck = await authenticateAndAuthorize("organization.manage", "SYSTEM", "autonomous-runtime", reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "";
+            try {
+              const state = await autoRuntime.start(tenantId, reqCtx.correlationId);
+              sendJson(200, service.toAutonomousRuntimeStateDTO(state));
+              return;
+            } catch (err: any) {
+              handleAutoError(err);
+              return;
+            }
+          }
+
+          // 3. POST /autonomous/runtime/stop
+          if (subPath === "/autonomous/runtime/stop" && req.method === "POST") {
+            const authCheck = await authenticateAndAuthorize("organization.manage", "SYSTEM", "autonomous-runtime", reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "";
+            try {
+              const state = await autoRuntime.stop(tenantId, reqCtx.correlationId);
+              sendJson(200, service.toAutonomousRuntimeStateDTO(state));
+              return;
+            } catch (err: any) {
+              handleAutoError(err);
+              return;
+            }
+          }
+
+          // 4. POST /autonomous/runtime/pause
+          if (subPath === "/autonomous/runtime/pause" && req.method === "POST") {
+            const authCheck = await authenticateAndAuthorize("organization.manage", "SYSTEM", "autonomous-runtime", reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "";
+            try {
+              const state = await autoRuntime.pause(tenantId, reqCtx.correlationId);
+              sendJson(200, service.toAutonomousRuntimeStateDTO(state));
+              return;
+            } catch (err: any) {
+              handleAutoError(err);
+              return;
+            }
+          }
+
+          // 5. POST /autonomous/runtime/resume
+          if (subPath === "/autonomous/runtime/resume" && req.method === "POST") {
+            const authCheck = await authenticateAndAuthorize("organization.manage", "SYSTEM", "autonomous-runtime", reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "";
+            try {
+              const state = await autoRuntime.resume(tenantId, reqCtx.correlationId);
+              sendJson(200, service.toAutonomousRuntimeStateDTO(state));
+              return;
+            } catch (err: any) {
+              handleAutoError(err);
+              return;
+            }
+          }
+
+          // 6. GET /autonomous/triggers & POST /autonomous/triggers
+          if (subPath === "/autonomous/triggers") {
+            if (req.method === "GET") {
+              const authCheck = await authenticateAndAuthorize("organization.read", "SYSTEM", "autonomous-trigger", reqCtx.tenantId);
+              if (!authCheck.ok) {
+                sendError(authCheck.status, authCheck.message, authCheck.code);
+                return;
+              }
+              const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "";
+              const enterpriseId = url.searchParams.get("enterpriseId") ?? undefined;
+              try {
+                const list = await autoRuntime.listTriggers(tenantId, enterpriseId);
+                sendJson(200, list.map((t: any) => service.toAutonomousTriggerDTO(t)));
+                return;
+              } catch (err: any) {
+                handleAutoError(err);
+                return;
+              }
+            } else if (req.method === "POST") {
+              const authCheck = await authenticateAndAuthorize("organization.manage", "SYSTEM", "autonomous-trigger", reqCtx.tenantId);
+              if (!authCheck.ok) {
+                sendError(authCheck.status, authCheck.message, authCheck.code);
+                return;
+              }
+              const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "";
+              const bodyResult = await readJsonBody();
+              if (!bodyResult.ok) {
+                sendError(400, "Bad Request: Invalid JSON body", "INVALID_JSON");
+                return;
+              }
+              const body = bodyResult.body as any;
+              try {
+                const trigger = await autoRuntime.createTrigger({
+                  id: normalizeId(body.id) ?? String(body.id ?? ""),
+                  tenantId,
+                  enterpriseId: normalizeId(body.enterpriseId) ?? String(body.enterpriseId ?? ""),
+                  name: String(body.name ?? ""),
+                  description: body.description,
+                  triggerType: body.triggerType,
+                  targetObjectiveId: body.targetObjectiveId,
+                  targetInitiativeId: body.targetInitiativeId,
+                  autonomyLevel: body.autonomyLevel,
+                  scheduleConfig: body.scheduleConfig,
+                  eventConfig: body.eventConfig,
+                  thresholdConfig: body.thresholdConfig,
+                }, reqCtx.correlationId);
+
+                sendJson(201, service.toAutonomousTriggerDTO(trigger));
+                return;
+              } catch (err: any) {
+                handleAutoError(err);
+                return;
+              }
+            }
+          }
+
+          // 7. POST /autonomous/triggers/:id/enable
+          const enableMatch = subPath.match(/^\/autonomous\/triggers\/([^/]+)\/enable$/);
+          if (enableMatch && req.method === "POST") {
+            const id = normalizeId(enableMatch[1] ?? "") ?? enableMatch[1] ?? "";
+            const authCheck = await authenticateAndAuthorize("organization.manage", "SYSTEM", id, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "";
+            try {
+              const trigger = await autoRuntime.enableTrigger(id, tenantId, reqCtx.correlationId);
+              sendJson(200, service.toAutonomousTriggerDTO(trigger));
+              return;
+            } catch (err: any) {
+              handleAutoError(err);
+              return;
+            }
+          }
+
+          // 8. POST /autonomous/triggers/:id/disable
+          const disableMatch = subPath.match(/^\/autonomous\/triggers\/([^/]+)\/disable$/);
+          if (disableMatch && req.method === "POST") {
+            const id = normalizeId(disableMatch[1] ?? "") ?? disableMatch[1] ?? "";
+            const authCheck = await authenticateAndAuthorize("organization.manage", "SYSTEM", id, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "";
+            try {
+              const trigger = await autoRuntime.disableTrigger(id, tenantId, reqCtx.correlationId);
+              sendJson(200, service.toAutonomousTriggerDTO(trigger));
+              return;
+            } catch (err: any) {
+              handleAutoError(err);
+              return;
+            }
+          }
+
+          // 9. POST /autonomous/triggers/:id/fire
+          const fireMatch = subPath.match(/^\/autonomous\/triggers\/([^/]+)\/fire$/);
+          if (fireMatch && req.method === "POST") {
+            const id = normalizeId(fireMatch[1] ?? "") ?? fireMatch[1] ?? "";
+            const authCheck = await authenticateAndAuthorize("organization.manage", "SYSTEM", id, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "";
+            try {
+              const trigger = await autoRuntime.getTrigger(id, tenantId);
+              const result = await autoRuntime.fireTrigger(trigger, {}, reqCtx.correlationId);
+              sendJson(200, {
+                cycle: service.toExecutiveCycleDTO(result.cycle),
+                leaseId: result.lease.leaseId,
+              });
+              return;
+            } catch (err: any) {
+              handleAutoError(err);
+              return;
+            }
+          }
+        }
+
         sendError(404, `Endpoint not found: ${req.method} ${pathname}`, "ENDPOINT_NOT_FOUND");
         return;
       }
