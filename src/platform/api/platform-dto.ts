@@ -1034,5 +1034,77 @@ export interface CancelApprovalRequestDTO {
   readonly reason?: string | undefined;
 }
 
+// --- Agent Lifecycle & Evaluation Governance DTOs (Phase 65) ---
 
+export interface AgentLifecycleDTO {
+  readonly agentId: string;
+  readonly tenantId: string;
+  readonly state: "REGISTERED" | "EVALUATION_PENDING" | "VERIFIED" | "ACTIVE" | "SUSPENDED" | "REVOKED" | "DEPRECATED";
+  readonly profileVersion: number;
+  readonly suspendedReason?: string | undefined;
+  readonly suspendedBy?: string | undefined;
+  readonly suspendedAt?: string | undefined;
+  readonly revokedReason?: string | undefined;
+  readonly revokedBy?: string | undefined;
+  readonly revokedAt?: string | undefined;
+  readonly deprecatedReason?: string | undefined;
+  readonly deprecatedBy?: string | undefined;
+  readonly deprecatedAt?: string | undefined;
+  readonly lastEvaluatedAt?: string | undefined;
+  readonly lastEvaluationId?: string | undefined;
+  readonly version: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
 
+export interface AgentEvaluationDTO {
+  readonly id: string;
+  readonly tenantId: string;
+  readonly agentId: string;
+  readonly evaluatedProfileVersion: number;
+  readonly evaluatorPrincipalId: string;
+  readonly evaluationType: "IDENTITY_CHECK" | "PROFILE_CHECK" | "CAPABILITY_CHECK" | "POLICY_CHECK" | "CONTRACT_CHECK" | "REGRESSION_CHECK";
+  readonly verdict: "PASS" | "FAIL" | "PENDING" | "EXPIRED";
+  readonly criteriaReference: string;
+  readonly evidence: Readonly<Record<string, unknown>>;
+  readonly evaluatedAt: string;
+  readonly expiresAt?: string | undefined;
+  readonly version: number;
+  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+}
+
+export interface CreateAgentEvaluationRequestDTO {
+  readonly id?: string | undefined;
+  readonly agentId: string;
+  readonly evaluatorPrincipalId?: string | undefined;
+  readonly evaluationType: "IDENTITY_CHECK" | "PROFILE_CHECK" | "CAPABILITY_CHECK" | "POLICY_CHECK" | "CONTRACT_CHECK" | "REGRESSION_CHECK";
+  readonly verdict?: "PASS" | "FAIL" | "PENDING" | "EXPIRED" | undefined;
+  readonly criteriaReference: string;
+  readonly evidence?: Readonly<Record<string, unknown>> | undefined;
+  readonly expiresAt?: string | undefined;
+  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+  readonly autoTransitionLifecycle?: boolean | undefined;
+}
+
+export interface CompleteAgentEvaluationRequestDTO {
+  readonly verdict: "PASS" | "FAIL";
+  readonly evidence?: Readonly<Record<string, unknown>> | undefined;
+  readonly expectedVersion?: number | undefined;
+  readonly autoTransitionLifecycle?: boolean | undefined;
+}
+
+export interface TransitionLifecycleRequestDTO {
+  readonly reason?: string | undefined;
+  readonly operatorPrincipalId?: string | undefined;
+  readonly expectedVersion?: number | undefined;
+}
+
+export interface AgentEligibilityDTO {
+  readonly eligible: boolean;
+  readonly code: string;
+  readonly reason: string;
+  readonly agentId: string;
+  readonly tenantId: string;
+  readonly lifecycleState?: string | undefined;
+  readonly profileVersion?: number | undefined;
+}

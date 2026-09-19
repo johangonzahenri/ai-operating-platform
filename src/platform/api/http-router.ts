@@ -28,6 +28,24 @@ import {
   ApprovalInvalidStateTransitionError,
   UnauthorizedApproverError,
 } from "../../domain/workflow/approval-errors.js";
+import {
+  AgentLifecycleError,
+  AgentLifecycleValidationError,
+  AgentLifecycleNotFoundError,
+  AgentEvaluationNotFoundError,
+  InvalidLifecycleTransitionError,
+  AgentSuspendedError,
+  AgentRevokedError,
+  AgentDeprecatedError,
+  AgentNotQualifiedError,
+  AgentEvaluationExpiredError,
+  SelfGovernanceError,
+  AgentLifecycleConcurrencyConflictError,
+  AgentEvaluationConcurrencyConflictError,
+  AgentLifecycleTenantMismatchError,
+} from "../../domain/agent/agent-lifecycle-errors.js";
+import { AgentLifecycle, AgentLifecycleState } from "../../domain/agent/agent-lifecycle.js";
+import { AgentEvaluation, EvaluationType, EvaluationVerdict } from "../../domain/agent/agent-evaluation.js";
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
@@ -3369,6 +3387,544 @@ export function createHttpServer(
               return;
             } catch (err: any) {
               handleOrgError(err);
+              return;
+            }
+          }
+
+
+          // ====================================================================
+          // Agent Lifecycle & Evaluation Governance Routes (Phase 65 / Prompt 114)
+          // ====================================================================
+          const handleAgentLifecycleError = (err: any) => {
+            if (err instanceof AgentLifecycleValidationError || err instanceof InvalidLifecycleTransitionError) {
+              sendError(400, err.message, "VALIDATION_ERROR");
+              return;
+            }
+            if (err instanceof SelfGovernanceError) {
+              sendError(403, err.message, "SELF_GOVERNANCE_DENIED");
+              return;
+            }
+            if (err instanceof AgentLifecycleTenantMismatchError) {
+              sendError(403, err.message, "TENANT_MISMATCH");
+              return;
+            }
+            if (err instanceof AgentLifecycleNotFoundError || err instanceof AgentEvaluationNotFoundError) {
+              sendError(404, err.message, "NOT_FOUND");
+              return;
+            }
+            if (err instanceof AgentLifecycleConcurrencyConflictError || err instanceof AgentEvaluationConcurrencyConflictError) {
+              sendError(409, err.message, "CONCURRENCY_CONFLICT");
+              return;
+            }
+            if (err instanceof AgentSuspendedError) {
+              sendError(422, err.message, "AGENT_SUSPENDED");
+              return;
+            }
+            if (err instanceof AgentRevokedError) {
+              sendError(422, err.message, "AGENT_REVOKED");
+              return;
+            }
+            if (err instanceof AgentDeprecatedError) {
+              sendError(422, err.message, "AGENT_DEPRECATED");
+              return;
+            }
+            if (err instanceof AgentNotQualifiedError || err instanceof AgentEvaluationExpiredError) {
+              sendError(422, err.message, "NOT_QUALIFIED");
+              return;
+            }
+            sendError(500, err.message || "Internal server error in agent lifecycle", "INTERNAL_ERROR");
+          };
+
+          // GET /agents/:id/lifecycle
+          const agentLifecycleGetMatch = subPath.match(/^\/agents\/([^/]+)\/lifecycle$/);
+          if (agentLifecycleGetMatch && req.method === "GET") {
+            const agentId = normalizeId(agentLifecycleGetMatch[1]);
+            if (!agentId) {
+              sendError(400, "Bad Request: Invalid Agent ID", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("agent.read", "API", agentId, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+
+            try {
+              const lc = await service.getAgentLifecycleService().getOrCreateLifecycle(agentId, tenantId);
+              sendJson(200, service.toAgentLifecycleDTO(lc));
+              return;
+            } catch (err: any) {
+              handleAgentLifecycleError(err);
+              return;
+            }
+          }
+
+          // POST /agents/:id/lifecycle/transition
+          const agentLifecycleTransitionMatch = subPath.match(/^\/agents\/([^/]+)\/lifecycle\/transition$/);
+          if (agentLifecycleTransitionMatch && req.method === "POST") {
+            const agentId = normalizeId(agentLifecycleTransitionMatch[1]);
+            if (!agentId) {
+              sendError(400, "Bad Request: Invalid Agent ID", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("agent.update", "API", agentId, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const operatorPrincipalId = authCheck.context?.principal?.id ?? "system";
+
+            const bodyResult = await readJsonBody();
+            if (!bodyResult.ok) {
+              sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+              return;
+            }
+            const body = bodyResult.body as {
+              targetState?: AgentLifecycleState;
+              reason?: string;
+              operatorPrincipalId?: string;
+              expectedVersion?: number;
+            };
+
+            if (!body.targetState) {
+              sendError(400, "Bad Request: 'targetState' is required", "INVALID_STATE");
+              return;
+            }
+
+            try {
+              let lc: AgentLifecycle;
+              const op = body.operatorPrincipalId ?? operatorPrincipalId;
+              switch (body.targetState) {
+                case "ACTIVE":
+                  lc = await service.getAgentLifecycleService().activateAgent({
+                    agentId,
+                    tenantId,
+                    operatorPrincipalId: op,
+                    expectedVersion: body.expectedVersion,
+                  });
+                  break;
+                case "SUSPENDED":
+                  lc = await service.getAgentLifecycleService().suspendAgent({
+                    agentId,
+                    tenantId,
+                    operatorPrincipalId: op,
+                    reason: body.reason ?? "Manual suspension",
+                    expectedVersion: body.expectedVersion,
+                  });
+                  break;
+                case "REVOKED":
+                  lc = await service.getAgentLifecycleService().revokeAgent({
+                    agentId,
+                    tenantId,
+                    operatorPrincipalId: op,
+                    reason: body.reason ?? "Manual revocation",
+                    expectedVersion: body.expectedVersion,
+                  });
+                  break;
+                case "DEPRECATED":
+                  lc = await service.getAgentLifecycleService().deprecateAgent({
+                    agentId,
+                    tenantId,
+                    operatorPrincipalId: op,
+                    reason: body.reason ?? "Manual deprecation",
+                    expectedVersion: body.expectedVersion,
+                  });
+                  break;
+                default:
+                  sendError(400, `Unsupported lifecycle transition target state '${body.targetState}'`, "INVALID_STATE");
+                  return;
+              }
+              sendJson(200, service.toAgentLifecycleDTO(lc));
+              return;
+            } catch (err: any) {
+              handleAgentLifecycleError(err);
+              return;
+            }
+          }
+
+          // POST /agents/:id/lifecycle/activate
+          const agentActivateLifecycleMatch = subPath.match(/^\/agents\/([^/]+)\/lifecycle\/activate$/);
+          if (agentActivateLifecycleMatch && req.method === "POST") {
+            const agentId = normalizeId(agentActivateLifecycleMatch[1]);
+            if (!agentId) {
+              sendError(400, "Bad Request: Invalid Agent ID", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("agent.update", "API", agentId, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const operatorPrincipalId = authCheck.context?.principal?.id ?? "system";
+
+            const bodyResult = await readJsonBody();
+            const body = (bodyResult.ok ? bodyResult.body : {}) as {
+              operatorPrincipalId?: string;
+              expectedVersion?: number;
+            };
+
+            try {
+              const lc = await service.getAgentLifecycleService().activateAgent({
+                agentId,
+                tenantId,
+                operatorPrincipalId: body.operatorPrincipalId ?? operatorPrincipalId,
+                expectedVersion: body.expectedVersion,
+              });
+              sendJson(200, service.toAgentLifecycleDTO(lc));
+              return;
+            } catch (err: any) {
+              handleAgentLifecycleError(err);
+              return;
+            }
+          }
+
+          // POST /agents/:id/lifecycle/suspend
+          const agentSuspendMatch = subPath.match(/^\/agents\/([^/]+)\/lifecycle\/suspend$/);
+          if (agentSuspendMatch && req.method === "POST") {
+            const agentId = normalizeId(agentSuspendMatch[1]);
+            if (!agentId) {
+              sendError(400, "Bad Request: Invalid Agent ID", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("agent.update", "API", agentId, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const operatorPrincipalId = authCheck.context?.principal?.id ?? "system";
+
+            const bodyResult = await readJsonBody();
+            if (!bodyResult.ok) {
+              sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+              return;
+            }
+            const body = bodyResult.body as {
+              reason?: string;
+              operatorPrincipalId?: string;
+              expectedVersion?: number;
+            };
+            if (!body.reason || typeof body.reason !== "string" || !body.reason.trim()) {
+              sendError(400, "Bad Request: 'reason' is required to suspend an agent", "INVALID_REASON");
+              return;
+            }
+
+            try {
+              const lc = await service.getAgentLifecycleService().suspendAgent({
+                agentId,
+                tenantId,
+                operatorPrincipalId: body.operatorPrincipalId ?? operatorPrincipalId,
+                reason: body.reason,
+                expectedVersion: body.expectedVersion,
+              });
+              sendJson(200, service.toAgentLifecycleDTO(lc));
+              return;
+            } catch (err: any) {
+              handleAgentLifecycleError(err);
+              return;
+            }
+          }
+
+          // POST /agents/:id/lifecycle/revoke
+          const agentRevokeMatch = subPath.match(/^\/agents\/([^/]+)\/lifecycle\/revoke$/);
+          if (agentRevokeMatch && req.method === "POST") {
+            const agentId = normalizeId(agentRevokeMatch[1]);
+            if (!agentId) {
+              sendError(400, "Bad Request: Invalid Agent ID", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("agent.update", "API", agentId, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const operatorPrincipalId = authCheck.context?.principal?.id ?? "system";
+
+            const bodyResult = await readJsonBody();
+            if (!bodyResult.ok) {
+              sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+              return;
+            }
+            const body = bodyResult.body as {
+              reason?: string;
+              operatorPrincipalId?: string;
+              expectedVersion?: number;
+            };
+            if (!body.reason || typeof body.reason !== "string" || !body.reason.trim()) {
+              sendError(400, "Bad Request: 'reason' is required to revoke an agent", "INVALID_REASON");
+              return;
+            }
+
+            try {
+              const lc = await service.getAgentLifecycleService().revokeAgent({
+                agentId,
+                tenantId,
+                operatorPrincipalId: body.operatorPrincipalId ?? operatorPrincipalId,
+                reason: body.reason,
+                expectedVersion: body.expectedVersion,
+              });
+              sendJson(200, service.toAgentLifecycleDTO(lc));
+              return;
+            } catch (err: any) {
+              handleAgentLifecycleError(err);
+              return;
+            }
+          }
+
+          // POST /agents/:id/lifecycle/deprecate
+          const agentDeprecateMatch = subPath.match(/^\/agents\/([^/]+)\/lifecycle\/deprecate$/);
+          if (agentDeprecateMatch && req.method === "POST") {
+            const agentId = normalizeId(agentDeprecateMatch[1]);
+            if (!agentId) {
+              sendError(400, "Bad Request: Invalid Agent ID", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("agent.update", "API", agentId, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const operatorPrincipalId = authCheck.context?.principal?.id ?? "system";
+
+            const bodyResult = await readJsonBody();
+            if (!bodyResult.ok) {
+              sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+              return;
+            }
+            const body = bodyResult.body as {
+              reason?: string;
+              operatorPrincipalId?: string;
+              expectedVersion?: number;
+            };
+            if (!body.reason || typeof body.reason !== "string" || !body.reason.trim()) {
+              sendError(400, "Bad Request: 'reason' is required to deprecate an agent", "INVALID_REASON");
+              return;
+            }
+
+            try {
+              const lc = await service.getAgentLifecycleService().deprecateAgent({
+                agentId,
+                tenantId,
+                operatorPrincipalId: body.operatorPrincipalId ?? operatorPrincipalId,
+                reason: body.reason,
+                expectedVersion: body.expectedVersion,
+              });
+              sendJson(200, service.toAgentLifecycleDTO(lc));
+              return;
+            } catch (err: any) {
+              handleAgentLifecycleError(err);
+              return;
+            }
+          }
+
+          // POST /agents/:id/evaluations/:evalId/complete
+          const agentEvalCompleteMatch = subPath.match(/^\/agents\/([^/]+)\/evaluations\/([^/]+)\/complete$/);
+          if (agentEvalCompleteMatch && req.method === "POST") {
+            const agentId = normalizeId(agentEvalCompleteMatch[1]);
+            const evalId = normalizeId(agentEvalCompleteMatch[2]);
+            if (!agentId || !evalId) {
+              sendError(400, "Bad Request: Invalid ID format", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("agent.update", "API", agentId, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const evaluatorPrincipalId = authCheck.context?.principal?.id ?? "system";
+
+            const bodyResult = await readJsonBody();
+            if (!bodyResult.ok) {
+              sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+              return;
+            }
+            const body = bodyResult.body as {
+              verdict?: EvaluationVerdict;
+              evidence?: Readonly<Record<string, unknown>>;
+              expiresAt?: string;
+              expectedVersion?: number;
+              evaluatorPrincipalId?: string;
+              autoTransitionLifecycle?: boolean;
+            };
+
+            if (!body.verdict || (body.verdict !== "PASS" && body.verdict !== "FAIL")) {
+              sendError(400, "Bad Request: 'verdict' must be either 'PASS' or 'FAIL' to complete evaluation", "INVALID_VERDICT");
+              return;
+            }
+
+            try {
+              const completed = await service.getAgentLifecycleService().completeEvaluation({
+                id: evalId,
+                tenantId,
+                verdict: body.verdict as "PASS" | "FAIL",
+                evidence: body.evidence,
+                expectedVersion: body.expectedVersion,
+                autoTransitionLifecycle: body.autoTransitionLifecycle,
+              });
+              sendJson(200, service.toAgentEvaluationDTO(completed));
+              return;
+            } catch (err: any) {
+              handleAgentLifecycleError(err);
+              return;
+            }
+          }
+
+          // POST /agents/:id/evaluations
+          const agentEvaluationsPostMatch = subPath.match(/^\/agents\/([^/]+)\/evaluations$/);
+          if (agentEvaluationsPostMatch && req.method === "POST") {
+            const agentId = normalizeId(agentEvaluationsPostMatch[1]);
+            if (!agentId) {
+              sendError(400, "Bad Request: Invalid Agent ID", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("agent.update", "API", agentId, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const evaluatorPrincipalId = authCheck.context?.principal?.id ?? "system";
+
+            const bodyResult = await readJsonBody();
+            if (!bodyResult.ok) {
+              sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+              return;
+            }
+            const body = bodyResult.body as {
+              id?: string;
+              evaluatorPrincipalId?: string;
+              evaluationType: EvaluationType;
+              verdict?: EvaluationVerdict;
+              criteriaReference: string;
+              evidence?: Readonly<Record<string, unknown>>;
+              expiresAt?: string;
+              metadata?: Readonly<Record<string, unknown>>;
+              autoTransitionLifecycle?: boolean;
+            };
+
+            if (!body.evaluationType) {
+              sendError(400, "Bad Request: 'evaluationType' is required", "INVALID_EVALUATION_TYPE");
+              return;
+            }
+            if (!body.criteriaReference) {
+              sendError(400, "Bad Request: 'criteriaReference' is required", "INVALID_CRITERIA");
+              return;
+            }
+
+            try {
+              const evaluation = await service.getAgentLifecycleService().evaluateAgent({
+                id: body.id,
+                tenantId,
+                agentId,
+                evaluatorPrincipalId: body.evaluatorPrincipalId ?? evaluatorPrincipalId,
+                evaluationType: body.evaluationType,
+                verdict: body.verdict,
+                criteriaReference: body.criteriaReference,
+                evidence: body.evidence,
+                expiresAt: body.expiresAt ? new Date(body.expiresAt) : undefined,
+                metadata: body.metadata,
+                autoTransitionLifecycle: body.autoTransitionLifecycle,
+              });
+              sendJson(201, service.toAgentEvaluationDTO(evaluation));
+              return;
+            } catch (err: any) {
+              handleAgentLifecycleError(err);
+              return;
+            }
+          }
+
+          // GET /agents/:id/evaluations
+          if (agentEvaluationsPostMatch && req.method === "GET") {
+            const agentId = normalizeId(agentEvaluationsPostMatch[1]);
+            if (!agentId) {
+              sendError(400, "Bad Request: Invalid Agent ID", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("agent.read", "API", agentId, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const limitParam = url.searchParams.get("limit");
+            const offsetParam = url.searchParams.get("offset");
+            const limit = limitParam ? parseInt(limitParam, 10) : undefined;
+            const offset = offsetParam ? parseInt(offsetParam, 10) : undefined;
+
+            try {
+              const evals = await service.getAgentLifecycleService().listEvaluations(agentId, tenantId, limit, offset);
+              sendJson(200, evals.map((e) => service.toAgentEvaluationDTO(e)));
+              return;
+            } catch (err: any) {
+              handleAgentLifecycleError(err);
+              return;
+            }
+          }
+
+          // GET /agents/:id/evaluations/latest
+          const agentEvalLatestMatch = subPath.match(/^\/agents\/([^/]+)\/evaluations\/latest$/);
+          if (agentEvalLatestMatch && req.method === "GET") {
+            const agentId = normalizeId(agentEvalLatestMatch[1]);
+            if (!agentId) {
+              sendError(400, "Bad Request: Invalid Agent ID", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("agent.read", "API", agentId, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const evaluationType = (url.searchParams.get("type") as EvaluationType) ?? "CAPABILITY_CHECK";
+
+            try {
+              const latest = await service.getAgentLifecycleService().getLatestEvaluation(agentId, evaluationType, tenantId);
+              if (!latest) {
+                sendError(404, "No evaluation found for agent and type", "NOT_FOUND");
+                return;
+              }
+              sendJson(200, service.toAgentEvaluationDTO(latest));
+              return;
+            } catch (err: any) {
+              handleAgentLifecycleError(err);
+              return;
+            }
+          }
+
+          // GET /agents/:id/eligibility
+          const agentEligibilityMatch = subPath.match(/^\/agents\/([^/]+)\/eligibility$/);
+          if (agentEligibilityMatch && req.method === "GET") {
+            const agentId = normalizeId(agentEligibilityMatch[1]);
+            if (!agentId) {
+              sendError(400, "Bad Request: Invalid Agent ID", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("agent.read", "API", agentId, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const requiredCapability = url.searchParams.get("requiredCapability") ?? undefined;
+            const requireVerifiedCapability = url.searchParams.get("requireVerifiedCapability") === "true";
+
+            try {
+              const result = await service.getAgentLifecycleService().checkEligibility({
+                agentId,
+                tenantId,
+                requiredCapability,
+                requireVerifiedCapability,
+              });
+              sendJson(200, result);
+              return;
+            } catch (err: any) {
+              handleAgentLifecycleError(err);
               return;
             }
           }

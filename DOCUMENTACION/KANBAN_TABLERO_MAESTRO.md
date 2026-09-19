@@ -120,6 +120,7 @@
 | **ORG-11** | Orquestación de Flujos de Trabajo & Asignación Gobernada de Tareas | Fase 62 | `DONE` | `src/domain/workflow/`, `src/application/workflow/` | 29 tests pass | ADR 0032 |
 | **ORG-12** | Verificación y Validación de Resultados de Flujo | Fase 63 | `DONE` | `src/domain/workflow/verification-*`, `src/application/workflow/*verification*` | 28 tests pass | ADR 0033 |
 | **ORG-13** | Supervisión Humana, Aprobación & Escalamiento Gobernada | Fase 64 | `DONE` | `src/domain/workflow/approval-*`, `src/application/workflow/human-oversight-service.ts` | 26 tests pass | ADR 0034 |
+| **ORG-14** | Ciclo de Vida, Evaluación y Gobernanza de Agentes | Fase 65 | `DONE` | `src/domain/agent/agent-lifecycle*`, `src/application/agent/agent-lifecycle-service.ts` | 28 tests pass | ADR 0035 |
 
 ---
 

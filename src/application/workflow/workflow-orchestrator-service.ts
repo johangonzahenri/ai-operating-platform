@@ -41,11 +41,13 @@ import {
 
 import { WorkflowVerificationService } from "./workflow-verification-service.js";
 import { HumanOversightService } from "./human-oversight-service.js";
+import { AgentLifecycleService } from "../agent/agent-lifecycle-service.js";
 
 export interface WorkflowOrchestratorServiceOptions {
   readonly definitionRepository: WorkflowDefinitionRepositoryPort;
   readonly instanceRepository: WorkflowInstanceRepositoryPort;
   readonly agentProfileService?: AgentProfileService | undefined;
+  readonly agentLifecycleService?: AgentLifecycleService | undefined;
   readonly organizationRepository?: OrganizationHierarchyRepository | undefined;
   readonly policyGateway?: PolicyGateway | undefined;
   readonly budgetService?: TeamResourceBudgetService | undefined;
@@ -85,6 +87,7 @@ export class WorkflowOrchestratorService {
   private readonly defRepo: WorkflowDefinitionRepositoryPort;
   private readonly instanceRepo: WorkflowInstanceRepositoryPort;
   private readonly profileService?: AgentProfileService | undefined;
+  private readonly lifecycleService?: AgentLifecycleService | undefined;
   private readonly orgRepo?: OrganizationHierarchyRepository | undefined;
   private readonly policy?: PolicyGateway | undefined;
   private readonly budgetService?: TeamResourceBudgetService | undefined;
@@ -98,6 +101,7 @@ export class WorkflowOrchestratorService {
     this.defRepo = options.definitionRepository;
     this.instanceRepo = options.instanceRepository;
     this.profileService = options.agentProfileService;
+    this.lifecycleService = options.agentLifecycleService;
     this.orgRepo = options.organizationRepository;
     this.policy = options.policyGateway;
     this.budgetService = options.budgetService;
@@ -346,6 +350,36 @@ export class WorkflowOrchestratorService {
         success: false,
         error: { code: "NO_ELIGIBLE_AGENT", message: errorMsg },
       };
+    }
+
+    // 1b. Check Agent Lifecycle & Qualification Eligibility (fail-closed)
+    if (this.lifecycleService) {
+      const eligibility = await this.lifecycleService.checkEligibility({
+        agentId: assignedAgentId,
+        tenantId: instance.tenantId,
+        requiredCapability: stepDef.requiredCapabilities?.[0],
+      });
+
+      if (!eligibility.eligible) {
+        const errorMsg = `Agent '${assignedAgentId}' is not eligible to execute step '${stepDef.stepId}': ${eligibility.reason} (code: ${eligibility.code})`;
+        const failureResult = instance.markStepFailed(stepDef.stepId, errorMsg);
+        let updatedInstance = failureResult.instance;
+        await this.instanceRepo.save(updatedInstance);
+
+        if (this.events) {
+          const failedStep = updatedInstance.getStepState(stepDef.stepId)!;
+          this.events.publish(createWorkflowStepFailedEvent(updatedInstance, failedStep, traceId));
+          if (updatedInstance.status === "FAILED") {
+            this.events.publish(createWorkflowFailedEvent(updatedInstance, traceId));
+          }
+        }
+
+        return {
+          stepId: stepDef.stepId,
+          success: false,
+          error: { code: eligibility.code, message: errorMsg },
+        };
+      }
     }
 
     // 2. Mark step ASSIGNING

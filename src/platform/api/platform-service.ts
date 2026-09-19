@@ -135,6 +135,14 @@ import { VerificationResult } from "../../domain/workflow/verification-result.js
 import { ApprovalRequest } from "../../domain/workflow/approval-request.js";
 import { HumanOversightService } from "../../application/workflow/human-oversight-service.js";
 import { InMemoryApprovalRequestRepository } from "../../infrastructure/persistence/in-memory/in-memory-approval-repository.js";
+import { AgentLifecycle } from "../../domain/agent/agent-lifecycle.js";
+import { AgentEvaluation } from "../../domain/agent/agent-evaluation.js";
+import { AgentLifecycleService } from "../../application/agent/agent-lifecycle-service.js";
+import {
+  InMemoryAgentLifecycleRepository,
+  InMemoryAgentEvaluationRepository,
+} from "../../infrastructure/persistence/in-memory/in-memory-agent-evaluation-repository.js";
+import { AgentLifecycleDTO, AgentEvaluationDTO } from "./platform-dto.js";
 
 import { projectExecutionObservability } from "../product/execution-observability.js";
 import { Tenant, DEFAULT_PLAN_LIMITS } from "../../domain/tenant/tenant.js";
@@ -192,6 +200,7 @@ export interface PlatformDependencies {
   readonly workflowOrchestratorService?: WorkflowOrchestratorService | undefined;
   readonly workflowVerificationService?: WorkflowVerificationService | undefined;
   readonly humanOversightService?: HumanOversightService | undefined;
+  readonly agentLifecycleService?: AgentLifecycleService | undefined;
   readonly eventStream?: EventStreamAdapter | undefined;
 }
 
@@ -211,6 +220,7 @@ export class PlatformService {
   private readonly teamResourceBudgetService: TeamResourceBudgetService;
   private readonly organizationalCoordinationService: OrganizationalCoordinationService;
   private readonly agentProfileService: AgentProfileService;
+  private readonly agentLifecycleService?: AgentLifecycleService | undefined;
   private readonly workflowOrchestratorService: WorkflowOrchestratorService;
   private readonly workflowVerificationService?: WorkflowVerificationService | undefined;
   private readonly humanOversightService?: HumanOversightService | undefined;
@@ -281,6 +291,13 @@ export class PlatformService {
     const defaultPolicy = new InMemoryPolicyGateway();
     const defaultApprovalRepo = new InMemoryApprovalRequestRepository();
 
+    this.agentLifecycleService = deps.agentLifecycleService ?? new AgentLifecycleService({
+      lifecycleRepository: new InMemoryAgentLifecycleRepository(),
+      evaluationRepository: new InMemoryAgentEvaluationRepository(),
+      profileRepository: new InMemoryAgentProfileRepository(),
+      policyGateway: defaultPolicy,
+    });
+
     this.workflowVerificationService = deps.workflowVerificationService ?? new WorkflowVerificationService({
       verificationRepo: defaultVerificationRepo,
       instanceRepo: defaultInstRepo,
@@ -301,6 +318,7 @@ export class PlatformService {
       definitionRepository: defaultDefRepo,
       instanceRepository: defaultInstRepo,
       agentProfileService: this.agentProfileService,
+      agentLifecycleService: this.agentLifecycleService,
       organizationRepository: defaultOrgRepo,
       budgetService: this.teamResourceBudgetService,
       policyGateway: defaultPolicy,
@@ -2498,7 +2516,52 @@ export class PlatformService {
       updatedAt: a.updatedAt.toISOString(),
     };
   }
+
+  getAgentLifecycleService(): AgentLifecycleService {
+    if (!this.agentLifecycleService) {
+      throw new Error("AgentLifecycleService is not configured");
+    }
+    return this.agentLifecycleService;
+  }
+
+  toAgentLifecycleDTO(l: AgentLifecycle): AgentLifecycleDTO {
+    return {
+      agentId: l.agentId,
+      tenantId: l.tenantId,
+      state: l.state,
+      profileVersion: l.profileVersion,
+      suspendedReason: l.suspendedReason,
+      suspendedBy: l.suspendedBy,
+      suspendedAt: l.suspendedAt?.toISOString(),
+      revokedReason: l.revokedReason,
+      revokedBy: l.revokedBy,
+      revokedAt: l.revokedAt?.toISOString(),
+      deprecatedReason: l.deprecatedReason,
+      deprecatedBy: l.deprecatedBy,
+      deprecatedAt: l.deprecatedAt?.toISOString(),
+      lastEvaluatedAt: l.lastEvaluatedAt?.toISOString(),
+      lastEvaluationId: l.lastEvaluationId,
+      version: l.version,
+      createdAt: l.createdAt.toISOString(),
+      updatedAt: l.updatedAt.toISOString(),
+    };
+  }
+
+  toAgentEvaluationDTO(e: AgentEvaluation): AgentEvaluationDTO {
+    return {
+      id: e.id,
+      tenantId: e.tenantId,
+      agentId: e.agentId,
+      evaluatedProfileVersion: e.evaluatedProfileVersion,
+      evaluatorPrincipalId: e.evaluatorPrincipalId,
+      evaluationType: e.evaluationType,
+      verdict: e.verdict,
+      criteriaReference: e.criteriaReference,
+      evidence: e.evidence,
+      evaluatedAt: e.evaluatedAt.toISOString(),
+      expiresAt: e.expiresAt?.toISOString(),
+      version: e.version,
+      metadata: e.metadata,
+    };
+  }
 }
-
-
-

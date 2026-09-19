@@ -350,5 +350,42 @@ export default {
     "statusEscalated": "Escalated",
     "selfApprovalBlocked": "Self-approval blocked by segregation of duties",
     "expiredNotice": "Approval request has expired"
+  },
+  "agentLifecycle": {
+    "title": "Agent Lifecycle & Evaluation Governance",
+    "state": "Lifecycle State",
+    "stateRegistered": "Registered",
+    "stateEvaluationPending": "Evaluation Pending",
+    "stateVerified": "Verified",
+    "stateActive": "Active",
+    "stateSuspended": "Suspended",
+    "stateRevoked": "Revoked",
+    "stateDeprecated": "Deprecated",
+    "activate": "Activate Agent",
+    "suspend": "Suspend Agent",
+    "revoke": "Revoke Agent",
+    "deprecate": "Deprecate Agent",
+    "evaluate": "Evaluate Agent",
+    "checkEligibility": "Check Eligibility",
+    "suspendedReason": "Suspension Reason",
+    "revokedReason": "Revocation Reason",
+    "deprecatedReason": "Deprecation Reason",
+    "selfGovernanceBlocked": "Self-governance blocked: agent cannot mutate own lifecycle or evaluate itself",
+    "eligibilityEligible": "Eligible for Operation",
+    "eligibilityIneligible": "Ineligible for Operation"
+  },
+  "agentEvaluation": {
+    "title": "Agent Evaluations",
+    "evaluationType": "Evaluation Type",
+    "verdict": "Verdict",
+    "verdictPass": "Passed (PASS)",
+    "verdictFail": "Failed (FAIL)",
+    "verdictPending": "Pending (PENDING)",
+    "verdictExpired": "Expired (EXPIRED)",
+    "criteriaReference": "Criteria Reference",
+    "evaluatedVersion": "Evaluated Profile Version",
+    "evaluator": "Evaluator Principal",
+    "expiresAt": "Expiration Date",
+    "lastEvaluation": "Last Evaluation"
   }
 };

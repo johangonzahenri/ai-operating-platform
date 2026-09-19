@@ -40,6 +40,12 @@ import type {
   DecideApprovalRequestDTO,
   EscalateApprovalRequestDTO,
   CancelApprovalRequestDTO,
+  AgentLifecycleDTO,
+  AgentEvaluationDTO,
+  CreateAgentEvaluationRequestDTO,
+  CompleteAgentEvaluationRequestDTO,
+  TransitionLifecycleRequestDTO,
+  AgentEligibilityDTO,
 } from "../platform/api/platform-dto.js";
 import {
   toEventDTO,
@@ -861,6 +867,68 @@ export function createPlatformClient(options: PlatformClientOptions) {
     },
   };
 
+  const agentLifecycle = {
+    async get(agentId: string): Promise<AgentLifecycleDTO> {
+      return request<AgentLifecycleDTO>(`/agents/${encodeURIComponent(agentId)}/lifecycle`);
+    },
+    async activate(agentId: string, body?: TransitionLifecycleRequestDTO): Promise<AgentLifecycleDTO> {
+      return request<AgentLifecycleDTO>(`/agents/${encodeURIComponent(agentId)}/lifecycle/activate`, {
+        method: "POST",
+        body: JSON.stringify(body ?? {}),
+      });
+    },
+    async suspend(agentId: string, body: TransitionLifecycleRequestDTO): Promise<AgentLifecycleDTO> {
+      return request<AgentLifecycleDTO>(`/agents/${encodeURIComponent(agentId)}/lifecycle/suspend`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+    },
+    async revoke(agentId: string, body: TransitionLifecycleRequestDTO): Promise<AgentLifecycleDTO> {
+      return request<AgentLifecycleDTO>(`/agents/${encodeURIComponent(agentId)}/lifecycle/revoke`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+    },
+    async deprecate(agentId: string, body: TransitionLifecycleRequestDTO): Promise<AgentLifecycleDTO> {
+      return request<AgentLifecycleDTO>(`/agents/${encodeURIComponent(agentId)}/lifecycle/deprecate`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+    },
+    async checkEligibility(
+      agentId: string,
+      query?: { requiredCapability?: string; requireVerifiedCapability?: boolean }
+    ): Promise<AgentEligibilityDTO> {
+      const params = new URLSearchParams();
+      if (query?.requiredCapability) params.set("requiredCapability", query.requiredCapability);
+      if (query?.requireVerifiedCapability) params.set("requireVerifiedCapability", "true");
+      const qs = params.toString() ? `?${params.toString()}` : "";
+      return request<AgentEligibilityDTO>(`/agents/${encodeURIComponent(agentId)}/eligibility${qs}`);
+    },
+  };
+
+  const agentEvaluations = {
+    async create(agentId: string, body: CreateAgentEvaluationRequestDTO): Promise<AgentEvaluationDTO> {
+      return request<AgentEvaluationDTO>(`/agents/${encodeURIComponent(agentId)}/evaluations`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+    },
+    async list(
+      agentId: string,
+      params?: { limit?: number; offset?: number }
+    ): Promise<readonly AgentEvaluationDTO[]> {
+      const sp = new URLSearchParams();
+      if (params?.limit !== undefined) sp.set("limit", String(params.limit));
+      if (params?.offset !== undefined) sp.set("offset", String(params.offset));
+      const qs = sp.toString() ? `?${sp.toString()}` : "";
+      return request<readonly AgentEvaluationDTO[]>(`/agents/${encodeURIComponent(agentId)}/evaluations${qs}`);
+    },
+    async getLatest(agentId: string, type: string = "CAPABILITY_CHECK"): Promise<AgentEvaluationDTO> {
+      return request<AgentEvaluationDTO>(`/agents/${encodeURIComponent(agentId)}/evaluations/latest?type=${encodeURIComponent(type)}`);
+    },
+  };
+
   return {
     tasks,
     executions,
@@ -883,6 +951,8 @@ export function createPlatformClient(options: PlatformClientOptions) {
     workflows,
     verifications,
     approvals,
+    agentLifecycle,
+    agentEvaluations,
     connect: () => healthGet(),
     health: Object.assign(healthGet, { get: healthGet }),
     getPlatformInfo: () => platform.get(),
@@ -942,4 +1012,10 @@ export type {
   DecideApprovalRequestDTO,
   EscalateApprovalRequestDTO,
   CancelApprovalRequestDTO,
+  AgentLifecycleDTO,
+  AgentEvaluationDTO,
+  CreateAgentEvaluationRequestDTO,
+  CompleteAgentEvaluationRequestDTO,
+  TransitionLifecycleRequestDTO,
+  AgentEligibilityDTO,
 };

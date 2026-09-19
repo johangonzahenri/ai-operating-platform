@@ -350,5 +350,42 @@ export default {
     "statusEscalated": "Escalada",
     "selfApprovalBlocked": "Auto-aprobación bloqueada por segregación de funciones",
     "expiredNotice": "La solicitud de aprobación ha expirado"
+  },
+  "agentLifecycle": {
+    "title": "Gobernanza de Ciclo de Vida y Evaluación de Agentes",
+    "state": "Estado de Ciclo de Vida",
+    "stateRegistered": "Registrado",
+    "stateEvaluationPending": "Evaluación Pendiente",
+    "stateVerified": "Verificado",
+    "stateActive": "Activo",
+    "stateSuspended": "Suspendido",
+    "stateRevoked": "Revocado",
+    "stateDeprecated": "Obsoleto",
+    "activate": "Activar Agente",
+    "suspend": "Suspender Agente",
+    "revoke": "Revocar Agente",
+    "deprecate": "Descontinuar Agente",
+    "evaluate": "Evaluar Agente",
+    "checkEligibility": "Comprobar Elegibilidad",
+    "suspendedReason": "Motivo de Suspensión",
+    "revokedReason": "Motivo de Revocación",
+    "deprecatedReason": "Motivo de Obsolescencia",
+    "selfGovernanceBlocked": "Auto-gobernanza bloqueada: el agente no puede mutar su propio ciclo de vida ni auto-evaluarse",
+    "eligibilityEligible": "Elegible para Operación",
+    "eligibilityIneligible": "No Elegible para Operación"
+  },
+  "agentEvaluation": {
+    "title": "Evaluaciones de Agentes",
+    "evaluationType": "Tipo de Evaluación",
+    "verdict": "Veredicto",
+    "verdictPass": "Aprobado (PASS)",
+    "verdictFail": "Reprobado (FAIL)",
+    "verdictPending": "Pendiente (PENDING)",
+    "verdictExpired": "Expirado (EXPIRED)",
+    "criteriaReference": "Referencia de Criterio",
+    "evaluatedVersion": "Versión de Perfil Evaluada",
+    "evaluator": "Principal Evaluador",
+    "expiresAt": "Fecha de Expiración",
+    "lastEvaluation": "Última Evaluación"
   }
 };

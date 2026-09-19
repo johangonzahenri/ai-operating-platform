@@ -36,6 +36,8 @@ export type EventType =
   | "workflow.created" | "workflow.updated" | "workflow.started"
   | "workflow.step.started" | "workflow.step.completed" | "workflow.step.failed"
   | "workflow.step.verification.requested" | "workflow.step.verification.completed" | "workflow.step.verification.failed"
+  | "agent.evaluation.requested" | "agent.evaluation.completed" | "agent.evaluation.expired"
+  | "agent.suspended" | "agent.activated" | "agent.revoked" | "agent.deprecated"
   | "approval.requested" | "approval.reviewing" | "approval.approved" | "approval.rejected"
   | "approval.expired" | "approval.cancelled" | "approval.escalated"
   | "workflow.completed" | "workflow.failed" | "workflow.cancelled";

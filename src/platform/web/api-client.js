@@ -998,4 +998,68 @@ export async function listApprovalsByInstance(instanceId) {
   return request(`/workflows/instances/${encodeURIComponent(instanceId)}/approvals`);
 }
 
+// --- Agent Lifecycle & Evaluation Governance (Phase 65) ---
 
+export async function getAgentLifecycle(agentId) {
+  return request(`/agents/${encodeURIComponent(agentId)}/lifecycle`);
+}
+
+export async function activateAgentLifecycle(agentId, body = {}) {
+  return request(`/agents/${encodeURIComponent(agentId)}/lifecycle/activate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function suspendAgentLifecycle(agentId, body) {
+  return request(`/agents/${encodeURIComponent(agentId)}/lifecycle/suspend`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function revokeAgentLifecycle(agentId, body) {
+  return request(`/agents/${encodeURIComponent(agentId)}/lifecycle/revoke`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function deprecateAgentLifecycle(agentId, body) {
+  return request(`/agents/${encodeURIComponent(agentId)}/lifecycle/deprecate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function createAgentEvaluation(agentId, body) {
+  return request(`/agents/${encodeURIComponent(agentId)}/evaluations`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function listAgentEvaluations(agentId, options = {}) {
+  const params = new URLSearchParams();
+  if (options.limit !== undefined) params.set("limit", String(options.limit));
+  if (options.offset !== undefined) params.set("offset", String(options.offset));
+  const qs = params.toString();
+  return request(qs ? `/agents/${encodeURIComponent(agentId)}/evaluations?${qs}` : `/agents/${encodeURIComponent(agentId)}/evaluations`);
+}
+
+export async function getLatestAgentEvaluation(agentId, type = "CAPABILITY_CHECK") {
+  return request(`/agents/${encodeURIComponent(agentId)}/evaluations/latest?type=${encodeURIComponent(type)}`);
+}
+
+export async function checkAgentEligibility(agentId, options = {}) {
+  const params = new URLSearchParams();
+  if (options.requiredCapability) params.set("requiredCapability", options.requiredCapability);
+  if (options.requireVerifiedCapability) params.set("requireVerifiedCapability", "true");
+  const qs = params.toString();
+  return request(qs ? `/agents/${encodeURIComponent(agentId)}/eligibility?${qs}` : `/agents/${encodeURIComponent(agentId)}/eligibility`);
+}

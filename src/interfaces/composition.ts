@@ -1,6 +1,7 @@
 import { WorkflowDefinitionRepositoryPort, WorkflowInstanceRepositoryPort } from "../application/ports/workflow-repository-port.js";
 import { VerificationResultRepositoryPort } from "../application/ports/verification-repository-port.js";
 import { ApprovalRequestRepositoryPort } from "../application/ports/approval-repository-port.js";
+import { AgentLifecycleRepositoryPort, AgentEvaluationRepositoryPort } from "../application/ports/agent-evaluation-repository-port.js";
 import {
   InMemoryWorkflowDefinitionRepository,
   InMemoryWorkflowInstanceRepository,
@@ -8,14 +9,23 @@ import {
 import { InMemoryVerificationResultRepository } from "../infrastructure/persistence/in-memory/in-memory-verification-repository.js";
 import { InMemoryApprovalRequestRepository } from "../infrastructure/persistence/in-memory/in-memory-approval-repository.js";
 import {
+  InMemoryAgentLifecycleRepository,
+  InMemoryAgentEvaluationRepository,
+} from "../infrastructure/persistence/in-memory/in-memory-agent-evaluation-repository.js";
+import {
   SqliteWorkflowDefinitionRepository,
   SqliteWorkflowInstanceRepository,
 } from "../infrastructure/persistence/sqlite/sqlite-workflow-repository.js";
 import { SqliteVerificationResultRepository } from "../infrastructure/persistence/sqlite/sqlite-verification-repository.js";
 import { SqliteApprovalRequestRepository } from "../infrastructure/persistence/sqlite/sqlite-approval-repository.js";
+import {
+  SqliteAgentLifecycleRepository,
+  SqliteAgentEvaluationRepository,
+} from "../infrastructure/persistence/sqlite/sqlite-agent-evaluation-repository.js";
 import { WorkflowOrchestratorService } from "../application/workflow/workflow-orchestrator-service.js";
 import { WorkflowVerificationService } from "../application/workflow/workflow-verification-service.js";
 import { HumanOversightService } from "../application/workflow/human-oversight-service.js";
+import { AgentLifecycleService } from "../application/agent/agent-lifecycle-service.js";
 import { ExecuteTask } from "../application/execute-task.js";
 import { SubmitTask } from "../application/submit-task.js";
 import { ExecuteOrchestration } from "../application/orchestration/execute-orchestration.js";
@@ -136,6 +146,9 @@ export interface CreatePlatformOptions {
   readonly workflowVerificationService?: WorkflowVerificationService | undefined;
   readonly approvalRequestRepository?: ApprovalRequestRepositoryPort | undefined;
   readonly humanOversightService?: HumanOversightService | undefined;
+  readonly agentLifecycleRepository?: AgentLifecycleRepositoryPort | undefined;
+  readonly agentEvaluationRepository?: AgentEvaluationRepositoryPort | undefined;
+  readonly agentLifecycleService?: AgentLifecycleService | undefined;
   readonly eventStream?: EventStreamAdapter | undefined;
 }
 
@@ -372,6 +385,28 @@ export const createPlatform = (
       ? new SqliteApprovalRequestRepository(dbManager)
       : new InMemoryApprovalRequestRepository();
 
+  const agentLifecycleRepository: AgentLifecycleRepositoryPort = (!isLogger && (optionsOrLogger as CreatePlatformOptions).agentLifecycleRepository)
+    ? (optionsOrLogger as CreatePlatformOptions).agentLifecycleRepository!
+    : dbManager
+      ? new SqliteAgentLifecycleRepository(dbManager)
+      : new InMemoryAgentLifecycleRepository();
+
+  const agentEvaluationRepository: AgentEvaluationRepositoryPort = (!isLogger && (optionsOrLogger as CreatePlatformOptions).agentEvaluationRepository)
+    ? (optionsOrLogger as CreatePlatformOptions).agentEvaluationRepository!
+    : dbManager
+      ? new SqliteAgentEvaluationRepository(dbManager)
+      : new InMemoryAgentEvaluationRepository();
+
+  const agentLifecycleService: AgentLifecycleService = (!isLogger && (optionsOrLogger as CreatePlatformOptions).agentLifecycleService)
+    ? (optionsOrLogger as CreatePlatformOptions).agentLifecycleService!
+    : new AgentLifecycleService({
+        lifecycleRepository: agentLifecycleRepository,
+        evaluationRepository: agentEvaluationRepository,
+        profileRepository: agentProfileRepository,
+        policyGateway: policy,
+        events,
+      });
+
   const workflowVerificationService: WorkflowVerificationService = (!isLogger && (optionsOrLogger as CreatePlatformOptions).workflowVerificationService)
     ? (optionsOrLogger as CreatePlatformOptions).workflowVerificationService!
     : new WorkflowVerificationService({
@@ -400,6 +435,7 @@ export const createPlatform = (
         definitionRepository: workflowDefinitionRepository,
         instanceRepository: workflowInstanceRepository,
         agentProfileService,
+        agentLifecycleService,
         organizationRepository,
         budgetService: teamResourceBudgetService,
         policyGateway: policy,
@@ -531,5 +567,8 @@ export const createPlatform = (
     workflowVerificationService,
     approvalRequestRepository,
     humanOversightService,
+    agentLifecycleRepository,
+    agentEvaluationRepository,
+    agentLifecycleService,
   };
 };
