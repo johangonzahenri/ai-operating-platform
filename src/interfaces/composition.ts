@@ -22,6 +22,20 @@ import {
   SqliteAgentLifecycleRepository,
   SqliteAgentEvaluationRepository,
 } from "../infrastructure/persistence/sqlite/sqlite-agent-evaluation-repository.js";
+import {
+  AISolutionRepositoryPort,
+  AISolutionInstanceRepositoryPort,
+} from "../application/ports/solution-repository-port.js";
+import {
+  InMemoryAISolutionRepository,
+  InMemoryAISolutionInstanceRepository,
+} from "../infrastructure/persistence/in-memory/in-memory-solution-repository.js";
+import {
+  SqliteAISolutionRepository,
+  SqliteAISolutionInstanceRepository,
+} from "../infrastructure/persistence/sqlite/sqlite-solution-repository.js";
+import { SolutionBlueprintValidator } from "../application/solution/solution-blueprint-validator.js";
+import { SolutionFactoryService } from "../application/solution/solution-factory-service.js";
 import { WorkflowOrchestratorService } from "../application/workflow/workflow-orchestrator-service.js";
 import { WorkflowVerificationService } from "../application/workflow/workflow-verification-service.js";
 import { HumanOversightService } from "../application/workflow/human-oversight-service.js";
@@ -149,6 +163,9 @@ export interface CreatePlatformOptions {
   readonly agentLifecycleRepository?: AgentLifecycleRepositoryPort | undefined;
   readonly agentEvaluationRepository?: AgentEvaluationRepositoryPort | undefined;
   readonly agentLifecycleService?: AgentLifecycleService | undefined;
+  readonly solutionRepository?: AISolutionRepositoryPort | undefined;
+  readonly solutionInstanceRepository?: AISolutionInstanceRepositoryPort | undefined;
+  readonly solutionFactoryService?: SolutionFactoryService | undefined;
   readonly eventStream?: EventStreamAdapter | undefined;
 }
 
@@ -446,6 +463,33 @@ export const createPlatform = (
         events,
       });
 
+  const solutionRepository: AISolutionRepositoryPort = (!isLogger && (optionsOrLogger as CreatePlatformOptions).solutionRepository)
+    ? (optionsOrLogger as CreatePlatformOptions).solutionRepository!
+    : dbManager
+      ? new SqliteAISolutionRepository(dbManager)
+      : new InMemoryAISolutionRepository();
+
+  const solutionInstanceRepository: AISolutionInstanceRepositoryPort = (!isLogger && (optionsOrLogger as CreatePlatformOptions).solutionInstanceRepository)
+    ? (optionsOrLogger as CreatePlatformOptions).solutionInstanceRepository!
+    : dbManager
+      ? new SqliteAISolutionInstanceRepository(dbManager)
+      : new InMemoryAISolutionInstanceRepository();
+
+  const solutionBlueprintValidator = new SolutionBlueprintValidator({
+    workflowRepo: workflowDefinitionRepository,
+    agentProfileRepo: agentProfileRepository,
+    agentLifecycleService,
+  });
+
+  const solutionFactoryService: SolutionFactoryService = (!isLogger && (optionsOrLogger as CreatePlatformOptions).solutionFactoryService)
+    ? (optionsOrLogger as CreatePlatformOptions).solutionFactoryService!
+    : new SolutionFactoryService({
+        solutionRepo: solutionRepository,
+        instanceRepo: solutionInstanceRepository,
+        validator: solutionBlueprintValidator,
+        eventPublisher: events,
+      });
+
   // Orchestrated execution runtime & use case
   const orchestrator = new SequentialOrchestrator(models, toolGateway, events, policy);
   const orchestratedStrategy = new OrchestratedExecutionStrategy(orchestrator, (context, task) => ({
@@ -570,5 +614,9 @@ export const createPlatform = (
     agentLifecycleRepository,
     agentEvaluationRepository,
     agentLifecycleService,
+    solutionRepository,
+    solutionInstanceRepository,
+    solutionBlueprintValidator,
+    solutionFactoryService,
   };
 };

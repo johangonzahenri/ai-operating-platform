@@ -121,6 +121,7 @@
 | **ORG-12** | Verificación y Validación de Resultados de Flujo | Fase 63 | `DONE` | `src/domain/workflow/verification-*`, `src/application/workflow/*verification*` | 28 tests pass | ADR 0033 |
 | **ORG-13** | Supervisión Humana, Aprobación & Escalamiento Gobernada | Fase 64 | `DONE` | `src/domain/workflow/approval-*`, `src/application/workflow/human-oversight-service.ts` | 26 tests pass | ADR 0034 |
 | **ORG-14** | Ciclo de Vida, Evaluación y Gobernanza de Agentes | Fase 65 | `DONE` | `src/domain/agent/agent-lifecycle*`, `src/application/agent/agent-lifecycle-service.ts` | 28 tests pass | ADR 0035 |
+| **ORG-15** | AI Solutions Factory & Application Blueprint Governance | Fase 66 | `DONE` | `src/domain/solution/`, `src/application/solution/`, `sqlite-solution-repository.ts` | 32 tests pass | ADR 0036 |
 
 ---
 

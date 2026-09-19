@@ -1108,3 +1108,127 @@ export interface AgentEligibilityDTO {
   readonly lifecycleState?: string | undefined;
   readonly profileVersion?: number | undefined;
 }
+
+export interface SolutionBlueprintDTO {
+  readonly workflows: readonly {
+    readonly workflowDefinitionId: string;
+    readonly requiredVersion?: number | undefined;
+    readonly role?: string | undefined;
+    readonly optional?: boolean | undefined;
+  }[];
+  readonly requiredAgents: readonly {
+    readonly agentId: string;
+    readonly requiredProfileVersion?: number | undefined;
+    readonly requiredRole?: string | undefined;
+    readonly requiredCapabilities?: readonly string[] | undefined;
+    readonly optional?: boolean | undefined;
+  }[];
+  readonly requiredCapabilities: readonly {
+    readonly capabilityId: string;
+    readonly minLevel?: number | undefined;
+    readonly description?: string | undefined;
+    readonly optional?: boolean | undefined;
+  }[];
+  readonly requiredPolicies: readonly {
+    readonly policyId: string;
+    readonly ruleName?: string | undefined;
+    readonly enforcementLevel?: "STRICT" | "WARNING" | undefined;
+  }[];
+  readonly verificationRequirements: readonly {
+    readonly stepIdOrRule: string;
+    readonly requiredVerdict: "PASS";
+    readonly verifierType?: string | undefined;
+  }[];
+  readonly approvalRequirements: readonly {
+    readonly actionOrStep: string;
+    readonly requiredRole: string;
+    readonly minApprovals?: number | undefined;
+  }[];
+  readonly externalAdapters: readonly {
+    readonly adapterId: string;
+    readonly type: string;
+    readonly config?: Readonly<Record<string, unknown>> | undefined;
+  }[];
+  readonly observabilityRequirements: {
+    readonly metricsEnabled: boolean;
+    readonly traceLevel?: "NONE" | "BASIC" | "DETAILED" | "DEBUG" | undefined;
+    readonly exportAuditLogs?: boolean | undefined;
+  };
+  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+}
+
+export interface SolutionValidationReportDTO {
+  readonly valid: boolean;
+  readonly errors: readonly string[];
+  readonly warnings: readonly string[];
+  readonly validatedAt: string;
+  readonly checkedComponents: {
+    readonly workflowsCount: number;
+    readonly agentsCount: number;
+    readonly capabilitiesCount: number;
+    readonly policiesCount: number;
+    readonly verificationsCount: number;
+    readonly approvalsCount: number;
+  };
+}
+
+export interface AISolutionDTO {
+  readonly id: string;
+  readonly tenantId: string;
+  readonly name: string;
+  readonly description: string;
+  readonly version: number;
+  readonly lifecycleState: "DRAFT" | "VALIDATING" | "VALIDATED" | "PUBLISHED" | "ARCHIVED" | "DEPRECATED";
+  readonly blueprint: SolutionBlueprintDTO;
+  readonly ownerPrincipalId: string;
+  readonly lastValidationReport?: SolutionValidationReportDTO | undefined;
+  readonly publishedAt?: string | undefined;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+  readonly metadata: Readonly<Record<string, unknown>>;
+  readonly concurrencyVersion: number;
+}
+
+export interface SolutionInstanceDTO {
+  readonly id: string;
+  readonly solutionId: string;
+  readonly solutionVersion: number;
+  readonly tenantId: string;
+  readonly name: string;
+  readonly status: "INITIALIZED" | "ACTIVE" | "PAUSED" | "TERMINATED";
+  readonly config: Readonly<Record<string, unknown>>;
+  readonly operatorPrincipalId: string;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export interface CreateSolutionRequestDTO {
+  readonly id: string;
+  readonly name: string;
+  readonly description?: string | undefined;
+  readonly ownerPrincipalId?: string | undefined;
+  readonly blueprint?: Partial<SolutionBlueprintDTO> | undefined;
+  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+}
+
+export interface UpdateSolutionRequestDTO {
+  readonly name?: string | undefined;
+  readonly description?: string | undefined;
+  readonly blueprint?: Partial<SolutionBlueprintDTO> | undefined;
+  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+  readonly expectedConcurrencyVersion?: number | undefined;
+}
+
+export interface PublishSolutionRequestDTO {
+  readonly autoValidate?: boolean | undefined;
+  readonly expectedConcurrencyVersion?: number | undefined;
+}
+
+export interface InstantiateSolutionRequestDTO {
+  readonly id?: string | undefined;
+  readonly solutionVersion?: number | undefined;
+  readonly name?: string | undefined;
+  readonly config?: Readonly<Record<string, unknown>> | undefined;
+  readonly operatorPrincipalId?: string | undefined;
+}
+

@@ -46,6 +46,14 @@ import type {
   CompleteAgentEvaluationRequestDTO,
   TransitionLifecycleRequestDTO,
   AgentEligibilityDTO,
+  SolutionBlueprintDTO,
+  SolutionValidationReportDTO,
+  AISolutionDTO,
+  SolutionInstanceDTO,
+  CreateSolutionRequestDTO,
+  UpdateSolutionRequestDTO,
+  PublishSolutionRequestDTO,
+  InstantiateSolutionRequestDTO,
 } from "../platform/api/platform-dto.js";
 import {
   toEventDTO,
@@ -929,6 +937,100 @@ export function createPlatformClient(options: PlatformClientOptions) {
     },
   };
 
+  const solutions = {
+    async create(body: CreateSolutionRequestDTO): Promise<AISolutionDTO> {
+      return request<AISolutionDTO>("/solutions", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+    },
+    async list(params?: {
+      lifecycleState?: string;
+      ownerPrincipalId?: string;
+      search?: string;
+      limit?: number;
+      offset?: number;
+    }): Promise<readonly AISolutionDTO[]> {
+      const sp = new URLSearchParams();
+      if (params?.lifecycleState) sp.set("lifecycleState", params.lifecycleState);
+      if (params?.ownerPrincipalId) sp.set("ownerPrincipalId", params.ownerPrincipalId);
+      if (params?.search) sp.set("search", params.search);
+      if (params?.limit !== undefined) sp.set("limit", String(params.limit));
+      if (params?.offset !== undefined) sp.set("offset", String(params.offset));
+      const qs = sp.toString() ? `?${sp.toString()}` : "";
+      return request<readonly AISolutionDTO[]>(`/solutions${qs}`);
+    },
+    async get(id: string): Promise<AISolutionDTO> {
+      return request<AISolutionDTO>(`/solutions/${encodeURIComponent(id)}`);
+    },
+    async update(id: string, body: UpdateSolutionRequestDTO): Promise<AISolutionDTO> {
+      return request<AISolutionDTO>(`/solutions/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      });
+    },
+    async validate(
+      id: string,
+      body?: { version?: number; expectedConcurrencyVersion?: number }
+    ): Promise<{ solution: AISolutionDTO; report: SolutionValidationReportDTO }> {
+      return request<{ solution: AISolutionDTO; report: SolutionValidationReportDTO }>(
+        `/solutions/${encodeURIComponent(id)}/validate`,
+        {
+          method: "POST",
+          body: JSON.stringify(body ?? {}),
+        }
+      );
+    },
+    async publish(id: string, body?: PublishSolutionRequestDTO): Promise<AISolutionDTO> {
+      return request<AISolutionDTO>(`/solutions/${encodeURIComponent(id)}/publish`, {
+        method: "POST",
+        body: JSON.stringify(body ?? {}),
+      });
+    },
+    async createVersion(id: string, body?: { newVersionNumber?: number }): Promise<AISolutionDTO> {
+      return request<AISolutionDTO>(`/solutions/${encodeURIComponent(id)}/versions`, {
+        method: "POST",
+        body: JSON.stringify(body ?? {}),
+      });
+    },
+    async listVersions(id: string): Promise<readonly AISolutionDTO[]> {
+      return request<readonly AISolutionDTO[]>(`/solutions/${encodeURIComponent(id)}/versions`);
+    },
+    async getVersion(id: string, version: number): Promise<AISolutionDTO> {
+      return request<AISolutionDTO>(`/solutions/${encodeURIComponent(id)}/versions/${version}`);
+    },
+    async getBlueprint(id: string): Promise<SolutionBlueprintDTO> {
+      return request<SolutionBlueprintDTO>(`/solutions/${encodeURIComponent(id)}/blueprint`);
+    },
+    async archive(
+      id: string,
+      body?: { reason?: string; version?: number; expectedConcurrencyVersion?: number }
+    ): Promise<AISolutionDTO> {
+      return request<AISolutionDTO>(`/solutions/${encodeURIComponent(id)}/archive`, {
+        method: "POST",
+        body: JSON.stringify(body ?? {}),
+      });
+    },
+    async deprecate(
+      id: string,
+      body?: { reason?: string; version?: number; expectedConcurrencyVersion?: number }
+    ): Promise<AISolutionDTO> {
+      return request<AISolutionDTO>(`/solutions/${encodeURIComponent(id)}/deprecate`, {
+        method: "POST",
+        body: JSON.stringify(body ?? {}),
+      });
+    },
+    async instantiate(id: string, body?: InstantiateSolutionRequestDTO): Promise<SolutionInstanceDTO> {
+      return request<SolutionInstanceDTO>(`/solutions/${encodeURIComponent(id)}/instantiate`, {
+        method: "POST",
+        body: JSON.stringify(body ?? {}),
+      });
+    },
+    async listInstances(id: string): Promise<readonly SolutionInstanceDTO[]> {
+      return request<readonly SolutionInstanceDTO[]>(`/solutions/${encodeURIComponent(id)}/instances`);
+    },
+  };
+
   return {
     tasks,
     executions,
@@ -953,6 +1055,7 @@ export function createPlatformClient(options: PlatformClientOptions) {
     approvals,
     agentLifecycle,
     agentEvaluations,
+    solutions,
     connect: () => healthGet(),
     health: Object.assign(healthGet, { get: healthGet }),
     getPlatformInfo: () => platform.get(),
@@ -1018,4 +1121,12 @@ export type {
   CompleteAgentEvaluationRequestDTO,
   TransitionLifecycleRequestDTO,
   AgentEligibilityDTO,
+  SolutionBlueprintDTO,
+  SolutionValidationReportDTO,
+  AISolutionDTO,
+  SolutionInstanceDTO,
+  CreateSolutionRequestDTO,
+  UpdateSolutionRequestDTO,
+  PublishSolutionRequestDTO,
+  InstantiateSolutionRequestDTO,
 };

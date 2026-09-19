@@ -380,7 +380,7 @@ export class AgentLifecycleService {
     const lifecycle = await this.lifecycleRepo.findByAgentId(agentId, tenantId);
     const lifecycleState: AgentLifecycleState = lifecycle
       ? lifecycle.state
-      : (profile.status === "ACTIVE" ? "ACTIVE" : (profile.status === "DEPRECATED" ? "DEPRECATED" : "REGISTERED"));
+      : (profile.status === "ACTIVE" ? "ACTIVE" : "REGISTERED");
 
     if (lifecycleState === "SUSPENDED") {
       return {

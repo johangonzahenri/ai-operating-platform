@@ -1,8 +1,8 @@
 {
-  "traceId": "trace-verify-docker-7053b432",
+  "traceId": "trace-verify-docker-f1c4b13d",
   "provider": "docker",
   "environment": "production",
-  "verifiedAt": "2026-09-19T14:02:17.331Z",
+  "verifiedAt": "2026-09-19T15:42:32.682Z",
   "status": "HEALTHY",
   "latencyMs": 5,
   "metadata": {

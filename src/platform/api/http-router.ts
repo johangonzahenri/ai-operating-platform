@@ -46,6 +46,23 @@ import {
 } from "../../domain/agent/agent-lifecycle-errors.js";
 import { AgentLifecycle, AgentLifecycleState } from "../../domain/agent/agent-lifecycle.js";
 import { AgentEvaluation, EvaluationType, EvaluationVerdict } from "../../domain/agent/agent-evaluation.js";
+import {
+  SolutionError,
+  SolutionValidationError,
+  SolutionNotFoundError,
+  SolutionVersionNotFoundError,
+  InvalidSolutionLifecycleTransitionError,
+  SolutionNotValidatedError,
+  SolutionPublishedImmutableError,
+  SolutionConcurrencyConflictError,
+  SolutionTenantMismatchError,
+  SolutionBlueprintValidationError,
+  SolutionDependencyCycleError,
+  UnauthorizedSolutionOperatorError,
+} from "../../domain/solution/solution-errors.js";
+import { AISolution, SolutionLifecycleState } from "../../domain/solution/ai-solution.js";
+import { SolutionBlueprint } from "../../domain/solution/solution-blueprint.js";
+import { SolutionInstance } from "../../domain/solution/solution-instance.js";
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
@@ -4831,6 +4848,503 @@ export function createHttpServer(
               return;
             } catch (err: any) {
               handleApprovalError(err);
+              return;
+            }
+          }
+        }
+
+        // ==========================================
+        // AI Solutions Factory Endpoints
+        // ==========================================
+        let solService: any = null;
+        try {
+          solService = service.getSolutionFactoryService();
+        } catch {
+          solService = null;
+        }
+
+        if (solService) {
+          const handleSolutionError = (err: any) => {
+            if (err instanceof SolutionValidationError || err instanceof SolutionBlueprintValidationError || err instanceof SolutionDependencyCycleError) {
+              sendError(400, err.message, err.code || "SOLUTION_VALIDATION_ERROR");
+            } else if (err instanceof SolutionNotFoundError || err instanceof SolutionVersionNotFoundError) {
+              sendError(404, err.message, err.code || "SOLUTION_NOT_FOUND");
+            } else if (err instanceof UnauthorizedSolutionOperatorError || err instanceof SolutionTenantMismatchError) {
+              sendError(403, err.message, err.code || "SOLUTION_FORBIDDEN");
+            } else if (
+              err instanceof InvalidSolutionLifecycleTransitionError ||
+              err instanceof SolutionNotValidatedError ||
+              err instanceof SolutionPublishedImmutableError ||
+              err instanceof SolutionConcurrencyConflictError
+            ) {
+              sendError(409, err.message, err.code || "SOLUTION_CONFLICT");
+            } else {
+              const msg = err instanceof Error ? err.message : "Internal solution error";
+              sendError(500, msg, "SOLUTION_INTERNAL_ERROR");
+            }
+          };
+
+          // POST /solutions (Create Solution in DRAFT v1)
+          if (subPath === "/solutions" && req.method === "POST") {
+            const bodyResult = await readJsonBody();
+            if (!bodyResult.ok) {
+              sendError(400, "Bad Request: Invalid JSON body", "INVALID_JSON");
+              return;
+            }
+            const body = bodyResult.body as any;
+            const targetTenant = body.tenantId ?? reqCtx.tenantId;
+            const authCheck = await authenticateAndAuthorize("application.manage", "API", body.id ?? "", targetTenant);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? targetTenant;
+            const ownerPrincipalId = body.ownerPrincipalId ?? authCheck.context?.principal?.id ?? reqCtx.principal?.id ?? "system";
+
+            try {
+              const solution = await solService.createSolution({
+                id: body.id,
+                tenantId,
+                name: body.name,
+                description: body.description ?? "",
+                ownerPrincipalId,
+                blueprint: body.blueprint,
+                metadata: body.metadata,
+                traceId: reqCtx.correlationId,
+              });
+              sendJson(201, service.toAISolutionDTO(solution));
+              return;
+            } catch (err: any) {
+              handleSolutionError(err);
+              return;
+            }
+          }
+
+          // GET /solutions (List Solutions)
+          if (subPath === "/solutions" && req.method === "GET") {
+            const authCheck = await authenticateAndAuthorize("application.read", "API", "", reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const limitParam = url.searchParams.get("limit");
+            const offsetParam = url.searchParams.get("offset");
+            const stateParam = url.searchParams.get("lifecycleState") ?? url.searchParams.get("status");
+            const ownerParam = url.searchParams.get("ownerPrincipalId");
+            const searchParam = url.searchParams.get("search") ?? url.searchParams.get("q");
+
+            const limit = limitParam ? parseInt(limitParam, 10) : 50;
+            const offset = offsetParam ? parseInt(offsetParam, 10) : 0;
+
+            try {
+              const solutions = await solService.listSolutions(
+                {
+                  tenantId,
+                  lifecycleState: stateParam as any,
+                  ownerPrincipalId: ownerParam ?? undefined,
+                  search: searchParam ?? undefined,
+                },
+                limit,
+                offset
+              );
+              sendJson(200, solutions.map((s: any) => service.toAISolutionDTO(s)));
+              return;
+            } catch (err: any) {
+              handleSolutionError(err);
+              return;
+            }
+          }
+
+          // GET /solutions/:id
+          const solGetMatch = subPath.match(/^\/solutions\/([^/]+)$/);
+          if (solGetMatch && req.method === "GET") {
+            const id = normalizeId(solGetMatch[1]);
+            if (!id) {
+              sendError(400, "Bad Request: Invalid Solution ID", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("application.read", "API", id, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            try {
+              const solution = await solService.getSolution(id, tenantId);
+              if (!solution) {
+                sendError(404, `AI Solution '${id}' not found in tenant '${tenantId}'`, "SOLUTION_NOT_FOUND");
+                return;
+              }
+              sendJson(200, service.toAISolutionDTO(solution));
+              return;
+            } catch (err: any) {
+              handleSolutionError(err);
+              return;
+            }
+          }
+
+          // PATCH /solutions/:id (or PUT /solutions/:id)
+          const solUpdateMatch = subPath.match(/^\/solutions\/([^/]+)$/);
+          if (solUpdateMatch && (req.method === "PATCH" || req.method === "PUT")) {
+            const id = normalizeId(solUpdateMatch[1]);
+            if (!id) {
+              sendError(400, "Bad Request: Invalid Solution ID", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("application.manage", "API", id, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const bodyResult = await readJsonBody();
+            if (!bodyResult.ok) {
+              sendError(400, "Bad Request: Invalid JSON body", "INVALID_JSON");
+              return;
+            }
+            const body = bodyResult.body as any;
+            const principalId = authCheck.context?.principal?.id ?? reqCtx.principal?.id ?? "system";
+
+            try {
+              const updated = await solService.updateSolution({
+                id,
+                tenantId,
+                principalId,
+                name: body.name,
+                description: body.description,
+                blueprint: body.blueprint,
+                metadata: body.metadata,
+                expectedConcurrencyVersion: body.expectedConcurrencyVersion,
+                traceId: reqCtx.correlationId,
+              });
+              sendJson(200, service.toAISolutionDTO(updated));
+              return;
+            } catch (err: any) {
+              handleSolutionError(err);
+              return;
+            }
+          }
+
+          // POST /solutions/:id/validate
+          const solValidateMatch = subPath.match(/^\/solutions\/([^/]+)\/validate$/);
+          if (solValidateMatch && req.method === "POST") {
+            const id = normalizeId(solValidateMatch[1]);
+            if (!id) {
+              sendError(400, "Bad Request: Invalid Solution ID", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("application.manage", "API", id, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const bodyResult = await readJsonBody();
+            const body = bodyResult.ok ? (bodyResult.body as any) : {};
+            const principalId = authCheck.context?.principal?.id ?? reqCtx.principal?.id ?? "system";
+
+            try {
+              const { solution, report } = await solService.validateSolution({
+                id,
+                tenantId,
+                principalId,
+                version: body.version,
+                expectedConcurrencyVersion: body.expectedConcurrencyVersion,
+                traceId: reqCtx.correlationId,
+              });
+              sendJson(200, {
+                solution: service.toAISolutionDTO(solution),
+                report: service.toSolutionValidationReportDTO(report),
+              });
+              return;
+            } catch (err: any) {
+              handleSolutionError(err);
+              return;
+            }
+          }
+
+          // POST /solutions/:id/publish
+          const solPublishMatch = subPath.match(/^\/solutions\/([^/]+)\/publish$/);
+          if (solPublishMatch && req.method === "POST") {
+            const id = normalizeId(solPublishMatch[1]);
+            if (!id) {
+              sendError(400, "Bad Request: Invalid Solution ID", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("application.manage", "API", id, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const bodyResult = await readJsonBody();
+            const body = bodyResult.ok ? (bodyResult.body as any) : {};
+            const principalId = authCheck.context?.principal?.id ?? reqCtx.principal?.id ?? "system";
+
+            try {
+              const published = await solService.publishSolution({
+                id,
+                tenantId,
+                principalId,
+                version: body.version,
+                autoValidate: body.autoValidate ?? false,
+                expectedConcurrencyVersion: body.expectedConcurrencyVersion,
+                traceId: reqCtx.correlationId,
+              });
+              sendJson(200, service.toAISolutionDTO(published));
+              return;
+            } catch (err: any) {
+              handleSolutionError(err);
+              return;
+            }
+          }
+
+          // POST /solutions/:id/versions (Create new draft version)
+          const solNewVersionMatch = subPath.match(/^\/solutions\/([^/]+)\/versions$/);
+          if (solNewVersionMatch && req.method === "POST") {
+            const id = normalizeId(solNewVersionMatch[1]);
+            if (!id) {
+              sendError(400, "Bad Request: Invalid Solution ID", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("application.manage", "API", id, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const bodyResult = await readJsonBody();
+            const body = bodyResult.ok ? (bodyResult.body as any) : {};
+            const principalId = authCheck.context?.principal?.id ?? reqCtx.principal?.id ?? "system";
+
+            try {
+              const newDraft = await solService.createNewVersion({
+                id,
+                tenantId,
+                principalId,
+                newVersionNumber: body.newVersionNumber,
+                traceId: reqCtx.correlationId,
+              });
+              sendJson(201, service.toAISolutionDTO(newDraft));
+              return;
+            } catch (err: any) {
+              handleSolutionError(err);
+              return;
+            }
+          }
+
+          // GET /solutions/:id/versions
+          const solVersionsMatch = subPath.match(/^\/solutions\/([^/]+)\/versions$/);
+          if (solVersionsMatch && req.method === "GET") {
+            const id = normalizeId(solVersionsMatch[1]);
+            if (!id) {
+              sendError(400, "Bad Request: Invalid Solution ID", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("application.read", "API", id, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            try {
+              const versions = await solService.listSolutionVersions(id, tenantId);
+              sendJson(200, versions.map((s: any) => service.toAISolutionDTO(s)));
+              return;
+            } catch (err: any) {
+              handleSolutionError(err);
+              return;
+            }
+          }
+
+          // GET /solutions/:id/versions/:version
+          const solVersionMatch = subPath.match(/^\/solutions\/([^/]+)\/versions\/(\d+)$/);
+          if (solVersionMatch && req.method === "GET") {
+            const id = normalizeId(solVersionMatch[1]);
+            const solVersionStr = solVersionMatch[2] ?? "1";
+            const version = parseInt(solVersionStr, 10);
+            if (!id || isNaN(version)) {
+              sendError(400, "Bad Request: Invalid Solution ID or Version", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("application.read", "API", id, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            try {
+              const solution = await solService.getSolutionVersion(id, version, tenantId);
+              if (!solution) {
+                sendError(404, `Version ${version} of AI Solution '${id}' not found in tenant '${tenantId}'`, "SOLUTION_VERSION_NOT_FOUND");
+                return;
+              }
+              sendJson(200, service.toAISolutionDTO(solution));
+              return;
+            } catch (err: any) {
+              handleSolutionError(err);
+              return;
+            }
+          }
+
+          // GET /solutions/:id/blueprint
+          const solBlueprintMatch = subPath.match(/^\/solutions\/([^/]+)\/blueprint$/);
+          if (solBlueprintMatch && req.method === "GET") {
+            const id = normalizeId(solBlueprintMatch[1]);
+            if (!id) {
+              sendError(400, "Bad Request: Invalid Solution ID", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("application.read", "API", id, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            try {
+              const solution = await solService.getSolution(id, tenantId);
+              if (!solution) {
+                sendError(404, `AI Solution '${id}' not found in tenant '${tenantId}'`, "SOLUTION_NOT_FOUND");
+                return;
+              }
+              sendJson(200, service.toSolutionBlueprintDTO(solution.blueprint));
+              return;
+            } catch (err: any) {
+              handleSolutionError(err);
+              return;
+            }
+          }
+
+          // POST /solutions/:id/archive
+          const solArchiveMatch = subPath.match(/^\/solutions\/([^/]+)\/archive$/);
+          if (solArchiveMatch && req.method === "POST") {
+            const id = normalizeId(solArchiveMatch[1]);
+            if (!id) {
+              sendError(400, "Bad Request: Invalid Solution ID", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("application.manage", "API", id, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const bodyResult = await readJsonBody();
+            const body = bodyResult.ok ? (bodyResult.body as any) : {};
+            const principalId = authCheck.context?.principal?.id ?? reqCtx.principal?.id ?? "system";
+
+            try {
+              const archived = await solService.archiveSolution({
+                id,
+                tenantId,
+                principalId,
+                version: body.version,
+                reason: body.reason,
+                expectedConcurrencyVersion: body.expectedConcurrencyVersion,
+                traceId: reqCtx.correlationId,
+              });
+              sendJson(200, service.toAISolutionDTO(archived));
+              return;
+            } catch (err: any) {
+              handleSolutionError(err);
+              return;
+            }
+          }
+
+          // POST /solutions/:id/deprecate
+          const solDeprecateMatch = subPath.match(/^\/solutions\/([^/]+)\/deprecate$/);
+          if (solDeprecateMatch && req.method === "POST") {
+            const id = normalizeId(solDeprecateMatch[1]);
+            if (!id) {
+              sendError(400, "Bad Request: Invalid Solution ID", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("application.manage", "API", id, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const bodyResult = await readJsonBody();
+            const body = bodyResult.ok ? (bodyResult.body as any) : {};
+            const principalId = authCheck.context?.principal?.id ?? reqCtx.principal?.id ?? "system";
+
+            try {
+              const deprecated = await solService.deprecateSolution({
+                id,
+                tenantId,
+                principalId,
+                version: body.version,
+                reason: body.reason,
+                expectedConcurrencyVersion: body.expectedConcurrencyVersion,
+                traceId: reqCtx.correlationId,
+              });
+              sendJson(200, service.toAISolutionDTO(deprecated));
+              return;
+            } catch (err: any) {
+              handleSolutionError(err);
+              return;
+            }
+          }
+
+          // POST /solutions/:id/instantiate
+          const solInstantiateMatch = subPath.match(/^\/solutions\/([^/]+)\/instantiate$/);
+          if (solInstantiateMatch && req.method === "POST") {
+            const id = normalizeId(solInstantiateMatch[1]);
+            if (!id) {
+              sendError(400, "Bad Request: Invalid Solution ID", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("application.manage", "API", id, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            const bodyResult = await readJsonBody();
+            const body = bodyResult.ok ? (bodyResult.body as any) : {};
+            const operatorPrincipalId = body.operatorPrincipalId ?? authCheck.context?.principal?.id ?? reqCtx.principal?.id ?? "system";
+
+            try {
+              const instance = await solService.instantiateSolution({
+                id: body.id,
+                solutionId: id,
+                solutionVersion: body.solutionVersion,
+                tenantId,
+                name: body.name,
+                config: body.config,
+                operatorPrincipalId,
+                traceId: reqCtx.correlationId,
+              });
+              sendJson(201, service.toSolutionInstanceDTO(instance));
+              return;
+            } catch (err: any) {
+              handleSolutionError(err);
+              return;
+            }
+          }
+
+          // GET /solutions/:id/instances
+          const solInstancesMatch = subPath.match(/^\/solutions\/([^/]+)\/instances$/);
+          if (solInstancesMatch && req.method === "GET") {
+            const id = normalizeId(solInstancesMatch[1]);
+            if (!id) {
+              sendError(400, "Bad Request: Invalid Solution ID", "INVALID_ID");
+              return;
+            }
+            const authCheck = await authenticateAndAuthorize("application.read", "API", id, reqCtx.tenantId);
+            if (!authCheck.ok) {
+              sendError(authCheck.status, authCheck.message, authCheck.code);
+              return;
+            }
+            const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId;
+            try {
+              const instances = await solService.listInstances(id, tenantId);
+              sendJson(200, instances.map((inst: any) => service.toSolutionInstanceDTO(inst)));
+              return;
+            } catch (err: any) {
+              handleSolutionError(err);
               return;
             }
           }

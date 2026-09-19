@@ -40,6 +40,8 @@ export type EventType =
   | "agent.suspended" | "agent.activated" | "agent.revoked" | "agent.deprecated"
   | "approval.requested" | "approval.reviewing" | "approval.approved" | "approval.rejected"
   | "approval.expired" | "approval.cancelled" | "approval.escalated"
+  | "solution.created" | "solution.updated" | "solution.validation.started" | "solution.validation.completed"
+  | "solution.published" | "solution.archived" | "solution.deprecated" | "solution.instance.created"
   | "workflow.completed" | "workflow.failed" | "workflow.cancelled";
 
 

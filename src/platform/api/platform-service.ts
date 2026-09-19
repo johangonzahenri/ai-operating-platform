@@ -143,6 +143,27 @@ import {
   InMemoryAgentEvaluationRepository,
 } from "../../infrastructure/persistence/in-memory/in-memory-agent-evaluation-repository.js";
 import { AgentLifecycleDTO, AgentEvaluationDTO } from "./platform-dto.js";
+import {
+  AISolution,
+  SolutionLifecycleState,
+} from "../../domain/solution/ai-solution.js";
+import {
+  SolutionBlueprint,
+  SolutionBlueprintValidationReport,
+} from "../../domain/solution/solution-blueprint.js";
+import { SolutionInstance } from "../../domain/solution/solution-instance.js";
+import { SolutionFactoryService } from "../../application/solution/solution-factory-service.js";
+import {
+  AISolutionDTO,
+  SolutionBlueprintDTO,
+  SolutionValidationReportDTO,
+  SolutionInstanceDTO,
+} from "./platform-dto.js";
+import {
+  InMemoryAISolutionRepository,
+  InMemoryAISolutionInstanceRepository,
+} from "../../infrastructure/persistence/in-memory/in-memory-solution-repository.js";
+import { SolutionBlueprintValidator } from "../../application/solution/solution-blueprint-validator.js";
 
 import { projectExecutionObservability } from "../product/execution-observability.js";
 import { Tenant, DEFAULT_PLAN_LIMITS } from "../../domain/tenant/tenant.js";
@@ -201,6 +222,7 @@ export interface PlatformDependencies {
   readonly workflowVerificationService?: WorkflowVerificationService | undefined;
   readonly humanOversightService?: HumanOversightService | undefined;
   readonly agentLifecycleService?: AgentLifecycleService | undefined;
+  readonly solutionFactoryService?: SolutionFactoryService | undefined;
   readonly eventStream?: EventStreamAdapter | undefined;
 }
 
@@ -221,6 +243,7 @@ export class PlatformService {
   private readonly organizationalCoordinationService: OrganizationalCoordinationService;
   private readonly agentProfileService: AgentProfileService;
   private readonly agentLifecycleService?: AgentLifecycleService | undefined;
+  private readonly solutionFactoryService?: SolutionFactoryService | undefined;
   private readonly workflowOrchestratorService: WorkflowOrchestratorService;
   private readonly workflowVerificationService?: WorkflowVerificationService | undefined;
   private readonly humanOversightService?: HumanOversightService | undefined;
@@ -312,6 +335,20 @@ export class PlatformService {
       verificationService: this.workflowVerificationService,
       organizationRepository: defaultOrgRepo,
       policyGateway: defaultPolicy,
+    });
+
+    const defaultSolRepo = new InMemoryAISolutionRepository();
+    const defaultSolInstRepo = new InMemoryAISolutionInstanceRepository();
+    const defaultSolValidator = new SolutionBlueprintValidator({
+      workflowRepo: defaultDefRepo,
+      agentProfileRepo: new InMemoryAgentProfileRepository(),
+      agentLifecycleService: this.agentLifecycleService,
+    });
+
+    this.solutionFactoryService = deps.solutionFactoryService ?? new SolutionFactoryService({
+      solutionRepo: defaultSolRepo,
+      instanceRepo: defaultSolInstRepo,
+      validator: defaultSolValidator,
     });
 
     this.workflowOrchestratorService = deps.workflowOrchestratorService ?? new WorkflowOrchestratorService({
@@ -2562,6 +2599,109 @@ export class PlatformService {
       expiresAt: e.expiresAt?.toISOString(),
       version: e.version,
       metadata: e.metadata,
+    };
+  }
+
+  getSolutionFactoryService(): SolutionFactoryService {
+    if (!this.solutionFactoryService) {
+      throw new Error("SolutionFactoryService is not configured");
+    }
+    return this.solutionFactoryService;
+  }
+
+  toSolutionBlueprintDTO(b: SolutionBlueprint): SolutionBlueprintDTO {
+    return {
+      workflows: b.workflows.map((w) => ({
+        workflowDefinitionId: w.workflowDefinitionId,
+        requiredVersion: w.requiredVersion,
+        role: w.role,
+        optional: w.optional,
+      })),
+      requiredAgents: b.requiredAgents.map((a) => ({
+        agentId: a.agentId,
+        requiredProfileVersion: a.requiredProfileVersion,
+        requiredRole: a.requiredRole,
+        requiredCapabilities: a.requiredCapabilities,
+        optional: a.optional,
+      })),
+      requiredCapabilities: b.requiredCapabilities.map((c) => ({
+        capabilityId: c.capabilityId,
+        minLevel: c.minLevel,
+        description: c.description,
+        optional: c.optional,
+      })),
+      requiredPolicies: b.requiredPolicies.map((p) => ({
+        policyId: p.policyId,
+        ruleName: p.ruleName,
+        enforcementLevel: p.enforcementLevel,
+      })),
+      verificationRequirements: b.verificationRequirements.map((v) => ({
+        stepIdOrRule: v.stepIdOrRule,
+        requiredVerdict: v.requiredVerdict,
+        verifierType: v.verifierType,
+      })),
+      approvalRequirements: b.approvalRequirements.map((a) => ({
+        actionOrStep: a.actionOrStep,
+        requiredRole: a.requiredRole,
+        minApprovals: a.minApprovals,
+      })),
+      externalAdapters: b.externalAdapters.map((ad) => ({
+        adapterId: ad.adapterId,
+        type: ad.type,
+        config: ad.config,
+      })),
+      observabilityRequirements: {
+        metricsEnabled: b.observabilityRequirements.metricsEnabled,
+        traceLevel: b.observabilityRequirements.traceLevel,
+        exportAuditLogs: b.observabilityRequirements.exportAuditLogs,
+      },
+      metadata: b.metadata,
+    };
+  }
+
+  toSolutionValidationReportDTO(r: SolutionBlueprintValidationReport): SolutionValidationReportDTO {
+    return {
+      valid: r.valid,
+      errors: r.errors,
+      warnings: r.warnings,
+      validatedAt: r.validatedAt.toISOString(),
+      checkedComponents: r.checkedComponents,
+    };
+  }
+
+  toAISolutionDTO(s: AISolution): AISolutionDTO {
+    return {
+      id: s.id,
+      tenantId: s.tenantId,
+      name: s.name,
+      description: s.description,
+      version: s.version,
+      lifecycleState: s.lifecycleState,
+      blueprint: this.toSolutionBlueprintDTO(s.blueprint),
+      ownerPrincipalId: s.ownerPrincipalId,
+      lastValidationReport: s.lastValidationReport
+        ? this.toSolutionValidationReportDTO(s.lastValidationReport)
+        : undefined,
+      publishedAt: s.publishedAt?.toISOString(),
+      createdAt: s.createdAt.toISOString(),
+      updatedAt: s.updatedAt.toISOString(),
+      metadata: s.metadata,
+      concurrencyVersion: s.concurrencyVersion,
+    };
+  }
+
+  toSolutionInstanceDTO(i: SolutionInstance): SolutionInstanceDTO {
+    return {
+      id: i.id,
+      solutionId: i.solutionId,
+      solutionVersion: i.solutionVersion,
+      tenantId: i.tenantId,
+      name: i.name,
+      status: i.status,
+      config: i.config,
+      operatorPrincipalId: i.operatorPrincipalId,
+      createdAt: i.createdAt.toISOString(),
+      updatedAt: i.updatedAt.toISOString(),
     };
   }
 }

@@ -185,3 +185,16 @@ Este registro documenta de forma exhaustiva los componentes del sistema, organiz
 * **Tests:** `tests/unit/sqlite-organization-repository.test.ts` (10 tests).
 * **Documentación:** `docs/decisions/0027-virtual-organization-foundation.md`.
 * **Estado:** `IMPLEMENTED / OPERATIONAL`
+
+### 5.5 Repositorio Relacional de Soluciones de IA & Planos Arquitectónicos
+* **Componente:** `src/infrastructure/persistence/sqlite/sqlite-solution-repository.ts`
+* **Capa:** Infraestructura / Almacenamiento Relacional de Soluciones
+* **Responsabilidad:** Persistir y consultar soluciones de IA compuestas, planos inmutables por versión e instancias de soluciones en SQLite WAL con control OCC.
+* **Dependencias:** Node.js 22+ `node:sqlite`, `SqliteDatabase`.
+* **Public API:** Implementación de `AISolutionRepositoryPort` e `AISolutionInstanceRepositoryPort`.
+* **Security Boundary:** Aislamiento multi-tenant fail-closed en tablas `ai_solutions` e `ai_solution_instances`.
+* **Persistencia:** Tablas `ai_solutions`, `ai_solution_instances` en `data/app.db`.
+* **Tests:** `tests/unit/solution-factory.test.ts`, `tests/platform/solution-factory-api.test.ts` (32 tests).
+* **Documentación:** `docs/decisions/0036-ai-solutions-factory-and-blueprint-governance.md`.
+* **Estado:** `IMPLEMENTED / OPERATIONAL`
+

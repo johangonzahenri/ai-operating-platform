@@ -1063,3 +1063,101 @@ export async function checkAgentEligibility(agentId, options = {}) {
   const qs = params.toString();
   return request(qs ? `/agents/${encodeURIComponent(agentId)}/eligibility?${qs}` : `/agents/${encodeURIComponent(agentId)}/eligibility`);
 }
+
+// --- AI Solutions Factory & Blueprint Governance (Phase 66) ---
+
+export async function createSolution(body) {
+  return request("/solutions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function listSolutions(options = {}) {
+  const params = new URLSearchParams();
+  if (options.lifecycleState) params.set("lifecycleState", options.lifecycleState);
+  if (options.ownerPrincipalId) params.set("ownerPrincipalId", options.ownerPrincipalId);
+  if (options.search) params.set("search", options.search);
+  if (options.limit !== undefined) params.set("limit", String(options.limit));
+  if (options.offset !== undefined) params.set("offset", String(options.offset));
+  const qs = params.toString();
+  return request(qs ? `/solutions?${qs}` : "/solutions");
+}
+
+export async function getSolution(solutionId) {
+  return request(`/solutions/${encodeURIComponent(solutionId)}`);
+}
+
+export async function updateSolution(solutionId, body) {
+  return request(`/solutions/${encodeURIComponent(solutionId)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function validateSolution(solutionId, body = {}) {
+  return request(`/solutions/${encodeURIComponent(solutionId)}/validate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function publishSolution(solutionId, body = {}) {
+  return request(`/solutions/${encodeURIComponent(solutionId)}/publish`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function createSolutionVersion(solutionId, body = {}) {
+  return request(`/solutions/${encodeURIComponent(solutionId)}/versions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function listSolutionVersions(solutionId) {
+  return request(`/solutions/${encodeURIComponent(solutionId)}/versions`);
+}
+
+export async function getSolutionVersion(solutionId, version) {
+  return request(`/solutions/${encodeURIComponent(solutionId)}/versions/${encodeURIComponent(version)}`);
+}
+
+export async function getSolutionBlueprint(solutionId) {
+  return request(`/solutions/${encodeURIComponent(solutionId)}/blueprint`);
+}
+
+export async function archiveSolution(solutionId, body = {}) {
+  return request(`/solutions/${encodeURIComponent(solutionId)}/archive`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function deprecateSolution(solutionId, body = {}) {
+  return request(`/solutions/${encodeURIComponent(solutionId)}/deprecate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function instantiateSolution(solutionId, body = {}) {
+  return request(`/solutions/${encodeURIComponent(solutionId)}/instantiate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function listSolutionInstances(solutionId) {
+  return request(`/solutions/${encodeURIComponent(solutionId)}/instances`);
+}
+
