@@ -1061,116 +1061,262 @@
         </div>
       </section>
 
-      <!-- Autonomous Operations (v0.9) -->
+      <!-- Autonomous Operations Runtime & Continuous Business Governance (Phase 69-70) -->
       <section id="tab-operations" class="tab-view">
-        <div class="card full-width">
-          <div class="card-header">
+        <!-- Banner & Invariants Header -->
+        <div class="card full-width" style="margin-bottom: 1.5rem; background: linear-gradient(135deg, rgba(37,99,235,0.08), rgba(15,23,42,0.6)); border: 1px solid var(--accent-blue);">
+          <div class="card-header" style="justify-content: space-between; align-items: flex-start;">
             <div>
-              <h3>Autonomous Operations Explorer</h3>
-              <p style="font-size:0.875rem; color:var(--text-secondary); margin-top:0.25rem;">
-                Bounded autonomous execution loops governed by AutonomyBudget, PolicyGateway, and CoreRuntime
+              <span class="badge badge-info" style="margin-bottom: 0.5rem;">AUTONOMOUS OPERATIONS RUNTIME</span>
+              <h2 style="font-size: 1.35rem;">Autonomous Operations &amp; Continuous Governance</h2>
+              <p style="color: var(--text-secondary); margin-top: 0.25rem;">
+                Continuous event-driven, scheduled, and threshold-based autonomous execution governed under zero AI CEO sovereignty.
+                <code style="display:inline-block; margin-top:0.25rem; font-size:0.8rem;">Trigger &ne; Decision &ne; Plan &ne; Execution</code>
               </p>
             </div>
             <div style="display:flex; gap:0.5rem; align-items:center;">
-              <span class="badge badge-info" id="operations-count-badge">0 operations</span>
-              <button id="open-create-operation-btn" class="btn btn-primary btn-sm">+ New Operation</button>
+              <span id="autonomous-runtime-status-badge" class="badge badge-neutral">STOPPED</span>
+              <span class="badge badge-success">Fail-Closed Invariants</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Runtime Daemon Control & Telemetry Strip -->
+        <div class="metrics-grid" style="grid-template-columns: repeat(5, 1fr); margin-bottom: 1.5rem;">
+          <div class="metric-card">
+            <span class="metric-title">Daemon State</span>
+            <span class="metric-value" id="autonomous-runtime-state-display" style="font-size:1.1rem; color:var(--text-primary);">STOPPED</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-title">Active Leases</span>
+            <span class="metric-value" id="autonomous-active-leases-count">0</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-title">Registered Triggers</span>
+            <span class="metric-value" id="autonomous-triggers-count-metric">0</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-title">Executed Cycles</span>
+            <span class="metric-value" id="autonomous-cycles-count-metric">0</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-title">Circuit Breaker Trips</span>
+            <span class="metric-value" id="autonomous-trips-count" style="color:var(--accent-green);">0</span>
+          </div>
+        </div>
+
+        <!-- Daemon Controls Card -->
+        <div class="card full-width" style="margin-bottom: 1.5rem;">
+          <div class="card-header" style="justify-content: space-between; align-items: center;">
+            <div>
+              <h3>Runtime Daemon Controls</h3>
+              <p style="font-size:0.85rem; color:var(--text-secondary); margin-top:0.25rem;">
+                Manage background scheduler loop, event listeners, mutual exclusion leases, and safety halts.
+              </p>
+            </div>
+            <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+              <button id="autonomous-start-btn" class="btn btn-primary btn-sm">▶ Start Runtime</button>
+              <button id="autonomous-pause-btn" class="btn btn-warning btn-sm">⏸ Pause</button>
+              <button id="autonomous-resume-btn" class="btn btn-success btn-sm">▶ Resume</button>
+              <button id="autonomous-stop-btn" class="btn btn-danger btn-sm">⏹ Stop Runtime</button>
+              <button id="autonomous-reset-halt-btn" class="btn btn-danger btn-sm" style="display:none;">⚠️ Reset Safety Halt</button>
+              <button id="autonomous-refresh-btn" class="btn btn-secondary btn-sm">Refresh State</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Autonomous Triggers Management -->
+        <div class="card full-width" style="margin-bottom: 1.5rem;">
+          <div class="card-header" style="justify-content: space-between; align-items: center;">
+            <div>
+              <h3>Autonomous Triggers Management</h3>
+              <p style="font-size:0.85rem; color:var(--text-secondary); margin-top:0.25rem;">
+                Declarative triggers dispatching governed executive cycles without human latency.
+              </p>
+            </div>
+            <div style="display:flex; gap:0.5rem; align-items:center;">
+              <span class="badge badge-info" id="autonomous-triggers-count-badge">0 triggers</span>
+              <button id="open-create-trigger-btn" class="btn btn-primary btn-sm">+ New Trigger</button>
             </div>
           </div>
           <div class="card-body">
-            <!-- Create Operation Panel (hidden by default) -->
-            <div id="create-operation-panel" class="card" style="display:none; margin-bottom:1.5rem; border:1px solid var(--accent-blue);">
-              <div class="card-header">
-                <h4>Dispatch Bounded Autonomous Operation</h4>
-                <button id="close-create-operation-btn" class="btn btn-secondary btn-sm">Cancel</button>
+            <!-- Create Trigger Panel -->
+            <div id="create-trigger-panel" class="card" style="display:none; margin-bottom:1.5rem; border:1px solid var(--accent-blue); background:var(--bg-secondary);">
+              <div class="card-header" style="justify-content: space-between;">
+                <h4>Create Autonomous Trigger</h4>
+                <button id="close-create-trigger-btn" class="btn btn-secondary btn-sm">Cancel</button>
               </div>
               <div class="card-body">
-                <form id="create-operation-form">
-                  <div class="form-row">
+                <form id="create-trigger-form">
+                  <div class="two-col-grid" style="margin-bottom:0.75rem;">
                     <div class="form-group">
-                      <label for="op-agent-select">Assigned Agent *</label>
-                      <select id="op-agent-select" class="form-control" required></select>
+                      <label for="trigger-id-input">Trigger ID *</label>
+                      <input type="text" id="trigger-id-input" class="form-control" placeholder="e.g. trigger-daily-market-eval" required>
                     </div>
                     <div class="form-group">
-                      <label for="op-objective-input">Objective *</label>
-                      <input type="text" id="op-objective-input" class="form-control" placeholder="e.g. Analyze computational results and formulate summary" required>
-                    </div>
-                  </div>
-                  <div class="form-row" style="margin-top:0.75rem;">
-                    <div class="form-group">
-                      <label for="op-max-steps">Max Steps (1-100)</label>
-                      <input type="number" id="op-max-steps" class="form-control" value="5" min="1" max="100">
-                    </div>
-                    <div class="form-group">
-                      <label for="op-max-duration">Max Duration (ms)</label>
-                      <input type="number" id="op-max-duration" class="form-control" value="30000" min="100" max="600000">
-                    </div>
-                    <div class="form-group">
-                      <label for="op-max-tools">Max Tool Calls</label>
-                      <input type="number" id="op-max-tools" class="form-control" value="10" min="0" max="1000">
-                    </div>
-                    <div class="form-group">
-                      <label for="op-max-tokens">Max Tokens</label>
-                      <input type="number" id="op-max-tokens" class="form-control" value="5000" min="0" max="100000">
+                      <label for="trigger-name-input">Trigger Display Name *</label>
+                      <input type="text" id="trigger-name-input" class="form-control" placeholder="e.g. Daily Market Strategy Alignment" required>
                     </div>
                   </div>
-                  <div style="margin-top:1rem; display:flex; justify-content:flex-end;">
-                    <button type="submit" id="submit-operation-btn" class="btn btn-primary">Launch Synchronous Operation</button>
+                  <div class="three-col-grid" style="margin-bottom:0.75rem;">
+                    <div class="form-group">
+                      <label for="trigger-type-select">Trigger Type *</label>
+                      <select id="trigger-type-select" class="form-control" required>
+                        <option value="SCHEDULED">SCHEDULED (Cron / Periodic)</option>
+                        <option value="EVENT_DRIVEN">EVENT_DRIVEN (Event Pattern)</option>
+                        <option value="THRESHOLD">THRESHOLD (Metric Drift)</option>
+                        <option value="MANUAL">MANUAL (On-Demand Fire)</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label for="trigger-target-input">Target Enterprise / Objective *</label>
+                      <input type="text" id="trigger-target-input" class="form-control" placeholder="e.g. enterprise-growth-2026" required>
+                    </div>
+                    <div class="form-group">
+                      <label for="trigger-max-cycles-input">Max Cycles (0 = unlimited)</label>
+                      <input type="number" id="trigger-max-cycles-input" class="form-control" value="0" min="0" max="10000">
+                    </div>
+                  </div>
+                  <div class="form-group" style="margin-bottom:1rem;">
+                    <label for="trigger-config-input">Trigger Configuration (Cron / Pattern / Threshold JSON)</label>
+                    <textarea id="trigger-config-input" class="form-control code-editor" rows="3" placeholder='{"cron": "0 8 * * *", "eventType": "business.metric.drifted", "threshold": 0.15}'>{"cron": "0 */6 * * *"}</textarea>
+                  </div>
+                  <div style="display:flex; justify-content:flex-end;">
+                    <button type="submit" id="submit-trigger-btn" class="btn btn-primary">Register Autonomous Trigger</button>
                   </div>
                 </form>
               </div>
             </div>
 
-            <!-- Operations Table -->
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Operation ID</th>
-                  <th>Agent</th>
-                  <th>Objective</th>
-                  <th>Status</th>
-                  <th>Budget (Steps / Dur / Tools)</th>
-                  <th>Consumption</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="operations-tbody">
-                <tr><td colspan="7" class="empty-state">No autonomous operations dispatched yet</td></tr>
-              </tbody>
-            </table>
+            <!-- Triggers Table -->
+            <div style="overflow-x:auto;">
+              <table class="data-table" id="autonomous-triggers-table">
+                <thead>
+                  <tr>
+                    <th>Trigger ID</th>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Target</th>
+                    <th>Status</th>
+                    <th>Fired Count</th>
+                    <th>Last Fired</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="autonomous-triggers-tbody">
+                  <tr><td colspan="8" class="empty-state">Loading autonomous triggers...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
 
-            <!-- Operation Detail View Panel (hidden by default) -->
-            <div id="operation-detail-panel" class="card" style="display:none; margin-top:1.5rem; border:1px solid var(--border-color);">
-              <div class="card-header">
-                <h4>Operation Detail: <span id="op-detail-id"></span></h4>
-                <button id="close-operation-detail-btn" class="btn btn-secondary btn-sm">Close</button>
-              </div>
-              <div class="card-body">
-                <div class="two-col-grid">
-                  <div>
-                    <p><strong>Status:</strong> <span id="op-detail-status" class="badge"></span></p>
-                    <p><strong>Agent ID:</strong> <span id="op-detail-agent"></span></p>
-                    <p><strong>Objective:</strong> <span id="op-detail-objective"></span></p>
-                    <p><strong>Created:</strong> <span id="op-detail-created"></span></p>
-                    <p><strong>Updated:</strong> <span id="op-detail-updated"></span></p>
-                    <p id="op-detail-error-wrapper" style="display:none;"><strong>Error:</strong> <span id="op-detail-error" style="color:var(--accent-red);"></span></p>
-                  </div>
-                  <div>
-                    <p><strong>Budget Allocated:</strong></p>
-                    <pre id="op-detail-budget" class="json-display" style="max-height:120px;"></pre>
-                    <p style="margin-top:0.5rem;"><strong>Budget Consumed:</strong></p>
-                    <pre id="op-detail-consumption" class="json-display" style="max-height:120px;"></pre>
-                  </div>
-                </div>
+        <!-- Continuous Autonomous Cycles & Operations -->
+        <div class="card full-width" style="margin-bottom: 1.5rem;">
+          <div class="card-header" style="justify-content: space-between; align-items: center;">
+            <div>
+              <h3>Autonomous Execution Cycles &amp; Closed-Loop Chain</h3>
+              <p style="font-size:0.85rem; color:var(--text-secondary); margin-top:0.25rem;">
+                Verification and governance trail: Trigger &rarr; Decision &rarr; Plan &rarr; Execution &rarr; Verification &rarr; Governance.
+              </p>
+            </div>
+            <span class="badge badge-info" id="autonomous-cycles-count-badge">0 cycles</span>
+          </div>
+          <div class="card-body">
+            <div style="overflow-x:auto;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Cycle ID</th>
+                    <th>Trigger Source</th>
+                    <th>Target Strategy</th>
+                    <th>Status</th>
+                    <th>Stage &amp; Progress</th>
+                    <th>Verification</th>
+                    <th>Started At</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="autonomous-cycles-tbody">
+                  <tr><td colspan="8" class="empty-state">No autonomous cycles executed yet. Trigger runtime or fire a manual trigger.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
 
-                <div style="margin-top:1.5rem;">
-                  <h5>Observations &amp; Decisions</h5>
-                  <div id="op-detail-steps" style="margin-top:0.5rem; display:flex; flex-direction:column; gap:0.5rem;"></div>
-                </div>
-              </div>
+        <!-- Safety Operations & Incident Hub -->
+        <div class="card full-width">
+          <div class="card-header" style="justify-content: space-between; align-items: center;">
+            <div>
+              <h3>Safety Operations &amp; Governed Halts</h3>
+              <p style="font-size:0.85rem; color:var(--text-secondary); margin-top:0.25rem;">
+                Circuit breaker trips, lease conflicts, budget exhaustions, and blocked autonomous cycles.
+              </p>
+            </div>
+            <span class="badge badge-success" id="autonomous-safety-badge">0 Active Halts</span>
+          </div>
+          <div class="card-body">
+            <div style="overflow-x:auto;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Incident ID</th>
+                    <th>Type</th>
+                    <th>Entity / Cycle</th>
+                    <th>Severity</th>
+                    <th>Reason / Error</th>
+                    <th>Occurred At</th>
+                    <th>Resolution</th>
+                  </tr>
+                </thead>
+                <tbody id="autonomous-safety-tbody">
+                  <tr><td colspan="7" class="empty-state">All systems operational. No safety halts or circuit breaker trips active.</td></tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
       </section>
+
+      <!-- Autonomous Cycle Detail Modal -->
+      <div id="autonomous-detail-modal" class="modal-backdrop" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="modal-autonomous-id-title">
+        <div class="modal-dialog" style="max-width:850px;">
+          <div class="modal-header">
+            <h3 id="modal-autonomous-id-title">Autonomous Execution Cycle Detail</h3>
+            <button id="close-autonomous-modal-btn" class="modal-close-btn" aria-label="Close modal">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div class="detail-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom:1.5rem;">
+              <div class="detail-item">
+                <span class="detail-label">Cycle ID</span>
+                <span class="detail-value code-text" id="modal-cycle-id">-</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Status</span>
+                <span class="detail-value" id="modal-cycle-status">-</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Trigger Source</span>
+                <span class="detail-value" id="modal-cycle-trigger">-</span>
+              </div>
+            </div>
+
+            <!-- Invariant Visual Chain -->
+            <div style="margin-bottom:1.5rem;">
+              <h4 style="font-size:0.9rem; font-weight:600; margin-bottom:0.75rem;">Continuous Governance 6-Stage Chain</h4>
+              <div style="display:flex; gap:0.5rem; flex-wrap:wrap;" id="modal-autonomous-chain-container">
+                <!-- Chain pills populated via DOM -->
+              </div>
+            </div>
+
+            <div>
+              <h4 style="font-size:0.9rem; font-weight:600; margin-bottom:0.5rem;">Cycle Payload &amp; Verification Telemetry</h4>
+              <pre id="modal-cycle-payload" class="json-display" style="max-height:250px;"><code>{}</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- 7. View: Playground -->
       <section id="tab-playground" class="tab-view">

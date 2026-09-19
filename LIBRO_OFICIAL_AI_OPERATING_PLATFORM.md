@@ -5,8 +5,8 @@
 ---
 
 **Documento:** AI Operating Platform — Official Architecture Book
-**Versión del Documento:** 2.5 (Consolidación v1.3.0 Budget Governance Closure & No-Bypass Hardening)
-**Estado del Repositorio:** v1.3.0 Baseline (1064 tests PASS, 0 FAIL — 100% determinismo)
+**Versión del Documento:** 3.0 (Integración Oficial de Autonomous Operations Runtime, Control Plane Web & Gobernanza Continua)
+**Estado del Repositorio:** v1.3.0 Baseline (1354 tests PASS, 0 FAIL — 100% determinismo)
 **Estado Documental:** Oficial / Sincronizado con Fuente de Verdad
 **Fecha de Verificación:** Septiembre de 2026
 **Fuente de Verdad Técnica:** Código fuente (`src/`) + Tests automatizados (`tests/`) + ADRs (`docs/decisions/`)
@@ -26,7 +26,8 @@
 | **2.2** | Septiembre 2026 | v1.2.0 Virtual Org | **Virtual Organization Foundation (Fase 56 / Prompt 102):**<br>• Jerarquía organizativa formal: `Organization` (ciclo de vida activo/inactivo/archivado), `Area` funcional y `Team` de trabajo.<br>• Membresía gobernada de agentes (`AgentMembership`) con roles operativos (`LEAD`, `SPECIALIST`, `OPERATOR`, `REVIEWER`).<br>• Repositorio relacional duradero `SqliteOrganizationRepository` con índices compuestos y OCC.<br>• Endpoints REST canónicos bajo `/api/v1/*` y vista interactiva en el Web Control Plane (0 `innerHTML`).<br>• Línea base canónica verificada en **1019 tests PASS** (0 FAIL, 11 suites). |
 | **2.3** | Septiembre 2026 | v1.3.0 Team Resource Governance | **Team Resource Governance & Budget Control (Fase 57 / Prompt 103):**<br>• Agregado `TeamResourceBudget` con cuotas multidimensionales (`maxExecutions`, `maxModelCalls`, `maxToolCalls`, `maxAutonomousSteps`, `maxDurationMs`, `maxTokens`), contadores `consumed`, control de concurrencia optimista (`version`) y estados (`ACTIVE`, `EXHAUSTED`, `SUSPENDED`).<br>• Invariantes estrictas de desacoplamiento: `Membresía ≠ Permiso`, `Membresía ≠ Presupuesto`, `Presupuesto ≠ Autorización` (ADR 0028).<br>• Semántica fail-closed (`NO BUDGET = DENY`).<br>• Persistencia relacional `SqliteTeamResourceBudgetRepository` con aislamiento atómico `BEGIN IMMEDIATE` para prevención de condiciones de carrera de última unidad.<br>• Endpoints REST canónicos `/api/v1/teams/:id/budget*` y panel de gobernanza en Web Control Plane (0 `innerHTML`).<br>• Línea base canónica verificada en **1043 tests PASS** (0 FAIL, 11 suites). |
 | **2.4** | Septiembre 2026 | v1.3.0 Budget Enforcement | **Team Resource Budget Enforcement & Execution Integration (Fase 57.1 / Prompt 104):**<br>• Integración fail-closed y verificación end-to-end de cuotas presupuestarias en el runtime de ejecución (`AgentExecutionStrategy`, `ToolInvocationRuntime`, `AutonomousOrchestrator`).<br>• Enlace en tiempo de ejecución: resolución de equipo por membresía de agente y evaluación previa a la ejecución (`executions: 1`), llamada de modelo (`modelCalls: 1`), invocación de herramienta (`toolCalls: 1`), paso autónomo (`autonomousSteps: 1`) y contabilización de duración (`durationMs`) y tokens (`tokens`).<br>• Bloqueo estricto de bypass para agentes asignados a equipos suspendidos o agotados.<br>• Línea base canónica verificada en **1057 tests PASS** (0 FAIL, 11 suites). |
-| **2.5** | Septiembre 2026 | v1.3.0 Consolidated | **Auditoría Integral de Documentación y Sincronización Canónica (Fase 58 / Prompt 105):**<br>• Actualización de Matriz de Capacidades (Sección 2.2) a línea base v1.3.0 con 1064 tests.<br>• Sincronización de versión de plataforma a 1.3.0 en `version.ts`, `package.json` y `README.md`.<br>• Incorporación de 8 módulos estables no documentados (Coordinación Multi-Agente, Automatización n8n, Billing/Quotas, Circuit Breaker, PostgreSQL, Virtual Try-On, Worker Queue, Feature Flags).<br>• Expansión del catálogo API REST (Capítulo 10) con 30+ endpoints de Organization, Area, Team, Budget, Devices, Diagnostics, Applications, Tenants e Integrations.<br>• Compleción de invariantes INV-15 a INV-18 y 7 ADRs faltantes en la Matriz de Trazabilidad.<br>• Corrección de referencias de archivos i18n y actualización de OAD-001 a v1.3.0.<br>• Producción de edición oficial en inglés.<br>• Línea base canónica verificada en **1064 tests PASS** (0 FAIL, 11 suites). |
+| **2.5** | Septiembre 2026 | v1.3.0 Consolidated | **Auditoría Integral de Documentación y Sincronización Canónica (Fase 58 / Prompt 105):**<br>• Actualización de Matriz de Capacidades a línea base v1.3.0 con 1064 tests.<br>• Línea base canónica verificada en **1064 tests PASS** (0 FAIL, 11 suites). |
+| **3.0** | Septiembre 2026 | v1.3.0 Autonomous Runtime & Control Plane | **Autonomous Operations Runtime & Continuous Business Governance (Fases 62-70):**<br>• Orquestación de flujos de trabajo de negocio (`WorkflowDefinition`, `WorkflowInstance`), verificación determinista y supervisión humana (`OversightRequest`).<br>• Ciclo de vida y evaluación cuantitativa de agentes (`AgentProfile`, `AgentEvaluation`) y factoría de soluciones (`SolutionDefinition`, `SolutionDeployment`).<br>• AI Enterprise OS y bucle cerrado de retroalimentación operacional ejecutiva (`EnterpriseGoal`).<br>• Runtime de Operaciones Autónomas con triggers (`AutonomousTrigger`), arrendamiento concurrente (`RuntimeLease`), disyuntores de seguridad y reconciliación de ciclos.<br>• Integración completa en el Plano de Control Web SPA (`#tab-operations`) con visualizador de 6 fases y 0 `innerHTML`.<br>• Línea base canónica verificada en **1354 tests PASS** (0 FAIL, 57 suites). |
 
 ---
 
@@ -52,7 +53,7 @@ Antes de sumergirnos en la arquitectura, es fundamental entender una regla de tr
 
 ![Visión Estratégica vs. Capacidades Implementadas: El 90% de la plataforma está construido y verificado](docs/images/12_vision_vs_reality.jpg)
 
-La infografía muestra las **16 capacidades ya construidas y verificadas** (lado derecho) frente a los 2 objetivos pendientes del futuro (lado izquierdo). Cada tarjeta incluye su descripción en español — desde el Motor Hexagonal hasta los 1064 tests pasando sin fallos.
+La infografía muestra las **16 capacidades ya construidas y verificadas** (lado derecho) frente a los 2 objetivos pendientes del futuro (lado izquierdo). Cada tarjeta incluye su descripción en español — desde el Motor Hexagonal hasta los 1354 tests pasando sin fallos.
 
 ---
 
@@ -786,7 +787,13 @@ COMPLETADO & VERIFICADO (v1.3.0 BASELINE CANÓNICA — 1064 TESTS PASS)
   - Cierre de brechas de auditoría: denegación estricta para agentes sin equipo asignado (`unassigned-agent-no-team`) salvo autorización explícita por política de sistema.
   - Denegación estricta fail-closed ante presupuestos de equipo inexistentes (`team-resource-budget-missing`).
   - Semántica formal de dimensiones de recursos: Hard Gates pre-ejecución vs Contabilización post-facto con overshoot (`durationMs`, `tokens`) transicionando a `EXHAUSTED`.
-  - Test Baseline: 1064 tests passing deterministas (0 fail, 11 suites).
+• v1.3.0 (Fases 62-70): Enterprise Workflow Orchestration, Autonomous Operations Runtime & Control Plane:
+  - Enterprise Workflow Orchestration & Verification: DAG acíclico, segregación de funciones (SoD), validación multivariante y supervisión humana con escalamiento.
+  - Agent Lifecycle & Quantitative Evaluation: Perfilado de agentes, métricas continuas y factoría de soluciones declarativas.
+  - AI Enterprise OS & Closed-Loop Operations: Reconciliación de metas ejecutivas y optimización continua de directivas operacionales.
+  - Autonomous Operations Runtime & Continuous Governance: Motor daemon de ejecución operacional con disparadores reactivos y programados (`AutonomousTrigger`), arrendamiento concurrente (`RuntimeLease`), disyuntores de circuito y parada de emergencia instantánea.
+  - Web Control Plane Integration: Consola operativa `#tab-operations` con visualizador de 6 fases y 0 `.innerHTML`.
+  - Test Baseline: 1354 tests passing deterministas (0 fail, 57 suites).
 
 ROADMAP FUTURO (BACKLOG FORMAL v1.4 — DISEÑADO / NO IMPLEMENTADO)
 ──────────────────────────────────────────────────────────────────────────
@@ -801,12 +808,16 @@ ROADMAP FUTURO (BACKLOG FORMAL v1.4 — DISEÑADO / NO IMPLEMENTADO)
 
 * **Agent (Agente):** La "tarjeta de identificación" de un trabajador de IA. Define qué modelo usa, qué herramientas tiene permitidas y a qué memoria accede. *Analogía: como la credencial de un empleado que lista sus permisos de acceso.*
 * **AutonomousOperation (Operación Autónoma):** Una misión completa que la plataforma ejecuta paso a paso, con límites estrictos de pasos, tiempo y herramientas. *Analogía: un chef siguiendo una receta con ingredientes limitados y temporizador.*
+* **AutonomousOperationsRuntime (Runtime de Operaciones Autónomas):** Daemon continuo de ejecución gobernada que procesa ciclos autónomos mediante triggers, arrendamientos y reconciliación.
+* **AutonomousTrigger (Disparador Autónomo):** Condición programada (`SCHEDULED`), reactiva (`EVENT_DRIVEN`), por umbral (`THRESHOLD`) o manual (`MANUAL`) que inicia un ciclo operacional.
 * **AutonomyBudget (Presupuesto de Autonomía):** Los límites concretos de una operación: máximo de pasos, tiempo y herramientas. Una vez creado, no se puede modificar. *Ejemplo: máximo 10 pasos, 30 segundos, 5 llamadas a herramientas.*
 * **CoreRuntime (Motor Principal):** El corazón de la plataforma que realmente ejecuta las tareas. Recibe una tarea, la procesa paso a paso y guarda el resultado. *Analogía: el jefe de obra que coordina toda la construcción.*
 * **Decision (Decisión):** Después de cada paso, el sistema decide: ¿seguir con el siguiente paso? ¿completar la misión? ¿detener por error? Hay 4 opciones: `COMPLETE`, `FAIL`, `STOP`, `EXECUTE_STEP`.
 * **Fail-Closed (Fallo Cerrado):** Principio de seguridad: si algo falla, se duda o hay un error, la respuesta siempre es DENEGAR y detener. Nunca "dejarlo pasar por defecto". *Analogía: un guardia de seguridad que ante cualquier duda dice "no pasa".*
 * **Observation (Observación):** El resultado congelado de ejecutar un paso. Una vez registrado, nadie puede modificarlo. *Analogía: una foto instantánea del resultado — evidencia forense inmutable.*
 * **RestartRecoveryService (Servicio de Recuperación):** Si el servidor se apaga inesperadamente, este servicio detecta qué tareas quedaron a medias y las marca como fallidas de forma segura. *Analogía: un inspector que revisa la fábrica después de un corte de luz.*
+* **RuntimeLease (Arrendamiento de Runtime):** Bloqueo concurrente temporal con control de concurrencia optimista y expiración de heartbeat para evitar colisiones entre workers distribuidos.
+* **SafetyBreakerTrip (Disparo de Seguridad):** Apertura automática del disyuntor ante violaciones consecutivas de políticas, sobrecosto o fallos de verificación, pasando a `SAFETY_HALTED`.
 * **TraceId (Identificador de Rastreo):** Un código único que acompaña a cada operación desde que llega hasta que termina, permitiendo reconstruir toda su historia. *Analogía: el número de seguimiento de un paquete.*
 * **Zero Runtime Dependencies (Cero Dependencias en Ejecución):** La plataforma funciona solo con las herramientas integradas de Node.js, sin instalar ningún paquete externo. *Analogía: un auto que funciona sin necesitar accesorios de terceros.*
 * **Organization (Organización):** La empresa virtual que agrupa áreas funcionales y equipos de trabajo. Puede estar Activa, Inactiva o Archivada.

@@ -1316,10 +1316,10 @@ class PlatformApp {
   }
 
   setupOperations() {
-    const openBtn = document.getElementById("open-create-operation-btn");
-    const closeBtn = document.getElementById("close-create-operation-btn");
-    const createPanel = document.getElementById("create-operation-panel");
-    const form = document.getElementById("create-operation-form");
+    const openBtn = document.getElementById("open-create-trigger-btn");
+    const closeBtn = document.getElementById("close-create-trigger-btn");
+    const createPanel = document.getElementById("create-trigger-panel");
+    const form = document.getElementById("create-trigger-form");
 
     if (openBtn && createPanel) {
       openBtn.addEventListener("click", () => {
@@ -1337,40 +1337,40 @@ class PlatformApp {
     if (form) {
       form.addEventListener("submit", async (e) => {
         e.preventDefault();
-        const submitBtn = document.getElementById("submit-operation-btn");
+        const submitBtn = document.getElementById("submit-trigger-btn");
         const originalText = submitBtn ? submitBtn.textContent : "";
         if (submitBtn) {
           submitBtn.setAttribute("disabled", "true");
-          submitBtn.textContent = "Executing Operation...";
+          submitBtn.textContent = "Registering Trigger...";
         }
 
-        const agentId = document.getElementById("op-agent-select")?.value;
-        const objective = document.getElementById("op-objective-input")?.value?.trim();
-        const maxSteps = parseInt(document.getElementById("op-max-steps")?.value ?? "5", 10);
-        const maxDurationMs = parseInt(document.getElementById("op-max-duration")?.value ?? "30000", 10);
-        const maxToolCalls = parseInt(document.getElementById("op-max-tools")?.value ?? "10", 10);
-        const maxTokens = parseInt(document.getElementById("op-max-tokens")?.value ?? "5000", 10);
+        const id = document.getElementById("trigger-id-input")?.value?.trim();
+        const name = document.getElementById("trigger-name-input")?.value?.trim();
+        const type = document.getElementById("trigger-type-select")?.value;
+        const target = document.getElementById("trigger-target-input")?.value?.trim();
+        const maxCycles = parseInt(document.getElementById("trigger-max-cycles-input")?.value ?? "0", 10);
+        let config = {};
+        try {
+          const configRaw = document.getElementById("trigger-config-input")?.value?.trim();
+          if (configRaw) config = JSON.parse(configRaw);
+        } catch {
+          config = {};
+        }
 
         try {
-          const detail = await api.createOperation({
-            agentId,
-            objective,
-            budget: {
-              maxSteps,
-              maxDurationMs,
-              maxToolCalls,
-              maxTokens,
-            },
+          await api.createAutonomousTrigger({
+            id,
+            name,
+            type,
+            enterpriseId: target,
+            config,
+            maxCycles: maxCycles > 0 ? maxCycles : undefined,
           });
           form.reset();
           if (createPanel) createPanel.style.display = "none";
-          await this.loadData();
-          const opId = detail?.operation?.id || detail?.id;
-          if (opId) {
-            this.showOperationDetail(opId);
-          }
+          await this.loadAutonomousOperationsData();
         } catch (err) {
-          alert(`Operation execution failed: ${err.message}`);
+          alert(`Failed to register autonomous trigger: ${err.message}`);
         } finally {
           if (submitBtn) {
             submitBtn.removeAttribute("disabled");
@@ -1380,13 +1380,61 @@ class PlatformApp {
       });
     }
 
-    const closeDetailBtn = document.getElementById("close-operation-detail-btn");
-    const detailPanel = document.getElementById("operation-detail-panel");
-    if (closeDetailBtn && detailPanel) {
-      closeDetailBtn.addEventListener("click", () => {
-        detailPanel.style.display = "none";
-      });
-    }
+    // Daemon Controls
+    document.getElementById("autonomous-start-btn")?.addEventListener("click", async () => {
+      try {
+        await api.startAutonomousRuntime();
+        await this.loadAutonomousOperationsData();
+      } catch (err) {
+        alert(`Failed to start autonomous runtime: ${err.message}`);
+      }
+    });
+
+    document.getElementById("autonomous-pause-btn")?.addEventListener("click", async () => {
+      try {
+        await api.pauseAutonomousRuntime();
+        await this.loadAutonomousOperationsData();
+      } catch (err) {
+        alert(`Failed to pause autonomous runtime: ${err.message}`);
+      }
+    });
+
+    document.getElementById("autonomous-resume-btn")?.addEventListener("click", async () => {
+      try {
+        await api.resumeAutonomousRuntime();
+        await this.loadAutonomousOperationsData();
+      } catch (err) {
+        alert(`Failed to resume autonomous runtime: ${err.message}`);
+      }
+    });
+
+    document.getElementById("autonomous-stop-btn")?.addEventListener("click", async () => {
+      try {
+        await api.stopAutonomousRuntime();
+        await this.loadAutonomousOperationsData();
+      } catch (err) {
+        alert(`Failed to stop autonomous runtime: ${err.message}`);
+      }
+    });
+
+    document.getElementById("autonomous-reset-halt-btn")?.addEventListener("click", async () => {
+      try {
+        await api.resumeAutonomousRuntime();
+        await this.loadAutonomousOperationsData();
+      } catch (err) {
+        alert(`Failed to reset safety halt: ${err.message}`);
+      }
+    });
+
+    document.getElementById("autonomous-refresh-btn")?.addEventListener("click", async () => {
+      await this.loadAutonomousOperationsData();
+    });
+
+    // Detail Modal Close
+    document.getElementById("close-autonomous-modal-btn")?.addEventListener("click", () => {
+      const modal = document.getElementById("autonomous-detail-modal");
+      if (modal) modal.style.display = "none";
+    });
   }
 
   displayPlaygroundResult(data, status) {
@@ -2115,17 +2163,18 @@ class PlatformApp {
   async loadData() {
     if (this.currentTab === "platform-operations") {
       this.loadPlatformOperationsData();
+    } else if (this.currentTab === "operations") {
+      this.loadAutonomousOperationsData();
     }
 
     try {
-      const [status, execs, audit, tools, models, agents, operations, tasks, apps] = await Promise.all([
+      const [status, execs, audit, tools, models, agents, tasks, apps] = await Promise.all([
         api.getStatus().catch(() => null),
         api.getExecutions().catch(() => []),
         api.getAuditLogs().catch(() => []),
         api.getTools().catch(() => []),
         api.getModels().catch(() => []),
         api.getAgents().catch(() => []),
-        api.getOperations().catch(() => []),
         api.getTasks().catch(() => []),
         api.getApplications().catch(() => null),
       ]);
@@ -2156,10 +2205,6 @@ class PlatformApp {
         this.cachedAgents = agents;
         this.renderAgents(this.getFilteredAgents());
         this.populatePlaygroundAgentSelect(agents);
-        this.populateOperationAgentSelect(agents);
-      }
-      if (Array.isArray(operations)) {
-        this.renderOperations(operations);
       }
       if (Array.isArray(apps) && apps.length > 0) {
         this.applications = apps;
@@ -2775,388 +2820,382 @@ class PlatformApp {
     }
   }
 
-  populateOperationAgentSelect(agents) {
-    const select = document.getElementById("op-agent-select");
-    if (!select) return;
-    const currentVal = select.value;
-    clearChildren(select);
+  async loadAutonomousOperationsData() {
+    try {
+      const [runtimeRes, triggersRes, cyclesRes] = await Promise.all([
+        api.getAutonomousRuntimeState().catch(() => null),
+        api.listAutonomousTriggers().catch(() => []),
+        api.listExecutiveCycles().catch(() => []),
+      ]);
 
-    const activeAgents = agents.filter((a) => a.status === "ACTIVE");
-    const listToUse = activeAgents.length > 0 ? activeAgents : agents;
+      const state = runtimeRes?.data || runtimeRes || { status: "STOPPED", activeLeases: [], circuitBreakerTrips: 0, uptimeSeconds: 0 };
+      const triggers = Array.isArray(triggersRes?.data) ? triggersRes.data : Array.isArray(triggersRes) ? triggersRes : [];
+      const cycles = Array.isArray(cyclesRes?.data) ? cyclesRes.data : Array.isArray(cyclesRes) ? cyclesRes : [];
 
-    for (const agent of listToUse) {
-      const opt = document.createElement("option");
-      opt.value = agent.id;
-      opt.textContent = `${agent.id} (${agent.name})`;
-      select.appendChild(opt);
-    }
-    if (currentVal && Array.from(select.options).some((o) => o.value === currentVal)) {
-      select.value = currentVal;
+      this.renderAutonomousRuntime(state);
+      this.renderAutonomousTriggers(triggers);
+      this.renderAutonomousCycles(cycles);
+      this.renderAutonomousSafety(state, cycles);
+    } catch (err) {
+      console.error("Failed to load autonomous operations data:", err);
     }
   }
 
-  renderOperations(operations) {
-    const badge = document.getElementById("operations-count-badge");
+  renderAutonomousRuntime(state) {
+    const badge = document.getElementById("autonomous-runtime-status-badge");
+    const display = document.getElementById("autonomous-runtime-state-display");
+    const leasesCount = document.getElementById("autonomous-active-leases-count");
+    const tripsCount = document.getElementById("autonomous-trips-count");
+    const resetHaltBtn = document.getElementById("autonomous-reset-halt-btn");
+
+    const st = state?.status || "STOPPED";
     if (badge) {
-      badge.textContent = `${operations.length} operation${operations.length === 1 ? "" : "s"}`;
+      badge.textContent = st;
+      badge.className = `badge badge-${st === "RUNNING" ? "success" : st === "PAUSED" ? "warning" : st === "SAFETY_HALTED" ? "danger" : "neutral"}`;
+    }
+    if (display) {
+      display.textContent = st;
+      display.style.color = st === "RUNNING" ? "var(--accent-green)" : st === "SAFETY_HALTED" ? "var(--accent-red)" : st === "PAUSED" ? "var(--accent-amber)" : "var(--text-primary)";
     }
 
-    const tbody = document.getElementById("operations-tbody");
+    if (leasesCount) {
+      const count = Array.isArray(state?.activeLeases) ? state.activeLeases.length : 0;
+      leasesCount.textContent = String(count);
+    }
+
+    if (tripsCount) {
+      const trips = state?.circuitBreakerTrips ?? 0;
+      tripsCount.textContent = String(trips);
+      tripsCount.style.color = trips > 0 ? "var(--accent-red)" : "var(--accent-green)";
+    }
+
+    if (resetHaltBtn) {
+      resetHaltBtn.style.display = st === "SAFETY_HALTED" ? "inline-block" : "none";
+    }
+  }
+
+  renderAutonomousTriggers(triggers) {
+    const metric = document.getElementById("autonomous-triggers-count-metric");
+    const badge = document.getElementById("autonomous-triggers-count-badge");
+    if (metric) metric.textContent = String(triggers.length);
+    if (badge) badge.textContent = `${triggers.length} trigger${triggers.length === 1 ? "" : "s"}`;
+
+    const tbody = document.getElementById("autonomous-triggers-tbody");
     if (!tbody) return;
     clearChildren(tbody);
 
-    if (operations.length === 0) {
+    if (triggers.length === 0) {
       const tr = document.createElement("tr");
       const td = document.createElement("td");
-      td.colSpan = 7;
+      td.colSpan = 8;
       td.className = "empty-state";
-      td.textContent = "No autonomous operations dispatched yet";
+      td.textContent = "No autonomous triggers registered. Create one to schedule continuous governance.";
       tr.appendChild(td);
       tbody.appendChild(tr);
       return;
     }
 
-    for (const op of operations) {
+    for (const t of triggers) {
       const tr = document.createElement("tr");
 
       // ID
       const tdId = document.createElement("td");
       const codeId = document.createElement("code");
-      codeId.textContent = op.id;
+      codeId.textContent = t.id;
       tdId.appendChild(codeId);
 
-      // Agent
-      const tdAgent = document.createElement("td");
-      tdAgent.textContent = op.agentId;
+      // Name
+      const tdName = document.createElement("td");
+      tdName.textContent = t.name;
 
-      // Objective
-      const tdObj = document.createElement("td");
-      tdObj.textContent = op.objective.length > 40 ? `${op.objective.substring(0, 37)}...` : op.objective;
-      tdObj.title = op.objective;
+      // Type
+      const tdType = document.createElement("td");
+      const typeBadge = document.createElement("span");
+      typeBadge.className = `badge badge-${t.type === "SCHEDULED" ? "info" : t.type === "EVENT_DRIVEN" ? "agent" : t.type === "THRESHOLD" ? "warning" : "neutral"}`;
+      typeBadge.textContent = t.type;
+      tdType.appendChild(typeBadge);
+
+      // Target
+      const tdTarget = document.createElement("td");
+      tdTarget.textContent = t.enterpriseId || t.targetId || "Global";
 
       // Status
       const tdStatus = document.createElement("td");
-      const statusBadge = document.createElement("span");
-      statusBadge.textContent = op.status;
-      let badgeClass = "badge-info";
-      if (op.status === "COMPLETED") badgeClass = "badge-success";
-      else if (op.status === "FAILED") badgeClass = "badge-danger";
-      else if (op.status === "CANCELLED" || op.status === "BUDGET_EXHAUSTED") badgeClass = "badge-warning";
-      statusBadge.className = `badge ${badgeClass}`;
-      tdStatus.appendChild(statusBadge);
+      const stBadge = document.createElement("span");
+      const isEnabled = t.enabled !== false && t.status !== "DISABLED";
+      stBadge.className = `badge badge-${isEnabled ? "success" : "neutral"}`;
+      stBadge.textContent = isEnabled ? "ACTIVE" : "DISABLED";
+      tdStatus.appendChild(stBadge);
 
-      // Budget
-      const tdBudget = document.createElement("td");
-      tdBudget.style.fontSize = "0.8rem";
-      tdBudget.textContent = `${op.budget.maxSteps}s / ${op.budget.maxDurationMs}ms / ${op.budget.maxToolCalls}t`;
+      // Fired count
+      const tdFired = document.createElement("td");
+      tdFired.textContent = String(t.firedCount ?? t.cycleCount ?? 0);
 
-      // Consumption
-      const tdCons = document.createElement("td");
-      tdCons.style.fontSize = "0.8rem";
-      tdCons.textContent = `${op.consumption.steps}s / ${op.consumption.durationMs}ms / ${op.consumption.toolCalls}t`;
+      // Last fired
+      const tdLast = document.createElement("td");
+      tdLast.textContent = t.lastFiredAt ? new Date(t.lastFiredAt).toLocaleString() : "Never";
 
       // Actions
       const tdActions = document.createElement("td");
       tdActions.style.display = "flex";
-      tdActions.style.gap = "0.5rem";
+      tdActions.style.gap = "0.35rem";
 
-      const viewBtn = document.createElement("button");
-      viewBtn.className = "btn btn-secondary btn-sm";
-      viewBtn.textContent = "Detail";
-      viewBtn.addEventListener("click", () => this.showOperationDetail(op.id));
-      tdActions.appendChild(viewBtn);
-
-      if (op.status === "SUBMITTED" || op.status === "RUNNING") {
-        const cancelBtn = document.createElement("button");
-        cancelBtn.className = "btn btn-danger btn-sm";
-        cancelBtn.textContent = "Cancel";
-        cancelBtn.addEventListener("click", async () => {
-          if (!confirm(`Cancel operation '${op.id}'?`)) return;
-          try {
-            await api.cancelOperation(op.id, "User requested cancellation from Web UI");
-            await this.loadData();
-          } catch (err) {
-            alert(`Cancellation failed: ${err.message}`);
+      const toggleBtn = document.createElement("button");
+      toggleBtn.className = `btn btn-xs ${isEnabled ? "btn-warning" : "btn-primary"}`;
+      toggleBtn.textContent = isEnabled ? "Disable" : "Enable";
+      toggleBtn.addEventListener("click", async () => {
+        try {
+          if (isEnabled) {
+            await api.disableAutonomousTrigger(t.id);
+          } else {
+            await api.enableAutonomousTrigger(t.id);
           }
-        });
-        tdActions.appendChild(cancelBtn);
-      }
+          await this.loadAutonomousOperationsData();
+        } catch (err) {
+          alert(`Failed to update trigger: ${err.message}`);
+        }
+      });
+      tdActions.appendChild(toggleBtn);
 
-      tr.appendChild(tdId);
-      tr.appendChild(tdAgent);
-      tr.appendChild(tdObj);
-      tr.appendChild(tdStatus);
-      tr.appendChild(tdBudget);
-      tr.appendChild(tdCons);
-      tr.appendChild(tdActions);
+      const fireBtn = document.createElement("button");
+      fireBtn.className = "btn btn-xs btn-secondary";
+      fireBtn.textContent = "⚡ Fire Now";
+      fireBtn.addEventListener("click", async () => {
+        try {
+          await api.fireAutonomousTrigger(t.id);
+          await this.loadAutonomousOperationsData();
+        } catch (err) {
+          alert(`Failed to fire trigger: ${err.message}`);
+        }
+      });
+      tdActions.appendChild(fireBtn);
+
+      tr.append(tdId, tdName, tdType, tdTarget, tdStatus, tdFired, tdLast, tdActions);
       tbody.appendChild(tr);
     }
   }
 
-  async showOperationDetail(operationId) {
-    const detailPanel = document.getElementById("operation-detail-panel");
-    if (!detailPanel) return;
+  renderAutonomousCycles(cycles) {
+    const metric = document.getElementById("autonomous-cycles-count-metric");
+    const badge = document.getElementById("autonomous-cycles-count-badge");
+    if (metric) metric.textContent = String(cycles.length);
+    if (badge) badge.textContent = `${cycles.length} cycle${cycles.length === 1 ? "" : "s"}`;
 
-    try {
-      const op = await api.getOperation(operationId);
-      const opData = op.operation || op;
+    const tbody = document.getElementById("autonomous-cycles-tbody");
+    if (!tbody) return;
+    clearChildren(tbody);
 
-      const idSpan = document.getElementById("op-detail-id");
-      if (idSpan) idSpan.textContent = opData.id;
-
-      const statusBadge = document.getElementById("op-detail-status");
-      if (statusBadge) {
-        statusBadge.textContent = opData.status;
-        let badgeClass = "badge-info";
-        if (opData.status === "COMPLETED") badgeClass = "badge-success";
-        else if (opData.status === "FAILED") badgeClass = "badge-danger";
-        else if (opData.status === "CANCELLED" || opData.status === "BUDGET_EXHAUSTED") badgeClass = "badge-warning";
-        statusBadge.className = `badge ${badgeClass}`;
-      }
-
-      const agentSpan = document.getElementById("op-detail-agent");
-      if (agentSpan) agentSpan.textContent = opData.agentId;
-
-      const objSpan = document.getElementById("op-detail-objective");
-      if (objSpan) objSpan.textContent = opData.objective;
-
-      const createdSpan = document.getElementById("op-detail-created");
-      if (createdSpan) createdSpan.textContent = opData.createdAt ? new Date(opData.createdAt).toLocaleString() : "-";
-
-      const updatedSpan = document.getElementById("op-detail-updated");
-      if (updatedSpan) updatedSpan.textContent = opData.updatedAt ? new Date(opData.updatedAt).toLocaleString() : "-";
-
-      const errWrapper = document.getElementById("op-detail-error-wrapper");
-      const errSpan = document.getElementById("op-detail-error");
-      if (errWrapper && errSpan) {
-        if (opData.error) {
-          errWrapper.style.display = "block";
-          errSpan.textContent = opData.error;
-        } else {
-          errWrapper.style.display = "none";
-        }
-      }
-
-      const budgetPre = document.getElementById("op-detail-budget");
-      if (budgetPre) budgetPre.textContent = JSON.stringify(opData.budget, null, 2);
-
-      const consPre = document.getElementById("op-detail-consumption");
-      if (consPre) consPre.textContent = JSON.stringify(opData.consumption, null, 2);
-
-      if (opData.budget && opData.consumption && consPre) {
-        const createBar = (label, used, max) => {
-          const wrapper = document.createElement("div");
-          wrapper.style.marginBottom = "0.5rem";
-
-          const labelDiv = document.createElement("div");
-          labelDiv.style.fontSize = "0.8rem";
-          labelDiv.style.marginBottom = "0.2rem";
-          labelDiv.textContent = `${label}: ${used} / ${max}`;
-          wrapper.appendChild(labelDiv);
-
-          const barBg = document.createElement("div");
-          barBg.style.background = "var(--bg-secondary)";
-          barBg.style.height = "8px";
-          barBg.style.borderRadius = "4px";
-          barBg.style.width = "100%";
-          barBg.style.overflow = "hidden";
-
-          const barFill = document.createElement("div");
-          barFill.style.height = "100%";
-          const pct = Math.min(100, max > 0 ? (used / max) * 100 : 0);
-          barFill.style.width = `${pct}%`;
-          barFill.style.background = pct < 70 ? "green" : pct < 90 ? "yellow" : "red";
-          barBg.appendChild(barFill);
-
-          wrapper.appendChild(barBg);
-          return wrapper;
-        };
-
-        const barsContainer = document.createElement("div");
-        barsContainer.style.marginTop = "1rem";
-        barsContainer.appendChild(createBar("Steps", opData.consumption.stepsUsed ?? opData.consumption.steps ?? 0, opData.budget.maxSteps));
-        barsContainer.appendChild(createBar("Duration (ms)", opData.consumption.elapsedMs ?? opData.consumption.durationMs ?? 0, opData.budget.maxDurationMs));
-        barsContainer.appendChild(createBar("Tool Calls", opData.consumption.toolCallsUsed ?? opData.consumption.toolCalls ?? 0, opData.budget.maxToolCalls));
-        consPre.parentNode.insertBefore(barsContainer, consPre.nextSibling);
-      }
-
-      const stepsContainer = document.getElementById("op-detail-steps");
-      if (stepsContainer) {
-        if (op.plan) {
-          const planContainer = document.createElement("div");
-          planContainer.style.marginBottom = "1rem";
-          planContainer.className = "card";
-          planContainer.style.padding = "1rem";
-          planContainer.style.border = "1px solid var(--border-color)";
-
-          const planHeader = document.createElement("h4");
-          planHeader.textContent = "Execution Plan";
-          planContainer.appendChild(planHeader);
-
-          const planInfo = document.createElement("div");
-          planInfo.style.marginBottom = "0.5rem";
-          planInfo.style.fontSize = "0.85rem";
-          planInfo.textContent = `Plan ID: ${op.plan.id} | Total Steps: ${op.plan.totalSteps}`;
-          planContainer.appendChild(planInfo);
-
-          const planSteps = op.plan.steps || [];
-          for (const pStep of planSteps) {
-            const pCard = document.createElement("div");
-            pCard.className = "card";
-            pCard.style.border = "1px solid var(--border-color)";
-            pCard.style.padding = "0.75rem";
-            pCard.style.marginBottom = "0.5rem";
-
-            const pTitle = document.createElement("div");
-            
-            const strongStep = document.createElement("strong");
-            strongStep.textContent = `Step ${pStep.order}: `;
-            pTitle.appendChild(strongStep);
-            
-            pTitle.appendChild(document.createTextNode(`${pStep.id} - `));
-            
-            const emAction = document.createElement("em");
-            emAction.textContent = pStep.action;
-            pTitle.appendChild(emAction);
-
-            pCard.appendChild(pTitle);
-
-            if (pStep.input) {
-              const pInput = document.createElement("pre");
-              pInput.style.fontSize = "0.75rem";
-              pInput.style.marginTop = "0.5rem";
-              pInput.style.background = "var(--bg-secondary)";
-              pInput.style.padding = "0.5rem";
-              pInput.textContent = JSON.stringify(pStep.input, null, 2);
-              pCard.appendChild(pInput);
-            }
-
-            planContainer.appendChild(pCard);
-          }
-          stepsContainer.parentNode.insertBefore(planContainer, stepsContainer);
-        }
-
-        clearChildren(stepsContainer);
-        const observations = op.observations || [];
-        const decisions = op.decisions || [];
-
-        if (observations.length === 0 && decisions.length === 0) {
-          const empty = document.createElement("p");
-          empty.className = "empty-state";
-          empty.textContent = "No observations or decisions recorded yet for this operation.";
-          stepsContainer.appendChild(empty);
-        } else {
-          for (let i = 0; i < Math.max(observations.length, decisions.length); i++) {
-            const stepDiv = document.createElement("div");
-            stepDiv.className = "card";
-            stepDiv.style.border = "1px solid var(--border-color)";
-            stepDiv.style.padding = "0.75rem";
-            stepDiv.style.marginBottom = "0.5rem";
-
-            const header = document.createElement("div");
-            header.style.display = "flex";
-            header.style.justifyContent = "space-between";
-            header.style.alignItems = "center";
-            header.style.marginBottom = "0.5rem";
-
-            const stepTitle = document.createElement("strong");
-            stepTitle.textContent = `Step ${i + 1}`;
-            header.appendChild(stepTitle);
-
-            const dec = decisions[i];
-            if (dec) {
-              const decBadge = document.createElement("span");
-              const decClass = dec.type === "EXECUTE_STEP" ? "info" : dec.type === "COMPLETE" ? "success" : dec.type === "STOP" ? "warning" : "danger";
-              decBadge.className = `badge badge-${decClass}`;
-              decBadge.textContent = `Decision: ${dec.type}`;
-              header.appendChild(decBadge);
-            }
-            stepDiv.appendChild(header);
-
-            const obs = observations[i];
-            if (obs) {
-              const obsP = document.createElement("div");
-              obsP.style.fontSize = "0.85rem";
-              obsP.style.marginBottom = "0.25rem";
-              const strong = document.createElement("strong");
-              strong.textContent = "Observation: ";
-              obsP.appendChild(strong);
-
-              const summaryText = document.createTextNode(
-                `Status: ${obs.status} | Duration: ${obs.durationMs}ms | Tool Calls: ${obs.toolCalls ?? 0}`
-              );
-              obsP.appendChild(summaryText);
-              stepDiv.appendChild(obsP);
-
-              if (obs.error) {
-                const errP = document.createElement("div");
-                errP.style.color = "var(--accent-red)";
-                errP.style.fontSize = "0.8rem";
-                errP.textContent = `Error: ${obs.error}`;
-                stepDiv.appendChild(errP);
-              }
-            }
-
-            if (dec && dec.reason) {
-              const reasonP = document.createElement("div");
-              reasonP.style.fontSize = "0.85rem";
-              reasonP.style.color = "var(--text-secondary)";
-              const rStrong = document.createElement("strong");
-              rStrong.textContent = "Reason: ";
-              reasonP.appendChild(rStrong);
-              reasonP.appendChild(document.createTextNode(dec.reason));
-              stepDiv.appendChild(reasonP);
-            }
-
-            stepsContainer.appendChild(stepDiv);
-          }
-        }
-      }
-
-      if (opData.resultOutput || opData.terminationReason || opData.failureError) {
-        const resultContainer = document.createElement("div");
-        resultContainer.style.marginTop = "1rem";
-        resultContainer.className = "card";
-        resultContainer.style.padding = "1rem";
-        resultContainer.style.border = "1px solid var(--border-color)";
-
-        const resultHeader = document.createElement("h4");
-        resultHeader.textContent = "Operation Result";
-        resultContainer.appendChild(resultHeader);
-
-        if (opData.terminationReason) {
-          const termP = document.createElement("p");
-          termP.textContent = `Termination Reason: ${opData.terminationReason}`;
-          resultContainer.appendChild(termP);
-        }
-
-        if (opData.failureError) {
-          const errP = document.createElement("p");
-          errP.style.color = "var(--accent-red)";
-          errP.textContent = `Failure [${opData.failureError.code}]: ${opData.failureError.message}`;
-          resultContainer.appendChild(errP);
-        }
-
-        if (opData.resultOutput) {
-          const resH = document.createElement("h5");
-          resH.textContent = "Result Output";
-          resultContainer.appendChild(resH);
-
-          const resPre = document.createElement("pre");
-          resPre.style.background = "var(--bg-secondary)";
-          resPre.style.padding = "0.5rem";
-          resPre.textContent = JSON.stringify(opData.resultOutput, null, 2);
-          resultContainer.appendChild(resPre);
-        }
-
-        stepsContainer.parentNode.insertBefore(resultContainer, stepsContainer.nextSibling);
-      }
-
-      detailPanel.style.display = "block";
-      detailPanel.scrollIntoView({ behavior: "smooth" });
-    } catch (err) {
-      alert(`Failed to load operation details: ${err.message}`);
+    if (cycles.length === 0) {
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = 8;
+      td.className = "empty-state";
+      td.textContent = "No autonomous cycles executed yet. Trigger runtime or fire a manual trigger.";
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+      return;
     }
+
+    for (const cycle of cycles) {
+      const tr = document.createElement("tr");
+
+      // ID
+      const tdId = document.createElement("td");
+      const codeId = document.createElement("code");
+      codeId.textContent = cycle.id;
+      tdId.appendChild(codeId);
+
+      // Trigger
+      const tdTrigger = document.createElement("td");
+      tdTrigger.textContent = cycle.triggerId || cycle.triggerSource || "MANUAL";
+
+      // Target Strategy
+      const tdStrategy = document.createElement("td");
+      tdStrategy.textContent = cycle.objectiveId || cycle.enterpriseId || "Executive Alignment";
+
+      // Status
+      const tdStatus = document.createElement("td");
+      const stBadge = document.createElement("span");
+      const st = cycle.status || "RUNNING";
+      stBadge.className = `badge badge-${st === "COMPLETED" ? "success" : st === "FAILED" || st === "SAFETY_HALTED" ? "danger" : st === "PAUSED" ? "warning" : "info"}`;
+      stBadge.textContent = st;
+      tdStatus.appendChild(stBadge);
+
+      // Stage Progress
+      const tdStage = document.createElement("td");
+      const stageBadge = document.createElement("span");
+      stageBadge.className = "badge badge-info";
+      stageBadge.textContent = cycle.currentStage || cycle.stage || "EVALUATION";
+      tdStage.appendChild(stageBadge);
+
+      // Verification
+      const tdVerif = document.createElement("td");
+      const verifBadge = document.createElement("span");
+      const verdict = cycle.verificationVerdict || (cycle.status === "COMPLETED" ? "PASS" : "PENDING");
+      verifBadge.className = `badge badge-${verdict === "PASS" ? "success" : verdict === "FAIL" ? "danger" : "warning"}`;
+      verifBadge.textContent = verdict;
+      tdVerif.appendChild(verifBadge);
+
+      // Started At
+      const tdTime = document.createElement("td");
+      tdTime.textContent = cycle.startedAt ? new Date(cycle.startedAt).toLocaleString() : "-";
+
+      // Actions
+      const tdActions = document.createElement("td");
+      const inspectBtn = document.createElement("button");
+      inspectBtn.className = "btn btn-xs btn-secondary";
+      inspectBtn.textContent = "Inspect Cycle";
+      inspectBtn.addEventListener("click", () => this.showAutonomousDetail(cycle));
+      tdActions.appendChild(inspectBtn);
+
+      tr.append(tdId, tdTrigger, tdStrategy, tdStatus, tdStage, tdVerif, tdTime, tdActions);
+      tbody.appendChild(tr);
+    }
+  }
+
+  renderAutonomousSafety(state, cycles) {
+    const safetyBadge = document.getElementById("autonomous-safety-badge");
+    const tbody = document.getElementById("autonomous-safety-tbody");
+    if (!tbody) return;
+    clearChildren(tbody);
+
+    const incidents = [];
+    if (state?.status === "SAFETY_HALTED") {
+      incidents.push({
+        id: "INC-SAFETY-HALT",
+        type: "CIRCUIT_BREAKER_HALT",
+        entity: "AutonomousOperationsRuntime",
+        severity: "CRITICAL",
+        reason: state.haltReason || "Circuit breaker tripped due to consecutive cycle failures",
+        occurredAt: state.haltedAt || new Date().toISOString(),
+        resolution: "Inspect underlying failure, then click 'Reset Safety Halt' to resume.",
+      });
+    }
+
+    const failedCycles = (cycles || []).filter((c) => c.status === "FAILED" || c.status === "SAFETY_HALTED");
+    for (const fc of failedCycles) {
+      incidents.push({
+        id: `INC-${fc.id.substring(0, 8)}`,
+        type: "CYCLE_EXECUTION_FAILURE",
+        entity: `Cycle: ${fc.id}`,
+        severity: "HIGH",
+        reason: fc.error || "Executive cycle execution failed during step verification",
+        occurredAt: fc.updatedAt || fc.startedAt || new Date().toISOString(),
+        resolution: "Review cycle verification telemetry and adjust agent autonomy budget.",
+      });
+    }
+
+    if (safetyBadge) {
+      safetyBadge.textContent = `${incidents.length} Active Incident${incidents.length === 1 ? "" : "s"}`;
+      safetyBadge.className = `badge badge-${incidents.length === 0 ? "success" : "danger"}`;
+    }
+
+    if (incidents.length === 0) {
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = 7;
+      td.className = "empty-state";
+      td.textContent = "All systems operational. No safety halts or circuit breaker trips active.";
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+      return;
+    }
+
+    for (const inc of incidents) {
+      const tr = document.createElement("tr");
+
+      const tdId = document.createElement("td");
+      const codeId = document.createElement("code");
+      codeId.textContent = inc.id;
+      tdId.appendChild(codeId);
+
+      const tdType = document.createElement("td");
+      tdType.textContent = inc.type;
+
+      const tdEntity = document.createElement("td");
+      tdEntity.textContent = inc.entity;
+
+      const tdSev = document.createElement("td");
+      const sevBadge = document.createElement("span");
+      sevBadge.className = `badge badge-${inc.severity === "CRITICAL" ? "danger" : "warning"}`;
+      sevBadge.textContent = inc.severity;
+      tdSev.appendChild(sevBadge);
+
+      const tdReason = document.createElement("td");
+      tdReason.textContent = inc.reason;
+
+      const tdTime = document.createElement("td");
+      tdTime.textContent = new Date(inc.occurredAt).toLocaleTimeString();
+
+      const tdRes = document.createElement("td");
+      tdRes.style.fontSize = "0.8rem";
+      tdRes.style.color = "var(--text-secondary)";
+      tdRes.textContent = inc.resolution;
+
+      tr.append(tdId, tdType, tdEntity, tdSev, tdReason, tdTime, tdRes);
+      tbody.appendChild(tr);
+    }
+  }
+
+  showAutonomousDetail(cycle) {
+    const modal = document.getElementById("autonomous-detail-modal");
+    if (!modal) return;
+
+    this.setText("modal-cycle-id", cycle.id || "-");
+    this.setText("modal-cycle-status", cycle.status || "UNKNOWN");
+    this.setText("modal-cycle-trigger", cycle.triggerId || cycle.triggerSource || "MANUAL");
+
+    const payloadPre = document.getElementById("modal-cycle-payload");
+    if (payloadPre) {
+      payloadPre.textContent = JSON.stringify(cycle, null, 2);
+    }
+
+    const chainContainer = document.getElementById("modal-autonomous-chain-container");
+    if (chainContainer) {
+      clearChildren(chainContainer);
+      const stages = [
+        { name: "1. Trigger", status: "COMPLETED", badge: "info" },
+        { name: "2. Decision", status: "COMPLETED", badge: "info" },
+        { name: "3. Plan", status: "COMPLETED", badge: "info" },
+        { name: "4. Execution", status: cycle.status === "COMPLETED" ? "COMPLETED" : "RUNNING", badge: cycle.status === "COMPLETED" ? "success" : "warning" },
+        { name: "5. Verification", status: cycle.verificationVerdict || (cycle.status === "COMPLETED" ? "PASS" : "PENDING"), badge: cycle.verificationVerdict === "PASS" || cycle.status === "COMPLETED" ? "success" : "warning" },
+        { name: "6. Governance", status: "ENFORCED", badge: "success" },
+      ];
+
+      for (let i = 0; i < stages.length; i++) {
+        const s = stages[i];
+        const pill = document.createElement("div");
+        pill.style.padding = "6px 12px";
+        pill.style.background = "var(--bg-secondary)";
+        pill.style.border = "1px solid var(--border-color)";
+        pill.style.borderRadius = "4px";
+        pill.style.display = "flex";
+        pill.style.alignItems = "center";
+        pill.style.gap = "6px";
+        pill.style.fontSize = "0.8rem";
+
+        const labelSpan = document.createElement("span");
+        labelSpan.style.fontWeight = "600";
+        labelSpan.textContent = s.name;
+
+        const badgeSpan = document.createElement("span");
+        badgeSpan.className = `badge badge-${s.badge}`;
+        badgeSpan.textContent = s.status;
+
+        pill.append(labelSpan, badgeSpan);
+        chainContainer.appendChild(pill);
+
+        if (i < stages.length - 1) {
+          const arrow = document.createElement("span");
+          arrow.textContent = "→";
+          arrow.style.color = "var(--text-secondary)";
+          arrow.style.alignSelf = "center";
+          chainContainer.appendChild(arrow);
+        }
+      }
+    }
+
+    modal.style.display = "flex";
   }
 
   renderModels(modelsToRender) {

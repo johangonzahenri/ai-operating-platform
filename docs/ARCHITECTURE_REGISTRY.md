@@ -15,8 +15,8 @@ Este registro documenta de forma exhaustiva los componentes del sistema, organiz
 * **Security Boundary:** 100% libre de `innerHTML` (construcción segura del DOM con `textContent` y `createElement`), cookies `SameSite=Strict`, modo bilingüe (`es-419` por defecto).
 * **Persistencia:** Ninguna (estado efímero en navegador alimentado por la API REST).
 * **Observabilidad:** Telemetría en tiempo real desde `/api/v1/metrics` y stream forense `/api/v1/events`.
-* **Tests:** `tests/platform/operational-ui-frontend.test.ts`, `tests/platform/operational-ui-hardening.test.ts`, `tests/platform/operational-ui-i18n.test.ts` (52 tests).
-* **Documentación:** `docs/OPERATIONAL_CONSOLE.md`, `docs/PLATFORM_CONTROL_CENTER.md`.
+* **Tests:** `tests/platform/operational-ui-frontend.test.ts`, `tests/platform/operational-ui-hardening.test.ts`, `tests/platform/operational-ui-i18n.test.ts`, `tests/platform/autonomous-operations-ui.test.ts` (66 tests).
+* **Documentación:** `docs/OPERATIONAL_CONSOLE.md`, `docs/PLATFORM_CONTROL_CENTER.md`, `docs/AUTONOMOUS_OPERATIONS.md`.
 * **Estado:** `IMPLEMENTED / OPERATIONAL`
 
 ---

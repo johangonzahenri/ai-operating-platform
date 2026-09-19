@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.0] - 2026-09-19 (Autonomous Operations Runtime, Control Plane & Continuous Governance)
+
+### Added
+- **Autonomous Operations Runtime & Continuous Business Governance**:
+  - `AutonomousOperationsRuntime` daemon orchestrator with state transitions (`STOPPED`, `RUNNING`, `PAUSED`, `SAFETY_HALTED`).
+  - `AutonomousTrigger` domain aggregate with multi-modal trigger policies (`SCHEDULED`, `EVENT_DRIVEN`, `THRESHOLD`, `MANUAL`).
+  - `RuntimeLease` concurrency lease mechanism with Optimistic Concurrency Control (OCC) and heartbeat expiration.
+  - Continuous business safety engine with `SafetyBreakerTrip` circuit breaker and instant emergency stop.
+- **Web Control Plane Integration (`#tab-operations`)**:
+  - Full autonomous runtime dashboard with live daemon state badges, trigger table, and execution controls.
+  - Interactive 6-stage autonomous execution chain visualizer ($\text{Trigger} \to \text{Decision} \to \text{Plan} \to \text{Execution} \to \text{Verification} \to \text{Governance}$).
+  - Safety Operations Hub with circuit breaker logs and emergency stop buttons.
+  - Cycle inspection modal with full immutable payload view.
+  - Strict DOM generation across all components with **0 `.innerHTML`**.
+  - Bilingual localization (`es-419` and `en`).
+- **Enterprise Capabilities Integration**:
+  - Enterprise Workflow Orchestration (DAG validation), Verification (Segregation of Duties), and Human Oversight escalation.
+  - Quantitative Agent Lifecycle & Evaluation and declarative AI Solution Factory.
+  - AI Enterprise OS with closed-loop executive feedback.
+- **Test Baseline**: 1354 deterministic tests passing across 57 suites (0 failures, 100% success rate).
+
+---
+
 ## [1.1.0] - 2026-09-17 (v1.1.0 Baseline Auditada & Extended Ecosystem)
 
 ### Added
