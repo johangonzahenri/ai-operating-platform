@@ -289,5 +289,20 @@ export default {
     "verifyCapability": "Verify Capability",
     "addCapability": "Add Capability",
     "removeCapability": "Remove Capability"
+  },
+  "workflows": {
+    "title": "Workflow Orchestration",
+    "definitions": "Workflow Definitions",
+    "instances": "Execution Instances",
+    "newWorkflow": "New Workflow",
+    "startWorkflow": "Start Workflow",
+    "steps": "Steps",
+    "stepStatus": "Step Status",
+    "assignedAgent": "Assigned Agent",
+    "dependencies": "Dependencies",
+    "advance": "Advance",
+    "pause": "Pause",
+    "resume": "Resume",
+    "cancel": "Cancel"
   }
 };

@@ -1,3 +1,16 @@
+import {
+  WorkflowDefinitionRepositoryPort,
+  WorkflowInstanceRepositoryPort,
+} from "../application/ports/workflow-repository-port.js";
+import {
+  InMemoryWorkflowDefinitionRepository,
+  InMemoryWorkflowInstanceRepository,
+} from "../infrastructure/persistence/in-memory/in-memory-workflow-repository.js";
+import {
+  SqliteWorkflowDefinitionRepository,
+  SqliteWorkflowInstanceRepository,
+} from "../infrastructure/persistence/sqlite/sqlite-workflow-repository.js";
+import { WorkflowOrchestratorService } from "../application/workflow/workflow-orchestrator-service.js";
 import { ExecuteTask } from "../application/execute-task.js";
 import { SubmitTask } from "../application/submit-task.js";
 import { ExecuteOrchestration } from "../application/orchestration/execute-orchestration.js";
@@ -111,6 +124,9 @@ export interface CreatePlatformOptions {
   readonly organizationalCoordinationService?: OrganizationalCoordinationService | undefined;
   readonly agentProfileRepository?: AgentProfileRepositoryPort | undefined;
   readonly agentProfileService?: AgentProfileService | undefined;
+  readonly workflowDefinitionRepository?: WorkflowDefinitionRepositoryPort | undefined;
+  readonly workflowInstanceRepository?: WorkflowInstanceRepositoryPort | undefined;
+  readonly workflowOrchestratorService?: WorkflowOrchestratorService | undefined;
   readonly eventStream?: EventStreamAdapter | undefined;
 }
 
@@ -325,6 +341,32 @@ export const createPlatform = (
         events,
       });
 
+  const workflowDefinitionRepository: WorkflowDefinitionRepositoryPort = (!isLogger && (optionsOrLogger as CreatePlatformOptions).workflowDefinitionRepository)
+    ? (optionsOrLogger as CreatePlatformOptions).workflowDefinitionRepository!
+    : dbManager
+      ? new SqliteWorkflowDefinitionRepository(dbManager)
+      : new InMemoryWorkflowDefinitionRepository();
+
+  const workflowInstanceRepository: WorkflowInstanceRepositoryPort = (!isLogger && (optionsOrLogger as CreatePlatformOptions).workflowInstanceRepository)
+    ? (optionsOrLogger as CreatePlatformOptions).workflowInstanceRepository!
+    : dbManager
+      ? new SqliteWorkflowInstanceRepository(dbManager)
+      : new InMemoryWorkflowInstanceRepository();
+
+  const workflowOrchestratorService: WorkflowOrchestratorService = (!isLogger && (optionsOrLogger as CreatePlatformOptions).workflowOrchestratorService)
+    ? (optionsOrLogger as CreatePlatformOptions).workflowOrchestratorService!
+    : new WorkflowOrchestratorService({
+        definitionRepository: workflowDefinitionRepository,
+        instanceRepository: workflowInstanceRepository,
+        agentProfileService,
+        organizationRepository,
+        budgetService: teamResourceBudgetService,
+        policyGateway: policy,
+        runtime: agentRuntime,
+        agentQuery: agents,
+        events,
+      });
+
   // Orchestrated execution runtime & use case
   const orchestrator = new SequentialOrchestrator(models, toolGateway, events, policy);
   const orchestratedStrategy = new OrchestratedExecutionStrategy(orchestrator, (context, task) => ({
@@ -439,6 +481,9 @@ export const createPlatform = (
     organizationalCoordinationService,
     agentProfileRepository,
     agentProfileService,
+    workflowDefinitionRepository,
+    workflowInstanceRepository,
+    workflowOrchestratorService,
   };
 };
 

@@ -101,6 +101,8 @@ import {
   AgentCapabilityDTO,
   RequestCoordinationRequestDTO,
   CoordinationExecutionResponseDTO,
+  WorkflowDefinitionDTO,
+  WorkflowInstanceDTO,
 } from "./platform-dto.js";
 import { OrganizationService } from "../../application/organization/organization-service.js";
 import { InMemoryOrganizationRepository } from "../../infrastructure/organization/in-memory-organization-repository.js";
@@ -118,6 +120,13 @@ import { Team } from "../../domain/organization/team.js";
 import { AgentMembership } from "../../domain/organization/agent-membership.js";
 import { TeamResourceBudget } from "../../domain/organization/team-resource-budget.js";
 import { AgentCoordinationRecord } from "../../domain/organization/organizational-coordination.js";
+import { WorkflowOrchestratorService } from "../../application/workflow/workflow-orchestrator-service.js";
+import {
+  InMemoryWorkflowDefinitionRepository,
+  InMemoryWorkflowInstanceRepository,
+} from "../../infrastructure/persistence/in-memory/in-memory-workflow-repository.js";
+import { WorkflowDefinition } from "../../domain/workflow/workflow-definition.js";
+import { WorkflowInstance } from "../../domain/workflow/workflow-instance.js";
 
 import { projectExecutionObservability } from "../product/execution-observability.js";
 import { Tenant, DEFAULT_PLAN_LIMITS } from "../../domain/tenant/tenant.js";
@@ -172,6 +181,7 @@ export interface PlatformDependencies {
   readonly teamResourceBudgetService?: TeamResourceBudgetService | undefined;
   readonly organizationalCoordinationService?: OrganizationalCoordinationService | undefined;
   readonly agentProfileService?: AgentProfileService | undefined;
+  readonly workflowOrchestratorService?: WorkflowOrchestratorService | undefined;
   readonly eventStream?: EventStreamAdapter | undefined;
 }
 
@@ -191,6 +201,7 @@ export class PlatformService {
   private readonly teamResourceBudgetService: TeamResourceBudgetService;
   private readonly organizationalCoordinationService: OrganizationalCoordinationService;
   private readonly agentProfileService: AgentProfileService;
+  private readonly workflowOrchestratorService: WorkflowOrchestratorService;
   private readonly governanceService: EnterpriseGovernanceService;
   private readonly quotaService: QuotaService;
   private readonly integrationEngine: IntegrationTruthEngine;
@@ -250,6 +261,15 @@ export class PlatformService {
     this.agentProfileService = deps.agentProfileService ?? new AgentProfileService({
       profileRepository: new InMemoryAgentProfileRepository(),
       organizationRepository: defaultOrgRepo,
+      agentQuery: this.agents ?? { findById: () => undefined, list: () => [] },
+    });
+    this.workflowOrchestratorService = deps.workflowOrchestratorService ?? new WorkflowOrchestratorService({
+      definitionRepository: new InMemoryWorkflowDefinitionRepository(),
+      instanceRepository: new InMemoryWorkflowInstanceRepository(),
+      agentProfileService: this.agentProfileService,
+      organizationRepository: defaultOrgRepo,
+      budgetService: this.teamResourceBudgetService,
+      policyGateway: new InMemoryPolicyGateway(),
       agentQuery: this.agents ?? { findById: () => undefined, list: () => [] },
     });
 
@@ -2286,6 +2306,97 @@ export class PlatformService {
       createdAt: record.createdAt.toISOString(),
       updatedAt: record.updatedAt.toISOString(),
       completedAt: record.completedAt?.toISOString(),
+    };
+  }
+
+  // ========================================================================
+  // Workflow Orchestration Methods (Prompt 111)
+  // ========================================================================
+
+  getWorkflowOrchestratorService(): WorkflowOrchestratorService {
+    return this.workflowOrchestratorService;
+  }
+
+  toWorkflowDefinitionDTO(def: WorkflowDefinition): WorkflowDefinitionDTO {
+    return {
+      id: def.id,
+      tenantId: def.tenantId,
+      organizationId: def.organizationId,
+      areaId: def.areaId,
+      teamId: def.teamId,
+      name: def.name,
+      description: def.description,
+      version: def.version,
+      status: def.status,
+      steps: def.steps.map((s) => ({
+        stepId: s.stepId,
+        name: s.name,
+        order: s.order,
+        purpose: s.purpose,
+        dependsOn: s.dependsOn,
+        responsibility: s.responsibility,
+        requiredCapabilities: s.requiredCapabilities,
+        requiredRole: s.requiredRole,
+        assignedAgentId: s.assignedAgentId,
+        assignedTeamId: s.assignedTeamId,
+        inputTemplate: s.inputTemplate,
+        timeoutMs: s.timeoutMs,
+        maxRetries: s.maxRetries,
+        requiresApproval: s.requiresApproval,
+      })),
+      createdAt: def.createdAt.toISOString(),
+      updatedAt: def.updatedAt.toISOString(),
+    };
+  }
+
+  toWorkflowInstanceDTO(inst: WorkflowInstance): WorkflowInstanceDTO {
+    const stepStatesDTO: Record<string, any> = {};
+    for (const [k, s] of Object.entries(inst.stepStates)) {
+      stepStatesDTO[k] = {
+        stepId: s.stepId,
+        status: s.status,
+        assignedAgentId: s.assignedAgentId,
+        assignedTeamId: s.assignedTeamId,
+        taskId: s.taskId,
+        executionId: s.executionId,
+        coordinationId: s.coordinationId,
+        attempts: s.attempts,
+        maxRetries: s.maxRetries,
+        input: s.input,
+        output: s.output,
+        error: s.error,
+        startedAt: s.startedAt?.toISOString(),
+        completedAt: s.completedAt?.toISOString(),
+      };
+    }
+
+    return {
+      id: inst.id,
+      workflowDefinitionId: inst.workflowDefinitionId,
+      workflowDefinitionVersion: inst.workflowDefinitionVersion,
+      tenantId: inst.tenantId,
+      organizationId: inst.organizationId,
+      areaId: inst.areaId,
+      teamId: inst.teamId,
+      initiatorId: inst.initiatorId,
+      status: inst.status,
+      currentStepId: inst.currentStepId,
+      stepStates: stepStatesDTO,
+      input: inst.input,
+      output: inst.output,
+      failure: inst.failure
+        ? {
+            code: inst.failure.code,
+            message: inst.failure.message,
+            ...(inst.failure.stepId ? { stepId: inst.failure.stepId } : {}),
+          }
+        : undefined,
+      correlationId: inst.correlationId,
+      traceId: inst.traceId,
+      version: inst.version,
+      createdAt: inst.createdAt.toISOString(),
+      updatedAt: inst.updatedAt.toISOString(),
+      completedAt: inst.completedAt?.toISOString(),
     };
   }
 }

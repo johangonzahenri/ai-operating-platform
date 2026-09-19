@@ -289,5 +289,20 @@ export default {
     "verifyCapability": "Verificar Capacidad",
     "addCapability": "Agregar Capacidad",
     "removeCapability": "Eliminar Capacidad"
+  },
+  "workflows": {
+    "title": "Orquestación de Flujos de Trabajo",
+    "definitions": "Definiciones de Flujo",
+    "instances": "Instancias de Ejecución",
+    "newWorkflow": "Nuevo Flujo de Trabajo",
+    "startWorkflow": "Iniciar Flujo",
+    "steps": "Pasos",
+    "stepStatus": "Estado del Paso",
+    "assignedAgent": "Agente Asignado",
+    "dependencies": "Dependencias",
+    "advance": "Avanzar",
+    "pause": "Pausar",
+    "resume": "Reanudar",
+    "cancel": "Cancelar"
   }
 };

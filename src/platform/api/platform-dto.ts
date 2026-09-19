@@ -805,3 +805,117 @@ export interface AgentDiscoveryCriteriaDTO {
   readonly limit?: number | undefined;
   readonly offset?: number | undefined;
 }
+
+export interface WorkflowStepDefinitionDTO {
+  readonly stepId: string;
+  readonly name: string;
+  readonly order: number;
+  readonly purpose: string;
+  readonly dependsOn?: readonly string[] | undefined;
+  readonly responsibility?: string | undefined;
+  readonly requiredCapabilities?: readonly string[] | undefined;
+  readonly requiredRole?: string | undefined;
+  readonly assignedAgentId?: string | undefined;
+  readonly assignedTeamId?: string | undefined;
+  readonly inputTemplate?: Readonly<Record<string, unknown>> | undefined;
+  readonly timeoutMs?: number | undefined;
+  readonly maxRetries?: number | undefined;
+  readonly requiresApproval?: boolean | undefined;
+}
+
+export interface WorkflowDefinitionDTO {
+  readonly id: string;
+  readonly tenantId: string;
+  readonly organizationId: string;
+  readonly areaId?: string | undefined;
+  readonly teamId?: string | undefined;
+  readonly name: string;
+  readonly description?: string | undefined;
+  readonly version: number;
+  readonly status: "DRAFT" | "ACTIVE" | "ARCHIVED";
+  readonly steps: readonly WorkflowStepDefinitionDTO[];
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export interface CreateWorkflowDefinitionRequestDTO {
+  readonly id: string;
+  readonly tenantId?: string | undefined;
+  readonly organizationId: string;
+  readonly areaId?: string | undefined;
+  readonly teamId?: string | undefined;
+  readonly name: string;
+  readonly description?: string | undefined;
+  readonly steps: readonly WorkflowStepDefinitionDTO[];
+}
+
+export interface UpdateWorkflowDefinitionRequestDTO {
+  readonly name?: string | undefined;
+  readonly description?: string | undefined;
+  readonly steps?: readonly WorkflowStepDefinitionDTO[] | undefined;
+}
+
+export interface WorkflowStepStateDTO {
+  readonly stepId: string;
+  readonly status: "PENDING" | "ASSIGNING" | "DISPATCHED" | "RUNNING" | "COMPLETED" | "FAILED" | "SKIPPED";
+  readonly assignedAgentId?: string | undefined;
+  readonly assignedTeamId?: string | undefined;
+  readonly taskId?: string | undefined;
+  readonly executionId?: string | undefined;
+  readonly coordinationId?: string | undefined;
+  readonly attempts: number;
+  readonly maxRetries: number;
+  readonly input: Readonly<Record<string, unknown>>;
+  readonly output?: Readonly<Record<string, unknown>> | undefined;
+  readonly error?: string | undefined;
+  readonly startedAt?: string | undefined;
+  readonly completedAt?: string | undefined;
+}
+
+export interface WorkflowInstanceDTO {
+  readonly id: string;
+  readonly workflowDefinitionId: string;
+  readonly workflowDefinitionVersion: number;
+  readonly tenantId: string;
+  readonly organizationId: string;
+  readonly areaId?: string | undefined;
+  readonly teamId?: string | undefined;
+  readonly initiatorId: string;
+  readonly status: "PENDING" | "RUNNING" | "PAUSED" | "COMPLETED" | "FAILED" | "CANCELLED";
+  readonly currentStepId?: string | undefined;
+  readonly stepStates: Readonly<Record<string, WorkflowStepStateDTO>>;
+  readonly input: Readonly<Record<string, unknown>>;
+  readonly output?: Readonly<Record<string, unknown>> | undefined;
+  readonly failure?: { readonly code: string; readonly message: string; readonly stepId?: string } | undefined;
+  readonly correlationId: string;
+  readonly traceId: string;
+  readonly version: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+  readonly completedAt?: string | undefined;
+}
+
+export interface StartWorkflowRequestDTO {
+  readonly id?: string | undefined;
+  readonly definitionId?: string | undefined;
+  readonly tenantId?: string | undefined;
+  readonly initiatorId?: string | undefined;
+  readonly input?: Readonly<Record<string, unknown>> | undefined;
+  readonly correlationId?: string | undefined;
+  readonly autoAdvance?: boolean | undefined;
+}
+
+export interface AdvanceWorkflowResultDTO {
+  readonly instance: WorkflowInstanceDTO;
+  readonly executedSteps: readonly {
+    readonly stepId: string;
+    readonly success: boolean;
+    readonly assignedAgentId?: string | undefined;
+    readonly taskId?: string | undefined;
+    readonly executionId?: string | undefined;
+    readonly output?: Readonly<Record<string, unknown>> | undefined;
+    readonly error?: { readonly code: string; readonly message: string } | undefined;
+  }[];
+}
+
+

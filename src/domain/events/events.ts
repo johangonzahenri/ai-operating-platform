@@ -32,7 +32,10 @@ export type EventType =
   | "agent.profile.created" | "agent.profile.updated" | "agent.role.changed" | "agent.responsibility.changed"
   | "agent.capability.added" | "agent.capability.removed" | "agent.capability.verified"
   | "team.budget.created" | "team.budget.updated" | "team.budget.exhausted" | "team.budget.status_changed"
-  | "team.resource.consumption.authorized" | "team.resource.consumption.denied";
+  | "team.resource.consumption.authorized" | "team.resource.consumption.denied"
+  | "workflow.created" | "workflow.updated" | "workflow.started"
+  | "workflow.step.started" | "workflow.step.completed" | "workflow.step.failed"
+  | "workflow.completed" | "workflow.failed" | "workflow.cancelled";
 
 
 export interface DomainEvent {

@@ -45,6 +45,7 @@ async function bootstrap() {
     teamResourceBudgetService: platform.teamResourceBudgetService,
     organizationalCoordinationService: platform.organizationalCoordinationService,
     agentProfileService: platform.agentProfileService,
+    workflowOrchestratorService: platform.workflowOrchestratorService,
     eventStream: platform.eventStream,
   });
 

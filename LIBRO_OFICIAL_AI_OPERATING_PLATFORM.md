@@ -52,25 +52,7 @@ Antes de sumergirnos en la arquitectura, es fundamental entender una regla de tr
 
 ![Visión Estratégica vs. Capacidades Implementadas: El 90% de la plataforma está construido y verificado](docs/images/12_vision_vs_reality.jpg)
 
-**¿Qué ves en esta infografía?**
-
-* 🔭 **Lado izquierdo — Visión Estratégica (Futuro):** Solo quedan 2 grandes objetivos pendientes: el ecosistema distribuido multi-región (para que la plataforma corra en múltiples data centers simultáneamente) y la certificación formal de producción masiva.
-* ✅ **Lado derecho — Implementado y Verificado (16 capacidades reales):**
-  * **Motor Hexagonal:** El corazón de la plataforma — ejecuta tareas sin depender de ninguna librería externa (`npm ls` vacío).
-  * **SQLite WAL Storage:** La base de datos que persiste todo en disco con modo Write-Ahead Logging para máxima confiabilidad.
-  * **Memory Gateway:** Permite a cada agente tener su propia "memoria" aislada — como cajones privados en un escritorio compartido.
-  * **Crash Recovery:** Si el servidor se cae a mitad de una tarea, al reiniciar detecta qué quedó incompleto y reconcilia automáticamente.
-  * **AI Model Gateways (OpenAI, Anthropic, Ollama, Gemini):** Conectores reales a los 4 principales proveedores de IA, más un stub determinista para testing.
-  * **JWT Security:** Autenticación criptográfica con claves asimétricas RS256/ES256 y rotación automática de claves.
-  * **TLS Network:** Manifiestos listos para producción con Nginx o Caddy como reverse proxy.
-  * **REST API:** Más de 70 endpoints bajo `/api/v1/*` con deprecation headers RFC 8594.
-  * **Virtual Organization:** Estructura empresarial completa (Organización → Áreas → Equipos → Agentes).
-  * **Team Budgets:** Cuotas que limitan cuántas ejecuciones, llamadas a modelos y herramientas puede consumir cada equipo.
-  * **Budget Enforcement:** Verificación fail-closed en tiempo real — si no hay presupuesto, la operación se detiene instantáneamente.
-  * **E-Commerce + Vehicle Parts:** Dos aplicaciones satélite reales integradas como prueba del concepto multiplataforma.
-  * **Hardware Printer:** Adaptador real para impresora Brother DCP-1600 conectada por USB.
-  * **Bilingual Control Plane:** Consola web en español (es-419) e inglés, sin innerHTML (protección XSS).
-* 📊 **Barra de progreso:** El 90% de la visión ya es realidad verificada con **1064 tests pasando** sin fallos.
+La infografía muestra las **16 capacidades ya construidas y verificadas** (lado derecho) frente a los 2 objetivos pendientes del futuro (lado izquierdo). Cada tarjeta incluye su descripción en español — desde el Motor Hexagonal hasta los 1064 tests pasando sin fallos.
 
 ---
 
@@ -331,11 +313,11 @@ Este es el principio de seguridad más importante de toda la plataforma: **ante 
 # Capítulo 4: Especificación Exhaustiva de Capas y Componentes
 
 ### 4.1 Capa 1: Presentación & Consumidores Externos
-* **Web Platform Control Plane (`src/platform/web/`):** Single-Page Application (SPA) nativa construida con HTML5, JavaScript Vanilla y CSS puro. Diseñada sin dependencias de frameworks (sin React, Vue o Angular) para maximizar la mantenibilidad a largo plazo. Utiliza construcción directa de nodos DOM (`document.createElement`, `textContent`) eliminando el uso de `innerHTML` como medida activa contra Cross-Site Scripting (XSS). Dispone de un núcleo de internacionalización dinámico (`src/platform/web/i18n/`) que opera en Español Latinoamericano (`es-419`) por defecto y permite conmutar a Inglés (`en`).
+* **Web Platform Control Plane (`src/platform/web/`):** Single-Page Application (SPA, aplicación web de una sola página) nativa construida con HTML5, JavaScript Vanilla y CSS puro. Diseñada sin dependencias de frameworks (sin React, Vue o Angular) para maximizar la mantenibilidad a largo plazo. Utiliza construcción directa de nodos DOM (`document.createElement`, `textContent`) eliminando el uso de `innerHTML` como medida activa contra Cross-Site Scripting (XSS, ataques de inyección de código malicioso en la web). Dispone de un núcleo de internacionalización dinámico (`src/platform/web/i18n/`) que opera en Español Latinoamericano (`es-419`) por defecto y permite conmutar a Inglés (`en`).
 * **Consumidores Externos:** Aplicaciones satélites que se comunican con la plataforma a través de HTTP/JSON utilizando los DTOs estables de la API o mediante el SDK tipado `@ai-platform/client`.
 
 ### 4.2 Capa 2: Límite de Producto (Platform API)
-* **Servidor HTTP Nativo (`src/platform/server.ts`):** Enlace restrictivo a bucle local `127.0.0.1:3000`. Rechaza peticiones dirigidas a interfaces de red públicas no autorizadas.
+* **Servidor HTTP Nativo (`src/platform/server.ts`):** Enlace restrictivo a dirección local (solo acepta conexiones del mismo servidor) `127.0.0.1:3000`. Rechaza peticiones dirigidas a interfaces de red públicas no autorizadas.
 * **Enrutador (`src/platform/api/http-router.ts`):**
   * Normalización de identificadores con la expresión regular `^[a-zA-Z0-9_-]{1,128}$`.
   * Protección contra saturación: límite estricto de cuerpo de petición a 1MB (HTTP 413) y validación de tipo MIME `application/json` (HTTP 415).
@@ -344,11 +326,14 @@ Este es el principio de seguridad más importante de toda la plataforma: **ante 
 * **Proyecciones de Lectura (CQRS):** Ubicadas en `src/application/ports/query-ports.ts`. Separan estrictamente la consulta de estados (`ExecutionProjection`, `TaskProjection`, `AgentProjection`, `OperationProjection`) de los métodos de mutación y transición del dominio.
 
 ### 4.3 Capa 3: Aplicación & Motores Operacionales
-* **`CoreRuntime` (`src/application/runtime/core-runtime.ts`):** Propietario único y centralizado de la ejecución atómica. Coordina la máquina de estados de `Task` y `Execution`, emite los eventos del ciclo de vida y delega el trabajo real en una `ExecutionStrategy`.
-* **`SubmitTask` (`src/application/submit-task.ts`):** Caso de uso canónico para el registro y encolamiento inicial de tareas en estado `QUEUED`.
+
+> 📊 **Glosario visual:** Las infografías de la Sección 2.1 explican cada uno de estos componentes con descripciones en español claro.
+
+* **`CoreRuntime` (`src/application/runtime/core-runtime.ts`):** Propietario único y centralizado de la ejecución atómica (el motor principal que procesa cada tarea paso a paso). Coordina la máquina de estados de `Task` y `Execution`, emite los eventos del ciclo de vida y delega el trabajo real en una `ExecutionStrategy`.
+* **`SubmitTask` (`src/application/submit-task.ts`):** Caso de uso para recibir tareas nuevas y ponerlas en la cola de espera en estado `QUEUED`.
 * **`AgentService` (`src/application/agent/agent-service.ts`):** Servicio que administra el ciclo de vida del agente y despacha ejecuciones a través de `SubmitTask`.
 * **`AutonomousOrchestrator` (`src/application/autonomy/autonomous-orchestrator.ts`):** Servicio de aplicación que coordina el ciclo de supervisión autónoma en pasos acotados, evaluando políticas y delegando la ejecución en `CoreRuntime`.
-* **`RestartRecoveryService` (`src/application/recovery/restart-recovery-service.ts`):** Servicio de resiliencia que detecta caídas no programadas del proceso y transiciona atómicamente tareas y operaciones activas a estados terminales seguros.
+* **`RestartRecoveryService` (`src/application/recovery/restart-recovery-service.ts`):** Servicio de recuperación: si el servidor se apaga inesperadamente, detecta qué quedó a medias y lo marca como fallido de forma segura.
 * **`SequentialOrchestrator` (`src/application/orchestration/sequential-orchestrator.ts`):** Ejecuta secuencias lineales predefinidas con enlace de parámetros entre operaciones consecutivas.
 * **`OrganizationService` (`src/application/organization/organization-service.ts`):** Servicio de gestión del ciclo de vida de organizaciones, áreas y equipos con validación de fronteras de tenant.
 * **`TeamResourceBudgetService` (`src/application/organization/team-resource-budget-service.ts`):** Servicio de gestión de cuotas presupuestarias por equipo con evaluación fail-closed y contabilización atómica de consumo.
@@ -359,15 +344,15 @@ Este es el principio de seguridad más importante de toda la plataforma: **ante 
 * **`FeatureFlagService` (`src/application/tenant/feature-flag-service.ts`):** Servicio de feature flags condicionales por tenant.
 
 ### 4.4 Capa 4: Núcleo de Dominio Puro
-* **Agregados Principales:**
-  * `Task`: Unidad duradera de trabajo (`CREATED` ➔ `QUEUED` ➔ `RUNNING` ➔ `COMPLETED` / `FAILED`).
-  * `Execution`: Intento concreto y fechado de cómputo dentro de un contexto inmutable.
+* **Entidades Principales del Dominio (las reglas de negocio puras):**
+  * `Task`: Tarea: unidad de trabajo con estados claros (`CREATED` ➔ `QUEUED` ➔ `RUNNING` ➔ `COMPLETED` / `FAILED`).
+  * `Execution`: Ejecución: el intento real de procesar una tarea, con fecha y resultado registrados.
 
 **Visualización de Máquinas de Estados:**
 ![Máquinas de Estado de la Plataforma: Task, Execution y Autonomous Operation](docs/images/10_state_machines.jpg)
 
-  * `Agent`: Perfil de capacidades autorizadas.
-  * `AutonomousOperation`: Supervisión acotada con presupuesto y seguimiento de consumo.
+  * `Agent`: Agente: tarjeta de perfil que define qué modelo de IA usa, qué herramientas tiene permitidas y a qué memoria accede.
+  * `AutonomousOperation`: Operación Autónoma: misión completa con límites de pasos, tiempo y herramientas.
   * `Organization, Area, Team & AgentMembership`: Jerarquía organizativa virtual con ciclo de vida blando (`ACTIVE`, `INACTIVE`, `ARCHIVED`), áreas funcionales, equipos de trabajo y membresía gobernada con roles operativos (`LEAD`, `SPECIALIST`, `OPERATOR`, `REVIEWER`).
 
 **Jerarquía Organizativa Visual:**
@@ -377,8 +362,8 @@ Este es el principio de seguridad más importante de toda la plataforma: **ante 
   * `Coordination`: Contratos de coordinación multi-agente para ejecuciones paralelas y flujos dependientes.
   * `Billing & Quota`: Value Objects y entidades de cuotas financieras y operacionales.
   * `Tenant`: Entidades de frontera multi-tenant y feature flags condicionales.
-* **Fábricas de Rehidratación:** Métodos formales `rehydrate()` en cada agregado que restauran el estado persistido garantizando todos los invariantes de dominio sin recurrir a reflexión.
-* **Puertos Abstractos:** `PolicyGateway`, `ModelGateway`, `ToolGateway`, `MemoryGateway`, `EventPublisher`, `PlannerPort`, `DecisionEvaluatorPort`, `TaskRepository`, `ExecutionRepository`, `OperationRepositoryPort`. Ninguno posee dependencias externas ni código de transporte.
+* **Reconstrucción desde base de datos:** Cada entidad tiene un método `rehydrate()` que la reconstruye desde la base de datos manteniendo todas sus reglas intactas.
+* **Interfaces de conexión (Puertos):** `PolicyGateway`, `ModelGateway`, `ToolGateway`, `MemoryGateway`, `EventPublisher`, `PlannerPort`, `DecisionEvaluatorPort`, `TaskRepository`, `ExecutionRepository`, `OperationRepositoryPort`. Estas interfaces no saben qué base de datos o proveedor de IA se usa — solo definen el contrato.
 
 ### 4.5 Capa 5: Infraestructura & Adaptadores Concretos
 * **Persistencia Relacional Duradera (SQLite WAL):** `SqliteDatabase` con Node.js 22+ `node:sqlite`, `SqliteTaskRepository`, `SqliteExecutionRepository`, `SqliteAgentRepository`, `SqliteOperationRepository`, `SqliteEventStore`, `SqliteOrganizationRepository`, `SqliteTeamResourceBudgetRepository` y `SqliteMemoryGateway`. Constituye el almacenamiento predeterminado del servidor en producción.
@@ -396,15 +381,17 @@ Este es el principio de seguridad más importante de toda la plataforma: **ante 
 
 # Capítulo 5: Arquitectura de Agentes de Primera Clase (v0.8)
 
+> 💡 **En resumen:** Un agente NO es un robot autónomo. Es una **tarjeta de permisos** que dice qué modelo de IA puede usar, qué herramientas tiene disponibles y a qué memoria accede. Quien realmente ejecuta el trabajo es el CoreRuntime (el motor principal).
+
 En la versión **v0.8**, el concepto de Agente se formalizó como un agregado de dominio de primera clase.
 
-### 5.1 Los Cinco Pilares del Agregado Agente
+### 5.1 Los 6 Pilares del Agente (qué define cada uno)
 1. **Identidad & Nombre:** Identificador inmutable normalizado y nombre descriptivo.
-2. **Model Binding:** Vinculación formal a un modelo registrado en el catálogo (`ModelQueryPort`).
-3. **Behavioral Instructions:** Directivas operacionales que determinan el rol y comportamiento esperado.
-4. **Tool Authorization Whitelist (`agent.tools`):** Lista blanca estricta. Si el modelo o el proceso solicita invocar una herramienta no presente en esta lista, la ejecución se detiene de forma instantánea.
-5. **Partitioned Memory Scope (`agent.memoryScope`):** Espacio de almacenamiento clave-valor aislado por agente, garantizando que un agente jamás pueda acceder a datos persistidos por otro.
-6. **Estado de Ciclo de Vida Binario (`status`):** `ACTIVE` (habilitado para ejecutar) e `INACTIVE` (bloqueado para nuevas ejecuciones).
+2. **Modelo de IA Vinculado (Model Binding):** Qué modelo de IA usa este agente (ej: GPT-4, Claude, Gemini) (`ModelQueryPort`).
+3. **Instrucciones de Comportamiento:** Las instrucciones que definen cómo debe actuar el agente (su "personalidad" y reglas).
+4. **Lista Blanca de Herramientas (`agent.tools`):** Lista blanca estricta. Si el agente intenta usar una herramienta que NO está en su lista autorizada, la operación se bloquea al instante.
+5. **Memoria Privada Aislada (`agent.memoryScope`):** Cada agente tiene su propio "cajón" de memoria. Un agente nunca puede ver ni modificar la memoria de otro.
+6. **Estado del Agente (`status`):** `ACTIVE` (puede trabajar) e `INACTIVE` (temporalmente deshabilitado).
 
 ### 5.2 Invariante Central: `Agent ≠ Execution`
 El agente no sustituye al motor de ejecución. No existen "hilos de agente" ni bucles de ejecución propios del agente. Para ejecutar un agente:
@@ -427,6 +414,8 @@ AgentExecutionStrategy (aplica PolicyGateway, tools whitelist y memoryScope)
 ---
 
 # Capítulo 6: Operaciones Autónomas Acotadas (v0.9 Increments #1 al #5)
+
+> 💡 **¿Qué es una operación autónoma?** Es cuando le das a un agente un **objetivo complejo** ("analiza el inventario y genera recomendaciones") y la plataforma lo ejecuta paso a paso, con límites estrictos para que nunca se descontrole. Piensa en un chef con receta: tiene ingredientes limitados (presupuesto), pasos definidos (plan) y un temporizador (tiempo máximo).
 
 **Ciclo de Ejecución Visual End-to-End:**
 ![Flujo de Ejecución en 6 Fases: Solicitud → Presupuesto → Planificación → Bucle → Terminal → Auditoría](docs/images/06_execution_lifecycle.jpg)
@@ -465,12 +454,15 @@ AutonomousOperation
    └────────────────────────────────────────────────────────────┘
 ```
 
+**Infografía: El bucle explicado paso a paso:**
+![Bucle de Autonomía Acotada: 8 pasos desde verificación hasta ramificación](docs/images/16_bucle_acotado.jpg)
+
 ### 6.2 El Presupuesto de Autonomía (`AutonomyBudget`)
-Todo inicio de operación autónoma exige la definición de un presupuesto inmutable:
-* `maxSteps`: Límite estricto en el número de iteraciones del bucle (entero positivo, ej. 1 a 25).
-* `maxDurationMs`: Límite de tiempo de reloj en milisegundos.
-* `maxToolCalls`: Límite acumulado de invocaciones de herramientas.
-* `maxTokens` *(opcional)*: Techo de tokens consumidos cuando sea medible sin acoplamiento a proveedores.
+Antes de arrancar, toda operación autónoma necesita un presupuesto que define sus límites (una vez creado, no se puede modificar):
+* `maxSteps`: Máximo de pasos que puede dar (ej: 10 pasos).
+* `maxDurationMs`: Tiempo máximo permitido (ej: 30 segundos = 30000 ms).
+* `maxToolCalls`: Máximo de veces que puede usar herramientas (ej: 5 llamadas).
+* `maxTokens` *(opcional)*: Límite de tokens de IA consumidos (cuando el proveedor lo reporta).
 
 ### 6.3 La Máquina de Estados de `AutonomousOperation`
 ```text
@@ -498,6 +490,11 @@ Todo inicio de operación autónoma exige la definición de un presupuesto inmut
 
 # Capítulo 7: Matriz de Responsabilidades de los Componentes
 
+> 💡 **¿Por qué importa esto?** Cada pieza de la plataforma tiene un rol único y límites claros. Esto evita que el código se convierta en espagueti: el que planifica no ejecuta, el que ejecuta no decide, y el que vigila no actúa.
+
+**Infografía: ¿Quién hace qué (y qué NO hace)?**
+![Matriz de Responsabilidades: 8 componentes con sus roles y límites](docs/images/17_responsabilidades.jpg)
+
 Para evitar la erosión de fronteras arquitectónicas, cada componente posee responsabilidades estrictamente delimitadas:
 
 | Componente | Responsabilidad Primaria | Lo que NO hace (Frontera Estricta) |
@@ -516,6 +513,11 @@ Para evitar la erosión de fronteras arquitectónicas, cada componente posee res
 ---
 
 # Capítulo 8: Gobernanza Fail-Closed, Seguridad & Catálogo de Invariantes
+
+> 💡 **¿Qué son los invariantes?** Son las **reglas que nunca se rompen**, sin importar qué pase. Están verificadas con tests automáticos — si alguien cambia el código y rompe una de estas reglas, los tests fallan inmediatamente.
+
+**Los 4 Pilares de Garantías:**
+![Invariantes agrupados en 4 pilares: Seguridad, Ejecución, Datos y Presupuesto](docs/images/18_invariantes.jpg)
 
 **Modelo Visual de Gobernanza Fail-Closed:**
 ![Gobernanza Fail-Closed: DEFAULT = DENY, cualquier duda = DETENER](docs/images/08_governance_failclosed.jpg)
@@ -737,6 +739,9 @@ Esta matriz vincula cada decisión arquitectónica aprobada con su documento ADR
 
 # Capítulo 12: Hoja de Ruta Oficial (Roadmap Sincronizado)
 
+**Línea de Tiempo Visual del Proyecto:**
+![Hoja de Ruta: De v0.1 a v1.3.0 con hitos clave en cada versión](docs/images/19_roadmap_timeline.jpg)
+
 El roadmap técnico se estructura exclusivamente sobre hechos demostrados en el código y proyecciones futuras debidamente delimitadas:
 
 ```text
@@ -792,18 +797,20 @@ ROADMAP FUTURO (BACKLOG FORMAL v1.4 — DISEÑADO / NO IMPLEMENTADO)
 
 # Glosario de Términos Arquitectónicos
 
-* **Agent (Agente):** Agregado declarativo de dominio que encapsula la identidad, instrucciones de comportamiento, modelo de IA vinculado, lista blanca estricta de herramientas y ámbito de memoria particionado.
-* **AutonomousOperation (Operación Autónoma):** Entidad supervisora que coordina la ejecución de un objetivo multi-paso acotado por un presupuesto estricto.
-* **AutonomyBudget (Presupuesto de Autonomía):** Value Object inmutable que impone techos infranqueables de pasos (`maxSteps`), duración de reloj (`maxDurationMs`) e invocaciones de herramientas (`maxToolCalls`).
-* **CoreRuntime:** Motor central y exclusivo de ejecución de tareas atómicas de la plataforma. Propietario único del ciclo de vida de `Task` y `Execution`.
-* **Decision:** Objeto de dominio discreto que representa la determinación tomada tras evaluar la observación de un paso (`COMPLETE`, `FAIL`, `STOP`, `EXECUTE_STEP`).
-* **Fail-Closed:** Principio de diseño de seguridad según el cual cualquier fallo, excepción, timeout o incertidumbre de autorización produce la denegación y detención inmediata de la operación.
-* **Observation:** Value Object serializable e inmutable que registra el resultado técnico y fáctico de un paso ejecutado en el motor central.
-* **RestartRecoveryService:** Servicio de aplicación que garantiza la reconciliación atómica idempotente de tareas y operaciones interrumpidas tras una caída del sistema.
-* **TraceId:** Identificador único de correlación transversal que acompaña a toda petición desde el cliente HTTP hasta la base de datos y eventos de auditoría.
-* **Zero Runtime Dependencies:** Característica del sistema por la cual el código en producción opera exclusivamente con las APIs nativas de Node.js, sin paquetes en la sección `dependencies` de `package.json`.
-* **Organization (Organización):** Agregado empresarial de dominio con ciclo de vida blando (`ACTIVE`, `INACTIVE`, `ARCHIVED`) que agrupa áreas funcionales y equipos dentro de un tenant.
-* **TeamResourceBudget (Presupuesto de Recursos de Equipo):** Agregado de cuotas multidimensionales que impone techos por equipo en ejecuciones, llamadas a modelos, invocaciones de herramientas, pasos autónomos, duración y tokens.
-* **MultiAgentCoordinator (Coordinador Multi-Agente):** Servicio de aplicación que orquesta ejecuciones coordinadas entre múltiples agentes con dependencias y paralelismo controlado.
-* **CircuitBreaker (Disyuntor):** Patrón de resiliencia que detecta fallos repetidos en un servicio externo y abre el circuito para evitar cascadas de errores, cerrándose gradualmente al detectar recuperación.
-* **FeatureFlag (Bandera de Característica):** Mecanismo condicional por tenant que permite activar o desactivar funcionalidades de la plataforma sin redespliegue.
+> 📖 Cada término incluye su traducción al español y una explicación simple.
+
+* **Agent (Agente):** La "tarjeta de identificación" de un trabajador de IA. Define qué modelo usa, qué herramientas tiene permitidas y a qué memoria accede. *Analogía: como la credencial de un empleado que lista sus permisos de acceso.*
+* **AutonomousOperation (Operación Autónoma):** Una misión completa que la plataforma ejecuta paso a paso, con límites estrictos de pasos, tiempo y herramientas. *Analogía: un chef siguiendo una receta con ingredientes limitados y temporizador.*
+* **AutonomyBudget (Presupuesto de Autonomía):** Los límites concretos de una operación: máximo de pasos, tiempo y herramientas. Una vez creado, no se puede modificar. *Ejemplo: máximo 10 pasos, 30 segundos, 5 llamadas a herramientas.*
+* **CoreRuntime (Motor Principal):** El corazón de la plataforma que realmente ejecuta las tareas. Recibe una tarea, la procesa paso a paso y guarda el resultado. *Analogía: el jefe de obra que coordina toda la construcción.*
+* **Decision (Decisión):** Después de cada paso, el sistema decide: ¿seguir con el siguiente paso? ¿completar la misión? ¿detener por error? Hay 4 opciones: `COMPLETE`, `FAIL`, `STOP`, `EXECUTE_STEP`.
+* **Fail-Closed (Fallo Cerrado):** Principio de seguridad: si algo falla, se duda o hay un error, la respuesta siempre es DENEGAR y detener. Nunca "dejarlo pasar por defecto". *Analogía: un guardia de seguridad que ante cualquier duda dice "no pasa".*
+* **Observation (Observación):** El resultado congelado de ejecutar un paso. Una vez registrado, nadie puede modificarlo. *Analogía: una foto instantánea del resultado — evidencia forense inmutable.*
+* **RestartRecoveryService (Servicio de Recuperación):** Si el servidor se apaga inesperadamente, este servicio detecta qué tareas quedaron a medias y las marca como fallidas de forma segura. *Analogía: un inspector que revisa la fábrica después de un corte de luz.*
+* **TraceId (Identificador de Rastreo):** Un código único que acompaña a cada operación desde que llega hasta que termina, permitiendo reconstruir toda su historia. *Analogía: el número de seguimiento de un paquete.*
+* **Zero Runtime Dependencies (Cero Dependencias en Ejecución):** La plataforma funciona solo con las herramientas integradas de Node.js, sin instalar ningún paquete externo. *Analogía: un auto que funciona sin necesitar accesorios de terceros.*
+* **Organization (Organización):** La empresa virtual que agrupa áreas funcionales y equipos de trabajo. Puede estar Activa, Inactiva o Archivada.
+* **TeamResourceBudget (Presupuesto de Recursos del Equipo):** Las cuotas que limitan cuánto puede usar cada equipo: máximo de ejecuciones, llamadas a modelos de IA, herramientas, tiempo y tokens. Si se agotan, todo se detiene.
+* **MultiAgentCoordinator (Coordinador Multi-Agente):** Servicio que permite que varios agentes trabajen juntos en una misma tarea compleja, coordinando sus acciones.
+* **CircuitBreaker (Disyuntor):** Si un servicio externo falla repetidamente, el sistema deja de llamarlo temporalmente para evitar una cascada de errores. *Analogía: un fusible eléctrico que se dispara para proteger el circuito.*
+* **FeatureFlag (Interruptor de Funcionalidad):** Un interruptor que permite activar o desactivar funciones de la plataforma por cliente, sin necesidad de actualizar el software.

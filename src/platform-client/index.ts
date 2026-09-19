@@ -22,6 +22,14 @@ import type {
   AddCapabilityRequestDTO,
   VerifyCapabilityRequestDTO,
   AgentDiscoveryCriteriaDTO,
+  WorkflowStepDefinitionDTO,
+  WorkflowDefinitionDTO,
+  CreateWorkflowDefinitionRequestDTO,
+  UpdateWorkflowDefinitionRequestDTO,
+  WorkflowStepStateDTO,
+  WorkflowInstanceDTO,
+  StartWorkflowRequestDTO,
+  AdvanceWorkflowResultDTO,
 } from "../platform/api/platform-dto.js";
 import {
   toEventDTO,
@@ -387,7 +395,80 @@ export function createPlatformClient(options: PlatformClientOptions) {
         }
       })();
 
-      return {
+      const workflows = {
+    async createDefinition(body: CreateWorkflowDefinitionRequestDTO): Promise<WorkflowDefinitionDTO> {
+      return request<WorkflowDefinitionDTO>("/workflows", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+    },
+    async listDefinitions(): Promise<readonly WorkflowDefinitionDTO[]> {
+      return request<readonly WorkflowDefinitionDTO[]>("/workflows");
+    },
+    async getDefinition(id: string): Promise<WorkflowDefinitionDTO> {
+      return request<WorkflowDefinitionDTO>(`/workflows/${encodeURIComponent(id)}`);
+    },
+    async updateDefinition(id: string, body: UpdateWorkflowDefinitionRequestDTO): Promise<WorkflowDefinitionDTO> {
+      return request<WorkflowDefinitionDTO>(`/workflows/${encodeURIComponent(id)}`, {
+        method: "PUT",
+        body: JSON.stringify(body),
+      });
+    },
+    async activateDefinition(id: string): Promise<WorkflowDefinitionDTO> {
+      return request<WorkflowDefinitionDTO>(`/workflows/${encodeURIComponent(id)}/activate`, {
+        method: "POST",
+      });
+    },
+    async archiveDefinition(id: string): Promise<WorkflowDefinitionDTO> {
+      return request<WorkflowDefinitionDTO>(`/workflows/${encodeURIComponent(id)}/archive`, {
+        method: "POST",
+      });
+    },
+    async deleteDefinition(id: string): Promise<{ ok: boolean; id: string; deleted: boolean }> {
+      return request<{ ok: boolean; id: string; deleted: boolean }>(`/workflows/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      });
+    },
+    async start(definitionId: string, options?: { initiatedBy?: string; initialInput?: Record<string, unknown>; autoAdvance?: boolean }): Promise<AdvanceWorkflowResultDTO> {
+      return request<AdvanceWorkflowResultDTO>(`/workflows/${encodeURIComponent(definitionId)}/start`, {
+        method: "POST",
+        body: JSON.stringify(options ?? {}),
+      });
+    },
+    async listInstances(definitionId?: string): Promise<readonly WorkflowInstanceDTO[]> {
+      if (definitionId) {
+        return request<readonly WorkflowInstanceDTO[]>(`/workflows/${encodeURIComponent(definitionId)}/instances`);
+      }
+      return request<readonly WorkflowInstanceDTO[]>("/workflows/instances");
+    },
+    async getInstance(instanceId: string): Promise<WorkflowInstanceDTO> {
+      return request<WorkflowInstanceDTO>(`/workflows/instances/${encodeURIComponent(instanceId)}`);
+    },
+    async advance(instanceId: string): Promise<AdvanceWorkflowResultDTO> {
+      return request<AdvanceWorkflowResultDTO>(`/workflows/instances/${encodeURIComponent(instanceId)}/advance`, {
+        method: "POST",
+      });
+    },
+    async pause(instanceId: string, reason?: string): Promise<WorkflowInstanceDTO> {
+      return request<WorkflowInstanceDTO>(`/workflows/instances/${encodeURIComponent(instanceId)}/pause`, {
+        method: "POST",
+        body: JSON.stringify({ reason }),
+      });
+    },
+    async resume(instanceId: string): Promise<WorkflowInstanceDTO> {
+      return request<WorkflowInstanceDTO>(`/workflows/instances/${encodeURIComponent(instanceId)}/resume`, {
+        method: "POST",
+      });
+    },
+    async cancel(instanceId: string, reason?: string): Promise<WorkflowInstanceDTO> {
+      return request<WorkflowInstanceDTO>(`/workflows/instances/${encodeURIComponent(instanceId)}/cancel`, {
+        method: "POST",
+        body: JSON.stringify({ reason }),
+      });
+    },
+  };
+
+  return {
         close: () => {
           aborted = true;
           ac.abort();
@@ -611,6 +692,79 @@ export function createPlatformClient(options: PlatformClientOptions) {
     },
   };
 
+  const workflows = {
+    async createDefinition(body: CreateWorkflowDefinitionRequestDTO): Promise<WorkflowDefinitionDTO> {
+      return request<WorkflowDefinitionDTO>("/workflows", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+    },
+    async listDefinitions(): Promise<readonly WorkflowDefinitionDTO[]> {
+      return request<readonly WorkflowDefinitionDTO[]>("/workflows");
+    },
+    async getDefinition(id: string): Promise<WorkflowDefinitionDTO> {
+      return request<WorkflowDefinitionDTO>(`/workflows/${encodeURIComponent(id)}`);
+    },
+    async updateDefinition(id: string, body: UpdateWorkflowDefinitionRequestDTO): Promise<WorkflowDefinitionDTO> {
+      return request<WorkflowDefinitionDTO>(`/workflows/${encodeURIComponent(id)}`, {
+        method: "PUT",
+        body: JSON.stringify(body),
+      });
+    },
+    async activateDefinition(id: string): Promise<WorkflowDefinitionDTO> {
+      return request<WorkflowDefinitionDTO>(`/workflows/${encodeURIComponent(id)}/activate`, {
+        method: "POST",
+      });
+    },
+    async archiveDefinition(id: string): Promise<WorkflowDefinitionDTO> {
+      return request<WorkflowDefinitionDTO>(`/workflows/${encodeURIComponent(id)}/archive`, {
+        method: "POST",
+      });
+    },
+    async deleteDefinition(id: string): Promise<{ ok: boolean; id: string; deleted: boolean }> {
+      return request<{ ok: boolean; id: string; deleted: boolean }>(`/workflows/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      });
+    },
+    async start(definitionId: string, options?: { id?: string; initiatorId?: string; input?: Record<string, unknown>; correlationId?: string; autoAdvance?: boolean }): Promise<AdvanceWorkflowResultDTO> {
+      return request<AdvanceWorkflowResultDTO>(`/workflows/${encodeURIComponent(definitionId)}/start`, {
+        method: "POST",
+        body: JSON.stringify(options ?? {}),
+      });
+    },
+    async listInstances(definitionId?: string): Promise<readonly WorkflowInstanceDTO[]> {
+      if (definitionId) {
+        return request<readonly WorkflowInstanceDTO[]>(`/workflows/${encodeURIComponent(definitionId)}/instances`);
+      }
+      return request<readonly WorkflowInstanceDTO[]>("/workflows/instances");
+    },
+    async getInstance(instanceId: string): Promise<WorkflowInstanceDTO> {
+      return request<WorkflowInstanceDTO>(`/workflows/instances/${encodeURIComponent(instanceId)}`);
+    },
+    async advance(instanceId: string): Promise<AdvanceWorkflowResultDTO> {
+      return request<AdvanceWorkflowResultDTO>(`/workflows/instances/${encodeURIComponent(instanceId)}/advance`, {
+        method: "POST",
+      });
+    },
+    async pause(instanceId: string, reason?: string): Promise<WorkflowInstanceDTO> {
+      return request<WorkflowInstanceDTO>(`/workflows/instances/${encodeURIComponent(instanceId)}/pause`, {
+        method: "POST",
+        body: JSON.stringify({ reason }),
+      });
+    },
+    async resume(instanceId: string): Promise<WorkflowInstanceDTO> {
+      return request<WorkflowInstanceDTO>(`/workflows/instances/${encodeURIComponent(instanceId)}/resume`, {
+        method: "POST",
+      });
+    },
+    async cancel(instanceId: string, reason?: string): Promise<WorkflowInstanceDTO> {
+      return request<WorkflowInstanceDTO>(`/workflows/instances/${encodeURIComponent(instanceId)}/cancel`, {
+        method: "POST",
+        body: JSON.stringify({ reason }),
+      });
+    },
+  };
+
   return {
     tasks,
     executions,
@@ -630,6 +784,7 @@ export function createPlatformClient(options: PlatformClientOptions) {
     documents,
     coordinations,
     agentProfiles,
+    workflows,
     connect: () => healthGet(),
     health: Object.assign(healthGet, { get: healthGet }),
     getPlatformInfo: () => platform.get(),
@@ -671,6 +826,14 @@ export type {
   AddCapabilityRequestDTO,
   VerifyCapabilityRequestDTO,
   AgentDiscoveryCriteriaDTO,
+  WorkflowStepDefinitionDTO,
+  WorkflowDefinitionDTO,
+  CreateWorkflowDefinitionRequestDTO,
+  UpdateWorkflowDefinitionRequestDTO,
+  WorkflowStepStateDTO,
+  WorkflowInstanceDTO,
+  StartWorkflowRequestDTO,
+  AdvanceWorkflowResultDTO,
 };
 
 
