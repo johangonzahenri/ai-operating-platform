@@ -477,5 +477,19 @@ export default {
     "threshold": "Threshold",
     "safetyHalted": "Safety Halted (Circuit Breaker)",
     "noSovereign": "Bounded Autonomous Runtime: Trigger != Decision != Plan != Execution"
+  },
+  "credentials": {
+    "title": "Enterprise API Credential Governance",
+    "subtitle": "Manage scoped API keys with zero-plaintext storage, fail-closed tenant validation, and granular capability authorizations",
+    "generate": "Generate API Key",
+    "rotate": "Rotate Key",
+    "revoke": "Revoke Key",
+    "delete": "Delete Record",
+    "scopes": "Capability Scopes",
+    "keyPrefix": "Key Prefix",
+    "principal": "Authenticated Principal",
+    "expiresAt": "Expires At",
+    "lastUsed": "Last Used",
+    "oneTimeNotice": "The generated secret is displayed strictly once and is never stored in plaintext."
   }
 };

@@ -84,6 +84,12 @@ import type {
   AutonomousTriggerDTO,
   CreateAutonomousTriggerRequestDTO,
   AutonomousRuntimeStateDTO,
+  ApiCredentialDTO,
+  CreateCredentialRequestDTO,
+  CreateCredentialResponseDTO,
+  RotateCredentialRequestDTO,
+  RotateCredentialResponseDTO,
+  RevokeCredentialRequestDTO,
 } from "../platform/api/platform-dto.js";
 import {
   toEventDTO,
@@ -1271,6 +1277,39 @@ export function createPlatformClient(options: PlatformClientOptions) {
     },
   };
 
+  const credentials = {
+    list: async (query?: { status?: string; principalId?: string; applicationId?: string }): Promise<ApiCredentialDTO[]> => {
+      const params = new URLSearchParams();
+      if (query?.status) params.set("status", query.status);
+      if (query?.principalId) params.set("principalId", query.principalId);
+      if (query?.applicationId) params.set("applicationId", query.applicationId);
+      const qs = params.toString() ? `?${params.toString()}` : "";
+      const res = await request<{ credentials: ApiCredentialDTO[] }>(`/credentials${qs}`);
+      return res.credentials ?? (res as unknown as ApiCredentialDTO[]);
+    },
+    get: (id: string): Promise<ApiCredentialDTO> =>
+      request<ApiCredentialDTO>(`/credentials/${encodeURIComponent(id)}`),
+    create: (input: CreateCredentialRequestDTO): Promise<CreateCredentialResponseDTO> =>
+      request<CreateCredentialResponseDTO>("/credentials", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    rotate: (id: string, input: RotateCredentialRequestDTO = {}): Promise<RotateCredentialResponseDTO> =>
+      request<RotateCredentialResponseDTO>(`/credentials/${encodeURIComponent(id)}/rotate`, {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    revoke: (id: string, input: RevokeCredentialRequestDTO = {}): Promise<ApiCredentialDTO> =>
+      request<ApiCredentialDTO>(`/credentials/${encodeURIComponent(id)}/revoke`, {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    delete: (id: string): Promise<ApiCredentialDTO> =>
+      request<ApiCredentialDTO>(`/credentials/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      }),
+  };
+
   return {
     tasks,
     executions,
@@ -1299,6 +1338,7 @@ export function createPlatformClient(options: PlatformClientOptions) {
     business,
     executive,
     autonomous,
+    credentials,
     connect: () => healthGet(),
     health: Object.assign(healthGet, { get: healthGet }),
     getPlatformInfo: () => platform.get(),
@@ -1402,4 +1442,10 @@ export type {
   AutonomousTriggerDTO,
   CreateAutonomousTriggerRequestDTO,
   AutonomousRuntimeStateDTO,
+  ApiCredentialDTO,
+  CreateCredentialRequestDTO,
+  CreateCredentialResponseDTO,
+  RotateCredentialRequestDTO,
+  RotateCredentialResponseDTO,
+  RevokeCredentialRequestDTO,
 };

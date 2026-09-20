@@ -5,7 +5,7 @@
 > *"Infraestructura operacional de IA sobre la cual se construyen, gobiernan y observan aplicaciones, automatizaciones y dispositivos empresariales."*
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
-[![Test Suite](https://img.shields.io/badge/tests-1354%20passing-success.svg)]()
+[![Test Suite](https://img.shields.io/badge/tests-1391%20passing-success.svg)]()
 [![Production Dependencies](https://img.shields.io/badge/npm%20dependencies-0%20runtime-blue.svg)]()
 [![Documentation](https://img.shields.io/badge/manual-oficial%20es--419-indigo.svg)](docs/MANUAL_OFICIAL.md)
 [![Libro Oficial](https://img.shields.io/badge/libro-oficial%20v2.0-blueviolet.svg)](LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md)
@@ -103,7 +103,7 @@ npm install
 # 3. Compilar TypeScript en modo estricto
 npm run build
 
-# 4. Ejecutar la suite completa de 1354 pruebas automatizadas
+# 4. Ejecutar la suite completa de 1391 pruebas automatizadas
 npm test
 
 # 5. Ejecutar la verificación integral de build, pruebas y consistencia documental
@@ -132,7 +132,8 @@ Para profundizar en la ingeniería del proyecto, consulte los manuales y registr
 * 📦 **[Registro de Aplicaciones del Ecosistema](docs/APPLICATION_REGISTRY.md)**
 * 🖨️ **[Registro de Dispositivos Empresariales](docs/DEVICE_REGISTRY.md)**
 * 🛡️ **[Registro de Seguridad & RBAC](docs/SECURITY_REGISTRY.md)**
-* 🧪 **[Registro Oficial de Pruebas Automatizadas (1354 Tests)](docs/TEST_REGISTRY.md)**
+* 🔑 **[Gobernanza de Credenciales API & Autenticación](docs/CREDENTIAL_GOVERNANCE.md)**
+* 🧪 **[Registro Oficial de Pruebas Automatizadas (1391 Tests)](docs/TEST_REGISTRY.md)**
 * ⚡ **[Runtime de Operaciones Autónomas](docs/AUTONOMOUS_OPERATIONS.md)**
 * 🛡️ **[Gobernanza Continua de Operaciones Autónomas](docs/AUTONOMOUS_GOVERNANCE.md)**
 * 📊 **[Observabilidad de Operaciones Autónomas](docs/AUTONOMOUS_OBSERVABILITY.md)**
@@ -144,3 +145,4 @@ Para profundizar en la ingeniería del proyecto, consulte los manuales y registr
 * ⚙️ **[Manual Operacional](docs/MANUAL_OPERACIONAL.md)**
 * 📚 **[Glosario Oficial de Términos](docs/GLOSARIO.md)**
 * 🌐 **[Referencia de la Platform API REST](docs/API_REFERENCE.md)**
+

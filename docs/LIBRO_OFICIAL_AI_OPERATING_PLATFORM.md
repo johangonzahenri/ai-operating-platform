@@ -5,8 +5,8 @@
 ---
 
 **Documento:** AI Operating Platform — Official Architecture Book
-**Versión del Documento:** 3.0 (Integración Oficial de Autonomous Operations Runtime, Control Plane Web & Gobernanza Continua)
-**Estado del Repositorio:** v1.3.0 Baseline (1354 tests PASS, 0 FAIL — 100% determinismo)
+**Versión del Documento:** 3.1 (Integración Oficial de Enterprise Authentication, API Authorization & Credential Governance)
+**Estado del Repositorio:** v1.3.0 Baseline (1391 tests PASS, 0 FAIL — 100% determinismo)
 **Estado Documental:** Oficial / Sincronizado con Fuente de Verdad
 **Fecha de Verificación:** Septiembre de 2026
 **Fuente de Verdad Técnica:** Código fuente (`src/`) + Tests automatizados (`tests/`) + ADRs (`docs/decisions/`)
@@ -28,6 +28,7 @@
 | **2.4** | Septiembre 2026 | v1.3.0 Budget Enforcement | **Team Resource Budget Enforcement & Execution Integration (Fase 57.1 / Prompt 104):**<br>• Integración fail-closed y verificación end-to-end de cuotas presupuestarias en el runtime de ejecución (`AgentExecutionStrategy`, `ToolInvocationRuntime`, `AutonomousOrchestrator`).<br>• Enlace en tiempo de ejecución: resolución de equipo por membresía de agente y evaluación previa a la ejecución (`executions: 1`), llamada de modelo (`modelCalls: 1`), invocación de herramienta (`toolCalls: 1`), paso autónomo (`autonomousSteps: 1`) y contabilización de duración (`durationMs`) y tokens (`tokens`).<br>• Bloqueo estricto de bypass para agentes asignados a equipos suspendidos o agotados.<br>• Línea base canónica verificada en **1057 tests PASS** (0 FAIL, 11 suites). |
 | **2.5** | Septiembre 2026 | v1.3.0 Consolidated | **Auditoría Integral de Documentación y Sincronización Canónica (Fase 58 / Prompt 105):**<br>• Actualización de Matriz de Capacidades a línea base v1.3.0 con 1064 tests.<br>• Línea base canónica verificada en **1064 tests PASS** (0 FAIL, 11 suites). |
 | **3.0** | Septiembre 2026 | v1.3.0 Autonomous Runtime & Control Plane | **Autonomous Operations Runtime & Continuous Business Governance (Fases 62-70):**<br>• Orquestación de flujos de trabajo de negocio (`WorkflowDefinition`, `WorkflowInstance`), verificación determinista y supervisión humana (`OversightRequest`).<br>• Ciclo de vida y evaluación cuantitativa de agentes (`AgentProfile`, `AgentEvaluation`) y factoría de soluciones (`SolutionDefinition`, `SolutionDeployment`).<br>• AI Enterprise OS y bucle cerrado de retroalimentación operacional ejecutiva (`EnterpriseGoal`).<br>• Runtime de Operaciones Autónomas con triggers (`AutonomousTrigger`), arrendamiento concurrente (`RuntimeLease`), disyuntores de seguridad y reconciliación de ciclos.<br>• Integración completa en el Plano de Control Web SPA (`#tab-operations`) con visualizador de 6 fases y 0 `innerHTML`.<br>• Línea base canónica verificada en **1354 tests PASS** (0 FAIL, 57 suites). |
+| **3.1** | Septiembre 2026 | v1.3.0 Enterprise Authentication & Credentials | **Enterprise Authentication, API Authorization & Credential Governance (Fase 71 / Prompt 102):**<br>• Agregado `ApiCredential` con almacenamiento zero-plaintext (SHA-256 `keyHash`, prefijo seguro `keyPrefix`), revelación estrictamente única de secretos crudos (`aop_live_*`), verificación de expiración/revocación y enlace de scopes (`tasks.read`, `tasks.create`, `credentials.manage`, etc.).<br>• Persistencia durable SQLite WAL en `api_credentials` con transacciones ACID y OCC.<br>• Conciliación estricta de `principalId`, `tenantId` (`TENANT_MISMATCH` fail-closed) y `applicationId` (`APPLICATION_MISMATCH`).<br>• Detección de cabeceras contradictorias y sanitización estricta de secretos en logs (`Authorization: [REDACTED]`).<br>• Consola de gobernanza de credenciales en Web Control Plane (`#tab-security`) con 0 `.innerHTML` y soporte SDK en `PlatformClient`.<br>• Línea base canónica verificada en **1391 tests PASS** (0 FAIL, 59 suites). |
 
 ---
 
@@ -53,7 +54,7 @@ Antes de sumergirnos en la arquitectura, es fundamental entender una regla de tr
 
 ![Visión Estratégica vs. Capacidades Implementadas: El 90% de la plataforma está construido y verificado](docs/images/12_vision_vs_reality.jpg)
 
-La infografía muestra las **16 capacidades ya construidas y verificadas** (lado derecho) frente a los 2 objetivos pendientes del futuro (lado izquierdo). Cada tarjeta incluye su descripción en español — desde el Motor Hexagonal hasta los 1354 tests pasando sin fallos.
+La infografía muestra las **16 capacidades ya construidas y verificadas** (lado derecho) frente a los 2 objetivos pendientes del futuro (lado izquierdo). Cada tarjeta incluye su descripción en español — desde el Motor Hexagonal hasta los 1391 tests pasando sin fallos.
 
 ---
 
@@ -793,7 +794,12 @@ COMPLETADO & VERIFICADO (v1.3.0 BASELINE CANÓNICA — 1064 TESTS PASS)
   - AI Enterprise OS & Closed-Loop Operations: Reconciliación de metas ejecutivas y optimización continua de directivas operacionales.
   - Autonomous Operations Runtime & Continuous Governance: Motor daemon de ejecución operacional con disparadores reactivos y programados (`AutonomousTrigger`), arrendamiento concurrente (`RuntimeLease`), disyuntores de circuito y parada de emergencia instantánea.
   - Web Control Plane Integration: Consola operativa `#tab-operations` con visualizador de 6 fases y 0 `.innerHTML`.
-  - Test Baseline: 1354 tests passing deterministas (0 fail, 57 suites).
+• v1.3.0 (Fase 71 / Prompt 102): Enterprise Authentication, API Authorization & Credential Governance:
+  - Gobernanza Integral de Credenciales: Agregado `ApiCredential` con almacenamiento zero-plaintext (SHA-256 `keyHash`, `keyPrefix`), revelación estrictamente única de secretos crudos (`aop_live_*`).
+  - Conciliación Estricta Fail-Closed: Enlace obligatorio de `Principal` (`SERVICE`, `HUMAN`, `AGENT`, `TOOL`), `tenantId` (`TENANT_MISMATCH`), `applicationId` (`APPLICATION_MISMATCH`) y scopes explícitos (`tasks.read`, `tasks.create`, `credentials.manage`, etc.).
+  - Persistencia Durable SQLite WAL: Repositorio relacional `SqliteApiCredentialRepository` con transacciones ACID y OCC.
+  - Seguridad en Consola Web & SDK: Panel de credenciales en `#tab-security` con 0 `.innerHTML`, revelación única modal y soporte `client.credentials` en `PlatformClient`.
+  - Test Baseline: 1391 tests passing deterministas (0 fail, 59 suites).
 
 ROADMAP FUTURO (BACKLOG FORMAL v1.4 — DISEÑADO / NO IMPLEMENTADO)
 ──────────────────────────────────────────────────────────────────────────
@@ -807,6 +813,7 @@ ROADMAP FUTURO (BACKLOG FORMAL v1.4 — DISEÑADO / NO IMPLEMENTADO)
 > 📖 Cada término incluye su traducción al español y una explicación simple.
 
 * **Agent (Agente):** La "tarjeta de identificación" de un trabajador de IA. Define qué modelo usa, qué herramientas tiene permitidas y a qué memoria accede. *Analogía: como la credencial de un empleado que lista sus permisos de acceso.*
+* **ApiCredential (Credencial de API):** Agregado que gobierna una clave de acceso API con almacenamiento zero-plaintext, vinculada a un Principal verificado, inquilino, aplicación y scopes de capacidades.
 * **AutonomousOperation (Operación Autónoma):** Una misión completa que la plataforma ejecuta paso a paso, con límites estrictos de pasos, tiempo y herramientas. *Analogía: un chef siguiendo una receta con ingredientes limitados y temporizador.*
 * **AutonomousOperationsRuntime (Runtime de Operaciones Autónomas):** Daemon continuo de ejecución gobernada que procesa ciclos autónomos mediante triggers, arrendamientos y reconciliación.
 * **AutonomousTrigger (Disparador Autónomo):** Condición programada (`SCHEDULED`), reactiva (`EVENT_DRIVEN`), por umbral (`THRESHOLD`) o manual (`MANUAL`) que inicia un ciclo operacional.
@@ -820,8 +827,10 @@ ROADMAP FUTURO (BACKLOG FORMAL v1.4 — DISEÑADO / NO IMPLEMENTADO)
 * **SafetyBreakerTrip (Disparo de Seguridad):** Apertura automática del disyuntor ante violaciones consecutivas de políticas, sobrecosto o fallos de verificación, pasando a `SAFETY_HALTED`.
 * **TraceId (Identificador de Rastreo):** Un código único que acompaña a cada operación desde que llega hasta que termina, permitiendo reconstruir toda su historia. *Analogía: el número de seguimiento de un paquete.*
 * **Zero Runtime Dependencies (Cero Dependencias en Ejecución):** La plataforma funciona solo con las herramientas integradas de Node.js, sin instalar ningún paquete externo. *Analogía: un auto que funciona sin necesitar accesorios de terceros.*
+* **Zero-Plaintext Storage (Almacenamiento de Cero Texto Plano):** Patrón de seguridad donde los secretos crudos se revelan una sola vez al generarse y se persisten en base de datos exclusivamente como resumen criptográfico SHA-256.
 * **Organization (Organización):** La empresa virtual que agrupa áreas funcionales y equipos de trabajo. Puede estar Activa, Inactiva o Archivada.
 * **TeamResourceBudget (Presupuesto de Recursos del Equipo):** Las cuotas que limitan cuánto puede usar cada equipo: máximo de ejecuciones, llamadas a modelos de IA, herramientas, tiempo y tokens. Si se agotan, todo se detiene.
 * **MultiAgentCoordinator (Coordinador Multi-Agente):** Servicio que permite que varios agentes trabajen juntos en una misma tarea compleja, coordinando sus acciones.
 * **CircuitBreaker (Disyuntor):** Si un servicio externo falla repetidamente, el sistema deja de llamarlo temporalmente para evitar una cascada de errores. *Analogía: un fusible eléctrico que se dispara para proteger el circuito.*
 * **FeatureFlag (Interruptor de Funcionalidad):** Un interruptor que permite activar o desactivar funciones de la plataforma por cliente, sin necesidad de actualizar el software.
+

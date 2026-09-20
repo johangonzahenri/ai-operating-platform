@@ -87,7 +87,7 @@ INITIATIVES = [
     ("AOP-APP-002", "Vehicle Parts Platform Reference App", "Applications", "Aplicación de referencia para compatibilidad mecánica de vehículos y catálogo de autopartes.", "DONE", "MEDIUM", "v1.1", "AOP-PROD-004", "tests/unit/vehicle-parts-reference-app.test.ts", "16 tests", "docs/VEHICLE_PARTS_REFERENCE.md", "Prompt 92, 97", "vehicle-parts-platform", "N/A", "Compatibilidad OEM"),
     ("AOP-DEV-001", "Adaptador de Impresora Brother DCP-1600", "Devices", "BrotherPrinterAdapter para impresión comercial sobre puerto local USB001 con gestión de trabajos.", "DONE", "MEDIUM", "v1.1", "AOP-PROD-001", "src/infrastructure/device/brother-printer-adapter.ts", "14 tests", "docs/BUSINESS_DEVICES.md", "Prompt 95", "Platform Core", "printer-brother-dcp1600", "Honestamente offline"),
     ("AOP-MODEL-GEMINI", "Adaptador de Modelo Google Gemini / Vertex AI", "Models", "Gateway oficial para Google Gemini 1.5/2.0 Pro/Flash vía API REST de Google Cloud.", "DONE", "HIGH", "v1.2", "AOP-MODL-004", "src/infrastructure/model/gemini/", "8 tests", "docs/decisions/0023-google-gemini-model-gateway.md", "Prompt 101", "Platform Core", "N/A", "GAP-01 Resuelto"),
-    ("AOP-AUTH", "Proveedor de Autenticación OIDC / JWT Producción", "Security", "Servicio formal de validación JWT con rotación asimétrica de claves (RS256/ES256) y gestión de roles.", "DONE", "HIGH", "v1.2", "AOP-PROD-001", "src/infrastructure/security/jwt-token-verifier.ts", "4 tests", "docs/decisions/0025-asymmetric-jwt-and-key-rotation.md", "Prompt 101", "Platform Core", "N/A", "GAP-03 Resuelto"),
+    ("AOP-AUTH-JWT", "Proveedor de Autenticación OIDC / JWT Producción", "Security", "Servicio formal de validación JWT con rotación asimétrica de claves (RS256/ES256) y gestión de roles.", "DONE", "HIGH", "v1.2", "AOP-PROD-001", "src/infrastructure/security/jwt-token-verifier.ts", "4 tests", "docs/decisions/0025-asymmetric-jwt-and-key-rotation.md", "Prompt 101", "Platform Core", "N/A", "GAP-03 Resuelto"),
     ("AOP-NETWORK", "Topología de Red y Proxy Reverso de Producción", "Security", "Configuración declarativa de Nginx/Caddy con terminación TLS, rate limiting perimetral y Docker Compose.", "DONE", "MEDIUM", "v1.2", "AOP-PROD-001", "deploy/", "Manifests", "docs/PRODUCTION_NETWORK_TOPOLOGY.md", "Prompt 101", "Platform Core", "N/A", "GAP-04 Resuelto"),
     ("AOP-MEMORY", "Pasarela de Memoria Duradera SQLite", "Memory", "Adaptador SqliteMemoryGateway con persistencia relacional indexada por ámbito de agente y sesión.", "DONE", "HIGH", "v1.2", "AOP-PERS-001", "src/infrastructure/memory/sqlite-memory-gateway.ts", "6 tests", "docs/decisions/0024-sqlite-durable-memory-gateway.md", "Prompt 101", "Platform Core", "N/A", "GAP-02 Resuelto"),
     ("AOP-API-SURFACES", "Política de Convergencia de Rutas /api/v1", "Platform API", "Eliminación planificada del alias /api/platform/v1 en favor de /api/v1 con avisos RFC 8594.", "DONE", "LOW", "v1.2", "AOP-PROD-001", "src/platform/api/http-router.ts", "1 test", "docs/TECHNICAL_DEBT.md", "Prompt 101", "Platform Core", "N/A", "GAP-05 Resuelto"),
@@ -104,8 +104,9 @@ INITIATIVES = [
     ("AOP-EXECUTIVE-ORCHESTRATOR", "Executive Orchestrator & Closed-Loop Business Operations", "Executive Orchestration", "Orquestación ejecutiva de bucle cerrado, instantáneas inmutables y re-planificación acotada.", "DONE", "HIGH", "v1.3", "AOP-ENTERPRISE-OPERATING-SYSTEM", "src/domain/executive/", "28 tests", "docs/decisions/0038-executive-orchestrator-and-closed-loop-business-operations.md", "Prompt 117", "Platform Core", "N/A", "Bucle cerrado"),
     ("AOP-AUTONOMOUS-OPERATIONS-RUNTIME", "Autonomous Operations Runtime & Continuous Business Governance", "Autonomous Operations", "Daemon 24/7 de operaciones autónomas continuas, leases concurrentes y circuit breaker.", "DONE", "HIGH", "v1.3", "AOP-EXECUTIVE-ORCHESTRATOR", "src/domain/autonomous/", "16 tests", "docs/decisions/0039-autonomous-operations-runtime-and-continuous-business-governance.md", "Prompt 118", "Platform Core", "N/A", "Daemon operacional"),
     ("AOP-AUTONOMOUS-OPS-UI", "Autonomous Operations Web Control Plane & Front-End Governance", "Web UI & Control Plane", "Consola operativa #tab-operations, tabla de triggers, cadena de 6 fases y 0 innerHTML.", "DONE", "HIGH", "v1.3", "AOP-AUTONOMOUS-OPERATIONS-RUNTIME", "src/platform/web/app.js", "14 tests", "docs/AUTONOMOUS_OPERATIONS.md", "Prompt 101", "Platform Core", "N/A", "Control plane web"),
+    ("AOP-AUTH", "Enterprise Authentication, API Authorization & Credential Governance", "Security", "Gobernanza de credenciales API empresariales (zero-plaintext SHA-256), vinculación de Principal, scopes, reconciliación y rotación.", "DONE", "CRITICAL", "v1.3", "AOP-AUTONOMOUS-OPS-UI", "src/domain/security/api-credential.ts", "37 tests", "docs/decisions/0040-enterprise-api-authentication-and-credential-governance.md", "Prompt 102", "Platform Core", "N/A", "Zero-plaintext & Scopes"),
     ("AOP-STREAMING", "Reactive Operational Streaming (SSE)", "Observability", "Streaming reactivo de eventos operacionales vía Server-Sent Events y replay.", "DONE", "HIGH", "v1.3", "AOP-PROD-001", "src/application/observability/event-stream-adapter.ts", "8 tests", "docs/decisions/0029-reactive-operational-streaming-sse.md", "Prompt 108", "Platform Core", "N/A", "SSE streaming"),
-    ("AOP-V1-EXIT", "Certificación Final de Criterios de Producción", "Governance", "Auditoría y certificación integral de criterios de release formal para producción masiva.", "VALIDATION", "CRITICAL", "v1.3", "Todos los anteriores", "docs/RELEASE_CERTIFICATION_V1.md", "1354 tests", "docs/V1_EXIT_CRITERIA.md", "Prompt 106", "Platform Core", "N/A", "Criterios formales")
+    ("AOP-V1-EXIT", "Certificación Final de Criterios de Producción", "Governance", "Auditoría y certificación integral de criterios de release formal para producción masiva.", "VALIDATION", "CRITICAL", "v1.3", "Todos los anteriores", "docs/RELEASE_CERTIFICATION_V1.md", "1391 tests", "docs/V1_EXIT_CRITERIA.md", "Prompt 106", "Platform Core", "N/A", "Criterios formales")
 ]
 
 # -------------------------------------------------------------
@@ -263,7 +264,7 @@ DEPS_DATA = [
     ("AOP-APP-001", "Tentaciones AI Commerce", "AOP-PROD-002", "Platform Client SDK", "Invocación Desacoplada", "ALTA"),
     ("AOP-DEV-001", "Adaptador Brother DCP-1600", "AOP-PROD-001", "Servidor HTTP Nativo", "Endpoints de Impresión", "MEDIA"),
     ("AOP-MODEL-GEMINI", "Adaptador Gemini", "AOP-MODL-004", "ProviderFactory", "Registro de Provider", "ALTA"),
-    ("AOP-AUTH", "Proveedor OIDC / JWT", "AOP-PROD-001", "Servidor HTTP Nativo", "Middleware de Seguridad", "BLOQUEANTE (Prod)"),
+    ("AOP-AUTH-JWT", "Proveedor OIDC / JWT", "AOP-PROD-001", "Servidor HTTP Nativo", "Middleware de Seguridad", "BLOQUEANTE (Prod)"),
     ("AOP-NETWORK", "Proxy Reverso TLS", "AOP-PROD-001", "Servidor HTTP Nativo", "Terminación HTTPS", "BLOQUEANTE (Prod)"),
     ("AOP-MEMORY", "Memoria Duradera SQLite", "AOP-PERS-001", "Motor SQLite Nativo", "Persistencia Relacional", "ALTA"),
     ("AOP-API-SURFACES", "Convergencia de Rutas", "AOP-PROD-001", "Servidor HTTP Nativo", "Deprecación RFC 8594", "MEDIA")
@@ -647,16 +648,16 @@ for col_idx, h in enumerate(METRIC_HEADERS, 1):
 style_header_row(ws_dash, 4, len(METRIC_HEADERS))
 
 DASH_METRICS = [
-    ("Versión de Plataforma (PLATFORM_VERSION)", "1.1.0", "src/platform/version.ts, package.json"),
-    ("Total de Pruebas Automatizadas", "985 PASS (0 FAIL)", "node --test dist/tests (100% éxito)"),
-    ("Suites de Pruebas Verificadas", "11 Suites", "Tests unitarios, de contrato y de integración"),
-    ("Total de Iniciativas en Roadmap Maestro", "31 Iniciativas", "docs/ROADMAP_MASTER.md"),
-    ("Iniciativas Completadas (DONE)", "30 Iniciativas (96.8%)", "Implementadas en código y probadas"),
-    ("Iniciativas en Backlog Formal (BACKLOG)", "1 Iniciativa (3.2%)", "AOP-V1-EXIT (Certificación de salida)"),
+    ("Versión de Plataforma (PLATFORM_VERSION)", "1.3.0", "src/platform/version.ts, package.json"),
+    ("Total de Pruebas Automatizadas", "1391 PASS (0 FAIL)", "node --test dist/tests (100% éxito)"),
+    ("Suites de Pruebas Verificadas", "59 Suites", "Tests unitarios, de contrato y de integración"),
+    ("Total de Iniciativas en Roadmap Maestro", "46 Iniciativas", "docs/ROADMAP_MASTER.md"),
+    ("Iniciativas Completadas (DONE)", "45 Iniciativas (97.8%)", "Implementadas en código y probadas"),
+    ("Iniciativas en Validación (VALIDATION)", "1 Iniciativa (2.2%)", "AOP-V1-EXIT (Certificación de salida)"),
     ("Iniciativas Bloqueadas / Fallidas", "0", "Cero bloqueos técnicos activos"),
     ("Dependencias en Runtime (npm ls)", "0 (Zero Dependencies)", "APIs nativas de Node.js exclusivamente"),
     ("Vulnerabilidades XSS en Front-End", "0 innerHTML", "Sanitización estricta del DOM comprobada"),
-    ("Registros de Decisión Arquitectónica (ADRs)", "36 ADRs Catalogados", "docs/decisions/ (ADR 0001 al 0026 + Serie ADR-001..010)"),
+    ("Registros de Decisión Arquitectónica (ADRs)", "50 ADRs Catalogados", "docs/decisions/ (ADR 0001 al 0040 + Serie ADR-001..010)"),
     ("Persistencia Relacional Duradera", "SQLite WAL (data/app.db)", "node:sqlite nativo en servidor de producción"),
     ("Idiomas del Plano de Control Web", "es-419 (Default) / en", "src/platform/web/i18n/ dinámico")
 ]

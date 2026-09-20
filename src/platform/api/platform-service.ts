@@ -105,7 +105,16 @@ import {
   WorkflowInstanceDTO,
   VerificationResultDTO,
   ApprovalRequestDTO,
+  ApiCredentialDTO,
+  CreateCredentialRequestDTO,
+  CreateCredentialResponseDTO,
+  RotateCredentialRequestDTO,
+  RotateCredentialResponseDTO,
+  RevokeCredentialRequestDTO,
 } from "./platform-dto.js";
+import { ApiCredentialService } from "../../application/security/api-credential-service.js";
+import { ApiCredentialFilter } from "../../application/ports/api-credential-repository-port.js";
+import { ApiCredential } from "../../domain/security/api-credential.js";
 import { OrganizationService } from "../../application/organization/organization-service.js";
 import { InMemoryOrganizationRepository } from "../../infrastructure/organization/in-memory-organization-repository.js";
 import { TeamResourceBudgetService } from "../../application/organization/team-resource-budget-service.js";
@@ -270,6 +279,7 @@ export interface PlatformDependencies {
   readonly executiveOrchestratorService?: ExecutiveOrchestratorService | undefined;
   readonly autonomousOperationsRuntime?: AutonomousOperationsRuntime | undefined;
   readonly eventStream?: EventStreamAdapter | undefined;
+  readonly apiCredentialService?: ApiCredentialService | undefined;
 }
 
 export class PlatformService {
@@ -284,6 +294,7 @@ export class PlatformService {
   private readonly db?: SqliteDatabase | undefined;
   private readonly diagnostics?: RuntimeDiagnosticsService | undefined;
   private readonly idempotencyStore: IdempotencyStore;
+  private readonly apiCredentialService?: ApiCredentialService | undefined;
   private readonly organizationService: OrganizationService;
   private readonly teamResourceBudgetService: TeamResourceBudgetService;
   private readonly organizationalCoordinationService: OrganizationalCoordinationService;
@@ -329,6 +340,7 @@ export class PlatformService {
     this.db = deps.db;
     this.diagnostics = deps.diagnostics;
     this.idempotencyStore = deps.idempotencyStore ?? new InMemoryIdempotencyStore();
+    this.apiCredentialService = deps.apiCredentialService;
     const defaultOrgRepo = new InMemoryOrganizationRepository();
     this.organizationService = deps.organizationService ?? new OrganizationService({
       repository: defaultOrgRepo,
@@ -3065,4 +3077,93 @@ export class PlatformService {
       updatedAt: s.updatedAt.toISOString(),
     };
   }
+
+  getApiCredentialService(): ApiCredentialService | undefined {
+    return this.apiCredentialService;
+  }
+
+  toApiCredentialDTO(c: ApiCredential): ApiCredentialDTO {
+    return {
+      id: c.id,
+      name: c.name,
+      principalId: c.principalId,
+      principalType: c.principalType as any,
+      tenantId: c.tenantId,
+      applicationId: c.applicationId,
+      scopes: [...c.scopes],
+      status: c.status,
+      keyPrefix: c.keyPrefix,
+      createdAt: c.createdAt.toISOString(),
+      expiresAt: c.expiresAt ? c.expiresAt.toISOString() : undefined,
+      revokedAt: c.revokedAt ? c.revokedAt.toISOString() : undefined,
+      lastUsedAt: c.lastUsedAt ? c.lastUsedAt.toISOString() : undefined,
+      metadata: c.metadata,
+      version: c.version,
+    };
+  }
+
+  async listCredentials(tenantId?: string, filter?: ApiCredentialFilter): Promise<ApiCredentialDTO[]> {
+    if (!this.apiCredentialService) {
+      return [];
+    }
+    const creds = await this.apiCredentialService.listCredentials(tenantId ?? "default", filter);
+    return creds.map((c) => this.toApiCredentialDTO(c));
+  }
+
+  async getCredentialById(id: string, tenantId?: string): Promise<ApiCredentialDTO | undefined> {
+    if (!this.apiCredentialService) {
+      return undefined;
+    }
+    const cred = await this.apiCredentialService.getCredentialById(id, tenantId ?? "default");
+    return cred ? this.toApiCredentialDTO(cred) : undefined;
+  }
+
+  async createCredential(input: CreateCredentialRequestDTO, tenantId?: string): Promise<CreateCredentialResponseDTO> {
+    if (!this.apiCredentialService) {
+      throw new Error("ApiCredentialService is not configured in PlatformService");
+    }
+    const result = await this.apiCredentialService.createCredential({
+      principalId: input.principalId,
+      principalType: input.principalType,
+      tenantId: tenantId ?? "default",
+      applicationId: input.applicationId,
+      name: input.name,
+      scopes: input.scopes,
+      expiresInMs: input.expiresInMs,
+      metadata: input.metadata,
+    });
+    return {
+      credential: this.toApiCredentialDTO(result.credential),
+      rawKey: result.rawKey,
+    };
+  }
+
+  async rotateCredential(id: string, input: RotateCredentialRequestDTO, tenantId?: string): Promise<RotateCredentialResponseDTO> {
+    if (!this.apiCredentialService) {
+      throw new Error("ApiCredentialService is not configured in PlatformService");
+    }
+    const result = await this.apiCredentialService.rotateCredential({
+      credentialId: id,
+      tenantId: tenantId ?? "default",
+      gracePeriodMs: input.gracePeriodMs,
+      newName: input.newName,
+      newScopes: input.newScopes,
+      newExpiresInMs: input.newExpiresInMs,
+      reason: input.reason,
+    });
+    return {
+      oldCredential: this.toApiCredentialDTO(result.oldCredential),
+      newCredential: this.toApiCredentialDTO(result.newCredential),
+      newRawKey: result.newRawKey,
+    };
+  }
+
+  async revokeCredential(id: string, input: RevokeCredentialRequestDTO, tenantId?: string): Promise<ApiCredentialDTO> {
+    if (!this.apiCredentialService) {
+      throw new Error("ApiCredentialService is not configured in PlatformService");
+    }
+    const cred = await this.apiCredentialService.revokeCredential(id, tenantId ?? "default", input.reason);
+    return this.toApiCredentialDTO(cred);
+  }
 }
+

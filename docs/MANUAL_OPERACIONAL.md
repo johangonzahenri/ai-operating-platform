@@ -279,3 +279,31 @@ Este documento describe los 19 procedimientos operativos normativos para adminis
   * Proceso finaliza con código de salida `0`.
 * **Fallos Posibles:** Proceso colgado por sockets abiertos de LLM remotos.
 * **Diagnóstico:** El timeout forzado del servidor garantiza cierre definitivo en máximo 5 segundos.
+
+---
+
+### Procedimiento 20: Gobernanza, Rotación y Revocación de Credenciales API
+* **Objetivo:** Emitir, rotar y revocar credenciales de acceso API con almacenamiento zero-plaintext.
+* **Prerrequisitos:** Plataforma en ejecución y credencial administrativa.
+* **Comandos:**
+  ```powershell
+  # 1. Crear credencial delimitada
+  curl -s -X POST http://127.0.0.1:3000/api/v1/credentials `
+    -H "Authorization: Bearer <ADMIN_KEY>" `
+    -H "Content-Type: application/json" `
+    -d '{"principalId":"service-worker","principalType":"SERVICE","tenantId":"tenant-primary","name":"Worker Sincronizador","scopes":["tasks.read","tasks.create"]}'
+
+  # 2. Rotar credencial (genera nueva rawKey y mantiene historial)
+  curl -s -X POST http://127.0.0.1:3000/api/v1/credentials/<credentialId>/rotate `
+    -H "Authorization: Bearer <ADMIN_KEY>"
+
+  # 3. Revocar credencial
+  curl -s -X POST http://127.0.0.1:3000/api/v1/credentials/<credentialId>/revoke `
+    -H "Authorization: Bearer <ADMIN_KEY>" `
+    -H "Content-Type: application/json" `
+    -d '{"reason":"Revocación por rotación de personal"}'
+  ```
+* **Resultado Esperado:** Clave en crudo (`rawKey`) devuelta estrictamente una vez; consultas posteriores en base de datos SQLite retornan únicamente `keyPrefix` y `keyHash` SHA-256.
+* **Fallos Posibles:** `TENANT_MISMATCH` si la credencial pertenece a otro inquilino no autorizado.
+* **Diagnóstico:** Comprobar la cabecera `X-Tenant-Id` y los scopes asignados en el panel `#tab-security` de la consola Web.
+

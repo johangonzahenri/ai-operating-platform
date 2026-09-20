@@ -1,110 +1,72 @@
-﻿# Phase 13 — Security: Authorization & RBAC Architecture
+# Enterprise Capability Authorization & Scope Evaluation (`AOP-AUTH-02`)
 
-## 1. Core Principles & Separation of Concerns
+## 1. Overview & Scope Hierarchy
 
-The AI Operating Platform strictly decouples identity verification from access control:
-
-- **Authentication answers**: *"Who are you, and is your identity valid and active?"*
-- **Authorization answers**: *"What operations are you permitted to execute on what resources within what scope?"*
-
-An authenticated principal (`authenticated: true`) **does not** imply administrator status, wildcard permissions (`"*"`), or unrestricted execution. All privileged actions require explicit, deterministic authorization.
+Authorization in the **AI Operating Platform (AOP)** enforces fine-grained capability checks at every layer of request execution. A credential or token does not grant universal access; it is restricted by explicit capability scopes.
 
 ```text
-CREDENTIALS (API Key / Bearer Token)
-                ↓
-      AUTHENTICATION SERVICE
-                ↓
-         VERIFIED PRINCIPAL
-                ↓
-          SECURITY CONTEXT
-                ↓
-    RBAC AUTHORIZATION EVALUATOR
-                ↓
-          POLICY GATEWAY
-                ↓
-       ALLOW / DENY DECISION
-                ↓
-         PROTECTED EXECUTION
+                               AUTHORIZATION MODEL
+                               
+               ┌─────────────────────────────────────────────────┐
+               │             ApiCredential / Principal           │
+               │   Scopes: ["tasks.create", "devices.print"]     │
+               └────────────────────────┬────────────────────────┘
+                                        │
+                                        ▼
+               ┌─────────────────────────────────────────────────┐
+               │       Scope Evaluator & Wildcard Matcher        │
+               │   - Exact: "tasks.create" == "tasks.create"     │
+               │   - Wildcard domain: "tasks.*"                  │
+               │   - Global root: "*"                            │
+               └────────────────────────┬────────────────────────┘
+                                        │
+                                        ▼
+               ┌─────────────────────────────────────────────────┐
+               │            Multi-Tier RBAC Evaluator            │
+               │   - Tenant isolation & subscription bounds      │
+               │   - Resource role mapping (SERVICE, OPERATOR)   │
+               └────────────────────────┬────────────────────────┘
+                                        │
+                         ┌──────────────┴──────────────┐
+                         ▼                             ▼
+                 [200 / 201 OK]               [403 INSUFFICIENT_SCOPE]
 ```
 
 ---
 
-## 2. RBAC Model & Domain Entities
+## 2. Standard Platform Scopes Catalog
 
-### 2.1 Permission (`Permission`)
-A `Permission` represents a discrete operational capability mapped to a resource domain and action:
-- **Format**: `${resource}.${action}` (e.g. `tool.invoke`, `model.read`, `task.create`, `memory.write`, `handoff.transfer`).
-- **Wildcards**:
-  - Domain-scoped wildcard: `task.*`, `agent.*`, `tool.*` (matches all actions within the domain).
-  - Universal wildcard: `*` (reserved strictly for internal system supervision).
-
-### 2.2 Role (`Role`)
-A `Role` is an immutable aggregation of explicit permissions:
-- **Standard Roles**:
-  - `anonymous`: `["public.read", "health.check"]` (for unauthenticated callers).
-  - `user`: `["public.read", "health.check", "task.read", "task.create", "agent.read", "model.read", "tool.read"]`.
-  - `operator`: `["public.read", "health.check", "task.*", "agent.*", "model.*", "tool.*", "memory.read", "coordination.*"]`.
-  - `agent`: `["tool.invoke", "tool.read", "model.invoke", "model.read", "memory.read", "memory.write", "handoff.transfer"]`.
-  - `service`: `["task.create", "task.read", "task.execute", "agent.read", "tool.read"]`.
-  - `system-admin`: `["*"]` (internal runtime only).
-
-### 2.3 Role Repository (`RoleRepository` / `InMemoryRoleRepository`)
-Provides an abstraction for resolving role assignments for authenticated principals, decoupling the authorization evaluator from underlying persistence (e.g. SQLite, IAM, directory services).
+| Scope | Category | Description | Permitted Endpoints |
+| :--- | :--- | :--- | :--- |
+| `tasks.read` | Tasks | Query and inspect task state and progress | `GET /api/v1/tasks`, `GET /api/v1/tasks/:id` |
+| `tasks.create` | Tasks | Dispatch new task executions | `POST /api/v1/tasks`, `POST /api/v1/tasks/:id/execute` |
+| `tasks.cancel` | Tasks | Cancel active task runs | `POST /api/v1/tasks/:id/cancel` |
+| `executions.read` | Telemetry | Inspect execution records and timelines | `GET /api/v1/executions`, `GET /api/v1/executions/:id` |
+| `events.read` | Observability | Query durable event log and trace streams | `GET /api/v1/events`, `GET /api/v1/events/:id` |
+| `devices.read` | Hardware | Inspect registered business hardware | `GET /api/v1/devices`, `GET /api/v1/devices/:id` |
+| `devices.print` | Hardware | Dispatch physical print jobs | `POST /api/v1/devices/:id/print`, `POST /api/v1/printing/jobs` |
+| `autonomous.operations.execute` | Autonomy | Trigger or execute autonomous cycles | `POST /api/v1/operations`, `POST /api/v1/autonomous/*` |
+| `credentials.read` | Security | Inspect non-sensitive credential metadata | `GET /api/v1/credentials`, `GET /api/v1/credentials/:id` |
+| `credentials.manage` | Security | Generate, rotate, revoke, or delete keys | `POST /api/v1/credentials`, `POST /api/v1/credentials/:id/*` |
+| `workflows.read` | Orchestration | Read workflow definitions & instances | `GET /api/v1/workflows/*` |
+| `workflows.create` | Orchestration | Define and run structured workflows | `POST /api/v1/workflows/*` |
+| `solutions.read` | Solutions | Read blueprints and solution instances | `GET /api/v1/solutions/*` |
+| `solutions.manage` | Solutions | Publish, instantiate, or archive solutions | `POST /api/v1/solutions/*` |
+| `*` | Superuser | Unrestricted scope for administrative keys | All platform endpoints |
 
 ---
 
-## 3. Evaluation Pipeline & Policy Precedence
+## 3. Wildcard Scope Evaluation Rules
 
-The `RbacAuthorizationEvaluator` enforces a strict, deterministic, fail-closed evaluation pipeline:
-
-```text
-1. Malformed Request / Missing Context → DENY (fail-closed)
-2. Unauthenticated caller accessing non-public operation → DENY
-3. External caller claiming SYSTEM principal type → DENY
-4. Agent attempting security self-escalation (role/permission modification) → DENY
-5. Agent attempting cross-agent access without handoff → DENY
-6. Tenant isolation mismatch without cross-tenant authorization → DENY
-7. Scope isolation mismatch → DENY
-8. Explicit DENY policy match → DENY
-9. Explicit ALLOW policy match → ALLOW
-10. Matching Role Permission in assigned roles → ALLOW
-11. Default fallback → DENY (Default Deny)
-12. Any evaluator/repository runtime exception → DENY (fail-closed)
-```
-
-### Precedence Rule:
-$$\text{Explicit DENY} > \text{Explicit ALLOW} > \text{RBAC Role Match} > \text{Default DENY}$$
+Scopes support hierarchical wildcard matching:
+1. `*`: Grants authority across all actions and resources.
+2. `<domain>.*`: (e.g. `tasks.*`) Grants all actions under the `tasks` domain (`tasks.read`, `tasks.create`, `tasks.cancel`).
+3. `<domain>.<subdomain>.*`: (e.g. `autonomous.operations.*`) Grants authority across sub-operations.
+4. Exact match: (e.g. `devices.print`) Grants strictly the declared capability.
 
 ---
 
-## 4. PolicyGateway Integration
+## 4. Multi-Tenant Isolation & Default-Deny
 
-The `RbacPolicyGateway` adapts the standard platform `PolicyGateway` interface (`evaluate(PolicyContext): Promise<PolicyDecision>`) to the RBAC authorization evaluator:
-- Bridges operational contexts from Agent, Tool, Model, and Orchestration dispatchers.
-- Enforces authorization **strictly before execution** across all dispatchers.
-
----
-
-## 5. Security Boundaries & Invariants
-
-| ID | Invariant | Description |
-|---|---|---|
-| **A01** | **Default Deny** | Any request without an explicit allow rule resolves to `DENY`. |
-| **A02** | **Authenticated Access** | Protected resources require an authenticated `Principal` in the `SecurityContext`. |
-| **A03** | **Separation of AuthN/AuthZ** | Authentication establishes identity only; no implicit wildcard permissions are granted. |
-| **A04** | **No Agent Self-Escalation** | Agents cannot assign roles, grant permissions, or spawn privileged principals. |
-| **A05** | **Authorization Before Execution** | Access evaluation must precede execution at all trust boundaries. |
-| **A06** | **Fail-Closed Semantics** | Internal exceptions or repository unavailability result in immediate `DENY`. |
-| **A07** | **Tenant Isolation** | Requests across tenant boundaries without explicit permission are rejected. |
-| **A08** | **Restricted Anonymous** | Unauthenticated callers are restricted to public read and health check operations. |
-| **A09** | **SYSTEM Protection** | External credentials and roles cannot assume the internal `SYSTEM` identity. |
-| **A10** | **Observable Auditability** | Decisions emit `authorization.allowed` and `authorization.denied` events with zero secret leakage. |
-
----
-
-## 6. Observability & Event Auditing
-
-Authorization evaluation emits structured domain events:
-- `authorization.allowed`: Emitted when an operation is permitted with matched roles and policies.
-- `authorization.denied`: Emitted when an operation is rejected with deterministic reason codes (`SECURITY_UNAUTHENTICATED`, `SECURITY_DEFAULT_DENY`, `SECURITY_TENANT_ISOLATION_VIOLATION`, etc.).
-- **Secret Redaction**: Credentials, tokens, private keys, and Authorization headers are stripped and never included in event payloads.
+- Every evaluation executes under **Default-Deny**: if no policy or explicit scope permits the action, the gateway returns `403 FORBIDDEN` (`INSUFFICIENT_SCOPE` or `ACCESS_DENIED`).
+- Cross-tenant capability consumption is strictly prevented. A credential issued for `tenant-tentaciones` cannot invoke capabilities or query resources residing in `tenant-automotive`.

@@ -1409,4 +1409,48 @@ export async function fireAutonomousTrigger(triggerId) {
   });
 }
 
+export async function getCredentials(options = {}) {
+  const params = new URLSearchParams();
+  if (options.status) params.set("status", options.status);
+  if (options.principalId) params.set("principalId", options.principalId);
+  if (options.applicationId) params.set("applicationId", options.applicationId);
+  const qs = params.toString();
+  return request(qs ? `/credentials?${qs}` : "/credentials");
+}
+
+export async function getCredential(id) {
+  return request(`/credentials/${encodeURIComponent(id)}`);
+}
+
+export async function createCredential(data) {
+  return request("/credentials", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function rotateCredential(id, data = {}) {
+  return request(`/credentials/${encodeURIComponent(id)}/rotate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function revokeCredential(id, data = {}) {
+  return request(`/credentials/${encodeURIComponent(id)}/revoke`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteCredential(id) {
+  return request(`/credentials/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
+}
+
+
 

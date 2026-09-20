@@ -1705,6 +1705,60 @@ export interface AutonomousRuntimeStateDTO {
   readonly updatedAt: string;
 }
 
+// --- API Credential & Authentication DTOs (Prompt 102) ---
+
+export interface ApiCredentialDTO {
+  readonly id: string;
+  readonly principalId: string;
+  readonly principalType: "HUMAN" | "SERVICE" | "AGENT" | "TOOL";
+  readonly tenantId: string;
+  readonly applicationId: string;
+  readonly name: string;
+  readonly keyPrefix: string;
+  readonly status: "ACTIVE" | "EXPIRED" | "REVOKED";
+  readonly scopes: readonly string[];
+  readonly createdAt: string;
+  readonly expiresAt?: string | undefined;
+  readonly revokedAt?: string | undefined;
+  readonly lastUsedAt?: string | undefined;
+  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+  readonly version: number;
+}
+
+export interface CreateCredentialRequestDTO {
+  readonly principalId: string;
+  readonly principalType?: "HUMAN" | "SERVICE" | "AGENT" | "TOOL" | undefined;
+  readonly applicationId: string;
+  readonly name: string;
+  readonly scopes?: readonly string[] | undefined;
+  readonly expiresInMs?: number | undefined;
+  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+}
+
+export interface CreateCredentialResponseDTO {
+  readonly credential: ApiCredentialDTO;
+  readonly rawKey: string;
+}
+
+export interface RotateCredentialRequestDTO {
+  readonly gracePeriodMs?: number | undefined;
+  readonly newName?: string | undefined;
+  readonly newScopes?: readonly string[] | undefined;
+  readonly newExpiresInMs?: number | undefined;
+  readonly reason?: string | undefined;
+}
+
+export interface RotateCredentialResponseDTO {
+  readonly oldCredential: ApiCredentialDTO;
+  readonly newCredential: ApiCredentialDTO;
+  readonly newRawKey: string;
+}
+
+export interface RevokeCredentialRequestDTO {
+  readonly reason?: string | undefined;
+}
+
+
 
 
 

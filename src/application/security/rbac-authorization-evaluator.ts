@@ -266,6 +266,50 @@ export class RbacAuthorizationEvaluator implements AuthorizationEvaluator {
       }
 
       // 9. RBAC Role & Permission Evaluation
+      // Candidate permission keys to match
+      const permCandidates = new Set<string>();
+      if (requiredPermission) {
+        permCandidates.add(requiredPermission.trim().toLowerCase());
+      } else {
+        if (resourceType) {
+          permCandidates.add(`${resourceType.toLowerCase()}.${normalizedAction}`);
+        }
+        permCandidates.add(normalizedAction);
+      }
+
+      // 9a. Check principal explicit permissions/scopes first (e.g. API Key capabilities)
+      if (principal.permissions && principal.permissions.length > 0) {
+        const hasDirectPermission = principal.permissions.includes("*") || principal.permissions.some((p) => {
+          if (p === "*") return true;
+          if (permCandidates.has(p.toLowerCase())) return true;
+          if (p.endsWith(".*")) {
+            const prefix = p.slice(0, -2).toLowerCase();
+            for (const cand of permCandidates) {
+              if (cand.startsWith(`${prefix}.`) || cand === prefix) return true;
+            }
+          }
+          return false;
+        });
+
+        if (hasDirectPermission) {
+          const result: AuthorizationResult = {
+            allowed: true,
+            code: "SECURITY_RBAC_ALLOWED",
+            reason: `Operation authorized by principal explicit scopes: [${principal.permissions.join(", ")}]`,
+            evaluatedAt,
+            principalId: principal.id,
+            principalType: principal.type,
+            tenantId: principal.tenantId,
+            resourceType,
+            resourceId,
+            action: normalizedAction,
+            matchedRoles: Object.freeze(["principal-scopes"]),
+          };
+          this.publishAuthzEvent("authorization.allowed", req, result);
+          return result;
+        }
+      }
+
       const roles = await this.roleRepository.getRolesForPrincipal(principal);
       if (roles.length === 0) {
         const result: AuthorizationResult = {
@@ -282,17 +326,6 @@ export class RbacAuthorizationEvaluator implements AuthorizationEvaluator {
         };
         this.publishAuthzEvent("authorization.denied", req, result);
         return result;
-      }
-
-      // Candidate permission keys to match
-      const permCandidates = new Set<string>();
-      if (requiredPermission) {
-        permCandidates.add(requiredPermission.trim().toLowerCase());
-      } else {
-        if (resourceType) {
-          permCandidates.add(`${resourceType.toLowerCase()}.${normalizedAction}`);
-        }
-        permCandidates.add(normalizedAction);
       }
 
       const matchedRoles: string[] = [];

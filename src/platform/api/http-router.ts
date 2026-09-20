@@ -132,7 +132,21 @@ import {
   CapabilityAlreadyExistsError,
   ProfileConcurrencyConflictError,
 } from "../../domain/organization/agent-profile.js";
-
+import {
+  ApiCredentialService,
+  CredentialNotFoundError,
+  CredentialTenantMismatchError,
+} from "../../application/security/api-credential-service.js";
+import { ApiCredentialRepositoryPort } from "../../application/ports/api-credential-repository-port.js";
+import {
+  ApiCredentialError,
+  ApiCredentialValidationError,
+  ApiCredentialNotFoundError,
+  ApiCredentialRevokedError,
+  ApiCredentialExpiredError,
+  ApiCredentialConcurrencyConflictError,
+  ApiCredentialTenantMismatchError,
+} from "../../domain/security/api-credential-errors.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -148,7 +162,6 @@ export function normalizeId(val: unknown): string | undefined {
   return ID_REGEX.test(trimmed) ? trimmed : undefined;
 }
 
-
 type JsonBodyResult =
   | { ok: true; body: Record<string, unknown> }
   | { ok: false; status: number; error: string; code?: string };
@@ -158,6 +171,8 @@ export interface HttpServerOptions {
   readonly authzEvaluator?: AuthorizationEvaluator | undefined;
   readonly roleRepository?: RoleRepository | undefined;
   readonly apiKeyRepository?: ApiKeyRepository | undefined;
+  readonly apiCredentialService?: ApiCredentialService | undefined;
+  readonly apiCredentialRepository?: ApiCredentialRepositoryPort | undefined;
   readonly enforceSecurity?: boolean | undefined;
 }
 
@@ -165,11 +180,13 @@ export function createHttpServer(
   service: PlatformService,
   options?: HttpServerOptions
 ): http.Server {
+  const credService = options?.apiCredentialService ?? service.getApiCredentialService();
   const authService =
     options?.authService ??
     new AuthenticationService(undefined, [
       new ApiKeyAuthenticationProvider(
-        options?.apiKeyRepository ?? new InMemoryApiKeyRepository()
+        options?.apiKeyRepository ?? new InMemoryApiKeyRepository(),
+        credService
       ),
       new BearerTokenAuthenticationProvider(),
     ]);
@@ -192,7 +209,6 @@ export function createHttpServer(
     const requestId = reqCtx.requestId;
     res.setHeader("X-Request-Id", requestId);
     res.setHeader("X-Correlation-Id", reqCtx.correlationId);
-
     // 1. Secure CORS: strictly restricted to localhost / 127.0.0.1 origins
     const origin = req.headers.origin;
     if (origin) {
@@ -351,6 +367,75 @@ export function createHttpServer(
             code: authResult.code ?? "UNAUTHORIZED",
             message: authResult.reason ?? "Authentication required",
           };
+        }
+
+        // 1. Tenant reconciliation: If caller specifies X-Tenant-Id header, it must match authenticated principal's tenantId (unless admin/system)
+        const headerTenantId = req.headers["x-tenant-id"];
+        if (headerTenantId && typeof headerTenantId === "string" && headerTenantId.trim() !== "") {
+          const expectedTenant = headerTenantId.trim();
+          if (
+            authResult.context.tenantId &&
+            authResult.context.tenantId !== expectedTenant &&
+            authResult.context.principal.type !== "SYSTEM" &&
+            !authResult.context.principal.permissions.includes("*")
+          ) {
+            return {
+              ok: false,
+              status: 403,
+              code: "TENANT_MISMATCH",
+              message: `Tenant mismatch: Authenticated tenant '${authResult.context.tenantId}' does not match header '${expectedTenant}'`,
+            };
+          }
+        }
+
+        // 2. Application reconciliation: If caller specifies X-Application-Id header, it must match credential's applicationId
+        const headerAppId = req.headers["x-application-id"];
+        if (headerAppId && typeof headerAppId === "string" && headerAppId.trim() !== "") {
+          const expectedApp = headerAppId.trim();
+          const credAppId = (authResult.context.metadata?.applicationId as string) ?? authResult.context.principal.metadata?.applicationId;
+          if (
+            credAppId &&
+            credAppId !== expectedApp &&
+            authResult.context.principal.type !== "SYSTEM" &&
+            !authResult.context.principal.permissions.includes("*")
+          ) {
+            return {
+              ok: false,
+              status: 403,
+              code: "APPLICATION_MISMATCH",
+              message: `Application mismatch: Authenticated application '${credAppId}' does not match header '${expectedApp}'`,
+            };
+          }
+        }
+
+        // 3. Granular Scope check against credential permissions
+        const permissions = authResult.context.principal.permissions ?? [];
+        if (permissions.length > 0) {
+          const checkScope = (perm: string): boolean => {
+            if (perm === "*") return true;
+            if (perm === action) return true;
+            if (perm.endsWith(".*")) {
+              const prefix = perm.slice(0, -2);
+              if (action === prefix || action.startsWith(`${prefix}.`)) return true;
+              if (prefix === "tasks" && (action === "task" || action.startsWith("task."))) return true;
+              if (prefix === "task" && (action === "tasks" || action.startsWith("tasks."))) return true;
+            }
+            if (perm === "tasks.read" && (action === "task.read" || action === "tasks.read")) return true;
+            if (perm === "task.read" && action === "tasks.read") return true;
+            if (perm === "tasks.create" && (action === "task.create" || action === "tasks.create")) return true;
+            if (perm === "task.create" && action === "tasks.create") return true;
+            return false;
+          };
+
+          const hasScope = permissions.some(checkScope);
+          if (!hasScope) {
+            return {
+              ok: false,
+              status: 403,
+              code: "INSUFFICIENT_SCOPE",
+              message: `Access denied: Principal '${authResult.context.principal.id}' lacks required scope '${action}'`,
+            };
+          }
         }
 
         const authzResult = await authzEvaluator.evaluate({
@@ -6491,6 +6576,168 @@ export function createHttpServer(
               handleAutoError(err);
               return;
             }
+          }
+        }
+
+                const handleCredentialError = (err: unknown) => {
+          if (err instanceof ApiCredentialValidationError) {
+            sendError(400, err.message, "CREDENTIAL_VALIDATION_ERROR");
+          } else if (err instanceof CredentialNotFoundError || err instanceof ApiCredentialNotFoundError) {
+            sendError(404, (err as Error).message, "CREDENTIAL_NOT_FOUND");
+          } else if (err instanceof CredentialTenantMismatchError || err instanceof ApiCredentialTenantMismatchError) {
+            sendError(403, (err as Error).message, "TENANT_MISMATCH");
+          } else if (err instanceof ApiCredentialRevokedError) {
+            sendError(403, err.message, "CREDENTIAL_REVOKED");
+          } else if (err instanceof ApiCredentialExpiredError) {
+            sendError(403, err.message, "CREDENTIAL_EXPIRED");
+          } else if (err instanceof ApiCredentialConcurrencyConflictError) {
+            sendError(409, err.message, "CONCURRENCY_CONFLICT");
+          } else {
+            sendError(500, err instanceof Error ? err.message : "Internal credential operation error", "INTERNAL_SERVER_ERROR");
+          }
+        };
+
+        // --- API Credential Management Endpoints (Prompt 102) ---
+
+        // GET /credentials or GET /security/credentials
+        if ((subPath === "/credentials" || subPath === "/security/credentials") && req.method === "GET") {
+          const authCheck = await authenticateAndAuthorize("credentials.read", "API", undefined, undefined, false);
+          if (!authCheck.ok) {
+            sendError(authCheck.status, authCheck.message, authCheck.code);
+            return;
+          }
+          const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "default";
+          const status = url.searchParams.get("status") as any;
+          const principalId = url.searchParams.get("principalId") ?? undefined;
+          const applicationId = url.searchParams.get("applicationId") ?? undefined;
+          try {
+            const credentials = await service.listCredentials(tenantId, {
+              status,
+              principalId,
+              applicationId,
+            });
+            sendJson(200, { credentials });
+            return;
+          } catch (err) {
+            handleCredentialError(err);
+            return;
+          }
+        }
+
+        // POST /credentials or POST /security/credentials
+        if ((subPath === "/credentials" || subPath === "/security/credentials") && req.method === "POST") {
+          const authCheck = await authenticateAndAuthorize("credentials.manage", "API", undefined, undefined, false);
+          if (!authCheck.ok) {
+            sendError(authCheck.status, authCheck.message, authCheck.code);
+            return;
+          }
+          const bodyResult = await readJsonBody();
+          if (!bodyResult.ok) {
+            sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+            return;
+          }
+          const tenantId = (bodyResult.body.tenantId as string) ?? authCheck.context?.tenantId ?? reqCtx.tenantId ?? "default";
+          try {
+            const result = await service.createCredential(bodyResult.body as any, tenantId);
+            sendJson(201, result);
+            return;
+          } catch (err) {
+            handleCredentialError(err);
+            return;
+          }
+        }
+
+        // GET /credentials/:id or GET /security/credentials/:id
+        const credGetMatch = subPath.match(/^\/(?:security\/)?credentials\/([^/]+)$/);
+        if (credGetMatch && req.method === "GET") {
+          const id = normalizeId(credGetMatch[1] ?? "") ?? credGetMatch[1] ?? "";
+          const authCheck = await authenticateAndAuthorize("credentials.read", "API", id, undefined, false);
+          if (!authCheck.ok) {
+            sendError(authCheck.status, authCheck.message, authCheck.code);
+            return;
+          }
+          const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "default";
+          try {
+            const credential = await service.getCredentialById(id, tenantId);
+            if (!credential) {
+              sendError(404, `API credential not found: '${id}'`, "CREDENTIAL_NOT_FOUND");
+              return;
+            }
+            sendJson(200, credential);
+            return;
+          } catch (err) {
+            handleCredentialError(err);
+            return;
+          }
+        }
+
+        // POST /credentials/:id/rotate or POST /security/credentials/:id/rotate
+        const credRotateMatch = subPath.match(/^\/(?:security\/)?credentials\/([^/]+)\/rotate$/);
+        if (credRotateMatch && req.method === "POST") {
+          const id = normalizeId(credRotateMatch[1] ?? "") ?? credRotateMatch[1] ?? "";
+          const authCheck = await authenticateAndAuthorize("credentials.manage", "API", id, undefined, false);
+          if (!authCheck.ok) {
+            sendError(authCheck.status, authCheck.message, authCheck.code);
+            return;
+          }
+          const bodyResult = await readJsonBody();
+          if (!bodyResult.ok) {
+            sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+            return;
+          }
+          const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "default";
+          try {
+            const result = await service.rotateCredential(id, bodyResult.body as any, tenantId);
+            sendJson(200, result);
+            return;
+          } catch (err) {
+            handleCredentialError(err);
+            return;
+          }
+        }
+
+        // POST /credentials/:id/revoke or POST /security/credentials/:id/revoke
+        const credRevokeMatch = subPath.match(/^\/(?:security\/)?credentials\/([^/]+)\/revoke$/);
+        if (credRevokeMatch && req.method === "POST") {
+          const id = normalizeId(credRevokeMatch[1] ?? "") ?? credRevokeMatch[1] ?? "";
+          const authCheck = await authenticateAndAuthorize("credentials.manage", "API", id, undefined, false);
+          if (!authCheck.ok) {
+            sendError(authCheck.status, authCheck.message, authCheck.code);
+            return;
+          }
+          const bodyResult = await readJsonBody();
+          if (!bodyResult.ok) {
+            sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+            return;
+          }
+          const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "default";
+          try {
+            const credential = await service.revokeCredential(id, bodyResult.body as any, tenantId);
+            sendJson(200, credential);
+            return;
+          } catch (err) {
+            handleCredentialError(err);
+            return;
+          }
+        }
+
+        // DELETE /credentials/:id or DELETE /security/credentials/:id
+        const credDeleteMatch = subPath.match(/^\/(?:security\/)?credentials\/([^/]+)$/);
+        if (credDeleteMatch && req.method === "DELETE") {
+          const id = normalizeId(credDeleteMatch[1] ?? "") ?? credDeleteMatch[1] ?? "";
+          const authCheck = await authenticateAndAuthorize("credentials.manage", "API", id, undefined, false);
+          if (!authCheck.ok) {
+            sendError(authCheck.status, authCheck.message, authCheck.code);
+            return;
+          }
+          const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "default";
+          try {
+            const credential = await service.revokeCredential(id, { reason: "Deleted via DELETE endpoint" }, tenantId);
+            sendJson(200, credential);
+            return;
+          } catch (err) {
+            handleCredentialError(err);
+            return;
           }
         }
 

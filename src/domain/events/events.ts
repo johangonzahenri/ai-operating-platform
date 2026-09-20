@@ -21,6 +21,7 @@ export type EventType =
   | "coordination.agent.completed" | "coordination.agent.failed"
   | "coordination.completed" | "coordination.failed"
     | "auth.succeeded" | "auth.failed" | "auth.revoked" | "auth.expired"
+    | "auth.credential.created" | "auth.credential.used" | "auth.credential.revoked" | "auth.credential.rotated" | "auth.authentication.failed"
   | "authorization.allowed" | "authorization.denied"
   | "plan.requested" | "plan.generated" | "plan.validated" | "plan.rejected" | "plan.accepted" | "plan.execution_started"
   | "device.registered" | "device.unregistered" | "device.health_checked"

@@ -461,7 +461,7 @@ Variables de entorno: `PORT`, `PERSISTENCE_DRIVER`, `SQLITE_DB_PATH`, `MODEL_PRO
 ## 29. Testing & Verification Suites
 
 * **Estado:** IMPLEMENTADO
-* **Resultado:** 955 PASS / 0 FAIL (100% Determinista).
+* **Resultado:** 1391 PASS / 0 FAIL (100% Determinista across 59 suites).
 
 ---
 
@@ -484,9 +484,9 @@ Verificación de salud y reconciliación de estado tras caídas del sistema (ADR
 
 ## 32. Roadmap Oficial
 
-* **Referencia:** [`docs/ROADMAP_OFICIAL.md`](ROADMAP_OFICIAL.md)
+* **Referencia:** [`docs/ROADMAP_MASTER.md`](ROADMAP_MASTER.md)
 
-Hitos completados (Fases 1 a 53), hito en desarrollo (Fase 54) y planificación futura.
+Hitos completados (Fases 1 a 71) y certificación final en proceso.
 
 ---
 
@@ -512,4 +512,14 @@ Definiciones normativas de todos los conceptos técnicos y de código de la plat
 * **Referencia:** [`docs/decisions/0027-virtual-organization-foundation.md`](decisions/0027-virtual-organization-foundation.md), [`docs/decisions/0028-team-resource-budget-governance.md`](decisions/0028-team-resource-budget-governance.md)
 
 Modela la jerarquía corporativa multinivel (`Organization` -> `Area` -> `Team`), membresía de agentes con roles (`LEAD`, `SPECIALIST`, `OPERATOR`, `REVIEWER`) y cuotas operacionales explícitas (`TeamResourceBudget`) con transacciones atómicas `BEGIN IMMEDIATE` en SQLite y prevención de carreras concurrentes en la última unidad disponible (Last-Unit Race Condition).
+
+---
+
+## 36. Enterprise Authentication, API Authorization & Credential Governance
+
+* **Ubicación:** `src/domain/security/api-credential.ts`, `src/application/security/api-credential-service.ts`, `src/infrastructure/persistence/sqlite/sqlite-api-credential-repository.ts`
+* **Referencia:** [`docs/CREDENTIAL_GOVERNANCE.md`](CREDENTIAL_GOVERNANCE.md), [`docs/decisions/0040-enterprise-api-authentication-and-credential-governance.md`](decisions/0040-enterprise-api-authentication-and-credential-governance.md)
+
+Implementa la gobernanza integral de credenciales API con almacenamiento de cero texto plano (*zero-plaintext storage*). Las claves de acceso se revelan estrictamente una vez al momento de creación o rotación (`aop_live_<credId>_<secret>`) y se persisten en base de datos SQLite WAL únicamente como hash SHA-256 (`keyHash`) acompañado de un prefijo seguro para visualización (`keyPrefix`). Enlaza cada credencial con un `Principal` verificado, `tenantId`, `applicationId` y scopes de capacidades explícitas (`tasks.read`, `tasks.create`, `credentials.manage`, etc.), aplicando reconciliación estricta y terminación fail-closed (`HTTP 403 TENANT_MISMATCH` / `APPLICATION_MISMATCH`).
+
 

@@ -47,6 +47,7 @@ async function bootstrap() {
     agentProfileService: platform.agentProfileService,
     workflowOrchestratorService: platform.workflowOrchestratorService,
     eventStream: platform.eventStream,
+    apiCredentialService: platform.apiCredentialService,
   });
 
   const server = createHttpServer(service, {
@@ -54,6 +55,7 @@ async function bootstrap() {
     authzEvaluator: platform.rbacEvaluator,
     roleRepository: platform.roleRepository,
     apiKeyRepository: platform.apiKeyRepository,
+    apiCredentialService: platform.apiCredentialService,
   });
 
   server.listen(config.port, config.host, () => {
@@ -69,7 +71,7 @@ async function bootstrap() {
   const shutdown = (signal: string) => {
     if (isShuttingDown) return;
     isShuttingDown = true;
-    logger.info("Server", "Shutdown", `Received \${signal}. Initiating graceful shutdown...`);
+    logger.info("Server", "Shutdown", `Received ${signal}. Initiating graceful shutdown...`);
 
     const forceExitTimer = setTimeout(() => {
       logger.error("Server", "ShutdownTimeout", "Graceful shutdown period expired. Forcing exit.");

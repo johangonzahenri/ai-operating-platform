@@ -477,5 +477,19 @@ export default {
     "threshold": "Umbral de Métrica",
     "safetyHalted": "Detenido por Seguridad (Circuit Breaker)",
     "noSovereign": "Runtime Autónomo Acotado: Disparador != Decisión != Plan != Ejecución"
+  },
+  "credentials": {
+    "title": "Gobernanza de Credenciales y Llaves de API Empresariales",
+    "subtitle": "Gestión de llaves de API con almacenamiento de cero texto plano, validación de inquilino fail-closed y alcances de capacidad",
+    "generate": "Generar Llave de API",
+    "rotate": "Rotar Llave",
+    "revoke": "Revocar Llave",
+    "delete": "Eliminar Registro",
+    "scopes": "Alcances de Capacidad",
+    "keyPrefix": "Prefijo de Llave",
+    "principal": "Principal Autenticado",
+    "expiresAt": "Expira En",
+    "lastUsed": "Último Uso",
+    "oneTimeNotice": "El secreto generado se muestra estrictamente una sola vez y no se almacena en texto plano."
   }
 };

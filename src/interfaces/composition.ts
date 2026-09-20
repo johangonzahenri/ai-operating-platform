@@ -185,6 +185,10 @@ import {
   SqliteAutonomousRuntimeStateRepository,
 } from "../infrastructure/persistence/sqlite/sqlite-autonomous-repository.js";
 import { AutonomousOperationsRuntime } from "../application/autonomous/autonomous-operations-runtime.js";
+import { ApiCredentialRepositoryPort } from "../application/ports/api-credential-repository-port.js";
+import { SqliteApiCredentialRepository } from "../infrastructure/persistence/sqlite/sqlite-api-credential-repository.js";
+import { InMemoryApiCredentialRepository } from "../infrastructure/persistence/in-memory/in-memory-api-credential-repository.js";
+import { ApiCredentialService } from "../application/security/api-credential-service.js";
 
 export interface CreatePlatformOptions {
   readonly logger?: StructuredLogger | undefined;
@@ -198,6 +202,8 @@ export interface CreatePlatformOptions {
   readonly dbPath?: string | undefined;
   readonly skipRecovery?: boolean | undefined;
   readonly eventStore?: (DurableEventStore & DurableEventQueryPort) | undefined;
+  readonly apiCredentialRepository?: ApiCredentialRepositoryPort | undefined;
+  readonly apiCredentialService?: ApiCredentialService | undefined;
   readonly apiKeyRepository?: ApiKeyRepository | undefined;
   readonly roleRepository?: RoleRepository | undefined;
   readonly authenticationService?: AuthenticationService | undefined;
@@ -666,6 +672,16 @@ export const createPlatform = (
     agents
   );
 
+  const apiCredentialRepository: ApiCredentialRepositoryPort = (!isLogger && (optionsOrLogger as CreatePlatformOptions).apiCredentialRepository)
+    ? (optionsOrLogger as CreatePlatformOptions).apiCredentialRepository!
+    : dbManager
+      ? new SqliteApiCredentialRepository(dbManager)
+      : new InMemoryApiCredentialRepository();
+
+  const apiCredentialService: ApiCredentialService = (!isLogger && (optionsOrLogger as CreatePlatformOptions).apiCredentialService)
+    ? (optionsOrLogger as CreatePlatformOptions).apiCredentialService!
+    : new ApiCredentialService(apiCredentialRepository, events);
+
   const apiKeyRepository: ApiKeyRepository = (!isLogger && (optionsOrLogger as CreatePlatformOptions).apiKeyRepository)
     ? (optionsOrLogger as CreatePlatformOptions).apiKeyRepository!
     : new InMemoryApiKeyRepository();
@@ -677,7 +693,7 @@ export const createPlatform = (
   const authenticationService: AuthenticationService = (!isLogger && (optionsOrLogger as CreatePlatformOptions).authenticationService)
     ? (optionsOrLogger as CreatePlatformOptions).authenticationService!
     : new AuthenticationService(events, [
-        new ApiKeyAuthenticationProvider(apiKeyRepository),
+        new ApiKeyAuthenticationProvider(apiKeyRepository, apiCredentialService),
         new BearerTokenAuthenticationProvider(),
       ]);
 
@@ -751,6 +767,8 @@ export const createPlatform = (
     evaluator,
     autonomousOrchestrator,
     apiKeyRepository,
+    apiCredentialRepository,
+    apiCredentialService,
     roleRepository,
     authenticationService,
     rbacEvaluator,

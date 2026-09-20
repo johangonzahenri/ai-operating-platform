@@ -210,3 +210,56 @@ La plataforma permite modelar la estructura operativa empresarial mediante la Vi
    ```
    Retorna la estructura anidada con organización, áreas, equipos y miembros asignados en una sola llamada atómica.
 
+---
+
+## 7. Autenticación y Gobernanza de Credenciales API
+
+A partir de la versión 1.3.0 (`AOP-AUTH`), toda invocación a la API REST `/api/v1/*` requiere autenticación mediante token Bearer o encabezado `X-API-Key`.
+
+### Formato de Clave de Acceso
+```text
+aop_live_<credentialId>_<secretHex>
+```
+
+### Gestión de Credenciales mediante PlatformClient SDK
+```typescript
+import { PlatformClient } from '@ai-platform/client';
+
+const client = PlatformClient.create({
+  baseUrl: 'http://127.0.0.1:3000',
+  apiKey: 'aop_live_cred_admin_secret123...',
+  tenantId: 'tenant-primary',
+  applicationId: 'app-ecommerce'
+});
+
+// Crear nueva credencial con scopes delimitados
+const created = await client.credentials.create({
+  principalId: 'service-worker-1',
+  principalType: 'SERVICE',
+  tenantId: 'tenant-primary',
+  applicationId: 'app-ecommerce',
+  name: 'Worker de Sincronización',
+  scopes: ['tasks.read', 'tasks.create', 'events.read']
+});
+
+console.log('API Key (revelada solo una vez):', created.rawKey);
+
+// Rotar credencial existente
+const rotated = await client.credentials.rotate(created.credential.credentialId);
+console.log('Nueva API Key:', rotated.rawKey);
+
+// Revocar credencial
+await client.credentials.revoke(created.credential.credentialId, 'Mantenimiento preventivo');
+```
+
+### Invocación REST Directa
+```bash
+curl -X POST http://127.0.0.1:3000/api/v1/tasks \
+  -H "Authorization: Bearer aop_live_cred_123_abc..." \
+  -H "X-Tenant-Id: tenant-primary" \
+  -H "X-Application-Id: app-ecommerce" \
+  -H "Content-Type: application/json" \
+  -d '{"type": "TASK_EXECUTE", "payload": {"command": "sync"}}'
+```
+
+

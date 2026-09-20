@@ -65,6 +65,9 @@ class PlatformApp {
     this.cachedAgents = [];
     this.cachedTasks = [];
     this.cachedEvents = [];
+    this.cachedCredentials = [];
+    this.credSearchQuery = "";
+    this.credStatusFilter = "ALL";
     this.agentsSearchQuery = "";
     this.agentsStatusFilter = "ALL";
     this.toolsSearchQuery = "";
@@ -199,6 +202,7 @@ class PlatformApp {
     this.setupApplicationDetailView();
     this.setupDevicesView();
     this.setupOrganizations();
+    this.setupCredentials();
     this.loadData();
     this.startAutoRefresh();
     this.initEventStreaming();
@@ -6798,6 +6802,411 @@ class PlatformApp {
     }
   }
 
+
+  setupCredentials() {
+    const openCreateBtn = document.getElementById("open-create-cred-btn");
+    const closeCreateBtn = document.getElementById("close-create-cred-btn");
+    const createPanel = document.getElementById("create-cred-panel");
+    const createForm = document.getElementById("create-cred-form");
+
+    const revealedPanel = document.getElementById("raw-key-revealed-panel");
+    const closeRawKeyBtn = document.getElementById("close-raw-key-btn");
+    const copyRawKeyBtn = document.getElementById("copy-raw-key-btn");
+    const rawKeyDisplay = document.getElementById("raw-key-display");
+
+    const rotatePanel = document.getElementById("rotate-cred-panel");
+    const closeRotateBtn = document.getElementById("close-rotate-cred-btn");
+    const rotateForm = document.getElementById("rotate-cred-form");
+
+    const refreshBtn = document.getElementById("refresh-creds-btn");
+    const searchInput = document.getElementById("cred-search-input");
+    const statusFilter = document.getElementById("cred-status-filter");
+    const clearFilterBtn = document.getElementById("cred-clear-filter-btn");
+
+    if (openCreateBtn && createPanel) {
+      openCreateBtn.addEventListener("click", () => {
+        createPanel.style.display = "block";
+        createPanel.scrollIntoView({ behavior: "smooth" });
+      });
+    }
+
+    if (closeCreateBtn && createPanel) {
+      closeCreateBtn.addEventListener("click", () => {
+        createPanel.style.display = "none";
+      });
+    }
+
+    if (closeRawKeyBtn && revealedPanel) {
+      closeRawKeyBtn.addEventListener("click", () => {
+        revealedPanel.style.display = "none";
+        if (rawKeyDisplay) rawKeyDisplay.value = "";
+      });
+    }
+
+    if (copyRawKeyBtn && rawKeyDisplay) {
+      copyRawKeyBtn.addEventListener("click", () => {
+        if (rawKeyDisplay.value) {
+          navigator.clipboard?.writeText(rawKeyDisplay.value).catch(() => {});
+          copyRawKeyBtn.textContent = "Copied!";
+          setTimeout(() => {
+            copyRawKeyBtn.textContent = "Copy Key";
+          }, 2000);
+        }
+      });
+    }
+
+    if (createForm) {
+      createForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const submitBtn = document.getElementById("submit-create-cred-btn");
+        const originalText = submitBtn ? submitBtn.textContent : "";
+        if (submitBtn) {
+          submitBtn.setAttribute("disabled", "true");
+          submitBtn.textContent = "Generating Key...";
+        }
+
+        const name = document.getElementById("cred-name-input")?.value?.trim() || "";
+        const principalId = document.getElementById("cred-principal-id-input")?.value?.trim() || "";
+        const principalType = document.getElementById("cred-principal-type-select")?.value || "SERVICE";
+        const tenantId = document.getElementById("cred-tenant-id-input")?.value?.trim() || "";
+        const applicationId = document.getElementById("cred-app-id-input")?.value?.trim() || "";
+        const scopesRaw = document.getElementById("cred-scopes-input")?.value?.trim() || "";
+        const scopes = scopesRaw.split(",").map((s) => s.trim()).filter(Boolean);
+        const expiresInMs = parseInt(document.getElementById("cred-expiry-select")?.value || "0", 10);
+
+        try {
+          const res = await api.createCredential({
+            name,
+            principalId,
+            principalType,
+            tenantId,
+            applicationId,
+            scopes,
+            expiresInMs: expiresInMs > 0 ? expiresInMs : undefined,
+          });
+
+          createForm.reset();
+          if (createPanel) createPanel.style.display = "none";
+
+          if (res?.rawKey && revealedPanel && rawKeyDisplay) {
+            rawKeyDisplay.value = res.rawKey;
+            revealedPanel.style.display = "block";
+            revealedPanel.scrollIntoView({ behavior: "smooth" });
+          }
+
+          await this.loadCredentials();
+        } catch (err) {
+          alert(`Failed to generate API Key: ${err?.message || "Unknown error"}`);
+        } finally {
+          if (submitBtn) {
+            submitBtn.removeAttribute("disabled");
+            submitBtn.textContent = originalText;
+          }
+        }
+      });
+    }
+
+    if (closeRotateBtn && rotatePanel) {
+      closeRotateBtn.addEventListener("click", () => {
+        rotatePanel.style.display = "none";
+      });
+    }
+
+    if (rotateForm) {
+      rotateForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const submitBtn = document.getElementById("submit-rotate-cred-btn");
+        const originalText = submitBtn ? submitBtn.textContent : "";
+        if (submitBtn) {
+          submitBtn.setAttribute("disabled", "true");
+          submitBtn.textContent = "Rotating Key...";
+        }
+
+        const targetId = document.getElementById("rotate-cred-target-id")?.value;
+        const reason = document.getElementById("rotate-cred-reason-input")?.value?.trim() || "Scheduled rotation";
+        const gracePeriodMs = parseInt(document.getElementById("rotate-cred-grace-select")?.value || "0", 10);
+
+        try {
+          const res = await api.rotateCredential(targetId, {
+            reason,
+            gracePeriodMs,
+          });
+
+          rotateForm.reset();
+          if (rotatePanel) rotatePanel.style.display = "none";
+
+          if (res?.newRawKey && revealedPanel && rawKeyDisplay) {
+            rawKeyDisplay.value = res.newRawKey;
+            revealedPanel.style.display = "block";
+            revealedPanel.scrollIntoView({ behavior: "smooth" });
+          }
+
+          await this.loadCredentials();
+        } catch (err) {
+          alert(`Failed to rotate credential: ${err?.message || "Unknown error"}`);
+        } finally {
+          if (submitBtn) {
+            submitBtn.removeAttribute("disabled");
+            submitBtn.textContent = originalText;
+          }
+        }
+      });
+    }
+
+    if (refreshBtn) {
+      refreshBtn.addEventListener("click", () => {
+        this.loadCredentials();
+      });
+    }
+
+    if (searchInput) {
+      searchInput.addEventListener("input", () => {
+        this.credSearchQuery = searchInput.value.trim().toLowerCase();
+        this.renderCredentials();
+      });
+    }
+
+    if (statusFilter) {
+      statusFilter.addEventListener("change", () => {
+        this.credStatusFilter = statusFilter.value;
+        this.renderCredentials();
+      });
+    }
+
+    if (clearFilterBtn) {
+      clearFilterBtn.addEventListener("click", () => {
+        this.credSearchQuery = "";
+        this.credStatusFilter = "ALL";
+        if (searchInput) searchInput.value = "";
+        if (statusFilter) statusFilter.value = "ALL";
+        this.renderCredentials();
+      });
+    }
+  }
+
+  async loadSecurityData() {
+    await this.loadCredentials();
+  }
+
+  async loadCredentials() {
+    try {
+      const response = await api.getCredentials();
+      const list = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.credentials)
+        ? response.credentials
+        : [];
+      this.cachedCredentials = list;
+
+      const badge = document.getElementById("credentials-count-badge");
+      if (badge) {
+        badge.textContent = `${list.length} credential${list.length === 1 ? "" : "s"}`;
+      }
+
+      this.renderCredentials();
+    } catch {
+      const tbody = document.getElementById("credentials-tbody");
+      if (tbody) {
+        clearChildren(tbody);
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = 10;
+        td.className = "empty-state";
+        td.textContent = "Unable to load credentials. Verify security authorization.";
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+      }
+    }
+  }
+
+  renderCredentials() {
+    const tbody = document.getElementById("credentials-tbody");
+    if (!tbody) return;
+    clearChildren(tbody);
+
+    const filtered = (this.cachedCredentials || []).filter((c) => {
+      if (this.credStatusFilter !== "ALL" && c.status !== this.credStatusFilter) {
+        return false;
+      }
+      if (this.credSearchQuery) {
+        const q = this.credSearchQuery;
+        const nameMatch = String(c.name || "").toLowerCase().includes(q);
+        const idMatch = String(c.id || "").toLowerCase().includes(q);
+        const prefixMatch = String(c.keyPrefix || "").toLowerCase().includes(q);
+        const principalMatch = String(c.principalId || "").toLowerCase().includes(q);
+        const tenantMatch = String(c.tenantId || "").toLowerCase().includes(q);
+        const appMatch = String(c.applicationId || "").toLowerCase().includes(q);
+        if (!nameMatch && !idMatch && !prefixMatch && !principalMatch && !tenantMatch && !appMatch) {
+          return false;
+        }
+      }
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = 10;
+      td.className = "empty-state";
+      td.textContent = "No API credentials found matching current filters.";
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+      return;
+    }
+
+    filtered.forEach((cred) => {
+      const tr = document.createElement("tr");
+
+      // 1. Name & ID
+      const tdName = document.createElement("td");
+      const nameStrong = document.createElement("strong");
+      nameStrong.textContent = cred.name || "API Credential";
+      const idCode = document.createElement("div");
+      idCode.className = "code-text";
+      idCode.style.fontSize = "0.75rem";
+      idCode.textContent = cred.id;
+      tdName.append(nameStrong, idCode);
+
+      // 2. Key Prefix
+      const tdPrefix = document.createElement("td");
+      const prefixCode = document.createElement("code");
+      prefixCode.textContent = cred.keyPrefix || "aop_live_...";
+      tdPrefix.appendChild(prefixCode);
+
+      // 3. Principal
+      const tdPrincipal = document.createElement("td");
+      const princTypeSpan = document.createElement("span");
+      princTypeSpan.className = "badge badge-sm badge-info";
+      princTypeSpan.textContent = cred.principalType || "SERVICE";
+      const princIdDiv = document.createElement("div");
+      princIdDiv.className = "code-text";
+      princIdDiv.style.fontSize = "0.8rem";
+      princIdDiv.textContent = cred.principalId;
+      tdPrincipal.append(princTypeSpan, princIdDiv);
+
+      // 4. Tenant
+      const tdTenant = document.createElement("td");
+      tdTenant.className = "code-text";
+      tdTenant.textContent = cred.tenantId;
+
+      // 5. Application
+      const tdApp = document.createElement("td");
+      tdApp.className = "code-text";
+      tdApp.textContent = cred.applicationId || "platform-core";
+
+      // 6. Scopes
+      const tdScopes = document.createElement("td");
+      const scopes = Array.isArray(cred.scopes) ? cred.scopes : [];
+      if (scopes.length === 0) {
+        tdScopes.textContent = "None";
+      } else {
+        const scopesDiv = document.createElement("div");
+        scopesDiv.style.display = "flex";
+        scopesDiv.style.flexWrap = "wrap";
+        scopesDiv.style.gap = "0.25rem";
+        scopes.forEach((s) => {
+          const scopeBadge = document.createElement("span");
+          scopeBadge.className = "badge badge-sm badge-neutral";
+          scopeBadge.textContent = s;
+          scopesDiv.appendChild(scopeBadge);
+        });
+        tdScopes.appendChild(scopesDiv);
+      }
+
+      // 7. Status
+      const tdStatus = document.createElement("td");
+      const statusBadge = document.createElement("span");
+      const statusClass = cred.status === "ACTIVE" ? "badge-success" : cred.status === "EXPIRED" ? "badge-warning" : "badge-error";
+      statusBadge.className = `badge badge-sm ${statusClass}`;
+      statusBadge.textContent = cred.status;
+      tdStatus.appendChild(statusBadge);
+
+      // 8. Last Used
+      const tdUsed = document.createElement("td");
+      tdUsed.style.fontSize = "0.8rem";
+      tdUsed.textContent = cred.lastUsedAt ? new Date(cred.lastUsedAt).toLocaleString() : "Never";
+
+      // 9. Expires At
+      const tdExp = document.createElement("td");
+      tdExp.style.fontSize = "0.8rem";
+      tdExp.textContent = cred.expiresAt ? new Date(cred.expiresAt).toLocaleDateString() : "Never";
+
+      // 10. Actions
+      const tdActions = document.createElement("td");
+      const actionGroup = document.createElement("div");
+      actionGroup.style.display = "flex";
+      actionGroup.style.gap = "0.25rem";
+
+      if (cred.status === "ACTIVE") {
+        const rotateBtn = document.createElement("button");
+        rotateBtn.className = "btn btn-xs btn-warning";
+        rotateBtn.textContent = "Rotate";
+        rotateBtn.title = "Rotate credential with zero downtime grace period";
+        rotateBtn.addEventListener("click", () => {
+          const rotPanel = document.getElementById("rotate-cred-panel");
+          const targetInput = document.getElementById("rotate-cred-target-id");
+          const targetDisplay = document.getElementById("rotate-cred-id-display");
+          if (targetInput) targetInput.value = cred.id;
+          if (targetDisplay) targetDisplay.textContent = `${cred.name} (${cred.id})`;
+          if (rotPanel) {
+            rotPanel.style.display = "block";
+            rotPanel.scrollIntoView({ behavior: "smooth" });
+          }
+        });
+
+        const revokeBtn = document.createElement("button");
+        revokeBtn.className = "btn btn-xs btn-danger";
+        revokeBtn.textContent = "Revoke";
+        revokeBtn.title = "Immediately revoke this API key";
+        revokeBtn.addEventListener("click", () => {
+          this.openConfirmationModal({
+            title: "Revoke API Credential",
+            message: `Are you sure you want to revoke '${cred.name}' (${cred.id})? All subsequent requests using this key will fail immediately.`,
+            warning: "This action cannot be undone.",
+            confirmText: "Revoke Key",
+            isDestructive: true,
+            onConfirm: async () => {
+              try {
+                await api.revokeCredential(cred.id, { reason: "Revoked via Security Console" });
+                await this.loadCredentials();
+              } catch (err) {
+                alert(`Failed to revoke credential: ${err?.message || "Unknown error"}`);
+              }
+            },
+          });
+        });
+
+        actionGroup.append(rotateBtn, revokeBtn);
+      } else {
+        const deleteBtn = document.createElement("button");
+        deleteBtn.className = "btn btn-xs btn-secondary";
+        deleteBtn.textContent = "Delete";
+        deleteBtn.title = "Permanently remove inactive credential record";
+        deleteBtn.addEventListener("click", () => {
+          this.openConfirmationModal({
+            title: "Delete Credential Record",
+            message: `Permanently delete inactive credential '${cred.name}' (${cred.id})?`,
+            confirmText: "Delete",
+            isDestructive: true,
+            onConfirm: async () => {
+              try {
+                await api.deleteCredential(cred.id);
+                await this.loadCredentials();
+              } catch (err) {
+                alert(`Failed to delete credential: ${err?.message || "Unknown error"}`);
+              }
+            },
+          });
+        });
+        actionGroup.appendChild(deleteBtn);
+      }
+
+      tdActions.appendChild(actionGroup);
+
+      tr.append(tdName, tdPrefix, tdPrincipal, tdTenant, tdApp, tdScopes, tdStatus, tdUsed, tdExp, tdActions);
+      tbody.appendChild(tr);
+    });
+  }
 
   setupDemoReset() {
     const resetBtn = document.getElementById("demo-reset-btn");

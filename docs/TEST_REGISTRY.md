@@ -10,13 +10,13 @@ Este registro documenta el inventario verificado de pruebas automatizadas del pr
 ============================================================
   ESTADO CANÓNICO DE PRUEBAS (TEST EXECUTION BASELINE)
 ============================================================
-  Línea Base Previa (Fase 69) : 1340 PASS
-  Total Tests Ejecutados      : 1354
-  Total Tests Aprobados       : 1354 (PASS)
+  Línea Base Previa (Fase 70) : 1354 PASS
+  Total Tests Ejecutados      : 1391
+  Total Tests Aprobados       : 1391 (PASS)
   Total Tests Fallidos        : 0    (FAIL)
   Total Tests Omitidos        : 0    (SKIPPED)
   Total Tests Pendientes      : 0    (TODO)
-  Suites Principales          : 57
+  Suites Principales          : 59
   Tasa de Éxito               : 100.0%
 ============================================================
 ```
@@ -203,6 +203,16 @@ Este registro documenta el inventario verificado de pruebas automatizadas del pr
 * **Pruebas Contenidas:** 14 tests pass.
 * **Aspectos Verificados:** Integración completa de la pestaña `#tab-operations` en el Plano de Control Web SPA: renderizado dinámico del daemon autónomo, panel de triggers, visualizador de cadena de ejecución de 6 fases ($\text{Trigger} \to \text{Decision} \to \text{Plan} \to \text{Execution} \to \text{Verification} \to \text{Governance}$), centro de seguridad con disyuntores de circuito y botón de parada de emergencia, modal de inspección de ciclo autónomo con payload inmutable, 0 asignaciones de `.innerHTML` (estricta seguridad DOM) y diccionarios bilingües completos (`es-419` y `en`).
 
+### 2.18 Enterprise Authentication, API Authorization & Credential Governance (Fase 71)
+* **Archivos:**
+  - `tests/unit/api-credential.test.ts`
+  - `tests/unit/api-credential-service.test.ts`
+  - `tests/integration/sqlite-api-credential-persistence.test.ts`
+  - `tests/platform/api-authentication.test.ts`
+  - `tests/platform/security-credentials-ui.test.ts`
+* **Pruebas Contenidas:** 37 tests pass.
+* **Aspectos Verificados:** Agregado `ApiCredential` con hashing seguro SHA-256 (`keyHash`), prefijo visible (`keyPrefix`), revelación estrictamente única de secretos crudos (`aop_live_*`), verificación de expiración/revocación y enlace de scopes (`tasks.read`, `tasks.create`, `credentials.manage`, etc.); persistencia durable SQLite WAL en `api_credentials` con transacciones ACID y OCC; conciliación estricta de `principalId`, `tenantId` (`TENANT_MISMATCH` fail-closed) y `applicationId` (`APPLICATION_MISMATCH`); detección de cabeceras contradictorias; sanitización de secretos en logs (`Authorization: [REDACTED]`); panel de gobernanza de credenciales en Consola Web (`#tab-security`) con 0 `.innerHTML` y soporte SDK en `PlatformClient`.
+
 ---
 
 ## 3. Resumen Global de Pruebas
@@ -226,4 +236,5 @@ Este registro documenta el inventario verificado de pruebas automatizadas del pr
 | Agent Lifecycle & Solutions Factory | 4 | 85 | PASS |
 | Enterprise OS, Executive & Autonomous Runtime | 7 | 82 | PASS |
 | Autonomous Operations Web Control Plane (Fase 70) | 1 | 14 | PASS |
-| **TOTAL GENERAL** | **57** | **1354** | **PASS (100%)** |
+| Enterprise Authentication & Credential Governance (Fase 71) | 5 | 37 | PASS |
+| **TOTAL GENERAL** | **59** | **1391** | **PASS (100%)** |

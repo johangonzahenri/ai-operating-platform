@@ -13,6 +13,7 @@ import {
   AuthenticationResult,
 } from "../../domain/security/authentication.js";
 import { ApiKeyRepository } from "../../infrastructure/security/in-memory-api-key-repository.js";
+import { ApiCredentialService } from "./api-credential-service.js";
 
 export interface AuthenticationProvider {
   supports(credentialType: string): boolean;
@@ -23,7 +24,10 @@ export interface AuthenticationProvider {
 }
 
 export class ApiKeyAuthenticationProvider implements AuthenticationProvider {
-  constructor(private readonly apiKeyRepository: ApiKeyRepository) {}
+  constructor(
+    private readonly apiKeyRepository?: ApiKeyRepository | undefined,
+    private readonly credentialService?: ApiCredentialService | undefined
+  ) {}
 
   supports(credentialType: string): boolean {
     return credentialType === "API_KEY";
@@ -39,6 +43,28 @@ export class ApiKeyAuthenticationProvider implements AuthenticationProvider {
         authenticated: false,
         code: "EMPTY_CREDENTIAL",
         reason: "API key credential cannot be empty",
+        evaluatedAt: now,
+      };
+    }
+
+    // 1. Try modern ApiCredentialService first if available
+    if (this.credentialService) {
+      try {
+        const result = await this.credentialService.verifyCredential(credential, metadata);
+        if (result.authenticated || result.code !== "KEY_NOT_FOUND") {
+          return result;
+        }
+      } catch {
+        // Fall back to legacy apiKeyRepository on error
+      }
+    }
+
+    // 2. Legacy ApiKeyRepository fallback
+    if (!this.apiKeyRepository) {
+      return {
+        authenticated: false,
+        code: "KEY_NOT_FOUND",
+        reason: "API key not found",
         evaluatedAt: now,
       };
     }
@@ -326,42 +352,84 @@ export class AuthenticationService {
     const xApiKey = this.getHeaderValue(headers, "x-api-key");
     const xAgentToken = this.getHeaderValue(headers, "x-agent-token");
 
+    // Check for conflicting credentials
+    let extractedApiKey: string | undefined = undefined;
+    let extractedBearerToken: string | undefined = undefined;
+
     if (xApiKey) {
-      return this.authenticate({
-        credentialType: "API_KEY",
-        credential: xApiKey,
-        correlationId,
-        requestId,
-      });
+      extractedApiKey = xApiKey.trim();
     }
 
     if (xAgentToken) {
-      return this.authenticate({
-        credentialType: "BEARER_TOKEN",
-        credential: xAgentToken,
-        correlationId,
-        requestId,
-      });
+      extractedBearerToken = xAgentToken.trim();
     }
 
     if (authHeader) {
       const trimmed = authHeader.trim();
       if (trimmed.startsWith("Bearer ") || trimmed.startsWith("bearer ")) {
-        return this.authenticate({
-          credentialType: "BEARER_TOKEN",
-          credential: trimmed.substring(7).trim(),
-          correlationId,
-          requestId,
-        });
+        const token = trimmed.substring(7).trim();
+        if (token.startsWith("aop_live_")) {
+          // It's an API Key supplied in Authorization: Bearer <key> format
+          if (extractedApiKey && extractedApiKey !== token) {
+            return {
+              authenticated: false,
+              code: "CONTRADICTORY_AUTH_HEADERS",
+              reason: "Contradictory authentication credentials provided in Authorization and X-API-Key headers",
+              evaluatedAt: new Date(),
+            };
+          }
+          extractedApiKey = token;
+        } else {
+          if (extractedBearerToken && extractedBearerToken !== token) {
+            return {
+              authenticated: false,
+              code: "CONTRADICTORY_AUTH_HEADERS",
+              reason: "Contradictory bearer tokens provided in Authorization and X-Agent-Token headers",
+              evaluatedAt: new Date(),
+            };
+          }
+          extractedBearerToken = token;
+        }
+      } else if (trimmed.startsWith("ApiKey ") || trimmed.startsWith("apikey ")) {
+        const key = trimmed.substring(7).trim();
+        if (extractedApiKey && extractedApiKey !== key) {
+          return {
+            authenticated: false,
+            code: "CONTRADICTORY_AUTH_HEADERS",
+            reason: "Contradictory API keys provided in Authorization and X-API-Key headers",
+            evaluatedAt: new Date(),
+          };
+        }
+        extractedApiKey = key;
       }
-      if (trimmed.startsWith("ApiKey ") || trimmed.startsWith("apikey ")) {
-        return this.authenticate({
-          credentialType: "API_KEY",
-          credential: trimmed.substring(7).trim(),
-          correlationId,
-          requestId,
-        });
-      }
+    }
+
+    // Reject if both API Key and Bearer token are provided and contradict
+    if (extractedApiKey && extractedBearerToken) {
+      return {
+        authenticated: false,
+        code: "CONTRADICTORY_AUTH_HEADERS",
+        reason: "Multiple conflicting credential types provided in request headers",
+        evaluatedAt: new Date(),
+      };
+    }
+
+    if (extractedApiKey) {
+      return this.authenticate({
+        credentialType: "API_KEY",
+        credential: extractedApiKey,
+        correlationId,
+        requestId,
+      });
+    }
+
+    if (extractedBearerToken) {
+      return this.authenticate({
+        credentialType: "BEARER_TOKEN",
+        credential: extractedBearerToken,
+        correlationId,
+        requestId,
+      });
     }
 
     const context = SecurityContext.anonymous(correlationId ?? crypto.randomUUID());

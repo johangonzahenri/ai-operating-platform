@@ -2662,6 +2662,180 @@
             </div>
           </div>
         </div>
+
+        <!-- API Credential Governance & Key Management (Prompt 102) -->
+        <div class="card full-width" style="margin-bottom: 1.5rem;">
+          <div class="card-header" style="justify-content: space-between; align-items: center; flex-wrap:wrap; gap:0.5rem;">
+            <div>
+              <h3>Enterprise API Credential Governance</h3>
+              <p style="font-size:0.85rem; color:var(--text-secondary); margin-top:0.25rem;">
+                Manage scoped API keys with zero-plaintext storage, fail-closed tenant validation, and granular capability authorizations.
+              </p>
+            </div>
+            <div style="display:flex; gap:0.5rem; align-items:center;">
+              <span class="badge badge-info" id="credentials-count-badge">0 credentials</span>
+              <button id="open-create-cred-btn" class="btn btn-primary btn-sm">+ Generate API Key</button>
+              <button id="refresh-creds-btn" class="btn btn-secondary btn-sm">Refresh</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <!-- One-Time Secret Revealed Banner -->
+            <div id="raw-key-revealed-panel" class="card" style="display:none; margin-bottom:1.5rem; background:rgba(22,101,52,0.15); border:1px solid var(--accent-green);">
+              <div class="card-header" style="justify-content:space-between;">
+                <div>
+                  <span class="badge badge-success" style="margin-bottom:0.25rem;">ONE-TIME SECRET REVELATION</span>
+                  <h4 style="color:var(--text-primary); margin-top:0.25rem;">Generated API Key Secret</h4>
+                  <p style="font-size:0.82rem; color:var(--text-secondary);">
+                    This raw secret is shown strictly once and is never stored in plaintext. Copy and store it securely immediately.
+                  </p>
+                </div>
+                <button id="close-raw-key-btn" class="btn btn-secondary btn-sm">Done / Dismiss</button>
+              </div>
+              <div class="card-body">
+                <div style="display:flex; gap:0.5rem; align-items:center;">
+                  <input type="text" id="raw-key-display" class="form-control code-text" readonly style="font-size:0.9rem; font-weight:600; background:var(--bg-primary);" />
+                  <button id="copy-raw-key-btn" class="btn btn-primary btn-sm">Copy Key</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Create Credential Panel -->
+            <div id="create-cred-panel" class="card" style="display:none; margin-bottom:1.5rem; border:1px solid var(--accent-blue); background:var(--bg-secondary);">
+              <div class="card-header" style="justify-content:space-between;">
+                <h4>Generate Scoped Enterprise API Key</h4>
+                <button id="close-create-cred-btn" class="btn btn-secondary btn-sm">Cancel</button>
+              </div>
+              <div class="card-body">
+                <form id="create-cred-form">
+                  <div class="two-col-grid" style="margin-bottom:0.75rem;">
+                    <div class="form-group">
+                      <label for="cred-name-input">Credential Name *</label>
+                      <input type="text" id="cred-name-input" class="form-control" placeholder="e.g. Tentaciones Commerce Production Gateway" required />
+                    </div>
+                    <div class="form-group">
+                      <label for="cred-principal-id-input">Principal ID *</label>
+                      <input type="text" id="cred-principal-id-input" class="form-control" placeholder="e.g. srv_tentaciones_prod" required />
+                    </div>
+                  </div>
+                  <div class="three-col-grid" style="margin-bottom:0.75rem;">
+                    <div class="form-group">
+                      <label for="cred-principal-type-select">Principal Type *</label>
+                      <select id="cred-principal-type-select" class="form-control" required>
+                        <option value="SERVICE">SERVICE (External Application / Integration)</option>
+                        <option value="HUMAN">HUMAN (Platform Operator)</option>
+                        <option value="AGENT">AGENT (Autonomous Subsystem)</option>
+                        <option value="TOOL">TOOL (External Tool Invoker)</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label for="cred-tenant-id-input">Tenant ID *</label>
+                      <input type="text" id="cred-tenant-id-input" class="form-control" placeholder="e.g. tenant-tentaciones" required />
+                    </div>
+                    <div class="form-group">
+                      <label for="cred-app-id-input">Application ID *</label>
+                      <input type="text" id="cred-app-id-input" class="form-control" placeholder="e.g. tentaciones-commerce" required />
+                    </div>
+                  </div>
+                  <div class="two-col-grid" style="margin-bottom:0.75rem;">
+                    <div class="form-group">
+                      <label for="cred-scopes-input">Capability Scopes (Comma-separated)</label>
+                      <input type="text" id="cred-scopes-input" class="form-control" value="tasks.read, tasks.create, executions.read, events.read" />
+                    </div>
+                    <div class="form-group">
+                      <label for="cred-expiry-select">Expiration Policy</label>
+                      <select id="cred-expiry-select" class="form-control">
+                        <option value="0">Never Expires (Permanent)</option>
+                        <option value="2592000000">30 Days</option>
+                        <option value="7776000000">90 Days</option>
+                        <option value="31536000000">1 Year</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div style="display:flex; justify-content:flex-end;">
+                    <button type="submit" id="submit-create-cred-btn" class="btn btn-primary">Generate API Key</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            <!-- Rotate Credential Modal Panel -->
+            <div id="rotate-cred-panel" class="card" style="display:none; margin-bottom:1.5rem; border:1px solid var(--accent-amber); background:var(--bg-secondary);">
+              <div class="card-header" style="justify-content:space-between;">
+                <div>
+                  <h4 style="color:var(--accent-amber);">Rotate API Credential: <span id="rotate-cred-id-display" class="code-text"></span></h4>
+                  <p style="font-size:0.82rem; color:var(--text-secondary);">
+                    Generate a new key with zero downtime using an optional grace period.
+                  </p>
+                </div>
+                <button id="close-rotate-cred-btn" class="btn btn-secondary btn-sm">Cancel</button>
+              </div>
+              <div class="card-body">
+                <form id="rotate-cred-form">
+                  <input type="hidden" id="rotate-cred-target-id" />
+                  <div class="two-col-grid" style="margin-bottom:0.75rem;">
+                    <div class="form-group">
+                      <label for="rotate-cred-reason-input">Rotation Reason</label>
+                      <input type="text" id="rotate-cred-reason-input" class="form-control" placeholder="e.g. Scheduled quarterly key rotation" />
+                    </div>
+                    <div class="form-group">
+                      <label for="rotate-cred-grace-select">Grace Period for Old Key</label>
+                      <select id="rotate-cred-grace-select" class="form-control">
+                        <option value="0">Revoke Old Key Immediately (0 grace)</option>
+                        <option value="3600000">1 Hour Grace Period</option>
+                        <option value="86400000">24 Hours Grace Period</option>
+                        <option value="604800000">7 Days Grace Period</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div style="display:flex; justify-content:flex-end;">
+                    <button type="submit" id="submit-rotate-cred-btn" class="btn btn-warning">Rotate &amp; Generate New Key</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            <!-- Filter Bar -->
+            <div class="filter-bar" style="margin-bottom:1rem;">
+              <div class="filter-group" style="flex: 1; min-width: 200px;">
+                <label for="cred-search-input">Search Credentials</label>
+                <input type="text" id="cred-search-input" class="form-control" placeholder="Search by name, prefix, principal, tenant, or app ID..." />
+              </div>
+              <div class="filter-group">
+                <label for="cred-status-filter">Status</label>
+                <select id="cred-status-filter" class="form-control">
+                  <option value="ALL">All Statuses</option>
+                  <option value="ACTIVE">Active</option>
+                  <option value="EXPIRED">Expired</option>
+                  <option value="REVOKED">Revoked</option>
+                </select>
+              </div>
+              <button id="cred-clear-filter-btn" class="btn btn-sm btn-secondary" style="align-self:flex-end;">Clear</button>
+            </div>
+
+            <!-- Credentials Table -->
+            <div style="overflow-x:auto;">
+              <table class="data-table" id="credentials-table">
+                <thead>
+                  <tr>
+                    <th>Credential Name</th>
+                    <th>Key Prefix</th>
+                    <th>Principal</th>
+                    <th>Tenant</th>
+                    <th>Application</th>
+                    <th>Scopes</th>
+                    <th>Status</th>
+                    <th>Last Used</th>
+                    <th>Expires At</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="credentials-tbody">
+                  <tr><td colspan="10" class="empty-state">Loading API credentials...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </section>
 
       <!-- Enterprise Control Plane: Ecosystem & Marketplace View (Prompt 97) -->

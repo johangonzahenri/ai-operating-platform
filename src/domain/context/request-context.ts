@@ -6,7 +6,7 @@ export type RequestSource = "HTTP_API" | "PLATFORM_CONSOLE" | "SDK" | "AUTOMATIO
 
 export interface RequestPrincipal {
   readonly id: string;
-  readonly type: "USER" | "SERVICE" | "SYSTEM" | "DEVICE";
+  readonly type: "USER" | "HUMAN" | "SERVICE" | "AGENT" | "TOOL" | "SYSTEM" | "DEVICE";
   readonly roles: readonly string[];
 }
 
