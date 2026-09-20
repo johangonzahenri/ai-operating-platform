@@ -25,8 +25,9 @@ Este registro cataloga todos los documentos oficiales, técnicos y manuales oper
 | `docs/TEST_REGISTRY.md` | Registro de suites de pruebas automatizadas, contratos y métricas de calidad. | `es-419` | **SÍ** | VIGENTE | 2026-09-18 | `tests/` (1064 tests PASS) |
 | `docs/TECHNICAL_DEBT.md` | Registro explícito de brechas técnicas, limitaciones conocidas y deuda técnica. | `es-419` | **SÍ** | VIGENTE | 2026-09-18 | Gaps de autenticación, red, memoria, presupuestos |
 | `docs/DECISIONS.md` | Índice maestro y consolidación de Registros de Decisiones Arquitectónicas (ADRs). | `es-419` | **SÍ** | VIGENTE | 2026-09-18 | `docs/decisions/` (ADRs 0001-0028) |
-| `docs/V1_EXIT_CRITERIA.md` | Lista de verificación de criterios objetivos para certificación de producción. | `es-419` | **SÍ** | VIGENTE | 2026-09-18 | Production Readiness Gate |
-| `docs/RELEASE_CERTIFICATION_V1.md` | Matriz oficial y reporte de certificación de release v1.3.0 (AOP-V1-EXIT). | `es-419` | **SÍ** | VIGENTE | 2026-09-18 | Release Certification Audit |
+| `docs/V1_EXIT_CRITERIA.md` | Lista de verificación de criterios objetivos para certificación de producción. | `es-419` | **SÍ** | VIGENTE | 2026-09-20 | Production Readiness Gate |
+| `docs/RELEASE_CERTIFICATION_V1.md` | Matriz oficial y reporte de certificación de release v1.3.0 (AOP-V1-EXIT). | `es-419` | **SÍ** | VIGENTE | 2026-09-20 | Release Certification Audit |
+| `docs/V1_RELEASE_READINESS.md` | Evaluación integral de preparación para producción y gobernanza de release v1.3.0. | `es-419` | **SÍ** | VIGENTE | 2026-09-20 | Release Readiness & Production Audit |
 | `DOCUMENTACION/KANBAN_TABLERO_MAESTRO.md` | Tablero Maestro Kanban multi-proyecto y multi-fase de la plataforma. | `es-419` | **SÍ** | VIGENTE | 2026-09-18 | Roadmap, Fases y Gestión |
 | `docs/PLATFORM_API.md` | Especificación de contratos REST, esquemas de payload y códigos de respuesta. | `es-419` | SÍ | VIGENTE | 2026-09-17 | `src/platform/api/` |
 | `docs/PLATFORM_CLIENT.md` | Guía de uso del SDK en TypeScript `@ai-platform/client` para aplicaciones satélites. | `es-419` | SÍ | VIGENTE | 2026-09-17 | `src/platform-client/` |
