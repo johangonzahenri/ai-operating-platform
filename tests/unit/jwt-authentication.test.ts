@@ -167,3 +167,134 @@ test("JwtTokenVerifier: rejects expired, malformed, and tampered tokens", async 
   const noneToken = `${Buffer.from(JSON.stringify({ alg: "none" })).toString("base64url")}.${parts[1]}.`;
   assert.equal(await verifier.verifyToken(noneToken), null);
 });
+
+test("JwtTokenVerifier: resolves keys dynamically from JWKS with caching and key rotation", async () => {
+  const rsaKey1 = crypto.generateKeyPairSync("rsa", {
+    modulusLength: 2048,
+    publicKeyEncoding: { type: "spki", format: "pem" },
+    privateKeyEncoding: { type: "pkcs8", format: "pem" },
+  });
+  const rsaKey2 = crypto.generateKeyPairSync("rsa", {
+    modulusLength: 2048,
+    publicKeyEncoding: { type: "spki", format: "pem" },
+    privateKeyEncoding: { type: "pkcs8", format: "pem" },
+  });
+
+  const jwk1 = crypto.createPublicKey(rsaKey1.publicKey).export({ format: "jwk" });
+  const jwk2 = crypto.createPublicKey(rsaKey2.publicKey).export({ format: "jwk" });
+
+  let jwksKeys: any[] = [{ ...jwk1, kid: "jwks-key-1", alg: "RS256", use: "sig" }];
+  let fetchCount = 0;
+
+  const mockFetcher = async (url: string) => {
+    fetchCount++;
+    assert.equal(url, "https://idp.example.com/.well-known/jwks.json");
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ keys: jwksKeys }),
+    };
+  };
+
+  const verifier = new JwtTokenVerifier({
+    issuer: "https://idp.example.com",
+    audience: "api://ai-platform",
+    jwksUri: "https://idp.example.com/.well-known/jwks.json",
+    jwksCacheTtlMs: 5000,
+    fetcher: mockFetcher,
+  });
+
+  const now = Math.floor(Date.now() / 1000);
+
+  // 1. First token signed with jwks-key-1
+  const token1 = createJwt(
+    { alg: "RS256", kid: "jwks-key-1", typ: "JWT" },
+    {
+      sub: "service-user-1",
+      iss: "https://idp.example.com",
+      aud: "api://ai-platform",
+      exp: now + 3600,
+      roles: ["operator"],
+      tenantId: "tenant-enterprise-1",
+    },
+    (data) => {
+      const sign = crypto.createSign("RSA-SHA256");
+      sign.update(data);
+      return sign.sign(rsaKey1.privateKey, "base64url");
+    }
+  );
+
+  const claims1 = await verifier.verifyToken(token1);
+  assert.ok(claims1);
+  assert.equal(claims1?.sub, "service-user-1");
+  assert.equal(claims1?.tenantId, "tenant-enterprise-1");
+  assert.equal(fetchCount, 1, "JWKS should be fetched on initial unknown key");
+
+  // 2. Second verification with same key uses cache (no additional fetch)
+  const claims1Cached = await verifier.verifyToken(token1);
+  assert.ok(claims1Cached);
+  assert.equal(fetchCount, 1, "Cached key should not trigger another fetch");
+
+  // 3. IdP rotates keys: adds jwks-key-2
+  jwksKeys = [
+    { ...jwk1, kid: "jwks-key-1", alg: "RS256", use: "sig" },
+    { ...jwk2, kid: "jwks-key-2", alg: "RS256", use: "sig" },
+  ];
+
+  const token2 = createJwt(
+    { alg: "RS256", kid: "jwks-key-2", typ: "JWT" },
+    {
+      sub: "service-user-2",
+      iss: "https://idp.example.com",
+      aud: "api://ai-platform",
+      exp: now + 3600,
+      roles: ["admin"],
+      tenantId: "tenant-enterprise-2",
+    },
+    (data) => {
+      const sign = crypto.createSign("RSA-SHA256");
+      sign.update(data);
+      return sign.sign(rsaKey2.privateKey, "base64url");
+    }
+  );
+
+  // Verifier encounters unknown kid 'jwks-key-2', forces JWKS refresh, discovers key-2 and succeeds
+  const claims2 = await verifier.verifyToken(token2);
+  assert.ok(claims2);
+  assert.equal(claims2?.sub, "service-user-2");
+  assert.equal(fetchCount, 2, "Unknown kid should trigger forced JWKS refresh");
+});
+
+test("JwtTokenVerifier: fails closed when JWKS endpoint is unreachable or returns malformed response", async () => {
+  const failingFetcher = async () => {
+    return {
+      ok: false,
+      status: 503,
+      json: async () => ({ error: "Service Unavailable" }),
+    };
+  };
+
+  const verifier = new JwtTokenVerifier({
+    issuer: "https://idp.failing.com",
+    audience: "api://ai-platform",
+    jwksUri: "https://idp.failing.com/.well-known/jwks.json",
+    fetcher: failingFetcher,
+  });
+
+  const now = Math.floor(Date.now() / 1000);
+  const token = createJwt(
+    { alg: "RS256", kid: "unknown-key", typ: "JWT" },
+    {
+      sub: "adversary",
+      iss: "https://idp.failing.com",
+      aud: "api://ai-platform",
+      exp: now + 3600,
+    },
+    () => "invalidsignature"
+  );
+
+  // Must fail closed (return null) without throwing uncaught errors
+  const claims = await verifier.verifyToken(token);
+  assert.equal(claims, null);
+});
+

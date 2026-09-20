@@ -21,6 +21,14 @@ export interface PlatformConfig {
   readonly requestTimeoutMs: number;
   readonly headersTimeoutMs: number;
   readonly keepAliveTimeoutMs: number;
+
+  // Production Identity & OIDC / JWKS Configuration
+  readonly oidcEnabled: boolean;
+  readonly oidcIssuer?: string | undefined;
+  readonly oidcAudience?: string | undefined;
+  readonly oidcJwksUri?: string | undefined;
+  readonly oidcAllowedAlgorithms: readonly ("RS256" | "ES256" | "HS256")[];
+  readonly oidcClockToleranceSec: number;
 }
 
 export class ConfigurationError extends Error {
@@ -98,6 +106,56 @@ export const validateEnvironment = (env: NodeJS.ProcessEnv = process.env): Platf
   const headersTimeoutMs = parseInt(env.TIMEOUT_HEADERS_MS ?? "15000", 10);
   const keepAliveTimeoutMs = parseInt(env.TIMEOUT_KEEP_ALIVE_MS ?? "5000", 10);
 
+  // OIDC / Identity Provider Configuration
+  const oidcEnabled = env.OIDC_ENABLED === "true" || env.OIDC_ENABLED === "1";
+  const oidcIssuer = env.OIDC_ISSUER?.trim() || undefined;
+  const oidcAudience = env.OIDC_AUDIENCE?.trim() || undefined;
+  const oidcJwksUri = env.OIDC_JWKS_URI?.trim() || undefined;
+  const oidcClockToleranceSec = parseInt(env.OIDC_CLOCK_TOLERANCE_SEC ?? "60", 10);
+
+  const rawAlgorithms = (env.OIDC_ALLOWED_ALGORITHMS ?? "RS256,ES256")
+    .split(",")
+    .map((a) => a.trim().toUpperCase())
+    .filter((a) => a.length > 0);
+  
+  for (const alg of rawAlgorithms) {
+    if (!["RS256", "ES256", "HS256"].includes(alg)) {
+      throw new ConfigurationError(`Invalid OIDC algorithm "${alg}". Allowed: RS256, ES256, HS256`);
+    }
+  }
+  const oidcAllowedAlgorithms = Object.freeze(
+    rawAlgorithms as ("RS256" | "ES256" | "HS256")[]
+  );
+
+  // Production Deterministic Security Validation (Fail-Closed)
+  if (oidcEnabled) {
+    if (!oidcIssuer) {
+      throw new ConfigurationError("OIDC is enabled (OIDC_ENABLED=true) but OIDC_ISSUER is missing or empty.");
+    }
+    if (!oidcJwksUri) {
+      throw new ConfigurationError("OIDC is enabled (OIDC_ENABLED=true) but OIDC_JWKS_URI is missing or empty.");
+    }
+    try {
+      const parsedIssuer = new URL(oidcIssuer);
+      if (nodeEnv === "production" && parsedIssuer.protocol !== "https:") {
+        throw new ConfigurationError(`OIDC_ISSUER in production must use https:// protocol, got: ${oidcIssuer}`);
+      }
+    } catch (e: any) {
+      if (e instanceof ConfigurationError) throw e;
+      throw new ConfigurationError(`OIDC_ISSUER must be a valid URL: ${oidcIssuer}`);
+    }
+
+    try {
+      const parsedJwks = new URL(oidcJwksUri);
+      if (nodeEnv === "production" && parsedJwks.protocol !== "https:") {
+        throw new ConfigurationError(`OIDC_JWKS_URI in production must use https:// protocol, got: ${oidcJwksUri}`);
+      }
+    } catch (e: any) {
+      if (e instanceof ConfigurationError) throw e;
+      throw new ConfigurationError(`OIDC_JWKS_URI must be a valid URL: ${oidcJwksUri}`);
+    }
+  }
+
   return Object.freeze({
     nodeEnv,
     port,
@@ -119,6 +177,12 @@ export const validateEnvironment = (env: NodeJS.ProcessEnv = process.env): Platf
     requestTimeoutMs,
     headersTimeoutMs,
     keepAliveTimeoutMs,
+    oidcEnabled,
+    oidcIssuer,
+    oidcAudience,
+    oidcJwksUri,
+    oidcAllowedAlgorithms,
+    oidcClockToleranceSec,
   });
 };
 

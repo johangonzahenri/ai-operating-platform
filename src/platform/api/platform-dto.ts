@@ -1792,6 +1792,13 @@ export interface NetworkDiagnosticsDTO {
     readonly isolatedDevices: readonly string[];
     readonly notice: string;
   };
+  readonly identityProvider: {
+    readonly oidcConfigured: boolean;
+    readonly oidcIssuer?: string | undefined;
+    readonly oidcJwksUri?: string | undefined;
+    readonly allowedAlgorithms: readonly string[];
+    readonly authModesSupported: readonly string[];
+  };
   readonly maxPayloadSizeBytes: number;
   readonly activeConnections?: number | undefined;
   readonly timestamp: string;

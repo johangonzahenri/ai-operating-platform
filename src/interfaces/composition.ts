@@ -105,6 +105,7 @@ import {
   ApiKeyAuthenticationProvider,
   BearerTokenAuthenticationProvider,
 } from "../application/security/authentication-service.js";
+import { BearerTokenVerifier } from "../domain/security/authentication.js";
 import { RbacAuthorizationEvaluator } from "../application/security/rbac-authorization-evaluator.js";
 import {
   ApiKeyRepository,
@@ -206,6 +207,7 @@ export interface CreatePlatformOptions {
   readonly apiCredentialService?: ApiCredentialService | undefined;
   readonly apiKeyRepository?: ApiKeyRepository | undefined;
   readonly roleRepository?: RoleRepository | undefined;
+  readonly tokenVerifier?: BearerTokenVerifier | undefined;
   readonly authenticationService?: AuthenticationService | undefined;
   readonly rbacEvaluator?: RbacAuthorizationEvaluator | undefined;
   readonly organizationRepository?: OrganizationHierarchyRepository | undefined;
@@ -690,11 +692,15 @@ export const createPlatform = (
     ? (optionsOrLogger as CreatePlatformOptions).roleRepository!
     : new InMemoryRoleRepository();
 
+  const tokenVerifier: BearerTokenVerifier | undefined = (!isLogger && (optionsOrLogger as CreatePlatformOptions).tokenVerifier)
+    ? (optionsOrLogger as CreatePlatformOptions).tokenVerifier!
+    : undefined;
+
   const authenticationService: AuthenticationService = (!isLogger && (optionsOrLogger as CreatePlatformOptions).authenticationService)
     ? (optionsOrLogger as CreatePlatformOptions).authenticationService!
     : new AuthenticationService(events, [
         new ApiKeyAuthenticationProvider(apiKeyRepository, apiCredentialService),
-        new BearerTokenAuthenticationProvider(),
+        new BearerTokenAuthenticationProvider({ verifier: tokenVerifier }),
       ]);
 
   const rbacEvaluator: RbacAuthorizationEvaluator = (!isLogger && (optionsOrLogger as CreatePlatformOptions).rbacEvaluator)

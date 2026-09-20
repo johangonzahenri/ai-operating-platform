@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import http from "node:http";
+import crypto from "node:crypto";
 import { createPlatform } from "../../src/interfaces/composition.js";
 import { PlatformService } from "../../src/platform/api/platform-service.js";
 import { createHttpServer } from "../../src/platform/api/http-router.js";
@@ -364,3 +365,124 @@ test("Enterprise Boundary Invariant: Brother DCP-1600 Printer remains strictly i
     await new Promise<void>((resolve) => ctx.server.close(() => resolve()));
   }
 });
+
+test("OIDC & Zero-Trust Request Pipeline: External OIDC token verifies end-to-end with tenant and scope enforcement", async () => {
+  const { publicKey, privateKey } = crypto.generateKeyPairSync("rsa", {
+    modulusLength: 2048,
+    publicKeyEncoding: { type: "spki", format: "pem" },
+    privateKeyEncoding: { type: "pkcs8", format: "pem" },
+  });
+
+  const jwk = crypto.createPublicKey(publicKey).export({ format: "jwk" });
+  const verifier = new (await import("../../src/infrastructure/security/jwt-token-verifier.js")).JwtTokenVerifier({
+    issuer: "https://login.enterprise.com",
+    audience: "api://ai-platform",
+    jwksUri: "https://login.enterprise.com/.well-known/jwks.json",
+    fetcher: async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ keys: [{ ...jwk, kid: "rsa-ent-1", alg: "RS256" }] }),
+    }),
+  });
+
+  const platform = createPlatform({ tokenVerifier: verifier });
+  const service = new PlatformService({
+    tasks: platform.tasks,
+    taskRepository: platform.taskRepository,
+    executions: platform.executions,
+    audit: platform.audit,
+    metrics: platform.metrics,
+    tools: platform.tools,
+    models: platform.modelRegistry,
+    agents: platform.agents,
+    agentService: platform.agentService,
+    submitTask: platform.submitTask,
+    executeOrchestration: platform.executeOrchestration,
+    operations: platform.operations,
+    operationService: platform.operationService,
+    eventStore: platform.eventStore,
+    db: platform.db,
+    diagnostics: platform.diagnostics,
+    apiCredentialService: platform.apiCredentialService,
+  });
+
+  const server = createHttpServer(service, {
+    authService: platform.authenticationService,
+    authzEvaluator: platform.rbacEvaluator,
+    roleRepository: platform.roleRepository,
+    apiKeyRepository: platform.apiKeyRepository,
+    apiCredentialService: platform.apiCredentialService,
+    enforceSecurity: true,
+    oidcConfigured: true,
+    oidcIssuer: "https://login.enterprise.com",
+    oidcJwksUri: "https://login.enterprise.com/.well-known/jwks.json",
+  });
+
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", () => resolve()));
+  const address = server.address() as { port: number };
+  const baseUrl = `http://127.0.0.1:${address.port}`;
+
+  try {
+    const now = Math.floor(Date.now() / 1000);
+    const headerB64 = Buffer.from(JSON.stringify({ alg: "RS256", kid: "rsa-ent-1", typ: "JWT" })).toString("base64url");
+    const payloadB64 = Buffer.from(
+      JSON.stringify({
+        sub: "usr_executive_99",
+        iss: "https://login.enterprise.com",
+        aud: "api://ai-platform",
+        exp: now + 3600,
+        roles: ["user"],
+        tenantId: "tenant-enterprise-hq",
+      })
+    ).toString("base64url");
+
+    const sign = crypto.createSign("RSA-SHA256");
+    sign.update(`${headerB64}.${payloadB64}`);
+    const sigB64 = sign.sign(privateKey, "base64url");
+    const validJwt = `${headerB64}.${payloadB64}.${sigB64}`;
+
+    // 1. Authorized request with valid OIDC Bearer Token
+    const authRes = await fetch(`${baseUrl}/api/v1/platform`, {
+      headers: { Authorization: `Bearer ${validJwt}` },
+    });
+    assert.equal(authRes.status, 200);
+
+    // 2. Adversarial: Token from wrong issuer -> 401
+    const badIssuerPayload = Buffer.from(
+      JSON.stringify({
+        sub: "usr_attacker",
+        iss: "https://malicious-issuer.com",
+        aud: "api://ai-platform",
+        exp: now + 3600,
+      })
+    ).toString("base64url");
+    const badIssuerSign = crypto.createSign("RSA-SHA256");
+    badIssuerSign.update(`${headerB64}.${badIssuerPayload}`);
+    const badIssuerSig = badIssuerSign.sign(privateKey, "base64url");
+    const badIssuerToken = `${headerB64}.${badIssuerPayload}.${badIssuerSig}`;
+
+    const badIssuerRes = await fetch(`${baseUrl}/api/v1/platform`, {
+      headers: { Authorization: `Bearer ${badIssuerToken}` },
+    });
+    assert.equal(badIssuerRes.status, 401);
+
+    // 3. Adversarial: Tenant header mismatch -> 403 TENANT_MISMATCH
+    const mismatchRes = await fetch(`${baseUrl}/api/v1/tasks`, {
+      headers: {
+        Authorization: `Bearer ${validJwt}`,
+        "X-Tenant-Id": "tenant-other-spoofed",
+      },
+    });
+    // Either forbidden or tenant mismatch
+    assert.ok(mismatchRes.status === 403 || mismatchRes.status === 401);
+
+    // 4. Verify Diagnostics includes IdentityProvider telemetry
+    const diagRes = await fetch(`${baseUrl}/diagnostics/network`);
+    const diag = await diagRes.json();
+    assert.equal(diag.identityProvider.oidcConfigured, true);
+    assert.equal(diag.identityProvider.oidcIssuer, "https://login.enterprise.com");
+  } finally {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
+});
+

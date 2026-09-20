@@ -10,9 +10,9 @@ Este registro documenta el inventario verificado de pruebas automatizadas del pr
 ============================================================
   ESTADO CANÓNICO DE PRUEBAS (TEST EXECUTION BASELINE)
 ============================================================
-  Línea Base Previa (Fase 70) : 1354 PASS
-  Total Tests Ejecutados      : 1399
-  Total Tests Aprobados       : 1399 (PASS)
+  Línea Base Previa (Fase 73) : 1399 PASS
+  Total Tests Ejecutados      : 1402
+  Total Tests Aprobados       : 1402 (PASS)
   Total Tests Fallidos        : 0    (FAIL)
   Total Tests Omitidos        : 0    (SKIPPED)
   Total Tests Pendientes      : 0    (TODO)
@@ -216,8 +216,15 @@ Este registro documenta el inventario verificado de pruebas automatizadas del pr
 ### 2.19 Enterprise Network Topology, Secure API Exposure & External Consumer Connectivity (Fase 72)
 * **Archivos:**
   - `tests/platform/network-topology-security.test.ts`
-* **Pruebas Contenidas:** 8 tests pass.
-* **Aspectos Verificados:** Configuración perimetral y binding seguro por defecto (`127.0.0.1`), rechazo de `0.0.0.0` en producción sin autorización explícita; diagnóstico perimetral (`/api/v1/diagnostics/network` y `/network/diagnostics`); cabeceras de seguridad estrictas (HSTS, CSP, X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy, Cache-Control); resolución segura de proxies (`trustProxy`, `trustedProxyIps`) y mitigación de spoofing `X-Forwarded-For`; defensa contra envenenamiento de cabecera Host (`allowedHosts`); CORS dinámico restringido con emisión obligatoria de `Vary: Origin, Accept-Encoding`; soporte de `PlatformClient` SDK con timeouts y reintentos idempotentes con backoff exponencial; y preservación del aislamiento físico de la impresora Brother DCP-1600 en `USB001` protegida detrás de API autenticada y autorizada (`POST /api/v1/devices/:id/print-jobs`).
+* **Pruebas Contenidas:** 9 tests pass.
+* **Aspectos Verificados:** Configuración perimetral y binding seguro por defecto (`127.0.0.1`), rechazo de `0.0.0.0` en producción sin autorización explícita; diagnóstico perimetral (`/api/v1/diagnostics/network` y `/network/diagnostics`); cabeceras de seguridad estrictas (HSTS, CSP, X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy, Cache-Control); resolución segura de proxies (`trustProxy`, `trustedProxyIps`) y mitigación de spoofing `X-Forwarded-For`; defensa contra envenenamiento de cabecera Host (`allowedHosts`); CORS dinámico restringido con emisión obligatoria de `Vary: Origin, Accept-Encoding`; soporte de `PlatformClient` SDK con timeouts y reintentos idempotentes con backoff exponencial; preservación del aislamiento físico de la impresora Brother DCP-1600 en `USB001` protegida detrás de API autenticada y autorizada; e integración end-to-end de tokens OIDC/JWKS en el pipeline de peticiones Zero-Trust.
+
+### 2.20 Production Identity & External Security Foundation (Fase 74 / ADR 0043)
+* **Archivos:**
+  - `tests/unit/jwt-authentication.test.ts`
+  - `tests/platform/network-topology-security.test.ts`
+* **Pruebas Contenidas:** 12 tests pass (3 nuevos/expandidos).
+* **Aspectos Verificados:** Verificación de JWT asimétrico (RS256, ES256) con rotación dinámica de claves JWKS vía HTTP/HTTPS nativo; caché en memoria de JWKS con TTL y refresco forzado ante `kid` desconocido; tolerancia temporal (clock skew / `nbf` / `exp`); validación estricta fail-closed de URLs en configuración de producción (`OIDC_ISSUER`, `OIDC_JWKS_URI`); diagnósticos de Identity Provider en endpoints perimetrales; e integración en Composition Root.
 
 ---
 
@@ -231,8 +238,8 @@ Este registro documenta el inventario verificado de pruebas automatizadas del pr
 | Model Gateways & Proveedores de IA | 5 | 64 | PASS |
 | Agentes y Coordinación Multi-Agente | 4 | 68 | PASS |
 | Aplicaciones Satélites del Ecosistema | 8 | 138 | PASS |
-| Seguridad, Aislamiento & RBAC | 7 | 118 | PASS |
-| Superficie de API & Diagnósticos | 8 | 123 | PASS |
+| Seguridad, Aislamiento & RBAC | 7 | 120 | PASS |
+| Superficie de API & Diagnósticos | 8 | 124 | PASS |
 | Dispositivos Empresariales & Impresión | 1 | 14 | PASS |
 | Front-End, Consola Operativa & I18N | 5 | 86 | PASS |
 | Virtual Organization Foundation | 4 | 34 | PASS |
@@ -243,5 +250,5 @@ Este registro documenta el inventario verificado de pruebas automatizadas del pr
 | Enterprise OS, Executive & Autonomous Runtime | 7 | 82 | PASS |
 | Autonomous Operations Web Control Plane (Fase 70) | 1 | 14 | PASS |
 | Enterprise Authentication & Credential Governance (Fase 71) | 5 | 37 | PASS |
-| Enterprise Network Topology & Security (Fase 72) | 1 | 8 | PASS |
-| **TOTAL GENERAL** | **59** | **1399** | **PASS (100%)** |
+| Enterprise Network Topology & Security (Fase 72) | 1 | 9 | PASS |
+| **TOTAL GENERAL** | **59** | **1402** | **PASS (100%)** |

@@ -5,6 +5,7 @@ import { createHttpServer } from "./api/http-router.js";
 
 import { loadConfig } from "../infrastructure/config/config.js";
 import { ProductionStructuredLogger } from "../infrastructure/observability/structured-logger.js";
+import { JwtTokenVerifier } from "../infrastructure/security/jwt-token-verifier.js";
 
 async function bootstrap() {
   const config = loadConfig(process.env);
@@ -16,11 +17,25 @@ async function bootstrap() {
     persistence: config.persistenceDriver,
   });
 
+  // Optional OIDC / External Identity Provider Verifier
+  let tokenVerifier: JwtTokenVerifier | undefined = undefined;
+  if (config.oidcEnabled && config.oidcIssuer && config.oidcJwksUri) {
+    tokenVerifier = new JwtTokenVerifier({
+      issuer: config.oidcIssuer,
+      audience: config.oidcAudience,
+      jwksUri: config.oidcJwksUri,
+      allowedAlgorithms: config.oidcAllowedAlgorithms,
+      clockToleranceSec: config.oidcClockToleranceSec,
+    });
+    logger.info("Security", "OIDCConfigured", `OIDC Identity Provider configured with issuer ${config.oidcIssuer}`);
+  }
+
   // Composition root wires infrastructure to application use cases (defaults to SQLite durable storage in production)
   const useDurablePersistence = config.persistenceDriver === "sqlite";
   const platform = createPlatform({
     useDurablePersistence,
     dbPath: useDurablePersistence ? config.sqliteDbPath : undefined,
+    tokenVerifier,
   });
 
   // PlatformService receives its dependencies explicitly through ports/use cases
@@ -65,6 +80,10 @@ async function bootstrap() {
     publicBaseUrl: config.publicBaseUrl,
     nodeEnv: config.nodeEnv,
     maxPayloadSizeBytes: config.maxPayloadSizeBytes,
+    oidcConfigured: config.oidcEnabled,
+    oidcIssuer: config.oidcIssuer,
+    oidcJwksUri: config.oidcJwksUri,
+    oidcAllowedAlgorithms: config.oidcAllowedAlgorithms,
   });
 
   // Socket and connection timeouts

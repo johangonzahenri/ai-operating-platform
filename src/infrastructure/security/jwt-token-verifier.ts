@@ -10,25 +10,64 @@ export interface KeyDefinition {
   readonly status: "ACTIVE" | "REVOKED";
 }
 
+export interface JwksKeyJson {
+  readonly kty: string;
+  readonly use?: string;
+  readonly alg?: string;
+  readonly kid: string;
+  readonly n?: string;
+  readonly e?: string;
+  readonly crv?: string;
+  readonly x?: string;
+  readonly y?: string;
+}
+
+export interface JwksResponseJson {
+  readonly keys: readonly JwksKeyJson[];
+}
+
+export interface OpenIdConfigurationJson {
+  readonly issuer: string;
+  readonly jwks_uri: string;
+  readonly response_types_supported?: readonly string[];
+  readonly id_token_signing_alg_values_supported?: readonly string[];
+}
+
 export interface JwtVerifierOptions {
   readonly issuer?: string | undefined;
   readonly audience?: string | undefined;
+  readonly jwksUri?: string | undefined;
+  readonly jwksCacheTtlMs?: number | undefined;
   readonly clockToleranceSec?: number | undefined;
   readonly allowedAlgorithms?: readonly SupportedJwtAlgorithm[] | undefined;
+  /**
+   * Optional custom fetcher for testing or controlled in-process JWKS resolution
+   * without network side-effects. Defaults to native globalThis.fetch.
+   */
+  readonly fetcher?: (url: string) => Promise<{ ok: boolean; status: number; json: () => Promise<unknown> }>;
 }
 
 export class JwtTokenVerifier implements BearerTokenVerifier {
   private readonly keys = new Map<string, KeyDefinition>();
   private readonly issuer?: string | undefined;
   private readonly audience?: string | undefined;
+  private readonly jwksUri?: string | undefined;
+  private readonly jwksCacheTtlMs: number;
+  private lastJwksFetchTimestamp = 0;
   private readonly clockToleranceSec: number;
   private readonly allowedAlgorithms: readonly SupportedJwtAlgorithm[];
+  private readonly fetcher: (url: string) => Promise<{ ok: boolean; status: number; json: () => Promise<unknown> }>;
 
   constructor(options: JwtVerifierOptions = {}) {
     this.issuer = options.issuer;
     this.audience = options.audience;
+    this.jwksUri = options.jwksUri;
+    this.jwksCacheTtlMs = options.jwksCacheTtlMs ?? 300000; // 5 minutes default TTL
     this.clockToleranceSec = options.clockToleranceSec ?? 60;
     this.allowedAlgorithms = options.allowedAlgorithms ?? ["RS256", "ES256", "HS256"];
+    this.fetcher = options.fetcher ?? (globalThis.fetch ? globalThis.fetch.bind(globalThis) : async () => {
+      throw new Error("No fetch implementation available");
+    });
   }
 
   registerKey(kid: string, key: string | crypto.KeyObject, alg: SupportedJwtAlgorithm): void {
@@ -67,6 +106,58 @@ export class JwtTokenVerifier implements BearerTokenVerifier {
     return undefined;
   }
 
+  /**
+   * Refreshes public keys from the configured remote/in-process JWKS URI.
+   * Caches loaded keys with TTL to avoid excessive network overhead.
+   * Fails closed if the JWKS endpoint is unreachable or malformed.
+   */
+  async refreshJwks(force = false): Promise<boolean> {
+    if (!this.jwksUri) {
+      return false;
+    }
+
+    const now = Date.now();
+    if (!force && this.lastJwksFetchTimestamp > 0 && now - this.lastJwksFetchTimestamp < this.jwksCacheTtlMs) {
+      return true; // Use valid cache
+    }
+
+    try {
+      const response = await this.fetcher(this.jwksUri);
+      if (!response.ok) {
+        return false;
+      }
+
+      const body = (await response.json()) as JwksResponseJson;
+      if (!body || !Array.isArray(body.keys)) {
+        return false;
+      }
+
+      for (const jwk of body.keys) {
+        if (!jwk.kid || !jwk.kty) continue;
+        
+        try {
+          const keyObject = crypto.createPublicKey({
+            key: jwk as any,
+            format: "jwk",
+          });
+          const alg: SupportedJwtAlgorithm =
+            jwk.alg === "ES256" || jwk.kty === "EC" ? "ES256" : "RS256";
+          
+          if (this.allowedAlgorithms.includes(alg)) {
+            this.registerKey(jwk.kid, keyObject, alg);
+          }
+        } catch {
+          // Ignore invalid individual key format, continue with other keys
+        }
+      }
+
+      this.lastJwksFetchTimestamp = now;
+      return true;
+    } catch {
+      return false; // Fail closed on network / parsing error
+    }
+  }
+
   async verifyToken(token: string): Promise<BearerTokenClaims | null> {
     if (!token || typeof token !== "string") return null;
 
@@ -95,7 +186,14 @@ export class JwtTokenVerifier implements BearerTokenVerifier {
     }
 
     const kid = header.kid;
-    const keyDef = this.getKey(kid);
+    let keyDef = this.getKey(kid);
+
+    // If key not found and jwksUri configured, attempt a dynamic refresh (key rotation handling)
+    if (!keyDef && this.jwksUri) {
+      await this.refreshJwks(true);
+      keyDef = this.getKey(kid);
+    }
+
     if (!keyDef || keyDef.status !== "ACTIVE" || keyDef.alg !== alg) {
       return null;
     }

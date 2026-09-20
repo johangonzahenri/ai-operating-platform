@@ -183,6 +183,10 @@ export interface HttpServerOptions {
   readonly publicBaseUrl?: string | undefined;
   readonly nodeEnv?: string | undefined;
   readonly maxPayloadSizeBytes?: number | undefined;
+  readonly oidcConfigured?: boolean | undefined;
+  readonly oidcIssuer?: string | undefined;
+  readonly oidcJwksUri?: string | undefined;
+  readonly oidcAllowedAlgorithms?: readonly string[] | undefined;
 }
 
 export function createHttpServer(
@@ -629,6 +633,10 @@ export function createHttpServer(
             ...(options?.publicBaseUrl !== undefined ? { publicBaseUrl: options.publicBaseUrl } : {}),
             ...(options?.nodeEnv !== undefined ? { nodeEnv: options.nodeEnv } : {}),
             ...(options?.maxPayloadSizeBytes !== undefined ? { maxPayloadSizeBytes: options.maxPayloadSizeBytes } : {}),
+            ...(options?.oidcConfigured !== undefined ? { oidcConfigured: options.oidcConfigured } : {}),
+            ...(options?.oidcIssuer !== undefined ? { oidcIssuer: options.oidcIssuer } : {}),
+            ...(options?.oidcJwksUri !== undefined ? { oidcJwksUri: options.oidcJwksUri } : {}),
+            ...(options?.oidcAllowedAlgorithms !== undefined ? { oidcAllowedAlgorithms: options.oidcAllowedAlgorithms } : {}),
           });
           sendJson(200, netDiag);
           return;

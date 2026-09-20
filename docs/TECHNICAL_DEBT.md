@@ -79,20 +79,20 @@ Este registro documenta de forma honesta, verificada y explícita las limitacion
 Estas brechas representan dependencias de infraestructura y servicios externos que requieren aprovisionamiento en el host físico de producción, sin constituir fallos en el código base:
 
 ### GAP-INF-01: Terminación TLS Perimetral en Host Físico de Producción
-* **Clasificación:** `OPEN ENVIRONMENTAL GAP` (No bloqueante para runtime local/aislado; bloqueante para `CERTIFIED` pleno en nube pública).
+* **Clasificación:** `OPEN ENVIRONMENTAL GAP / CODE READY (PENDING LIVE PROVISIONING)` (No bloqueante para runtime local/aislado; bloqueante para `V1 RELEASE READY` pleno en nube pública).
 * **Área:** Topología de Red / Seguridad Perimetral
-* **Descripción:** Los manifiestos de Nginx (`deploy/nginx/nginx.conf`), Caddy (`deploy/caddy/Caddyfile`) y Docker Compose (`deploy/docker-compose.prod.yml`) están 100% implementados y validados. La terminación TLS real requiere inyección de certificados SSL/TLS y configuración de DNS en el host físico de despliegue.
-* **Evidencia Existente:** Manifiestos de despliegue y guía `docs/PRODUCTION_NETWORK_TOPOLOGY.md` (ADR 0026).
-* **Evidencia Faltante:** Dominio DNS público y certificados emitidos por CA reconocida en host de staging/producción.
+* **Descripción:** Los manifiestos de Nginx (`deploy/nginx/nginx.conf`), Caddy (`deploy/caddy/Caddyfile`) y Docker Compose (`deploy/docker-compose.prod.yml`) están 100% implementados y validados. La arquitectura de proxy confiable (`TRUST_PROXY`, `TRUSTED_PROXY_IPS`), HSTS condicional y protección contra Host Header Poisoning están 100% integradas y probadas en el código base. La terminación TLS real requiere inyección de certificados SSL/TLS y configuración de DNS en el host físico de despliegue.
+* **Evidencia Existente:** Manifiestos de despliegue, guía `docs/PRODUCTION_NETWORK_TOPOLOGY.md` (ADR 0026, ADR 0041), y tests `tests/platform/network-topology-security.test.ts`.
+* **Evidencia Faltante:** Dominio DNS público y certificados emitidos por CA reconocida en host físico de staging/producción.
 
 ---
 
 ### GAP-SEC-01: Verificación en Vivo contra Identity Provider OIDC/JWKS Externo
-* **Clasificación:** `OPEN ENVIRONMENTAL GAP` (No bloqueante para runtime local/aislado; bloqueante para `CERTIFIED` pleno en nube pública).
-* **Área:** Autenticación / Seguridad
-* **Descripción:** El verificador criptográfico asimétrico `JwtTokenVerifier` (RS256/ES256) y el gestor de claves `KeyStore` con rotación dinámica están 100% implementados y cubiertos por 4 tests criptográficos. La verificación en vivo requiere conectividad hacia el endpoint JWKS público de un IdP corporativo (e.g., Okta, Auth0, Keycloak).
-* **Evidencia Existente:** `src/infrastructure/security/jwt-token-verifier.ts`, `tests/unit/jwt-authentication.test.ts` (ADR 0025).
-* **Evidencia Faltante:** URI JWKS activa y credenciales de cliente OIDC en red pública empresarial.
+* **Clasificación:** `OPEN ENVIRONMENTAL GAP / CODE READY (PENDING LIVE PROVISIONING)` (No bloqueante para runtime local/aislado; bloqueante para `V1 RELEASE READY` pleno en nube pública).
+* **Área:** Autenticación / Seguridad Federada
+* **Descripción:** El verificador criptográfico asimétrico `JwtTokenVerifier` (RS256/ES256/HS256) soporta recuperación dinámica de JWKS vía HTTP(S) nativo, caché en memoria con TTL, refresco forzado ante detección de rotación de claves (`kid` no encontrado), y validación estricta de `iss`, `aud`, `exp`, `nbf` y `tenantId`. La verificación en vivo requiere conectividad hacia el endpoint JWKS público de un IdP corporativo real (e.g., Microsoft Entra ID, Google Cloud Identity, Okta, Auth0, Keycloak).
+* **Evidencia Existente:** `src/infrastructure/security/jwt-token-verifier.ts`, `src/infrastructure/config/config.ts`, `tests/unit/jwt-authentication.test.ts`, `tests/platform/network-topology-security.test.ts` (ADR 0025, ADR 0040, ADR 0043).
+* **Evidencia Faltante:** URI JWKS activa y credenciales de cliente OIDC en red pública empresarial en vivo.
 
 ---
 

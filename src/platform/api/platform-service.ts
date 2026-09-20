@@ -3182,6 +3182,10 @@ export class PlatformService {
     nodeEnv?: string;
     maxPayloadSizeBytes?: number;
     activeConnections?: number;
+    oidcConfigured?: boolean;
+    oidcIssuer?: string;
+    oidcJwksUri?: string;
+    oidcAllowedAlgorithms?: readonly string[];
   }): NetworkDiagnosticsDTO {
     const host = options?.host ?? "127.0.0.1";
     const port = options?.port ?? 3000;
@@ -3192,6 +3196,10 @@ export class PlatformService {
     const allowedHosts = options?.allowedHosts ?? [];
     const nodeEnv = options?.nodeEnv ?? "development";
     const maxPayloadSizeBytes = options?.maxPayloadSizeBytes ?? 1048576;
+    const oidcConfigured = Boolean(options?.oidcConfigured);
+    const oidcIssuer = options?.oidcIssuer;
+    const oidcJwksUri = options?.oidcJwksUri;
+    const oidcAllowedAlgorithms = options?.oidcAllowedAlgorithms ?? ["RS256", "ES256"];
 
     let corsMode: CorsMode = "RESTRICTED_LOCAL";
     if (corsOrigins.length > 0) {
@@ -3247,6 +3255,13 @@ export class PlatformService {
         deviceLayerIsolated: true,
         isolatedDevices: ["Brother DCP-1600 (USB001 / Spooler)"],
         notice: "Hardware interfaces remain strictly isolated locally behind the platform and are never directly exposed to internet ingress.",
+      },
+      identityProvider: {
+        oidcConfigured,
+        oidcIssuer,
+        oidcJwksUri,
+        allowedAlgorithms: oidcAllowedAlgorithms,
+        authModesSupported: ["API_KEY_SHA256", ...(oidcConfigured ? ["OIDC_BEARER_JWT"] : ["BEARER_TOKEN_LOCAL"])],
       },
       maxPayloadSizeBytes,
       activeConnections: options?.activeConnections,
