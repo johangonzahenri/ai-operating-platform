@@ -8,6 +8,7 @@
     "build": "tsc",
     "test": "node scripts/test.js",
     "docs:check": "node scripts/docs-check.mjs",
+    "excel:sync": "python scripts/generate_roadmap_excel.py",
     "check": "npm run build && npm test && npm run docs:check",
     "start": "npm run build && node dist/src/platform/server.js"
   },

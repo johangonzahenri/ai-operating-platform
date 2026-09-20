@@ -1758,6 +1758,46 @@ export interface RevokeCredentialRequestDTO {
   readonly reason?: string | undefined;
 }
 
+export type NetworkExposureMode = "LOOPBACK_ISOLATED" | "LOCAL_ONLY" | "INTERNAL_NETWORK" | "EXTERNAL_BEHIND_PROXY" | "PUBLIC_EXPOSED" | "UNKNOWN";
+export type CorsMode = "RESTRICTED_LOCAL" | "EXPLICIT_ALLOWLIST" | "SAME_ORIGIN_ONLY" | "STRICT_ALLOWLIST";
+export type TlsTerminationMode = "NONE_LOCAL" | "REVERSE_PROXY_TERMINATED" | "UPSTREAM_REVERSE_PROXY" | "DIRECT_HTTPS";
+
+export interface NetworkDiagnosticsDTO {
+  readonly host: string;
+  readonly port: number;
+  readonly protocol: string;
+  readonly bindAddress: {
+    readonly host: string;
+    readonly port: number;
+  };
+  readonly trustProxy: boolean;
+  readonly trustedProxyIps: readonly string[];
+  readonly corsMode: CorsMode;
+  readonly corsOrigins: readonly string[];
+  readonly allowedCorsOrigins: readonly string[];
+  readonly allowedHosts: readonly string[];
+  readonly exposureMode: NetworkExposureMode;
+  readonly tlsTermination: TlsTerminationMode;
+  readonly publicBaseUrl?: string | undefined;
+  readonly securityHeaders: {
+    readonly nosniff: boolean;
+    readonly frameDeny: boolean;
+    readonly hsts: boolean;
+    readonly csp: boolean;
+    readonly referrerPolicy: boolean;
+    readonly permissionsPolicy: boolean;
+  };
+  readonly deviceIsolation: {
+    readonly deviceLayerIsolated: boolean;
+    readonly isolatedDevices: readonly string[];
+    readonly notice: string;
+  };
+  readonly maxPayloadSizeBytes: number;
+  readonly activeConnections?: number | undefined;
+  readonly timestamp: string;
+}
+
+
 
 
 

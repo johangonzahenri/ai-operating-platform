@@ -706,5 +706,17 @@ ws_dash.freeze_panes = "A5"
 
 # Save Workbook
 output_path = "AI_Operating_Platform_Roadmap.xlsx"
-wb.save(output_path)
-print(f"Successfully generated {output_path} with 14 canonical sheets!")
+doc_path = "DOCUMENTACION/AI_OPERATING_PLATFORM_BACKLOG_KANBAN.xlsx"
+
+try:
+    wb.save(output_path)
+    print(f"[OK] Sincronizado exitosamente: {output_path} (14 pestanas)")
+except PermissionError:
+    print(f"[AVISO] '{output_path}' esta abierto en Excel de escritorio. Cierralo para sobrescribir directamente la raiz.")
+
+try:
+    wb.save(doc_path)
+    print(f"[OK] Sincronizado exitosamente: {doc_path} (14 pestanas)")
+except PermissionError:
+    print(f"[AVISO] '{doc_path}' esta abierto en Excel de escritorio.")
+

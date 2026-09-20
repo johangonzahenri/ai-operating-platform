@@ -5,8 +5,8 @@
 ---
 
 **Documento:** AI Operating Platform — Official Architecture Book
-**Versión del Documento:** 3.1 (Integración Oficial de Enterprise Authentication, API Authorization & Credential Governance)
-**Estado del Repositorio:** v1.3.0 Baseline (1391 tests PASS, 0 FAIL — 100% determinismo)
+**Versión del Documento:** 3.2 (Integración Oficial de Enterprise Network Topology, Secure API Exposure & External Consumer Governance)
+**Estado del Repositorio:** v1.3.0 Baseline (1399 tests PASS, 0 FAIL — 100% determinismo)
 **Estado Documental:** Oficial / Sincronizado con Fuente de Verdad
 **Fecha de Verificación:** Septiembre de 2026
 **Fuente de Verdad Técnica:** Código fuente (`src/`) + Tests automatizados (`tests/`) + ADRs (`docs/decisions/`)
@@ -29,6 +29,7 @@
 | **2.5** | Septiembre 2026 | v1.3.0 Consolidated | **Auditoría Integral de Documentación y Sincronización Canónica (Fase 58 / Prompt 105):**<br>• Actualización de Matriz de Capacidades a línea base v1.3.0 con 1064 tests.<br>• Línea base canónica verificada en **1064 tests PASS** (0 FAIL, 11 suites). |
 | **3.0** | Septiembre 2026 | v1.3.0 Autonomous Runtime & Control Plane | **Autonomous Operations Runtime & Continuous Business Governance (Fases 62-70):**<br>• Orquestación de flujos de trabajo de negocio (`WorkflowDefinition`, `WorkflowInstance`), verificación determinista y supervisión humana (`OversightRequest`).<br>• Ciclo de vida y evaluación cuantitativa de agentes (`AgentProfile`, `AgentEvaluation`) y factoría de soluciones (`SolutionDefinition`, `SolutionDeployment`).<br>• AI Enterprise OS y bucle cerrado de retroalimentación operacional ejecutiva (`EnterpriseGoal`).<br>• Runtime de Operaciones Autónomas con triggers (`AutonomousTrigger`), arrendamiento concurrente (`RuntimeLease`), disyuntores de seguridad y reconciliación de ciclos.<br>• Integración completa en el Plano de Control Web SPA (`#tab-operations`) con visualizador de 6 fases y 0 `innerHTML`.<br>• Línea base canónica verificada en **1354 tests PASS** (0 FAIL, 57 suites). |
 | **3.1** | Septiembre 2026 | v1.3.0 Enterprise Authentication & Credentials | **Enterprise Authentication, API Authorization & Credential Governance (Fase 71 / Prompt 102):**<br>• Agregado `ApiCredential` con almacenamiento zero-plaintext (SHA-256 `keyHash`, prefijo seguro `keyPrefix`), revelación estrictamente única de secretos crudos (`aop_live_*`), verificación de expiración/revocación y enlace de scopes (`tasks.read`, `tasks.create`, `credentials.manage`, etc.).<br>• Persistencia durable SQLite WAL en `api_credentials` con transacciones ACID y OCC.<br>• Conciliación estricta de `principalId`, `tenantId` (`TENANT_MISMATCH` fail-closed) y `applicationId` (`APPLICATION_MISMATCH`).<br>• Detección de cabeceras contradictorias y sanitización estricta de secretos en logs (`Authorization: [REDACTED]`).<br>• Consola de gobernanza de credenciales en Web Control Plane (`#tab-security`) con 0 `.innerHTML` y soporte SDK en `PlatformClient`.<br>• Línea base canónica verificada en **1391 tests PASS** (0 FAIL, 59 suites). |
+| **3.2** | Septiembre 2026 | v1.3.0 Enterprise Network Topology & Security | **Enterprise Network Topology, Secure API Exposure & External Consumer Connectivity (Fase 72 / Prompt 103):**<br>• Topología perimetral multicapa con separación estricta: Red ≠ Identidad ≠ Autorización.<br>• Enlace seguro por defecto (`127.0.0.1`), rechazo preventivo de `0.0.0.0` en producción sin bandera explícita `ALLOW_PUBLIC_BINDING=true`.<br>• Defensa contra Host Poisoning (`allowedHosts`), resolución segura de proxies (`trustProxy`, `trustedProxyIps`) y cabeceras estrictas de seguridad (HSTS, CSP, X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy, Cache-Control).<br>• CORS dinámico restringido con emisión obligatoria de `Vary: Origin, Accept-Encoding`.<br>• Aislamiento físico de la impresora Brother DCP-1600 en `USB001` protegida detrás de API autenticada y autorizada.<br>• Endpoints de diagnóstico perimetral (`/api/v1/diagnostics/network` y `/network/diagnostics`), panel en Web Control Plane (0 `.innerHTML`) y SDK enriquecido con timeouts y reintentos exponenciales para métodos idempotentes.<br>• Línea base canónica verificada en **1399 tests PASS** (0 FAIL, 59 suites). |
 
 ---
 
@@ -54,7 +55,7 @@ Antes de sumergirnos en la arquitectura, es fundamental entender una regla de tr
 
 ![Visión Estratégica vs. Capacidades Implementadas: El 90% de la plataforma está construido y verificado](docs/images/12_vision_vs_reality.jpg)
 
-La infografía muestra las **16 capacidades ya construidas y verificadas** (lado derecho) frente a los 2 objetivos pendientes del futuro (lado izquierdo). Cada tarjeta incluye su descripción en español — desde el Motor Hexagonal hasta los 1391 tests pasando sin fallos.
+La infografía muestra las **16 capacidades ya construidas y verificadas** (lado derecho) frente a los 2 objetivos pendientes del futuro (lado izquierdo). Cada tarjeta incluye su descripción en español — desde el Motor Hexagonal hasta los 1399 tests pasando sin fallos.
 
 ---
 
@@ -799,7 +800,12 @@ COMPLETADO & VERIFICADO (v1.3.0 BASELINE CANÓNICA — 1064 TESTS PASS)
   - Conciliación Estricta Fail-Closed: Enlace obligatorio de `Principal` (`SERVICE`, `HUMAN`, `AGENT`, `TOOL`), `tenantId` (`TENANT_MISMATCH`), `applicationId` (`APPLICATION_MISMATCH`) y scopes explícitos (`tasks.read`, `tasks.create`, `credentials.manage`, etc.).
   - Persistencia Durable SQLite WAL: Repositorio relacional `SqliteApiCredentialRepository` con transacciones ACID y OCC.
   - Seguridad en Consola Web & SDK: Panel de credenciales en `#tab-security` con 0 `.innerHTML`, revelación única modal y soporte `client.credentials` en `PlatformClient`.
-  - Test Baseline: 1391 tests passing deterministas (0 fail, 59 suites).
+• v1.3.0 (Fase 72 / Prompt 103): Enterprise Network Topology, Secure API Exposure & External Consumer Connectivity:
+  - Topología Perimetral & Separación de Capas: Red ≠ Identidad ≠ Autorización. Enlace seguro por defecto a `127.0.0.1`, rechazo de `0.0.0.0` sin autorización explícita.
+  - Defensa Perimetral Integral: Cabeceras de seguridad estrictas (HSTS, CSP, X-Content-Type-Options, etc.), CORS dinámico con `Vary: Origin`, defensa contra Host Poisoning (`allowedHosts`), resolución segura de proxies (`trustProxy`, `trustedProxyIps`).
+  - Aislamiento Físico de Dispositivos: Impresora Brother DCP-1600 en `USB001` protegida detrás de API autenticada y autorizada (`POST /api/v1/devices/:id/print-jobs`).
+  - Diagnóstico Perimetral & SDK Resiliente: Endpoints `/api/v1/diagnostics/network` y `/network/diagnostics`, tarjeta en Web Control Plane (0 `.innerHTML`) y timeouts con reintentos exponenciales en `PlatformClient`.
+  - Test Baseline: 1399 tests passing deterministas (0 fail, 59 suites).
 
 ROADMAP FUTURO (BACKLOG FORMAL v1.4 — DISEÑADO / NO IMPLEMENTADO)
 ──────────────────────────────────────────────────────────────────────────

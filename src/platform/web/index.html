@@ -2836,6 +2836,96 @@
             </div>
           </div>
         </div>
+
+        <!-- Enterprise Network Topology & Secure API Exposure (Phase 72) -->
+        <div class="card full-width" style="margin-bottom: 1.5rem;" id="network-topology-card">
+          <div class="card-header" style="justify-content: space-between; align-items: center; flex-wrap:wrap; gap:0.5rem;">
+            <div>
+              <span class="badge badge-info" style="margin-bottom:0.25rem;">PERIMETER SECURITY &amp; TRANSPORT</span>
+              <h3 id="network-card-title">Enterprise Network Topology &amp; Secure API Exposure</h3>
+              <p id="network-card-subtitle" style="font-size:0.85rem; color:var(--text-secondary); margin-top:0.25rem;">
+                Perimeter connectivity status, controlled transport binding, TLS termination, dynamic CORS, and business device isolation.
+              </p>
+            </div>
+            <div style="display:flex; gap:0.5rem; align-items:center;">
+              <button id="refresh-network-btn" class="btn btn-secondary btn-sm">Refresh Network</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="three-col-grid" style="gap: 1rem; margin-bottom: 1.25rem;">
+              <div class="card" style="background:var(--bg-secondary); border:1px solid var(--border-color);">
+                <div class="card-header">
+                  <h4 style="font-size:0.95rem;">Transport &amp; Host Binding</h4>
+                </div>
+                <div class="card-body" style="padding:0.75rem 1rem;">
+                  <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
+                    <span style="color:var(--text-secondary); font-size:0.85rem;">Bind Address</span>
+                    <span id="net-bind-address" class="code-text" style="font-weight:600;">127.0.0.1:3000</span>
+                  </div>
+                  <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
+                    <span style="color:var(--text-secondary); font-size:0.85rem;">Exposure Mode</span>
+                    <span id="net-exposure-mode" class="badge badge-success">LOOPBACK_ISOLATED</span>
+                  </div>
+                  <div style="display:flex; justify-content:space-between;">
+                    <span style="color:var(--text-secondary); font-size:0.85rem;">Allowed Hosts</span>
+                    <span id="net-allowed-hosts" class="badge badge-info">127.0.0.1, localhost</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card" style="background:var(--bg-secondary); border:1px solid var(--border-color);">
+                <div class="card-header">
+                  <h4 style="font-size:0.95rem;">Proxy &amp; Ingress Boundary</h4>
+                </div>
+                <div class="card-body" style="padding:0.75rem 1rem;">
+                  <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
+                    <span style="color:var(--text-secondary); font-size:0.85rem;">Proxy Trust</span>
+                    <span id="net-proxy-trust" class="badge badge-warning">DISABLED (Direct)</span>
+                  </div>
+                  <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
+                    <span style="color:var(--text-secondary); font-size:0.85rem;">Trusted Proxy IPs</span>
+                    <span id="net-trusted-proxies" class="code-text">0 configured</span>
+                  </div>
+                  <div style="display:flex; justify-content:space-between;">
+                    <span style="color:var(--text-secondary); font-size:0.85rem;">TLS Termination</span>
+                    <span id="net-tls-mode" class="badge badge-info">UPSTREAM_REVERSE_PROXY</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card" style="background:var(--bg-secondary); border:1px solid var(--border-color);">
+                <div class="card-header">
+                  <h4 style="font-size:0.95rem;">Cross-Origin &amp; Browser Protection</h4>
+                </div>
+                <div class="card-body" style="padding:0.75rem 1rem;">
+                  <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
+                    <span style="color:var(--text-secondary); font-size:0.85rem;">CORS Mode</span>
+                    <span id="net-cors-mode" class="badge badge-success">STRICT_ALLOWLIST</span>
+                  </div>
+                  <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
+                    <span style="color:var(--text-secondary); font-size:0.85rem;">CORS Allowlist</span>
+                    <span id="net-cors-origins" class="code-text">Same-Origin (Strict)</span>
+                  </div>
+                  <div style="display:flex; justify-content:space-between;">
+                    <span style="color:var(--text-secondary); font-size:0.85rem;">Security Headers</span>
+                    <span id="net-sec-headers" class="badge badge-success">nosniff, DENY, CSP</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Device Isolation Notice -->
+            <div style="background:rgba(30,41,59,0.5); border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:0.75rem 1rem;">
+              <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem;">
+                <span class="badge badge-success">DEVICE LAYER ISOLATION</span>
+                <strong style="font-size:0.85rem; color:var(--text-primary);" id="net-device-isolation-title">Brother Printer DCP-1600 (USB001 / Spooler)</strong>
+              </div>
+              <p style="font-size:0.8rem; color:var(--text-secondary); margin:0;" id="net-device-isolation-desc">
+                Printers and business hardware interfaces remain strictly isolated locally behind the platform engine and are never directly exposed to the internet. External consumers interact purely via authenticated Platform API print operations.
+              </p>
+            </div>
+          </div>
+        </div>
       </section>
 
       <!-- Enterprise Control Plane: Ecosystem & Marketplace View (Prompt 97) -->

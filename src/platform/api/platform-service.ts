@@ -111,6 +111,10 @@ import {
   RotateCredentialRequestDTO,
   RotateCredentialResponseDTO,
   RevokeCredentialRequestDTO,
+  NetworkDiagnosticsDTO,
+  NetworkExposureMode,
+  CorsMode,
+  TlsTerminationMode,
 } from "./platform-dto.js";
 import { ApiCredentialService } from "../../application/security/api-credential-service.js";
 import { ApiCredentialFilter } from "../../application/ports/api-credential-repository-port.js";
@@ -3164,6 +3168,90 @@ export class PlatformService {
     }
     const cred = await this.apiCredentialService.revokeCredential(id, tenantId ?? "default", input.reason);
     return this.toApiCredentialDTO(cred);
+  }
+
+  getNetworkDiagnostics(options?: {
+    host?: string;
+    port?: number;
+    protocol?: string;
+    trustProxy?: boolean;
+    trustedProxyIps?: readonly string[];
+    corsOrigins?: readonly string[];
+    allowedHosts?: readonly string[];
+    publicBaseUrl?: string;
+    nodeEnv?: string;
+    maxPayloadSizeBytes?: number;
+    activeConnections?: number;
+  }): NetworkDiagnosticsDTO {
+    const host = options?.host ?? "127.0.0.1";
+    const port = options?.port ?? 3000;
+    const protocol = options?.protocol ?? "http";
+    const trustProxy = Boolean(options?.trustProxy);
+    const trustedProxyIps = options?.trustedProxyIps ?? [];
+    const corsOrigins = options?.corsOrigins ?? [];
+    const allowedHosts = options?.allowedHosts ?? [];
+    const nodeEnv = options?.nodeEnv ?? "development";
+    const maxPayloadSizeBytes = options?.maxPayloadSizeBytes ?? 1048576;
+
+    let corsMode: CorsMode = "RESTRICTED_LOCAL";
+    if (corsOrigins.length > 0) {
+      corsMode = "STRICT_ALLOWLIST";
+    } else if (nodeEnv === "production") {
+      corsMode = "SAME_ORIGIN_ONLY";
+    }
+
+    let exposureMode: NetworkExposureMode = "LOOPBACK_ISOLATED";
+    if (host === "0.0.0.0") {
+      exposureMode = "PUBLIC_EXPOSED";
+    } else if (trustProxy) {
+      exposureMode = "EXTERNAL_BEHIND_PROXY";
+    } else if (host === "127.0.0.1" || host === "localhost" || host === "::1") {
+      exposureMode = "LOOPBACK_ISOLATED";
+    } else {
+      exposureMode = "INTERNAL_NETWORK";
+    }
+
+    let tlsTermination: TlsTerminationMode = "NONE_LOCAL";
+    if (trustProxy) {
+      tlsTermination = "UPSTREAM_REVERSE_PROXY";
+    } else if (protocol === "https") {
+      tlsTermination = "DIRECT_HTTPS";
+    }
+
+    return {
+      host,
+      port,
+      protocol,
+      bindAddress: {
+        host,
+        port,
+      },
+      trustProxy,
+      trustedProxyIps,
+      corsMode,
+      corsOrigins,
+      allowedCorsOrigins: corsOrigins,
+      allowedHosts,
+      exposureMode,
+      tlsTermination,
+      publicBaseUrl: options?.publicBaseUrl,
+      securityHeaders: {
+        nosniff: true,
+        frameDeny: true,
+        hsts: protocol === "https" || trustProxy,
+        csp: true,
+        referrerPolicy: true,
+        permissionsPolicy: true,
+      },
+      deviceIsolation: {
+        deviceLayerIsolated: true,
+        isolatedDevices: ["Brother DCP-1600 (USB001 / Spooler)"],
+        notice: "Hardware interfaces remain strictly isolated locally behind the platform and are never directly exposed to internet ingress.",
+      },
+      maxPayloadSizeBytes,
+      activeConnections: options?.activeConnections,
+      timestamp: new Date().toISOString(),
+    };
   }
 }
 

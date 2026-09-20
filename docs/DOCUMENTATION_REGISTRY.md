@@ -33,7 +33,10 @@ Este registro cataloga todos los documentos oficiales, técnicos y manuales oper
 | `docs/OPERATIONAL_CONSOLE.md` | Guía de operación y arquitectura de la interfaz web Single-Page Application. | `es-419` | SÍ | VIGENTE | 2026-09-17 | `src/platform/web/` |
 | `docs/REAL_AI_PROVIDERS.md` | Guía de configuración y adaptadores de modelos OpenAI, Anthropic y Ollama. | `es-419` | SÍ | VIGENTE | 2026-09-17 | `src/infrastructure/model/` |
 | `docs/BUSINESS_DEVICES.md` | Especificación del adaptador de hardware e impresora comercial Brother. | `es-419` | SÍ | VIGENTE | 2026-09-17 | `src/infrastructure/device/` |
-| `docs/APPLICATION_FACTORY.md` | Guía de desarrollo y manifiestos para la Fábrica de Aplicaciones 2.0. | `es-419` | SÍ | VIGENTE | 2026-09-17 | Developer Platform |
+| `docs/CREDENTIAL_GOVERNANCE.md` | Gobernanza de credenciales API, almacenamiento zero-plaintext y rotación. | `es-419` | SÍ | VIGENTE | 2026-09-19 | `src/domain/security/api-credential.ts` |
+| `docs/NETWORK_TOPOLOGY.md` | Topología de red perimetral, DMZ y exposición controlada de APIs. | `es-419` | SÍ | VIGENTE | 2026-09-20 | `src/platform/server.ts`, `src/platform/api/` |
+| `docs/NETWORK_SECURITY.md` | Defensa en profundidad perimetral, cabeceras estrictas y aislamiento físico. | `es-419` | SÍ | VIGENTE | 2026-09-20 | `src/platform/api/http-router.ts` |
+| `docs/EXTERNAL_CONSUMERS.md` | Guía de integración de consumidores externos, SDK y conectividad webhooks. | `es-419` | SÍ | VIGENTE | 2026-09-20 | `src/platform-client/` |
 | `docs/GLOSARIO.md` | Definiciones formales de términos técnicos y arquitectónicos del sistema. | `es-419` | SÍ | VIGENTE | 2026-09-17 | Conceptos de arquitectura de IA |
 
 ---

@@ -107,11 +107,21 @@ import type {
   TaskContract,
 } from "../platform/product/execution-contract.js";
 
+export interface PlatformRetryPolicy {
+  readonly maxRetries?: number | undefined;
+  readonly retryDelayMs?: number | undefined;
+  readonly backoffFactor?: number | undefined;
+}
+
 export interface PlatformClientOptions {
   readonly baseUrl: string;
   readonly apiPrefix?: string | undefined;
   readonly apiKey?: string | undefined;
   readonly bearerToken?: string | undefined;
+  readonly tenantId?: string | undefined;
+  readonly applicationId?: string | undefined;
+  readonly timeoutMs?: number | undefined;
+  readonly retryPolicy?: PlatformRetryPolicy | undefined;
   readonly fetch?: typeof globalThis.fetch | undefined;
   readonly defaultHeaders?: Readonly<Record<string, string>> | undefined;
 }
@@ -153,17 +163,42 @@ function joinUrl(baseUrl: string, apiPrefix: string, path: string): string {
   return `${baseUrl.replace(/\/+$/, "")}/${apiPrefix.replace(/^\/|\/$/g, "")}/${path.replace(/^\//, "")}`;
 }
 
+const IDEMPOTENT_HTTP_METHODS = new Set(["GET", "HEAD", "OPTIONS", "PUT", "DELETE"]);
+
+function isIdempotentRequest(method: string, headers: Headers): boolean {
+  const m = method.toUpperCase();
+  if (IDEMPOTENT_HTTP_METHODS.has(m)) return true;
+  if (headers.has("idempotency-key") || headers.has("x-idempotency-key")) return true;
+  return false;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export function createPlatformClient(options: PlatformClientOptions) {
   const baseUrl = options.baseUrl.replace(/\/+$/, "");
   const apiPrefix = options.apiPrefix ?? "/api/v1";
   const fetchImpl = options.fetch ?? globalThis.fetch;
   if (!fetchImpl) throw new Error("A fetch implementation is required");
 
+  const defaultTimeoutMs = options.timeoutMs ?? 30000;
+  const maxRetries = options.retryPolicy?.maxRetries ?? 0;
+  const initialRetryDelayMs = options.retryPolicy?.retryDelayMs ?? 200;
+  const backoffFactor = options.retryPolicy?.backoffFactor ?? 2;
+
   async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     const requestId = randomUUID();
     const headers = new Headers(options.defaultHeaders);
     headers.set("Accept", "application/json");
     headers.set("X-Request-Id", requestId);
+
+    if (options.tenantId && !headers.has("X-Tenant-Id")) {
+      headers.set("X-Tenant-Id", options.tenantId);
+    }
+    if (options.applicationId && !headers.has("X-Application-Id")) {
+      headers.set("X-Application-Id", options.applicationId);
+    }
 
     if (options.apiKey && !headers.has("Authorization") && !headers.has("X-API-Key")) {
       headers.set("X-API-Key", options.apiKey);
@@ -174,18 +209,67 @@ export function createPlatformClient(options: PlatformClientOptions) {
 
     if (init.body !== undefined && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
     Object.entries(init.headers ?? {}).forEach(([key, value]) => headers.set(key, String(value)));
-    let response: Response;
-    try {
-      response = await fetchImpl(joinUrl(baseUrl, apiPrefix, path), { ...init, headers });
-    } catch (cause) {
-      throw new PlatformClientError({
+
+    const method = (init.method ?? "GET").toUpperCase();
+    const url = joinUrl(baseUrl, apiPrefix, path);
+    const allowRetry = isIdempotentRequest(method, headers) && maxRetries > 0;
+    const attempts = allowRetry ? maxRetries + 1 : 1;
+
+    let lastError: Error | undefined;
+    let response: Response | undefined;
+    let responseRequestId: string = requestId;
+
+    for (let attempt = 0; attempt < attempts; attempt++) {
+      if (attempt > 0) {
+        const delay = initialRetryDelayMs * Math.pow(backoffFactor, attempt - 1);
+        await sleep(delay);
+      }
+
+      const controller = new AbortController();
+      const timeoutId = defaultTimeoutMs > 0 ? setTimeout(() => controller.abort(), defaultTimeoutMs) : undefined;
+
+      try {
+        response = await fetchImpl(url, {
+          ...init,
+          headers,
+          signal: controller.signal,
+        });
+      } catch (cause) {
+        if (timeoutId) clearTimeout(timeoutId);
+        const isAbort = (cause as { name?: string })?.name === "AbortError" || controller.signal.aborted;
+        lastError = new PlatformClientError({
+          code: isAbort ? "REQUEST_TIMEOUT" : "NETWORK_ERROR",
+          message: isAbort
+            ? `Platform request timed out after ${defaultTimeoutMs}ms`
+            : (cause instanceof Error ? cause.message : "Platform request failed"),
+          details: cause,
+          requestId,
+        });
+
+        if (attempt === attempts - 1) {
+          throw lastError;
+        }
+        continue;
+      } finally {
+        if (timeoutId) clearTimeout(timeoutId);
+      }
+
+      if (response.status >= 502 && response.status <= 504 && allowRetry && attempt < attempts - 1) {
+        continue;
+      }
+
+      break;
+    }
+
+    if (!response) {
+      throw lastError ?? new PlatformClientError({
         code: "NETWORK_ERROR",
-        message: cause instanceof Error ? cause.message : "Platform request failed",
-        details: cause,
+        message: "No response received from platform",
         requestId,
       });
     }
-    const responseRequestId = response.headers.get("x-request-id") ?? requestId;
+
+    responseRequestId = response.headers.get("x-request-id") ?? requestId;
     const raw = await response.text();
     let payload: unknown = undefined;
     if (raw) {
@@ -667,6 +751,15 @@ export function createPlatformClient(options: PlatformClientOptions) {
     },
     async readiness(): Promise<any> {
       return request<any>("/health/ready");
+    },
+  };
+
+  const diagnostics = {
+    async get(): Promise<any> {
+      return request<any>("/diagnostics");
+    },
+    async network(): Promise<import("../platform/api/platform-dto.js").NetworkDiagnosticsDTO> {
+      return request<import("../platform/api/platform-dto.js").NetworkDiagnosticsDTO>("/diagnostics/network");
     },
   };
 
@@ -1326,6 +1419,7 @@ export function createPlatformClient(options: PlatformClientOptions) {
     devices,
     printing,
     observability,
+    diagnostics,
     documents,
     coordinations,
     agentProfiles,

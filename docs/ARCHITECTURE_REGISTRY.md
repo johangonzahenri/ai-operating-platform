@@ -25,28 +25,28 @@ Este registro documenta de forma exhaustiva los componentes del sistema, organiz
 
 ### 2.1 Native HTTP Server & Router
 * **Componente:** `src/platform/server.ts`, `src/platform/api/http-router.ts`, `src/platform/api/platform-service.ts`
-* **Capa:** Límite de Plataforma (API Gateway)
-* **Responsabilidad:** Exponer endpoints REST versionados (`/api/v1/*` y alias de compatibilidad `/api/platform/v1/*`), aplicar normalización de IDs, rate limiting, validación de payload (1MB max) y filtrado de cabeceras.
+* **Capa:** Límite de Plataforma (API Gateway & Perimeter Security)
+* **Responsabilidad:** Exponer endpoints REST versionados (`/api/v1/*` y alias de compatibilidad `/api/platform/v1/*`), aplicar normalización de IDs, rate limiting, validación de payload (1MB max), resolución segura de proxies (`trustProxy`, `trustedProxyIps`), defensa contra Host poisoning (`allowedHosts`), CORS dinámico con `Vary: Origin`, cabeceras de seguridad estrictas (HSTS, CSP, X-Content-Type-Options, etc.), y diagnósticos de red (`/api/v1/diagnostics/network`).
 * **Dependencias:** `node:http`, `node:crypto`, `node:fs`, `node:path`, `PlatformService`. Cero dependencias npm en runtime.
-* **Public API:** Rutas públicas (`/status`, `/health`, `/diagnostics`) y rutas protegidas (`/tasks`, `/executions`, `/operations`, `/governance/*`, `/devices/*`).
-* **Security Boundary:** Enlace restrictivo a `127.0.0.1`, CORS estricto a orígenes locales, evaluación de autenticación (API Key / Bearer Token) y autorización RBAC fail-closed.
+* **Public API:** Rutas públicas (`/status`, `/health`, `/diagnostics`, `/network/diagnostics`) y rutas protegidas (`/tasks`, `/executions`, `/operations`, `/governance/*`, `/devices/*`, `/credentials/*`).
+* **Security Boundary:** Enlace seguro por defecto a `127.0.0.1` (bloqueo preventivo de `0.0.0.0` sin autorización), CORS dinámico estricto, evaluación de autenticación (API Key / Bearer Token) y autorización RBAC fail-closed.
 * **Persistencia:** Conecta con repositorios SQLite duraderos o InMemory mediante `composition.ts`.
-* **Observabilidad:** Encabezados `X-Request-Id`, `X-Correlation-Id`, `X-RateLimit-*`, structured logging en JSON nativo.
-* **Tests:** `tests/platform/api.test.ts`, `tests/platform/diagnostics-api.test.ts`, `tests/platform/operations-api.test.ts` (68 tests).
-* **Documentación:** `docs/PLATFORM_API.md`, `docs/API_OPERATIONS.md`.
+* **Observabilidad:** Encabezados `X-Request-Id`, `X-Correlation-Id`, `X-RateLimit-*`, structured logging en JSON nativo con sanitización de credenciales.
+* **Tests:** `tests/platform/api.test.ts`, `tests/platform/diagnostics-api.test.ts`, `tests/platform/operations-api.test.ts`, `tests/platform/network-topology-security.test.ts` (76 tests).
+* **Documentación:** `docs/PLATFORM_API.md`, `docs/API_OPERATIONS.md`, `docs/NETWORK_TOPOLOGY.md`, `docs/NETWORK_SECURITY.md`.
 * **Estado:** `IMPLEMENTED / OPERATIONAL`
 
 ### 2.2 Platform Client SDK
 * **Componente:** `src/platform-client/index.ts`
 * **Capa:** SDK de Consumo Externo
-* **Responsabilidad:** Proveer un cliente tipado en TypeScript para que las aplicaciones satélites interactúen con la plataforma sin conocer detalles del servidor.
-* **Dependencias:** APIs estándar `fetch` de Node.js / navegador.
-* **Public API:** `PlatformClient.create({ baseUrl, apiKey, timeoutMs })` exponiendo espacios de nombres `tasks`, `executions`, `agents`, `health`, `diagnostics`.
-* **Security Boundary:** Envío seguro de credenciales y propagación obligatoria de `traceId`.
+* **Responsabilidad:** Proveer un cliente tipado en TypeScript para que las aplicaciones satélites interactúen con la plataforma sin conocer detalles del servidor, soportando autenticación, `tenantId`, `applicationId`, `timeoutMs`, y reintentos automáticos con retroceso exponencial para peticiones idempotentes.
+* **Dependencias:** APIs estándar `fetch` de Node.js / navegador. Cero librerías npm runtime.
+* **Public API:** `PlatformClient.create({ baseUrl, apiKey, tenantId, applicationId, timeoutMs, retryPolicy })` exponiendo espacios de nombres `tasks`, `executions`, `agents`, `credentials`, `health`, `diagnostics` (incluyendo `client.diagnostics.network()`).
+* **Security Boundary:** Envío seguro de credenciales (`Authorization: Bearer <key>`), propagación obligatoria de `traceId` y aislamiento de tenant.
 * **Persistencia:** Ninguna.
 * **Observabilidad:** Métricas de latencia de red y serialización de errores estandarizada (`PlatformClientError`).
-* **Tests:** `tests/platform/platform-api-v1.test.ts`, `tests/platform/tentaciones-platform-adapter.test.ts` (26 tests).
-* **Documentación:** `docs/PLATFORM_CLIENT.md`.
+* **Tests:** `tests/platform/platform-api-v1.test.ts`, `tests/platform/tentaciones-platform-adapter.test.ts`, `tests/platform/network-topology-security.test.ts` (34 tests).
+* **Documentación:** `docs/PLATFORM_CLIENT.md`, `docs/EXTERNAL_CONSUMERS.md`.
 * **Estado:** `IMPLEMENTED / OPERATIONAL`
 
 ---

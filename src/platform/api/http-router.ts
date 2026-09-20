@@ -174,6 +174,15 @@ export interface HttpServerOptions {
   readonly apiCredentialService?: ApiCredentialService | undefined;
   readonly apiCredentialRepository?: ApiCredentialRepositoryPort | undefined;
   readonly enforceSecurity?: boolean | undefined;
+  readonly host?: string | undefined;
+  readonly port?: number | undefined;
+  readonly trustProxy?: boolean | undefined;
+  readonly trustedProxyIps?: readonly string[] | undefined;
+  readonly corsOrigins?: readonly string[] | undefined;
+  readonly allowedHosts?: readonly string[] | undefined;
+  readonly publicBaseUrl?: string | undefined;
+  readonly nodeEnv?: string | undefined;
+  readonly maxPayloadSizeBytes?: number | undefined;
 }
 
 export function createHttpServer(
@@ -209,30 +218,98 @@ export function createHttpServer(
     const requestId = reqCtx.requestId;
     res.setHeader("X-Request-Id", requestId);
     res.setHeader("X-Correlation-Id", reqCtx.correlationId);
-    // 1. Secure CORS: strictly restricted to localhost / 127.0.0.1 origins
-    const origin = req.headers.origin;
-    if (origin) {
-      try {
-        const parsedOrigin = new URL(origin);
-        if (
-          parsedOrigin.hostname === "localhost" ||
-          parsedOrigin.hostname === "127.0.0.1" ||
-          parsedOrigin.hostname === "[::1]"
-        ) {
-          res.setHeader("Access-Control-Allow-Origin", origin);
+
+    // 1. Proxy Trust & Network IP/Protocol Resolution
+    const socketAddress = req.socket.remoteAddress ?? "127.0.0.1";
+    const normalizedSocketIp = socketAddress.startsWith("::ffff:")
+      ? socketAddress.substring(7)
+      : socketAddress;
+
+    const isProxyTrusted =
+      Boolean(options?.trustProxy) &&
+      (options?.trustedProxyIps ?? ["127.0.0.1", "::1"]).some(
+        (trustedIp) => normalizedSocketIp === trustedIp || normalizedSocketIp.endsWith(trustedIp)
+      );
+
+    const fwdForHeader = req.headers["x-forwarded-for"];
+    const clientIp = isProxyTrusted && typeof fwdForHeader === "string"
+      ? (fwdForHeader.split(",")[0]?.trim() ?? normalizedSocketIp)
+      : normalizedSocketIp;
+
+    const fwdProtoHeader = req.headers["x-forwarded-proto"];
+    const isSocketEncrypted = (req.socket as { encrypted?: boolean }).encrypted === true;
+    const protocol = isProxyTrusted && typeof fwdProtoHeader === "string"
+      ? (fwdProtoHeader.split(",")[0]?.trim().toLowerCase() ?? (isSocketEncrypted ? "https" : "http"))
+      : (isSocketEncrypted ? "https" : "http");
+
+    // 2. Host Validation
+    if (options?.allowedHosts && options.allowedHosts.length > 0) {
+      const incomingHost = (req.headers.host ?? "").trim().toLowerCase();
+      if (incomingHost !== "") {
+        const isHostAllowed = options.allowedHosts.some((h) => {
+          const target = h.toLowerCase();
+          return incomingHost === target || incomingHost.split(":")[0] === target;
+        });
+        if (!isHostAllowed) {
+          res.writeHead(400, { "Content-Type": "application/json; charset=utf-8" });
+          res.end(JSON.stringify({ error: `Bad Request: Host '${incomingHost}' is not allowed`, status: 400, code: "INVALID_HOST", requestId, correlationId: reqCtx.correlationId }));
+          return;
         }
-      } catch {
-        // Invalid origin URL - do not set header
       }
     }
+
+    // 3. Secure Dynamic CORS & Origin Validation
+    const origin = req.headers.origin;
+    res.setHeader("Vary", "Origin, Accept-Encoding");
+
+    let isOriginAllowed = false;
+    if (origin) {
+      if (options?.corsOrigins && options.corsOrigins.length > 0) {
+        isOriginAllowed = options.corsOrigins.includes(origin);
+      } else if (options?.nodeEnv === "production") {
+        isOriginAllowed = false;
+      } else {
+        // Development default: allow localhost and 127.0.0.1
+        try {
+          const parsedOrigin = new URL(origin);
+          isOriginAllowed =
+            parsedOrigin.hostname === "localhost" ||
+            parsedOrigin.hostname === "127.0.0.1" ||
+            parsedOrigin.hostname === "[::1]";
+        } catch {
+          isOriginAllowed = false;
+        }
+      }
+
+      if (isOriginAllowed) {
+        res.setHeader("Access-Control-Allow-Origin", origin);
+        res.setHeader("Access-Control-Allow-Credentials", "true");
+      }
+    }
+
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Key, X-Request-Id, X-Correlation-Id, X-Tenant-Id, X-Application-Id, Idempotency-Key");
+    res.setHeader("Access-Control-Max-Age", "86400");
+
+    // 4. Security & Hardening Headers
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("X-Frame-Options", "DENY");
+    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
+    res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' http: https:; frame-ancestors 'none';");
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
     res.setHeader("Pragma", "no-cache");
 
+    if (protocol === "https") {
+      res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+    }
+
     if (req.method === "OPTIONS") {
+      if (origin && !isOriginAllowed && options?.nodeEnv === "production" && options?.corsOrigins && options.corsOrigins.length > 0) {
+        res.writeHead(403, { "Content-Type": "application/json; charset=utf-8" });
+        res.end(JSON.stringify({ error: "Forbidden: Origin not allowed by CORS policy", status: 403, code: "CORS_FORBIDDEN" }));
+        return;
+      }
       res.writeHead(204);
       res.end();
       return;
@@ -462,16 +539,28 @@ export function createHttpServer(
     };
 
     try {
-      // 1. API Endpoints (Support /api/v1/ and /api/ prefixes)
+      // 1. API Endpoints (Support /api/v1/, /api/, and root public endpoints like /health, /status, /diagnostics, /network/diagnostics)
       const isPlatformV1 = pathname.startsWith("/api/platform/v1/");
       const isV1 = pathname.startsWith("/api/v1/");
       const isUnversioned = pathname.startsWith("/api/");
-      if (isPlatformV1 || isV1 || isUnversioned) {
+      const isRootPublicEndpoint =
+        pathname === "/health" ||
+        pathname.startsWith("/health/") ||
+        pathname === "/status" ||
+        pathname === "/diagnostics" ||
+        pathname.startsWith("/diagnostics/") ||
+        pathname === "/network/diagnostics" ||
+        pathname === "/liveness" ||
+        pathname === "/readiness";
+
+      if (isPlatformV1 || isV1 || isUnversioned || isRootPublicEndpoint) {
         const subPath = isPlatformV1
           ? pathname.substring("/api/platform/v1".length)
           : isV1
           ? pathname.substring("/api/v1".length)
-          : pathname.substring("/api".length);
+          : isUnversioned
+          ? pathname.substring("/api".length)
+          : pathname;
 
         // RFC 8594: Emit Deprecation and Sunset headers on legacy /api/platform/v1/* alias
         if (isPlatformV1) {
@@ -524,6 +613,24 @@ export function createHttpServer(
         // GET /diagnostics (Public)
         if (subPath === "/diagnostics" && req.method === "GET") {
           sendJson(200, service.getDiagnosticsReport());
+          return;
+        }
+
+        // GET /diagnostics/network or /network/diagnostics (Public)
+        if ((subPath === "/diagnostics/network" || subPath === "/network/diagnostics") && req.method === "GET") {
+          const netDiag = service.getNetworkDiagnostics({
+            host: options?.host ?? "127.0.0.1",
+            port: options?.port ?? 3000,
+            protocol,
+            ...(options?.trustProxy !== undefined ? { trustProxy: options.trustProxy } : {}),
+            ...(options?.trustedProxyIps !== undefined ? { trustedProxyIps: options.trustedProxyIps } : {}),
+            ...(options?.corsOrigins !== undefined ? { corsOrigins: options.corsOrigins } : {}),
+            ...(options?.allowedHosts !== undefined ? { allowedHosts: options.allowedHosts } : {}),
+            ...(options?.publicBaseUrl !== undefined ? { publicBaseUrl: options.publicBaseUrl } : {}),
+            ...(options?.nodeEnv !== undefined ? { nodeEnv: options.nodeEnv } : {}),
+            ...(options?.maxPayloadSizeBytes !== undefined ? { maxPayloadSizeBytes: options.maxPayloadSizeBytes } : {}),
+          });
+          sendJson(200, netDiag);
           return;
         }
 
@@ -2153,6 +2260,11 @@ export function createHttpServer(
         // POST /devices/:id/print-jobs
         const devicePrintJobsMatch = subPath.match(/^\/devices\/([^/]+)\/print-jobs$/);
         if (devicePrintJobsMatch && req.method === "POST") {
+          const authCheck = await authenticateAndAuthorize("devices.write", "SYSTEM", undefined, reqCtx.tenantId);
+          if (!authCheck.ok) {
+            sendError(authCheck.status, authCheck.message, authCheck.code);
+            return;
+          }
           const devId = normalizeId(devicePrintJobsMatch[1]);
           if (!devId) {
             sendError(400, "Bad Request: Invalid device ID format", "INVALID_ID");

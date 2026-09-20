@@ -1452,5 +1452,8 @@ export async function deleteCredential(id) {
   });
 }
 
+// --- Enterprise Network Topology & Secure API Exposure (Phase 72) ---
 
-
+export async function getNetworkDiagnostics() {
+  return request("/diagnostics/network");
+}

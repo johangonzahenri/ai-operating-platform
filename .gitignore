@@ -27,3 +27,7 @@ docs/libro_imprimible.html
 data/app.db
 data/app.db-wal
 data/app.db-shm
+
+# Office temporary lock files
+~$*
+*.xlsx.tmp

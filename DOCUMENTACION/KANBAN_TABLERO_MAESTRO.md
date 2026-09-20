@@ -13,13 +13,13 @@
 ===================================================================================
   ESTADO DEL TABLERO KANBAN — CONSOLIDADO DE INGENIERÍA
 ===================================================================================
-  Iniciativas Totales Catalogadas : 37
-  [DONE]      Completadas & Verificadas : 35 (94.6%)
-  [REVIEW]    En Revisión / Auditoría   : 1  (2.7%)
+  Iniciativas Totales Catalogadas : 39
+  [DONE]      Completadas & Verificadas : 37 (94.9%)
+  [REVIEW]    En Revisión / Auditoría   : 1  (2.6%)
   [TODO]      Planificadas / Listas     : 0  (0.0%)
-  [BACKLOG]   Backlog Futuro Bounded    : 1  (2.7%)
+  [BACKLOG]   Backlog Futuro Bounded    : 1  (2.5%)
   ---------------------------------------------------------------------------------
-  Línea Base de Pruebas (Test Suite)    : 1072 PASS / 0 FAIL (11 Suites / 100%)
+  Línea Base de Pruebas (Test Suite)    : 1399 PASS / 0 FAIL (59 Suites / 100%)
   Dependencias de Producción en Runtime : 0 NPM Runtime Dependencies
   Versión Canónica de Plataforma        : v1.3.0
 ===================================================================================
@@ -99,6 +99,8 @@
 | **SEC-04** | Rotación Dinámica y Revocación de Claves en KeyStore | Fase 55 | `DONE` | `InMemoryKeyStore` con resolución `kid` y `revokeKey` | 4 tests pass | ADR 0025 |
 | **SEC-05** | Tokens de Aprobación para Herramientas Críticas | Fase 45 | `DONE` | `src/infrastructure/tool/tool-invocation-runtime.ts` | 12 tests pass | ADR 0005 |
 | **SEC-06** | Sanitización y Redacción Preventiva de Secretos | Fase 46 | `DONE` | `src/platform/api/http-router.ts` | 8 tests pass | ADR-004 |
+| **SEC-07** | Gobernanza de Credenciales API y Autenticación Multi-Tenant | Fase 71 | `DONE` | `src/domain/security/api-credential.ts`, `sqlite-api-credential-repository.ts` | 37 tests pass | ADR 0040 |
+| **SEC-08** | Topología de Red Perimetral y Exposición Segura de APIs | Fase 72 | `DONE` | `src/platform/api/http-router.ts`, `src/infrastructure/config/config.ts` | 8 tests pass | ADR 0041 |
 
 ---
 

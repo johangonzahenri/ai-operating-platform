@@ -491,5 +491,22 @@ export default {
     "expiresAt": "Expira En",
     "lastUsed": "Último Uso",
     "oneTimeNotice": "El secreto generado se muestra estrictamente una sola vez y no se almacena en texto plano."
+  },
+  "networkTopology": {
+    "title": "Topología de Red Empresarial y Exposición Segura de API",
+    "subtitle": "Estado de conectividad perimetral, enlace de transporte controlado, terminación TLS, CORS dinámico y aislamiento de dispositivos",
+    "bindAddress": "Dirección de Enlace (Host / Puerto)",
+    "exposureMode": "Modo de Exposición de Red",
+    "proxyTrust": "Confianza de Proxy Inverso",
+    "trustedProxies": "IPs de Proxies de Confianza",
+    "corsMode": "Modo CORS",
+    "corsOrigins": "Orígenes CORS Permitidos",
+    "allowedHosts": "Hosts Permitidos (Protección de Cabecera)",
+    "publicBaseUrl": "URL Base Pública",
+    "tlsTermination": "Terminación TLS",
+    "securityHeaders": "Cabeceras de Seguridad Activas",
+    "deviceIsolation": "Aislamiento de Dispositivos (Impresora Brother)",
+    "deviceIsolationNotice": "Las impresoras e interfaces de hardware de negocio permanecen aisladas localmente (USB001 / Spooler) detrás de la plataforma y nunca se exponen directamente a internet.",
+    "invariantNotice": "Invariante de Seguridad: Red != Identidad != Autoridad. La accesibilidad de red no elude autenticación ni autorización."
   }
 };

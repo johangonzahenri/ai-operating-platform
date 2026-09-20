@@ -56,7 +56,25 @@ async function bootstrap() {
     roleRepository: platform.roleRepository,
     apiKeyRepository: platform.apiKeyRepository,
     apiCredentialService: platform.apiCredentialService,
+    host: config.host,
+    port: config.port,
+    trustProxy: config.trustProxy,
+    trustedProxyIps: config.trustedProxyIps,
+    corsOrigins: config.corsOrigins,
+    allowedHosts: config.allowedHosts,
+    publicBaseUrl: config.publicBaseUrl,
+    nodeEnv: config.nodeEnv,
+    maxPayloadSizeBytes: config.maxPayloadSizeBytes,
   });
+
+  // Socket and connection timeouts
+  server.requestTimeout = config.requestTimeoutMs;
+  server.headersTimeout = config.headersTimeoutMs;
+  server.keepAliveTimeout = config.keepAliveTimeoutMs;
+
+  if (config.host === "0.0.0.0") {
+    logger.warn("Server", "SecurityWarning", "Server is bound to 0.0.0.0 (all network interfaces). Ensure upstream firewall / reverse proxy is properly configured.");
+  }
 
   server.listen(config.port, config.host, () => {
     logger.info("Server", "Listening", `Server running at http://${config.host}:${config.port}`, {
@@ -64,6 +82,8 @@ async function bootstrap() {
       host: config.host,
       port: config.port,
       apiDocs: `http://${config.host}:${config.port}/api/status`,
+      trustProxy: config.trustProxy,
+      corsMode: config.corsOrigins.length > 0 ? "EXPLICIT_ALLOWLIST" : "LOCAL_DEFAULT",
     });
   });
 

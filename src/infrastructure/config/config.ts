@@ -13,6 +13,14 @@ export interface PlatformConfig {
   readonly maxPayloadSizeBytes: number;
   readonly rateLimitMaxRequests: number;
   readonly rateLimitWindowMs: number;
+  readonly trustProxy: boolean;
+  readonly trustedProxyIps: readonly string[];
+  readonly corsOrigins: readonly string[];
+  readonly allowedHosts: readonly string[];
+  readonly publicBaseUrl?: string | undefined;
+  readonly requestTimeoutMs: number;
+  readonly headersTimeoutMs: number;
+  readonly keepAliveTimeoutMs: number;
 }
 
 export class ConfigurationError extends Error {
@@ -62,6 +70,34 @@ export const validateEnvironment = (env: NodeJS.ProcessEnv = process.env): Platf
   const rateLimitMaxRequests = parseInt(env.RATE_LIMIT_MAX_REQUESTS ?? "100", 10);
   const rateLimitWindowMs = parseInt(env.RATE_LIMIT_WINDOW_MS ?? "60000", 10); // 1 minute default
 
+  // Network & Reverse Proxy Configuration
+  const trustProxy = env.TRUST_PROXY === "true" || env.TRUST_PROXY === "1";
+  const trustedProxyIps = Object.freeze(
+    (env.TRUSTED_PROXY_IPS ?? "127.0.0.1,::1")
+      .split(",")
+      .map((ip) => ip.trim())
+      .filter((ip) => ip.length > 0)
+  );
+
+  const corsOrigins = Object.freeze(
+    (env.CORS_ORIGINS ?? "")
+      .split(",")
+      .map((origin) => origin.trim())
+      .filter((origin) => origin.length > 0)
+  );
+
+  const allowedHosts = Object.freeze(
+    (env.ALLOWED_HOSTS ?? "")
+      .split(",")
+      .map((h) => h.trim())
+      .filter((h) => h.length > 0)
+  );
+
+  const publicBaseUrl = env.PUBLIC_BASE_URL?.trim() || undefined;
+  const requestTimeoutMs = parseInt(env.TIMEOUT_REQUEST_MS ?? "30000", 10);
+  const headersTimeoutMs = parseInt(env.TIMEOUT_HEADERS_MS ?? "15000", 10);
+  const keepAliveTimeoutMs = parseInt(env.TIMEOUT_KEEP_ALIVE_MS ?? "5000", 10);
+
   return Object.freeze({
     nodeEnv,
     port,
@@ -75,6 +111,14 @@ export const validateEnvironment = (env: NodeJS.ProcessEnv = process.env): Platf
     maxPayloadSizeBytes,
     rateLimitMaxRequests,
     rateLimitWindowMs,
+    trustProxy,
+    trustedProxyIps,
+    corsOrigins,
+    allowedHosts,
+    publicBaseUrl,
+    requestTimeoutMs,
+    headersTimeoutMs,
+    keepAliveTimeoutMs,
   });
 };
 

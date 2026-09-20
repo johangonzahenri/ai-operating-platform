@@ -33,8 +33,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Enterprise Capabilities Integration**:
   - Enterprise Workflow Orchestration (DAG validation), Verification (Segregation of Duties), and Human Oversight escalation.
   - Quantitative Agent Lifecycle & Evaluation and declarative AI Solution Factory.
-  - AI Enterprise OS with closed-loop executive feedback.
-- **Test Baseline**: 1391 deterministic tests passing across 59 suites (0 failures, 100% success rate).
+- **Enterprise Network Topology, Secure API Exposure & External Consumer Connectivity (`AOP-NETWORK`)**:
+  - Secure transport configuration defaults (`HOST=127.0.0.1`, request timeout: 30s, headers timeout: 15s, keep-alive: 5s) and fail-closed prevention against `0.0.0.0` exposure in production without `ALLOW_PUBLIC_BINDING=true`.
+  - Layered perimeter defense: Strict security headers (`HSTS`, `CSP`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`, `Cache-Control: no-store`).
+  - Safe proxy trust resolution (`trustProxy`, `trustedProxyIps`) with socket-level IP validation against `X-Forwarded-For` spoofing.
+  - Host header injection / poisoning mitigation via `allowedHosts` whitelist check.
+  - Dynamic CORS allowlisting with mandatory `Vary: Origin, Accept-Encoding` header emission and `403 Forbidden` rejection of unlisted origins in production.
+  - Device isolation preserving Brother DCP-1600 Printer on `USB001` strictly behind authenticated and authorized API gateway (`POST /api/v1/devices/:id/print-jobs`).
+  - Network perimeter diagnostics endpoints (`/api/v1/diagnostics/network` and `/network/diagnostics`), Web Control Plane card (`#tab-security`), and enhanced `PlatformClient` SDK with request timeouts and exponential backoff retries for idempotent HTTP methods.
+- **Test Baseline**: 1399 deterministic tests passing across 59 suites (0 failures, 100% success rate).
 
 ---
 

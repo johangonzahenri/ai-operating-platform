@@ -491,5 +491,22 @@ export default {
     "expiresAt": "Expires At",
     "lastUsed": "Last Used",
     "oneTimeNotice": "The generated secret is displayed strictly once and is never stored in plaintext."
+  },
+  "networkTopology": {
+    "title": "Enterprise Network Topology & Secure API Exposure",
+    "subtitle": "Perimeter connectivity status, controlled transport binding, TLS termination, dynamic CORS, and business device isolation",
+    "bindAddress": "Bind Address (Host / Port)",
+    "exposureMode": "Network Exposure Mode",
+    "proxyTrust": "Reverse Proxy Trust",
+    "trustedProxies": "Trusted Proxy IPs",
+    "corsMode": "CORS Mode",
+    "corsOrigins": "Allowed CORS Origins",
+    "allowedHosts": "Allowed Hosts (Header Poisoning Defense)",
+    "publicBaseUrl": "Public Base URL",
+    "tlsTermination": "TLS Termination",
+    "securityHeaders": "Active Security Headers",
+    "deviceIsolation": "Device Isolation (Brother Printer)",
+    "deviceIsolationNotice": "Printers and business hardware interfaces remain strictly isolated locally (USB001 / Spooler) behind the platform and are never directly exposed to the internet.",
+    "invariantNotice": "Security Invariant: Network != Identity != Authority. Network accessibility does not bypass authentication or authorization."
   }
 };

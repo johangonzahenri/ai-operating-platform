@@ -43,4 +43,12 @@ if (res.signal) {
   process.exit(1);
 }
 
+// Auto-sync Excel Roadmap & Kanban
+try {
+  spawnSync('python', ['scripts/generate_roadmap_excel.py'], { stdio: 'inherit' });
+} catch (e) {
+  // Silent fallback if python is not in PATH
+}
+
 process.exit(0);
+

@@ -6959,6 +6959,13 @@ class PlatformApp {
       });
     }
 
+    const refreshNetBtn = document.getElementById("refresh-network-btn");
+    if (refreshNetBtn) {
+      refreshNetBtn.addEventListener("click", () => {
+        this.loadNetworkDiagnostics();
+      });
+    }
+
     if (searchInput) {
       searchInput.addEventListener("input", () => {
         this.credSearchQuery = searchInput.value.trim().toLowerCase();
@@ -6985,7 +6992,74 @@ class PlatformApp {
   }
 
   async loadSecurityData() {
-    await this.loadCredentials();
+    await Promise.allSettled([
+      this.loadCredentials(),
+      this.loadNetworkDiagnostics(),
+    ]);
+  }
+
+  async loadNetworkDiagnostics() {
+    try {
+      const net = await api.getNetworkDiagnostics();
+      if (!net) return;
+
+      const bindElem = document.getElementById("net-bind-address");
+      if (bindElem) {
+        bindElem.textContent = `${net.bindAddress?.host || "127.0.0.1"}:${net.bindAddress?.port || 3000}`;
+      }
+
+      const exposureElem = document.getElementById("net-exposure-mode");
+      if (exposureElem) {
+        exposureElem.textContent = net.exposureMode || "LOOPBACK_ISOLATED";
+        exposureElem.className = `badge ${net.exposureMode === "PUBLIC_EXPOSED" ? "badge-warning" : "badge-success"}`;
+      }
+
+      const allowedHostsElem = document.getElementById("net-allowed-hosts");
+      if (allowedHostsElem) {
+        const hosts = Array.isArray(net.allowedHosts) ? net.allowedHosts : [];
+        allowedHostsElem.textContent = hosts.length > 0 ? hosts.join(", ") : "All (Non-strict)";
+      }
+
+      const proxyTrustElem = document.getElementById("net-proxy-trust");
+      if (proxyTrustElem) {
+        proxyTrustElem.textContent = net.trustProxy ? "ENABLED (Trusted)" : "DISABLED (Direct)";
+        proxyTrustElem.className = `badge ${net.trustProxy ? "badge-info" : "badge-warning"}`;
+      }
+
+      const trustedProxiesElem = document.getElementById("net-trusted-proxies");
+      if (trustedProxiesElem) {
+        const proxies = Array.isArray(net.trustedProxyIps) ? net.trustedProxyIps : [];
+        trustedProxiesElem.textContent = proxies.length > 0 ? proxies.join(", ") : "0 configured";
+      }
+
+      const tlsElem = document.getElementById("net-tls-mode");
+      if (tlsElem) {
+        tlsElem.textContent = net.tlsTermination || "UPSTREAM_REVERSE_PROXY";
+      }
+
+      const corsModeElem = document.getElementById("net-cors-mode");
+      if (corsModeElem) {
+        corsModeElem.textContent = net.corsMode || "STRICT_ALLOWLIST";
+      }
+
+      const corsOriginsElem = document.getElementById("net-cors-origins");
+      if (corsOriginsElem) {
+        const origins = Array.isArray(net.corsOrigins) ? net.corsOrigins : [];
+        corsOriginsElem.textContent = origins.length > 0 ? origins.join(", ") : "Same-Origin (Strict)";
+      }
+
+      const secHeadersElem = document.getElementById("net-sec-headers");
+      if (secHeadersElem) {
+        const active = [];
+        if (net.securityHeaders?.nosniff) active.push("nosniff");
+        if (net.securityHeaders?.frameDeny) active.push("DENY");
+        if (net.securityHeaders?.hsts) active.push("HSTS");
+        if (net.securityHeaders?.csp) active.push("CSP");
+        secHeadersElem.textContent = active.length > 0 ? active.join(", ") : "nosniff, DENY, CSP";
+      }
+    } catch (err) {
+      console.warn("Failed to load network diagnostics:", err);
+    }
   }
 
   async loadCredentials() {
