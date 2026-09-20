@@ -1457,3 +1457,102 @@ export async function deleteCredential(id) {
 export async function getNetworkDiagnostics() {
   return request("/diagnostics/network");
 }
+
+// --- Multi-Enterprise Governance & Portfolio Operating Model (Prompt 122 - Phase 75) ---
+
+export async function getPortfolios() {
+  return request("/portfolios");
+}
+
+export async function getPortfolio(id) {
+  return request(`/portfolios/${encodeURIComponent(id)}`);
+}
+
+export async function createPortfolio(data) {
+  return request("/portfolios", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function addEnterpriseToPortfolio(portfolioId, data) {
+  return request(`/portfolios/${encodeURIComponent(portfolioId)}/enterprises`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function removeEnterpriseFromPortfolio(portfolioId, enterpriseId) {
+  return request(`/portfolios/${encodeURIComponent(portfolioId)}/enterprises/${encodeURIComponent(enterpriseId)}`, {
+    method: "DELETE",
+  });
+}
+
+export async function getPortfolioOperatingContext(portfolioId) {
+  return request(`/portfolios/${encodeURIComponent(portfolioId)}/context`);
+}
+
+export async function grantMandate(data) {
+  return request("/portfolios/mandates", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getPortfolioMandates(portfolioId) {
+  return request(`/portfolios/${encodeURIComponent(portfolioId)}/mandates`);
+}
+
+export async function revokeMandate(mandateId, data = {}) {
+  return request(`/mandates/${encodeURIComponent(mandateId)}/revoke`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function validateCrossEnterpriseAuthority(data) {
+  return request("/portfolios/validate-authority", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getPortfolioObjectives(portfolioId) {
+  return request(`/portfolios/${encodeURIComponent(portfolioId)}/objectives`);
+}
+
+export async function createPortfolioObjective(data) {
+  return request("/portfolios/objectives", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function activatePortfolioObjective(objectiveId) {
+  return request(`/portfolio-objectives/${encodeURIComponent(objectiveId)}/activate`, {
+    method: "POST",
+  });
+}
+
+export async function linkEnterpriseObjective(portfolioObjectiveId, data) {
+  return request(`/portfolio-objectives/${encodeURIComponent(portfolioObjectiveId)}/link-enterprise-objective`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function aggregatePortfolioMetrics(objectiveId, data = {}) {
+  return request(`/portfolio-objectives/${encodeURIComponent(objectiveId)}/aggregate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+

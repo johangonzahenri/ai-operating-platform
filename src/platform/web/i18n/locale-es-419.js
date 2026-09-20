@@ -29,6 +29,7 @@ export default {
     "tools": "Registro de Herramientas",
     "tenants": "Inquilinos & Cuotas",
     "organizations": "Organizaciones & Equipos",
+    "portfolios": "Portafolios & Mandatos",
     "dashboard": "Telemetría & Métricas",
     "capabilities": "Catálogo de Capacidades",
     "integrations": "Integraciones & Modelo de Verdad",

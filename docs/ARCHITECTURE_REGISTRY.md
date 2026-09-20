@@ -234,4 +234,16 @@ Este registro documenta de forma exhaustiva los componentes del sistema, organiz
 * **Documentación:** `docs/decisions/0039-autonomous-operations-runtime-and-continuous-business-governance.md`.
 * **Estado:** `IMPLEMENTED / OPERATIONAL`
 
+### 5.9 Repositorios Relacionales de Portafolio & Gobernanza Multi-Empresarial (Holding)
+* **Componente:** `src/infrastructure/persistence/sqlite/sqlite-portfolio-repository.ts`
+* **Capa:** Infraestructura / Almacenamiento Relacional de Portafolio y Gobernanza Inter-Empresarial
+* **Responsabilidad:** Persistir y consultar EnterprisePortfolios, EnterprisePortfolioMemberships, EnterpriseGovernanceMandates y PortfolioObjectives en SQLite WAL con control OCC e índices compuestos `(portfolio_id, tenant_id)`.
+* **Dependencias:** Node.js 22+ `node:sqlite`, `SqliteDatabase`.
+* **Public API:** Implementación de `EnterprisePortfolioRepositoryPort`, `GovernanceMandateRepositoryPort`, `PortfolioObjectiveRepositoryPort`.
+* **Security Boundary:** Aislamiento multi-tenant fail-closed, cumplimiento del axioma Cross-Enterprise Default Deny y control de concurrencia optimista (`concurrencyVersion`).
+* **Persistencia:** Tablas `enterprise_portfolios`, `enterprise_portfolio_memberships`, `enterprise_governance_mandates`, `portfolio_objectives`, `portfolio_objective_participating_enterprises`, `portfolio_objective_linked_enterprises` en `data/app.db`.
+* **Tests:** `tests/unit/portfolio-governance.test.ts`, `tests/platform/multi-enterprise-governance.test.ts` (29 tests).
+* **Documentación:** `docs/decisions/0044-multi-enterprise-governance-and-portfolio-operating-model.md`.
+* **Estado:** `IMPLEMENTED / OPERATIONAL`
+
 

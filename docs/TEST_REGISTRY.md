@@ -10,13 +10,13 @@ Este registro documenta el inventario verificado de pruebas automatizadas del pr
 ============================================================
   ESTADO CANÓNICO DE PRUEBAS (TEST EXECUTION BASELINE)
 ============================================================
-  Línea Base Previa (Fase 73) : 1399 PASS
-  Total Tests Ejecutados      : 1402
-  Total Tests Aprobados       : 1402 (PASS)
+  Línea Base Previa (Fase 74) : 1402 PASS
+  Total Tests Ejecutados      : 1431
+  Total Tests Aprobados       : 1431 (PASS)
   Total Tests Fallidos        : 0    (FAIL)
   Total Tests Omitidos        : 0    (SKIPPED)
   Total Tests Pendientes      : 0    (TODO)
-  Suites Principales          : 59
+  Suites Principales          : 65
   Tasa de Éxito               : 100.0%
 ============================================================
 ```
@@ -58,6 +58,51 @@ Este registro documenta el inventario verificado de pruebas automatizadas del pr
   - `tests/integration/sqlite-core-runtime.integration.test.ts`
   - `tests/integration/sqlite-durable-events.integration.test.ts`
   - `tests/integration/sqlite-audit-diagnostics.integration.test.ts`
+* **Pruebas Contenidas:** 148 tests pass.
+* **Aspectos Verificados:** Persistencia ACID en SQLite con WAL mode, repositorios de tareas, ejecuciones, eventos duraderos, migraciones idempotentes de esquema y gateways de memoria.
+
+### 2.20 Production Identity & External Security Foundation (Fase 74 / ADR 0043)
+* **Archivos:**
+  - `tests/unit/jwt-authentication.test.ts`
+  - `tests/platform/network-topology-security.test.ts`
+* **Pruebas Contenidas:** 12 tests pass.
+* **Aspectos Verificados:** Verificación de JWT asimétrico (RS256, ES256) con rotación dinámica de claves JWKS vía HTTP/HTTPS nativo; caché en memoria de JWKS con TTL y refresco forzado ante `kid` desconocido; tolerancia temporal (clock skew / `nbf` / `exp`); validación estricta fail-closed de URLs en configuración de producción (`OIDC_ISSUER`, `OIDC_JWKS_URI`); diagnósticos de Identity Provider en endpoints perimetrales; e integración en Composition Root.
+
+### 2.21 Multi-Enterprise Governance & Portfolio Operating Model (Fase 75 / ADR 0044)
+* **Archivos:**
+  - `tests/unit/portfolio-governance.test.ts`
+  - `tests/platform/multi-enterprise-governance.test.ts`
+* **Pruebas Contenidas:** 29 tests pass.
+* **Aspectos Verificados:** Agregado raíz `EnterprisePortfolio` con gestión de membresías y OCC; agregado raíz `EnterpriseGovernanceMandate` con alcances de autoridad, límites de autonomía y método `evaluateAuthority()`; axioma `Cross-Enterprise Default Deny` (la membresía en el portafolio no otorga acceso inter-empresarial sin un mandato explícito activo); agregado raíz `PortfolioObjective` con agregación matemática determinista de KPIs (`SUM`, `AVERAGE`, etc.) y manejo de datos faltantes (`EXCLUDE`, `FAIL_CLOSED`, `FLAG_PARTIAL`); persistencia dual InMemory y SQLite WAL con tablas indexadas y aislamiento multi-tenant; endpoints REST en `/api/v1/portfolios*` y `/api/v1/mandates*` protegidos por RBAC y auditoría; soporte completo en `PlatformClient` SDK y consola web `#tab-portfolios` construida con 0 `.innerHTML`.
+
+---
+
+## 3. Resumen Global de Pruebas
+
+| Área Técnica / Módulo | Suites | Tests Aprobados | Estado |
+|---|:---:|:---:|:---:|
+| Core Runtime & Autonomía | 12 | 184 | PASS |
+| Persistencia Relacional SQLite WAL | 12 | 148 | PASS |
+| Recuperación post-Crash & Reconciliación | 3 | 42 | PASS |
+| Model Gateways & Proveedores de IA | 5 | 64 | PASS |
+| Agentes y Coordinación Multi-Agente | 4 | 68 | PASS |
+| Aplicaciones Satélites del Ecosistema | 8 | 138 | PASS |
+| Seguridad, Aislamiento & RBAC | 7 | 120 | PASS |
+| Superficie de API & Diagnósticos | 8 | 124 | PASS |
+| Dispositivos Empresariales & Impresión | 1 | 14 | PASS |
+| Front-End, Consola Operativa & I18N | 5 | 86 | PASS |
+| Virtual Organization Foundation | 4 | 34 | PASS |
+| Team Resource Governance & Presupuestos | 2 | 45 | PASS |
+| Streaming Operacional Reactivo (SSE) | 1 | 8 | PASS |
+| Enterprise Workflow, Verification & Oversight | 6 | 122 | PASS |
+| Agent Lifecycle & Solutions Factory | 4 | 85 | PASS |
+| Enterprise OS, Executive & Autonomous Runtime | 7 | 82 | PASS |
+| Autonomous Operations Web Control Plane (Fase 70) | 1 | 14 | PASS |
+| Enterprise Authentication & Credential Governance (Fase 71) | 5 | 37 | PASS |
+| Enterprise Network Topology & Security (Fase 72) | 1 | 9 | PASS |
+| Production Identity & External Security Foundation (Fase 74) | 1 | 9 | PASS |
+| Multi-Enterprise Governance & Portfolio Operating Model (Fase 75) | 2 | 29 | PASS |
+| **TOTAL GENERAL** | **65** | **1431** | **PASS (100%)** |
   - `tests/platform/operations-sqlite.integration.test.ts`
 * **Pruebas Contenidas:** 148 tests pass.
 * **Aspectos Verificados:** Motor SQLite nativo, modo WAL, memoria duradera indexada (`platform_memory`), esquemas relacionales v1/v2, transaccionalidad atómica, control de concurrencia optimista (OCC), integridad de claves foráneas y consultas CQRS.

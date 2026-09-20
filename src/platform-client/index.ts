@@ -90,6 +90,20 @@ import type {
   RotateCredentialRequestDTO,
   RotateCredentialResponseDTO,
   RevokeCredentialRequestDTO,
+  EnterprisePortfolioDTO,
+  EnterprisePortfolioMembershipDTO,
+  EnterpriseGovernanceMandateDTO,
+  PortfolioObjectiveDTO,
+  PortfolioOperatingContextDTO,
+  CreateEnterprisePortfolioRequestDTO,
+  AddEnterpriseToPortfolioRequestDTO,
+  CreateGovernanceMandateRequestDTO,
+  RevokeGovernanceMandateRequestDTO,
+  CreatePortfolioObjectiveRequestDTO,
+  LinkEnterpriseObjectiveRequestDTO,
+  AggregatePortfolioMetricsRequestDTO,
+  ValidateCrossEnterpriseAuthorityRequestDTO,
+  ValidateCrossEnterpriseAuthorityResponseDTO,
 } from "../platform/api/platform-dto.js";
 import {
   toEventDTO,
@@ -1403,6 +1417,67 @@ export function createPlatformClient(options: PlatformClientOptions) {
       }),
   };
 
+  const portfolios = {
+    create: (input: CreateEnterprisePortfolioRequestDTO): Promise<EnterprisePortfolioDTO> =>
+      request<EnterprisePortfolioDTO>("/portfolios", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    list: (): Promise<{ portfolios: readonly EnterprisePortfolioDTO[] }> =>
+      request<{ portfolios: readonly EnterprisePortfolioDTO[] }>("/portfolios"),
+    get: (id: string): Promise<EnterprisePortfolioDTO> =>
+      request<EnterprisePortfolioDTO>(`/portfolios/${encodeURIComponent(id)}`),
+    addEnterprise: (id: string, input: AddEnterpriseToPortfolioRequestDTO): Promise<EnterprisePortfolioDTO> =>
+      request<EnterprisePortfolioDTO>(`/portfolios/${encodeURIComponent(id)}/enterprises`, {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    removeEnterprise: (id: string, enterpriseId: string): Promise<EnterprisePortfolioDTO> =>
+      request<EnterprisePortfolioDTO>(`/portfolios/${encodeURIComponent(id)}/enterprises/${encodeURIComponent(enterpriseId)}`, {
+        method: "DELETE",
+      }),
+    getContext: (id: string): Promise<PortfolioOperatingContextDTO> =>
+      request<PortfolioOperatingContextDTO>(`/portfolios/${encodeURIComponent(id)}/context`),
+    grantMandate: (input: CreateGovernanceMandateRequestDTO): Promise<EnterpriseGovernanceMandateDTO> =>
+      request<EnterpriseGovernanceMandateDTO>("/portfolios/mandates", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    listMandates: (portfolioId: string): Promise<{ mandates: readonly EnterpriseGovernanceMandateDTO[] }> =>
+      request<{ mandates: readonly EnterpriseGovernanceMandateDTO[] }>(`/portfolios/${encodeURIComponent(portfolioId)}/mandates`),
+    revokeMandate: (mandateId: string, input: RevokeGovernanceMandateRequestDTO): Promise<EnterpriseGovernanceMandateDTO> =>
+      request<EnterpriseGovernanceMandateDTO>(`/mandates/${encodeURIComponent(mandateId)}/revoke`, {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    validateAuthority: (input: ValidateCrossEnterpriseAuthorityRequestDTO): Promise<ValidateCrossEnterpriseAuthorityResponseDTO> =>
+      request<ValidateCrossEnterpriseAuthorityResponseDTO>("/portfolios/validate-authority", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    createObjective: (input: CreatePortfolioObjectiveRequestDTO): Promise<PortfolioObjectiveDTO> =>
+      request<PortfolioObjectiveDTO>("/portfolios/objectives", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    listObjectives: (portfolioId: string): Promise<{ objectives: readonly PortfolioObjectiveDTO[] }> =>
+      request<{ objectives: readonly PortfolioObjectiveDTO[] }>(`/portfolios/${encodeURIComponent(portfolioId)}/objectives`),
+    activateObjective: (objectiveId: string): Promise<PortfolioObjectiveDTO> =>
+      request<PortfolioObjectiveDTO>(`/portfolio-objectives/${encodeURIComponent(objectiveId)}/activate`, {
+        method: "POST",
+      }),
+    linkEnterpriseObjective: (objectiveId: string, input: LinkEnterpriseObjectiveRequestDTO): Promise<PortfolioObjectiveDTO> =>
+      request<PortfolioObjectiveDTO>(`/portfolio-objectives/${encodeURIComponent(objectiveId)}/link-enterprise-objective`, {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    aggregateMetrics: (objectiveId: string, input: AggregatePortfolioMetricsRequestDTO): Promise<PortfolioObjectiveDTO> =>
+      request<PortfolioObjectiveDTO>(`/portfolio-objectives/${encodeURIComponent(objectiveId)}/aggregate`, {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+  };
+
   return {
     tasks,
     executions,
@@ -1433,6 +1508,7 @@ export function createPlatformClient(options: PlatformClientOptions) {
     executive,
     autonomous,
     credentials,
+    portfolios,
     connect: () => healthGet(),
     health: Object.assign(healthGet, { get: healthGet }),
     getPlatformInfo: () => platform.get(),
@@ -1542,4 +1618,18 @@ export type {
   RotateCredentialRequestDTO,
   RotateCredentialResponseDTO,
   RevokeCredentialRequestDTO,
+  EnterprisePortfolioDTO,
+  EnterprisePortfolioMembershipDTO,
+  EnterpriseGovernanceMandateDTO,
+  PortfolioObjectiveDTO,
+  PortfolioOperatingContextDTO,
+  CreateEnterprisePortfolioRequestDTO,
+  AddEnterpriseToPortfolioRequestDTO,
+  CreateGovernanceMandateRequestDTO,
+  RevokeGovernanceMandateRequestDTO,
+  CreatePortfolioObjectiveRequestDTO,
+  LinkEnterpriseObjectiveRequestDTO,
+  AggregatePortfolioMetricsRequestDTO,
+  ValidateCrossEnterpriseAuthorityRequestDTO,
+  ValidateCrossEnterpriseAuthorityResponseDTO,
 };

@@ -148,6 +148,22 @@ import {
   ApiCredentialTenantMismatchError,
 } from "../../domain/security/api-credential-errors.js";
 
+import {
+  PortfolioError,
+  PortfolioValidationError,
+  PortfolioNotFoundError,
+  MandateNotFoundError,
+  MandateRevokedError,
+  MandateExpiredError,
+  MandateScopeViolationError,
+  PortfolioObjectiveNotFoundError,
+  PortfolioObjectiveImmutableError,
+  InvalidPortfolioObjectiveTransitionError,
+  CrossEnterpriseAccessDeniedError,
+  PortfolioConcurrencyConflictError,
+  PortfolioTenantMismatchError,
+} from "../../domain/portfolio/portfolio-errors.js";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const WEB_DIR = fs.existsSync(path.resolve(process.cwd(), "src/platform/web"))
@@ -6857,6 +6873,375 @@ export function createHttpServer(
             return;
           } catch (err) {
             handleCredentialError(err);
+            return;
+          }
+        }
+
+        // --- Portfolio Governance & Multi-Enterprise Operations (Prompt 122 - Phase 75) ---
+
+        const handlePortfolioError = (err: unknown) => {
+          if (err instanceof PortfolioValidationError) {
+            sendError(400, err.message, "PORTFOLIO_VALIDATION_ERROR");
+          } else if (err instanceof PortfolioNotFoundError) {
+            sendError(404, err.message, "PORTFOLIO_NOT_FOUND");
+          } else if (err instanceof MandateNotFoundError) {
+            sendError(404, err.message, "MANDATE_NOT_FOUND");
+          } else if (err instanceof PortfolioObjectiveNotFoundError) {
+            sendError(404, err.message, "PORTFOLIO_OBJECTIVE_NOT_FOUND");
+          } else if (err instanceof MandateRevokedError) {
+            sendError(403, err.message, "MANDATE_REVOKED");
+          } else if (err instanceof MandateExpiredError) {
+            sendError(403, err.message, "MANDATE_EXPIRED");
+          } else if (err instanceof MandateScopeViolationError) {
+            sendError(403, err.message, "MANDATE_SCOPE_VIOLATION");
+          } else if (err instanceof CrossEnterpriseAccessDeniedError) {
+            sendError(403, err.message, "CROSS_ENTERPRISE_ACCESS_DENIED");
+          } else if (err instanceof PortfolioObjectiveImmutableError) {
+            sendError(409, err.message, "PORTFOLIO_OBJECTIVE_IMMUTABLE");
+          } else if (err instanceof InvalidPortfolioObjectiveTransitionError) {
+            sendError(409, err.message, "INVALID_PORTFOLIO_OBJECTIVE_TRANSITION");
+          } else if (err instanceof PortfolioConcurrencyConflictError) {
+            sendError(409, err.message, "CONCURRENCY_CONFLICT");
+          } else if (err instanceof PortfolioTenantMismatchError) {
+            sendError(403, err.message, "TENANT_MISMATCH");
+          } else if (err instanceof PortfolioValidationError) {
+            sendError(400, err.message, "PORTFOLIO_VALIDATION_ERROR");
+          } else if (err instanceof PortfolioError) {
+            sendError(400, err.message, "PORTFOLIO_ERROR");
+          } else {
+            sendError(500, err instanceof Error ? err.message : "Internal portfolio operation error", "INTERNAL_SERVER_ERROR");
+          }
+        };
+
+        const currentTraceId = reqCtx.correlationId ?? reqCtx.requestId;
+
+        // GET /portfolios
+        if (subPath === "/portfolios" && req.method === "GET") {
+          const authCheck = await authenticateAndAuthorize("portfolio.read", "API", undefined, undefined, false);
+          if (!authCheck.ok) {
+            sendError(authCheck.status, authCheck.message, authCheck.code);
+            return;
+          }
+          const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "default";
+          try {
+            const portfolios = await service.listPortfolios(tenantId);
+            sendJson(200, { portfolios });
+            return;
+          } catch (err) {
+            handlePortfolioError(err);
+            return;
+          }
+        }
+
+        // POST /portfolios
+        if (subPath === "/portfolios" && req.method === "POST") {
+          const authCheck = await authenticateAndAuthorize("portfolio.create", "API", undefined, undefined, false);
+          if (!authCheck.ok) {
+            sendError(authCheck.status, authCheck.message, authCheck.code);
+            return;
+          }
+          const bodyResult = await readJsonBody();
+          if (!bodyResult.ok) {
+            sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+            return;
+          }
+          const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "default";
+          try {
+            const result = await service.createPortfolio(bodyResult.body as any, tenantId, currentTraceId);
+            sendJson(201, result);
+            return;
+          } catch (err) {
+            handlePortfolioError(err);
+            return;
+          }
+        }
+
+        // GET /portfolios/:id
+        const portfolioGetMatch = subPath.match(/^\/portfolios\/([^/]+)$/);
+        if (portfolioGetMatch && req.method === "GET") {
+          const id = normalizeId(portfolioGetMatch[1] ?? "") ?? portfolioGetMatch[1] ?? "";
+          const authCheck = await authenticateAndAuthorize("portfolio.read", "API", id, undefined, false);
+          if (!authCheck.ok) {
+            sendError(authCheck.status, authCheck.message, authCheck.code);
+            return;
+          }
+          const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "default";
+          try {
+            const portfolio = await service.getPortfolio(id, tenantId);
+            sendJson(200, portfolio);
+            return;
+          } catch (err) {
+            handlePortfolioError(err);
+            return;
+          }
+        }
+
+        // POST /portfolios/:id/enterprises
+        const portfolioAddEntMatch = subPath.match(/^\/portfolios\/([^/]+)\/enterprises$/);
+        if (portfolioAddEntMatch && req.method === "POST") {
+          const id = normalizeId(portfolioAddEntMatch[1] ?? "") ?? portfolioAddEntMatch[1] ?? "";
+          const authCheck = await authenticateAndAuthorize("portfolio.manage", "API", id, undefined, false);
+          if (!authCheck.ok) {
+            sendError(authCheck.status, authCheck.message, authCheck.code);
+            return;
+          }
+          const bodyResult = await readJsonBody();
+          if (!bodyResult.ok) {
+            sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+            return;
+          }
+          const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "default";
+          try {
+            const result = await service.addEnterpriseToPortfolio(id, bodyResult.body as any, tenantId, currentTraceId);
+            sendJson(200, result);
+            return;
+          } catch (err) {
+            handlePortfolioError(err);
+            return;
+          }
+        }
+
+        // DELETE /portfolios/:id/enterprises/:enterpriseId
+        const portfolioRemoveEntMatch = subPath.match(/^\/portfolios\/([^/]+)\/enterprises\/([^/]+)$/);
+        if (portfolioRemoveEntMatch && req.method === "DELETE") {
+          const id = normalizeId(portfolioRemoveEntMatch[1] ?? "") ?? portfolioRemoveEntMatch[1] ?? "";
+          const enterpriseId = normalizeId(portfolioRemoveEntMatch[2] ?? "") ?? portfolioRemoveEntMatch[2] ?? "";
+          const authCheck = await authenticateAndAuthorize("portfolio.manage", "API", id, undefined, false);
+          if (!authCheck.ok) {
+            sendError(authCheck.status, authCheck.message, authCheck.code);
+            return;
+          }
+          const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "default";
+          try {
+            const result = await service.removeEnterpriseFromPortfolio(id, enterpriseId, undefined, tenantId, currentTraceId);
+            sendJson(200, result);
+            return;
+          } catch (err) {
+            handlePortfolioError(err);
+            return;
+          }
+        }
+
+        // GET /portfolios/:id/context
+        const portfolioCtxMatch = subPath.match(/^\/portfolios\/([^/]+)\/context$/);
+        if (portfolioCtxMatch && req.method === "GET") {
+          const id = normalizeId(portfolioCtxMatch[1] ?? "") ?? portfolioCtxMatch[1] ?? "";
+          const authCheck = await authenticateAndAuthorize("portfolio.read", "API", id, undefined, false);
+          if (!authCheck.ok) {
+            sendError(authCheck.status, authCheck.message, authCheck.code);
+            return;
+          }
+          const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "default";
+          try {
+            const ctx = await service.getPortfolioOperatingContext(id, tenantId);
+            sendJson(200, ctx);
+            return;
+          } catch (err) {
+            handlePortfolioError(err);
+            return;
+          }
+        }
+
+        // POST /mandates or POST /portfolios/mandates
+        if ((subPath === "/mandates" || subPath === "/portfolios/mandates") && req.method === "POST") {
+          const authCheck = await authenticateAndAuthorize("mandate.grant", "API", undefined, undefined, false);
+          if (!authCheck.ok) {
+            sendError(authCheck.status, authCheck.message, authCheck.code);
+            return;
+          }
+          const bodyResult = await readJsonBody();
+          if (!bodyResult.ok) {
+            sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+            return;
+          }
+          const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "default";
+          try {
+            const result = await service.grantMandate(bodyResult.body as any, tenantId, currentTraceId);
+            sendJson(201, result);
+            return;
+          } catch (err) {
+            handlePortfolioError(err);
+            return;
+          }
+        }
+
+        // GET /portfolios/:id/mandates
+        const portfolioMandatesMatch = subPath.match(/^\/portfolios\/([^/]+)\/mandates$/);
+        if (portfolioMandatesMatch && req.method === "GET") {
+          const id = normalizeId(portfolioMandatesMatch[1] ?? "") ?? portfolioMandatesMatch[1] ?? "";
+          const authCheck = await authenticateAndAuthorize("mandate.read", "API", id, undefined, false);
+          if (!authCheck.ok) {
+            sendError(authCheck.status, authCheck.message, authCheck.code);
+            return;
+          }
+          const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "default";
+          try {
+            const mandates = await service.listMandates(id, tenantId);
+            sendJson(200, { mandates });
+            return;
+          } catch (err) {
+            handlePortfolioError(err);
+            return;
+          }
+        }
+
+        // POST /mandates/:id/revoke
+        const mandateRevokeMatch = subPath.match(/^\/mandates\/([^/]+)\/revoke$/);
+        if (mandateRevokeMatch && req.method === "POST") {
+          const id = normalizeId(mandateRevokeMatch[1] ?? "") ?? mandateRevokeMatch[1] ?? "";
+          const authCheck = await authenticateAndAuthorize("mandate.revoke", "API", id, undefined, false);
+          if (!authCheck.ok) {
+            sendError(authCheck.status, authCheck.message, authCheck.code);
+            return;
+          }
+          const bodyResult = await readJsonBody();
+          if (!bodyResult.ok) {
+            sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+            return;
+          }
+          const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "default";
+          try {
+            const result = await service.revokeMandate(id, bodyResult.body as any, tenantId, currentTraceId);
+            sendJson(200, result);
+            return;
+          } catch (err) {
+            handlePortfolioError(err);
+            return;
+          }
+        }
+
+        // POST /mandates/validate-authority or POST /portfolios/validate-authority
+        if ((subPath === "/mandates/validate-authority" || subPath === "/portfolios/validate-authority") && req.method === "POST") {
+          const authCheck = await authenticateAndAuthorize("mandate.read", "API", undefined, undefined, false);
+          if (!authCheck.ok) {
+            sendError(authCheck.status, authCheck.message, authCheck.code);
+            return;
+          }
+          const bodyResult = await readJsonBody();
+          if (!bodyResult.ok) {
+            sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+            return;
+          }
+          const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "default";
+          try {
+            const result = await service.validateCrossEnterpriseAuthority(bodyResult.body as any, tenantId);
+            sendJson(200, result);
+            return;
+          } catch (err) {
+            handlePortfolioError(err);
+            return;
+          }
+        }
+
+        // POST /portfolio-objectives or POST /portfolios/objectives
+        if ((subPath === "/portfolio-objectives" || subPath === "/portfolios/objectives") && req.method === "POST") {
+          const authCheck = await authenticateAndAuthorize("portfolio_objective.create", "API", undefined, undefined, false);
+          if (!authCheck.ok) {
+            sendError(authCheck.status, authCheck.message, authCheck.code);
+            return;
+          }
+          const bodyResult = await readJsonBody();
+          if (!bodyResult.ok) {
+            sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+            return;
+          }
+          const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "default";
+          try {
+            const result = await service.createPortfolioObjective(bodyResult.body as any, tenantId, currentTraceId);
+            sendJson(201, result);
+            return;
+          } catch (err) {
+            handlePortfolioError(err);
+            return;
+          }
+        }
+
+        // GET /portfolios/:id/objectives
+        const portfolioObjectivesMatch = subPath.match(/^\/portfolios\/([^/]+)\/objectives$/);
+        if (portfolioObjectivesMatch && req.method === "GET") {
+          const id = normalizeId(portfolioObjectivesMatch[1] ?? "") ?? portfolioObjectivesMatch[1] ?? "";
+          const authCheck = await authenticateAndAuthorize("portfolio_objective.read", "API", id, undefined, false);
+          if (!authCheck.ok) {
+            sendError(authCheck.status, authCheck.message, authCheck.code);
+            return;
+          }
+          const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "default";
+          try {
+            const objectives = await service.listPortfolioObjectives(id, tenantId);
+            sendJson(200, { objectives });
+            return;
+          } catch (err) {
+            handlePortfolioError(err);
+            return;
+          }
+        }
+
+        // POST /portfolio-objectives/:id/activate
+        const objActivateMatch = subPath.match(/^\/portfolio-objectives\/([^/]+)\/activate$/);
+        if (objActivateMatch && req.method === "POST") {
+          const id = normalizeId(objActivateMatch[1] ?? "") ?? objActivateMatch[1] ?? "";
+          const authCheck = await authenticateAndAuthorize("portfolio_objective.manage", "API", id, undefined, false);
+          if (!authCheck.ok) {
+            sendError(authCheck.status, authCheck.message, authCheck.code);
+            return;
+          }
+          const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "default";
+          try {
+            const result = await service.activatePortfolioObjective(id, undefined, tenantId);
+            sendJson(200, result);
+            return;
+          } catch (err) {
+            handlePortfolioError(err);
+            return;
+          }
+        }
+
+        // POST /portfolio-objectives/:id/link-enterprise-objective
+        const objLinkMatch = subPath.match(/^\/portfolio-objectives\/([^/]+)\/link-enterprise-objective$/);
+        if (objLinkMatch && req.method === "POST") {
+          const id = normalizeId(objLinkMatch[1] ?? "") ?? objLinkMatch[1] ?? "";
+          const authCheck = await authenticateAndAuthorize("portfolio_objective.manage", "API", id, undefined, false);
+          if (!authCheck.ok) {
+            sendError(authCheck.status, authCheck.message, authCheck.code);
+            return;
+          }
+          const bodyResult = await readJsonBody();
+          if (!bodyResult.ok) {
+            sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+            return;
+          }
+          const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "default";
+          try {
+            const result = await service.linkEnterpriseObjective(id, bodyResult.body as any, tenantId);
+            sendJson(200, result);
+            return;
+          } catch (err) {
+            handlePortfolioError(err);
+            return;
+          }
+        }
+
+        // POST /portfolio-objectives/:id/aggregate
+        const objAggregateMatch = subPath.match(/^\/portfolio-objectives\/([^/]+)\/aggregate$/);
+        if (objAggregateMatch && req.method === "POST") {
+          const id = normalizeId(objAggregateMatch[1] ?? "") ?? objAggregateMatch[1] ?? "";
+          const authCheck = await authenticateAndAuthorize("portfolio_objective.manage", "API", id, undefined, false);
+          if (!authCheck.ok) {
+            sendError(authCheck.status, authCheck.message, authCheck.code);
+            return;
+          }
+          const bodyResult = await readJsonBody();
+          if (!bodyResult.ok) {
+            sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+            return;
+          }
+          const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "default";
+          try {
+            const result = await service.aggregatePortfolioMetrics(id, bodyResult.body as any, tenantId, currentTraceId);
+            sendJson(200, result);
+            return;
+          } catch (err) {
+            handlePortfolioError(err);
             return;
           }
         }

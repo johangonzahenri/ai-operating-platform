@@ -60,6 +60,10 @@
           <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/><path d="M9 9h1"/><path d="M9 13h1"/><path d="M9 17h1"/><path d="M14 9h1"/><path d="M14 13h1"/><path d="M14 17h1"/></svg></span>
           <span>Organizations &amp; Teams</span>
         </button>
+        <button class="nav-item" data-tab="portfolios">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg></span>
+          <span>Portfolios &amp; Mandates</span>
+        </button>
 
         <div class="nav-section-label">Governance &amp; Ecosystem</div>
         <button class="nav-item" data-tab="security">
@@ -3276,6 +3280,90 @@ Total: $209.00 USD | Paid via Webpay Demo</textarea>
                 <!-- Capabilities list -->
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 16. View: Multi-Enterprise Portfolios & Governance Mandates (Prompt 122 - Phase 75) -->
+      <section id="tab-portfolios" class="tab-view">
+        <div class="view-header">
+          <div>
+            <h2>Multi-Enterprise Governance &amp; Portfolios</h2>
+            <p>Orchestrate holding/group-level governance, cross-enterprise mandates, and deterministic metric aggregation.</p>
+          </div>
+          <div class="header-actions">
+            <button id="portfolio-refresh-btn" class="btn btn-secondary">Refresh Portfolios</button>
+            <button id="portfolio-create-modal-btn" class="btn btn-primary">+ Create Portfolio</button>
+          </div>
+        </div>
+
+        <div class="two-col-grid" style="gap:1.5rem; margin-bottom:1.5rem;">
+          <div class="card">
+            <div class="card-header">
+              <h3>Enterprise Portfolios</h3>
+              <span class="badge badge-info" id="portfolios-count-badge">0 Portfolios</span>
+            </div>
+            <div class="card-body">
+              <div id="portfolios-list-container" class="list-container">
+                <div class="empty-state">No portfolios registered. Click "+ Create Portfolio" to start.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3>Active Governance Mandates</h3>
+              <span class="badge badge-success" id="mandates-count-badge">0 Active</span>
+            </div>
+            <div class="card-body">
+              <div id="mandates-list-container" class="list-container">
+                <div class="empty-state">No active governance mandates found for selected portfolio.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:1.5rem;">
+          <div class="card-header">
+            <h3>Portfolio Objectives &amp; Deterministic Aggregation</h3>
+            <span class="badge badge-primary" id="portfolio-objectives-count-badge">0 Objectives</span>
+          </div>
+          <div class="card-body">
+            <div id="portfolio-objectives-container" class="list-container">
+              <div class="empty-state">No portfolio objectives defined.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3>Cross-Enterprise Authority Evaluator (Dry-Run / Live Verification)</h3>
+          </div>
+          <div class="card-body">
+            <div class="form-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:1rem; margin-bottom:1rem;">
+              <div class="form-group">
+                <label for="eval-portfolio-id">Portfolio ID</label>
+                <input type="text" id="eval-portfolio-id" class="form-control" placeholder="portfolio-..." />
+              </div>
+              <div class="form-group">
+                <label for="eval-grantee-id">Grantee Principal ID</label>
+                <input type="text" id="eval-grantee-id" class="form-control" placeholder="principal-..." />
+              </div>
+              <div class="form-group">
+                <label for="eval-source-ent">Source Enterprise ID</label>
+                <input type="text" id="eval-source-ent" class="form-control" placeholder="ent-holding" />
+              </div>
+              <div class="form-group">
+                <label for="eval-target-ent">Target Enterprise ID</label>
+                <input type="text" id="eval-target-ent" class="form-control" placeholder="ent-subsidiary" />
+              </div>
+              <div class="form-group">
+                <label for="eval-operation">Operation</label>
+                <input type="text" id="eval-operation" class="form-control" placeholder="workflow.execute" />
+              </div>
+            </div>
+            <button id="eval-authority-btn" class="btn btn-secondary">Evaluate Authority (Fail-Closed)</button>
+            <div id="eval-authority-result" style="margin-top:1rem; padding:0.75rem; border-radius:6px; font-family:monospace; background:rgba(0,0,0,0.05);" hidden></div>
           </div>
         </div>
       </section>

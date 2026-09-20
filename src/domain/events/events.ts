@@ -54,6 +54,9 @@ export type EventType =
   | "autonomous.runtime.started" | "autonomous.runtime.paused" | "autonomous.runtime.resumed" | "autonomous.runtime.stopped"
   | "autonomous.trigger.created" | "autonomous.trigger.enabled" | "autonomous.trigger.disabled" | "autonomous.trigger.fired"
   | "autonomous.cycle.queued" | "autonomous.safety.halted" | "autonomous.lease.acquired" | "autonomous.lease.released"
+  | "portfolio.created" | "portfolio.enterprise_added" | "portfolio.enterprise_removed"
+  | "mandate.granted" | "mandate.revoked"
+  | "portfolio_objective.created" | "portfolio_objective.aggregated"
   | "workflow.completed" | "workflow.failed" | "workflow.cancelled";
 
 

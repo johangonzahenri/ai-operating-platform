@@ -220,6 +220,28 @@ import {
   InMemoryExecutivePlanRepository,
 } from "../../infrastructure/persistence/in-memory/in-memory-executive-repository.js";
 import { AutonomousOperationsRuntime } from "../../application/autonomous/autonomous-operations-runtime.js";
+import { PortfolioGovernanceService, PortfolioOperatingContext } from "../../application/portfolio/portfolio-governance-service.js";
+import { InMemoryEnterprisePortfolioRepository, InMemoryGovernanceMandateRepository, InMemoryPortfolioObjectiveRepository } from "../../infrastructure/persistence/in-memory/in-memory-portfolio-repository.js";
+import { EnterprisePortfolio } from "../../domain/portfolio/enterprise-portfolio.js";
+import { EnterpriseGovernanceMandate } from "../../domain/portfolio/governance-mandate.js";
+import { PortfolioObjective } from "../../domain/portfolio/portfolio-objective.js";
+import {
+  EnterprisePortfolioDTO,
+  EnterprisePortfolioMembershipDTO,
+  EnterpriseGovernanceMandateDTO,
+  EnterpriseMetricContributionDTO,
+  PortfolioObjectiveDTO,
+  PortfolioOperatingContextDTO,
+  CreateEnterprisePortfolioRequestDTO,
+  AddEnterpriseToPortfolioRequestDTO,
+  CreateGovernanceMandateRequestDTO,
+  RevokeGovernanceMandateRequestDTO,
+  CreatePortfolioObjectiveRequestDTO,
+  LinkEnterpriseObjectiveRequestDTO,
+  AggregatePortfolioMetricsRequestDTO,
+  ValidateCrossEnterpriseAuthorityRequestDTO,
+  ValidateCrossEnterpriseAuthorityResponseDTO,
+} from "./platform-dto.js";
 
 import { projectExecutionObservability } from "../product/execution-observability.js";
 import { Tenant, DEFAULT_PLAN_LIMITS } from "../../domain/tenant/tenant.js";
@@ -284,6 +306,7 @@ export interface PlatformDependencies {
   readonly autonomousOperationsRuntime?: AutonomousOperationsRuntime | undefined;
   readonly eventStream?: EventStreamAdapter | undefined;
   readonly apiCredentialService?: ApiCredentialService | undefined;
+  readonly portfolioGovernanceService?: PortfolioGovernanceService | undefined;
 }
 
 export class PlatformService {
@@ -308,6 +331,7 @@ export class PlatformService {
   private readonly enterpriseOperatingService?: EnterpriseOperatingService | undefined;
   private readonly executiveOrchestratorService: ExecutiveOrchestratorService;
   private readonly autonomousOperationsRuntime?: AutonomousOperationsRuntime | undefined;
+  private readonly portfolioGovernanceService: PortfolioGovernanceService;
   private readonly workflowOrchestratorService: WorkflowOrchestratorService;
   private readonly workflowVerificationService?: WorkflowVerificationService | undefined;
   private readonly humanOversightService?: HumanOversightService | undefined;
@@ -451,6 +475,16 @@ export class PlatformService {
     });
 
     this.autonomousOperationsRuntime = deps.autonomousOperationsRuntime;
+
+    this.portfolioGovernanceService = deps.portfolioGovernanceService ?? new PortfolioGovernanceService({
+      portfolioRepo: new InMemoryEnterprisePortfolioRepository(),
+      mandateRepo: new InMemoryGovernanceMandateRepository(),
+      objectiveRepo: new InMemoryPortfolioObjectiveRepository(),
+      enterpriseRepo: (this.enterpriseOperatingService as any)?.enterpriseRepo,
+      enterpriseObjectiveRepo: (this.enterpriseOperatingService as any)?.objectiveRepo,
+      enterpriseMetricRepo: (this.enterpriseOperatingService as any)?.metricRepo,
+      eventPublisher: deps.eventStore ? { publish: (e) => deps.eventStore!.append(e as any) } : undefined,
+    });
 
     this.governanceService = new EnterpriseGovernanceService();
     this.quotaService = new QuotaService();
@@ -3268,5 +3302,301 @@ export class PlatformService {
       timestamp: new Date().toISOString(),
     };
   }
+
+  // --- Portfolio Governance & Multi-Enterprise Operations (Prompt 122 - Phase 75) ---
+
+  getPortfolioGovernanceService(): PortfolioGovernanceService {
+    return this.portfolioGovernanceService;
+  }
+
+  async createPortfolio(props: CreateEnterprisePortfolioRequestDTO, tenantId: string, traceId?: string): Promise<EnterprisePortfolioDTO> {
+    const portfolio = await this.portfolioGovernanceService.createPortfolio(
+      {
+        id: props.id,
+        tenantId,
+        name: props.name,
+        description: props.description ?? props.name,
+        ownerPrincipalId: props.ownerPrincipalId ?? "platform-admin",
+        initialEnterpriseIds: props.initialEnterpriseIds,
+      },
+      traceId
+    );
+    return this.mapPortfolioToDTO(portfolio);
+  }
+
+  async getPortfolio(id: string, tenantId: string): Promise<EnterprisePortfolioDTO> {
+    const portfolio = await this.portfolioGovernanceService.getPortfolio(id, tenantId);
+    return this.mapPortfolioToDTO(portfolio);
+  }
+
+  async listPortfolios(tenantId: string): Promise<readonly EnterprisePortfolioDTO[]> {
+    const portfolios = await this.portfolioGovernanceService.listPortfolios(tenantId);
+    return portfolios.map((p) => this.mapPortfolioToDTO(p));
+  }
+
+  async addEnterpriseToPortfolio(
+    portfolioId: string,
+    props: AddEnterpriseToPortfolioRequestDTO,
+    tenantId: string,
+    traceId?: string
+  ): Promise<EnterprisePortfolioDTO> {
+    const updated = await this.portfolioGovernanceService.addEnterpriseToPortfolio(
+      portfolioId,
+      tenantId,
+      {
+        enterpriseId: props.enterpriseId,
+        governanceScope: props.governanceScope,
+        effectiveTo: props.effectiveTo ? new Date(props.effectiveTo) : undefined,
+        expectedConcurrencyVersion: props.expectedConcurrencyVersion,
+      },
+      traceId
+    );
+    return this.mapPortfolioToDTO(updated);
+  }
+
+  async removeEnterpriseFromPortfolio(
+    portfolioId: string,
+    enterpriseId: string,
+    expectedConcurrencyVersion: number | undefined,
+    tenantId: string,
+    traceId?: string
+  ): Promise<EnterprisePortfolioDTO> {
+    const updated = await this.portfolioGovernanceService.removeEnterpriseFromPortfolio(
+      portfolioId,
+      tenantId,
+      enterpriseId,
+      expectedConcurrencyVersion,
+      traceId
+    );
+    return this.mapPortfolioToDTO(updated);
+  }
+
+  async grantMandate(props: CreateGovernanceMandateRequestDTO, tenantId: string, traceId?: string): Promise<EnterpriseGovernanceMandateDTO> {
+    const mandate = await this.portfolioGovernanceService.grantMandate(
+      {
+        id: props.id,
+        tenantId,
+        portfolioId: props.portfolioId ?? "",
+        sourceEnterpriseId: props.sourceEnterpriseId,
+        targetEnterpriseIds: props.targetEnterpriseIds,
+        granteePrincipalId: props.granteePrincipalId,
+        authorityScope: props.authorityScope,
+        allowedOperations: props.allowedOperations,
+        allowedObjectives: props.allowedObjectives,
+        autonomyLimit: props.autonomyLimit as any,
+        requiresApproval: props.requiresApproval,
+        validFrom: props.validFrom ? new Date(props.validFrom) : undefined,
+        validTo: props.validTo ? new Date(props.validTo) : undefined,
+      },
+      traceId
+    );
+    return this.mapMandateToDTO(mandate);
+  }
+
+  async revokeMandate(
+    mandateId: string,
+    props: RevokeGovernanceMandateRequestDTO,
+    tenantId: string,
+    traceId?: string
+  ): Promise<EnterpriseGovernanceMandateDTO> {
+    const mandate = await this.portfolioGovernanceService.revokeMandate(
+      mandateId,
+      tenantId,
+      props.reason ?? "Revoked by administrator",
+      props.expectedConcurrencyVersion,
+      traceId
+    );
+    return this.mapMandateToDTO(mandate);
+  }
+
+  async listMandates(portfolioId: string, tenantId: string): Promise<readonly EnterpriseGovernanceMandateDTO[]> {
+    const mandates = await this.portfolioGovernanceService.listMandates(portfolioId, tenantId);
+    return mandates.map((m) => this.mapMandateToDTO(m));
+  }
+
+  async validateCrossEnterpriseAuthority(
+    props: ValidateCrossEnterpriseAuthorityRequestDTO,
+    tenantId: string
+  ): Promise<ValidateCrossEnterpriseAuthorityResponseDTO> {
+    const result = await this.portfolioGovernanceService.validateCrossEnterpriseAuthority({
+      tenantId,
+      portfolioId: props.portfolioId ?? "",
+      granteePrincipalId: props.granteePrincipalId ?? props.principalId ?? "",
+      sourceEnterpriseId: props.sourceEnterpriseId,
+      targetEnterpriseId: props.targetEnterpriseId,
+      operation: props.operation ?? props.requestedOperation ?? "*",
+      objectiveId: props.objectiveId ?? props.requestedObjectiveId,
+      requestedAutonomy: (props.requestedAutonomy ?? props.requiredAutonomyLevel) as any,
+    });
+    return {
+      authorized: result.authorized,
+      mandateId: result.mandateId,
+      reason: result.reason,
+      requiresApproval: result.requiresApproval,
+      evaluatedAt: new Date().toISOString(),
+    };
+  }
+
+  async createPortfolioObjective(
+    props: CreatePortfolioObjectiveRequestDTO,
+    tenantId: string,
+    traceId?: string
+  ): Promise<PortfolioObjectiveDTO> {
+    const obj = await this.portfolioGovernanceService.createPortfolioObjective(
+      {
+        id: props.id,
+        tenantId,
+        portfolioId: props.portfolioId ?? "",
+        title: props.title,
+        description: props.description ?? props.title,
+        type: props.type,
+        ownerPrincipalId: props.ownerPrincipalId ?? "platform-admin",
+        participatingEnterpriseIds: props.participatingEnterpriseIds,
+        aggregationMethod: props.aggregationMethod,
+        targetMetric: props.targetMetric,
+        missingDataHandling: props.missingDataHandling,
+      },
+      traceId
+    );
+    return this.mapPortfolioObjectiveToDTO(obj);
+  }
+
+  async activatePortfolioObjective(
+    objectiveId: string,
+    expectedConcurrencyVersion: number | undefined,
+    tenantId: string
+  ): Promise<PortfolioObjectiveDTO> {
+    const obj = await this.portfolioGovernanceService.activatePortfolioObjective(objectiveId, tenantId, expectedConcurrencyVersion);
+    return this.mapPortfolioObjectiveToDTO(obj);
+  }
+
+  async linkEnterpriseObjective(
+    portfolioObjectiveId: string,
+    props: LinkEnterpriseObjectiveRequestDTO,
+    tenantId: string
+  ): Promise<PortfolioObjectiveDTO> {
+    const obj = await this.portfolioGovernanceService.linkEnterpriseObjective(
+      portfolioObjectiveId,
+      tenantId,
+      props.enterpriseObjectiveId,
+      props.expectedConcurrencyVersion
+    );
+    return this.mapPortfolioObjectiveToDTO(obj);
+  }
+
+  async listPortfolioObjectives(portfolioId: string, tenantId: string): Promise<readonly PortfolioObjectiveDTO[]> {
+    const objs = await this.portfolioGovernanceService.listPortfolioObjectives(portfolioId, tenantId);
+    return objs.map((o) => this.mapPortfolioObjectiveToDTO(o));
+  }
+
+  async aggregatePortfolioMetrics(
+    objectiveId: string,
+    props: AggregatePortfolioMetricsRequestDTO,
+    tenantId: string,
+    traceId?: string
+  ): Promise<PortfolioObjectiveDTO> {
+    const contributions = props.contributions?.map((c: EnterpriseMetricContributionDTO) => ({
+      enterpriseId: c.enterpriseId,
+      metricId: c.metricId,
+      value: c.value,
+      weight: c.weight,
+      status: c.status,
+      recordedAt: c.recordedAt ? new Date(c.recordedAt) : undefined,
+    }));
+
+    const obj = await this.portfolioGovernanceService.aggregatePortfolioMetrics(
+      objectiveId,
+      tenantId,
+      contributions,
+      props.expectedConcurrencyVersion,
+      traceId
+    );
+    return this.mapPortfolioObjectiveToDTO(obj);
+  }
+
+  async getPortfolioOperatingContext(portfolioId: string, tenantId: string): Promise<PortfolioOperatingContextDTO> {
+    const ctx = await this.portfolioGovernanceService.getPortfolioOperatingContext(portfolioId, tenantId);
+    return {
+      portfolio: this.mapPortfolioToDTO(ctx.portfolio),
+      enterprises: ctx.enterprises,
+      activeMandates: ctx.activeMandates.map((m) => this.mapMandateToDTO(m)),
+      objectives: ctx.objectives.map((o) => this.mapPortfolioObjectiveToDTO(o)),
+      generatedAt: ctx.generatedAt.toISOString(),
+    };
+  }
+
+  private mapPortfolioToDTO(p: EnterprisePortfolio): EnterprisePortfolioDTO {
+    return {
+      id: p.id,
+      tenantId: p.tenantId,
+      name: p.name,
+      description: p.description,
+      status: p.status,
+      ownerPrincipalId: p.ownerPrincipalId,
+      memberships: p.memberships.map((m) => ({
+        enterpriseId: m.enterpriseId,
+        joinedAt: m.joinedAt.toISOString(),
+        effectiveTo: m.effectiveTo?.toISOString(),
+        status: m.status,
+        governanceScope: [...m.governanceScope],
+      })),
+      version: p.version,
+      concurrencyVersion: p.concurrencyVersion,
+      createdAt: p.createdAt.toISOString(),
+      updatedAt: p.updatedAt.toISOString(),
+    };
+  }
+
+  private mapMandateToDTO(m: EnterpriseGovernanceMandate): EnterpriseGovernanceMandateDTO {
+    return {
+      id: m.id,
+      tenantId: m.tenantId,
+      portfolioId: m.portfolioId,
+      sourceEnterpriseId: m.sourceEnterpriseId,
+      targetEnterpriseIds: [...m.targetEnterpriseIds],
+      granteePrincipalId: m.granteePrincipalId,
+      authorityScope: m.authorityScope,
+      allowedOperations: [...m.allowedOperations],
+      allowedObjectives: [...m.allowedObjectives],
+      autonomyLimit: m.autonomyLimit,
+      requiresApproval: m.requiresApproval,
+      status: m.status,
+      revocationReason: m.revocationReason,
+      validFrom: m.validFrom.toISOString(),
+      validTo: m.validTo?.toISOString(),
+      version: m.version,
+      concurrencyVersion: m.concurrencyVersion,
+      createdAt: m.createdAt.toISOString(),
+      updatedAt: m.updatedAt.toISOString(),
+    };
+  }
+
+  private mapPortfolioObjectiveToDTO(o: PortfolioObjective): PortfolioObjectiveDTO {
+    return {
+      id: o.id,
+      tenantId: o.tenantId,
+      portfolioId: o.portfolioId,
+      title: o.title,
+      description: o.description,
+      type: o.type,
+      lifecycleState: o.lifecycleState,
+      status: o.lifecycleState,
+      ownerPrincipalId: o.ownerPrincipalId,
+      participatingEnterpriseIds: [...o.participatingEnterpriseIds],
+      aggregationMethod: o.aggregationMethod,
+      targetMetric: o.targetMetric,
+      currentAggregatedValue: o.currentAggregatedValue,
+      gap: o.gap,
+      missingDataHandling: o.missingDataHandling,
+      linkedEnterpriseObjectiveIds: [...o.linkedEnterpriseObjectiveIds],
+      lastAggregatedAt: o.lastAggregatedAt?.toISOString(),
+      aggregationStatus: o.aggregationStatus,
+      version: o.version,
+      concurrencyVersion: o.concurrencyVersion,
+      createdAt: o.createdAt.toISOString(),
+      updatedAt: o.updatedAt.toISOString(),
+    };
+  }
 }
+
 

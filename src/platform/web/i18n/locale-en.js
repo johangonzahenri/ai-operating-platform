@@ -29,6 +29,7 @@ export default {
     "tools": "Tools Registry",
     "tenants": "Tenants & Quotas",
     "organizations": "Organizations & Teams",
+    "portfolios": "Portfolios & Mandates",
     "dashboard": "Telemetry & Metrics",
     "capabilities": "Capabilities Catalog",
     "integrations": "Integrations & Truth",

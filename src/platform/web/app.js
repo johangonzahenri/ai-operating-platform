@@ -203,6 +203,7 @@ class PlatformApp {
     this.setupDevicesView();
     this.setupOrganizations();
     this.setupCredentials();
+    this.setupPortfolios();
     this.loadData();
     this.startAutoRefresh();
     this.initEventStreaming();
@@ -662,6 +663,7 @@ class PlatformApp {
       devices: { title: "Business Devices & Hardware Printing", sub: "Enterprise device registry and durable local spooler queue for business hardware" },
       "device-detail": { title: "Device Identity & Capabilities", sub: "Deep hardware diagnostics, declared capabilities, and print queue inspection" },
       organizations: { title: "Virtual Organization Foundation", sub: "Multi-level organizational hierarchy, operational areas, working teams, and agent memberships" },
+      portfolios: { title: "Multi-Enterprise Portfolios & Governance", sub: "Group-level portfolios, cross-enterprise mandates, and deterministic metric aggregation" },
     };
 
     this.updateViewHeader(tab);
@@ -692,6 +694,8 @@ class PlatformApp {
       this.loadDevicesData();
     } else if (tab === "organizations") {
       this.loadOrganizationsData();
+    } else if (tab === "portfolios") {
+      this.loadPortfoliosData();
     } else if (tab === "agents" || tab === "models" || tab === "tools" || tab === "executions" || tab === "governance" || tab === "operations") {
       this.loadData();
     }
@@ -7303,6 +7307,201 @@ class PlatformApp {
         }
       );
     });
+  }
+
+  // --- Portfolio Governance & Multi-Enterprise UI (Prompt 122 - Phase 75) ---
+
+  setupPortfolios() {
+    const refreshBtn = document.getElementById("portfolio-refresh-btn");
+    if (refreshBtn) {
+      refreshBtn.addEventListener("click", () => this.loadPortfoliosData());
+    }
+
+    const evalBtn = document.getElementById("eval-authority-btn");
+    if (evalBtn) {
+      evalBtn.addEventListener("click", async () => {
+        const portfolioId = document.getElementById("eval-portfolio-id")?.value?.trim();
+        const granteePrincipalId = document.getElementById("eval-grantee-id")?.value?.trim();
+        const sourceEnterpriseId = document.getElementById("eval-source-ent")?.value?.trim();
+        const targetEnterpriseId = document.getElementById("eval-target-ent")?.value?.trim();
+        const operation = document.getElementById("eval-operation")?.value?.trim();
+        const resultContainer = document.getElementById("eval-authority-result");
+
+        if (!portfolioId || !granteePrincipalId || !sourceEnterpriseId || !targetEnterpriseId || !operation) {
+          if (resultContainer) {
+            resultContainer.hidden = false;
+            resultContainer.style.color = "var(--color-danger, #d9534f)";
+            resultContainer.textContent = "All evaluation fields (Portfolio, Grantee, Source, Target, Operation) are required.";
+          }
+          return;
+        }
+
+        try {
+          const res = await api.validateCrossEnterpriseAuthority({
+            portfolioId,
+            granteePrincipalId,
+            sourceEnterpriseId,
+            targetEnterpriseId,
+            operation,
+          });
+
+          if (resultContainer) {
+            resultContainer.hidden = false;
+            if (res.authorized) {
+              resultContainer.style.color = "var(--color-success, #28a745)";
+              resultContainer.textContent = `[AUTHORIZED] Mandate: ${res.mandateId || "Local Authority"} | Approval Required: ${res.requiresApproval}`;
+            } else {
+              resultContainer.style.color = "var(--color-danger, #d9534f)";
+              resultContainer.textContent = `[DENIED - FAIL CLOSED] ${res.reason || "Unauthorized cross-enterprise operation"}`;
+            }
+          }
+        } catch (err) {
+          if (resultContainer) {
+            resultContainer.hidden = false;
+            resultContainer.style.color = "var(--color-danger, #d9534f)";
+            resultContainer.textContent = `[EVALUATION ERROR] ${err?.message || "Evaluation failed"}`;
+          }
+        }
+      });
+    }
+  }
+
+  async loadPortfoliosData() {
+    const listContainer = document.getElementById("portfolios-list-container");
+    const mandatesContainer = document.getElementById("mandates-list-container");
+    const objectivesContainer = document.getElementById("portfolio-objectives-container");
+    const portfoliosBadge = document.getElementById("portfolios-count-badge");
+    const mandatesBadge = document.getElementById("mandates-count-badge");
+    const objectivesBadge = document.getElementById("portfolio-objectives-count-badge");
+
+    try {
+      const res = await api.getPortfolios();
+      const portfolios = res?.portfolios || [];
+
+      if (portfoliosBadge) {
+        portfoliosBadge.textContent = `${portfolios.length} Portfolio${portfolios.length === 1 ? "" : "s"}`;
+      }
+
+      if (listContainer) {
+        clearChildren(listContainer);
+        if (portfolios.length === 0) {
+          const empty = document.createElement("div");
+          empty.className = "empty-state";
+          empty.textContent = "No portfolios registered yet.";
+          listContainer.appendChild(empty);
+        } else {
+          portfolios.forEach((p) => {
+            const card = document.createElement("div");
+            card.className = "card-item";
+            card.style.padding = "0.75rem";
+            card.style.marginBottom = "0.5rem";
+            card.style.border = "1px solid var(--border-color, #e0e0e0)";
+            card.style.borderRadius = "6px";
+
+            const header = document.createElement("div");
+            header.style.display = "flex";
+            header.style.justifyContent = "space-between";
+            header.style.alignItems = "center";
+
+            const name = document.createElement("strong");
+            name.textContent = p.name;
+
+            const badge = document.createElement("span");
+            badge.className = `badge badge-${p.status === "ACTIVE" ? "success" : "neutral"}`;
+            badge.textContent = p.status;
+
+            header.append(name, badge);
+
+            const desc = document.createElement("p");
+            desc.style.fontSize = "0.85rem";
+            desc.style.margin = "0.25rem 0";
+            desc.style.color = "var(--text-muted, #666)";
+            desc.textContent = p.description || "No description";
+
+            const meta = document.createElement("div");
+            meta.style.fontSize = "0.8rem";
+            meta.style.fontFamily = "monospace";
+            meta.textContent = `ID: ${p.id} | Members: ${p.memberships?.length || 0} Enterprises`;
+
+            card.append(header, desc, meta);
+            listContainer.appendChild(card);
+          });
+        }
+      }
+
+      // If at least one portfolio exists, fetch mandates and objectives for the first
+      if (portfolios.length > 0) {
+        const firstPortId = portfolios[0].id;
+        const [manRes, objRes] = await Promise.all([
+          api.getPortfolioMandates(firstPortId).catch(() => ({ mandates: [] })),
+          api.getPortfolioObjectives(firstPortId).catch(() => ({ objectives: [] })),
+        ]);
+
+        const mandates = manRes?.mandates || [];
+        const objectives = objRes?.objectives || [];
+
+        if (mandatesBadge) mandatesBadge.textContent = `${mandates.length} Active`;
+        if (objectivesBadge) objectivesBadge.textContent = `${objectives.length} Objectives`;
+
+        if (mandatesContainer) {
+          clearChildren(mandatesContainer);
+          if (mandates.length === 0) {
+            const empty = document.createElement("div");
+            empty.className = "empty-state";
+            empty.textContent = "No governance mandates active.";
+            mandatesContainer.appendChild(empty);
+          } else {
+            mandates.forEach((m) => {
+              const item = document.createElement("div");
+              item.className = "card-item";
+              item.style.padding = "0.5rem";
+              item.style.marginBottom = "0.25rem";
+              item.style.fontSize = "0.85rem";
+
+              const title = document.createElement("strong");
+              title.textContent = `[${m.authorityScope}] Grantee: ${m.granteePrincipalId}`;
+
+              const sub = document.createElement("div");
+              sub.style.fontSize = "0.75rem";
+              sub.style.color = "var(--text-muted, #666)";
+              sub.textContent = `Source: ${m.sourceEnterpriseId} -> Targets: ${m.targetEnterpriseIds.join(", ")} | Status: ${m.status}`;
+
+              item.append(title, sub);
+              mandatesContainer.appendChild(item);
+            });
+          }
+        }
+
+        if (objectivesContainer) {
+          clearChildren(objectivesContainer);
+          if (objectives.length === 0) {
+            const empty = document.createElement("div");
+            empty.className = "empty-state";
+            empty.textContent = "No portfolio objectives registered.";
+            objectivesContainer.appendChild(empty);
+          } else {
+            objectives.forEach((o) => {
+              const item = document.createElement("div");
+              item.className = "card-item";
+              item.style.padding = "0.5rem";
+              item.style.marginBottom = "0.25rem";
+
+              const title = document.createElement("strong");
+              title.textContent = `${o.title} (${o.type})`;
+
+              const details = document.createElement("div");
+              details.style.fontSize = "0.8rem";
+              details.textContent = `Method: ${o.aggregationMethod} | Target: ${o.targetMetric?.targetValue ?? "N/A"} | Current Aggregated: ${o.currentAggregatedValue ?? "None"}`;
+
+              item.append(title, details);
+              objectivesContainer.appendChild(item);
+            });
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load portfolio governance data:", err);
+    }
   }
 }
 

@@ -1804,8 +1804,181 @@ export interface NetworkDiagnosticsDTO {
   readonly timestamp: string;
 }
 
+// --- Portfolio & Multi-Enterprise Governance DTOs (Phase 75) ---
 
+export interface EnterprisePortfolioMembershipDTO {
+  readonly enterpriseId: string;
+  readonly status: "ACTIVE" | "SUSPENDED" | "REMOVED";
+  readonly joinedAt: string;
+  readonly effectiveTo?: string | undefined;
+  readonly governanceScope: readonly string[];
+}
 
+export interface EnterprisePortfolioDTO {
+  readonly id: string;
+  readonly tenantId: string;
+  readonly name: string;
+  readonly description: string;
+  readonly ownerPrincipalId: string;
+  readonly status: "ACTIVE" | "SUSPENDED" | "ARCHIVED";
+  readonly memberships: readonly EnterprisePortfolioMembershipDTO[];
+  readonly version: number;
+  readonly concurrencyVersion: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
 
+export interface CreateEnterprisePortfolioRequestDTO {
+  readonly id: string;
+  readonly name: string;
+  readonly description?: string | undefined;
+  readonly ownerPrincipalId?: string | undefined;
+  readonly initialEnterpriseIds?: readonly string[] | undefined;
+}
 
+export interface AddEnterpriseToPortfolioRequestDTO {
+  readonly enterpriseId: string;
+  readonly governanceScope?: readonly string[] | undefined;
+  readonly effectiveTo?: string | undefined;
+  readonly expectedConcurrencyVersion?: number | undefined;
+}
 
+export interface EnterpriseGovernanceMandateDTO {
+  readonly id: string;
+  readonly tenantId: string;
+  readonly portfolioId: string;
+  readonly sourceEnterpriseId: string;
+  readonly targetEnterpriseIds: readonly string[];
+  readonly granteePrincipalId: string;
+  readonly authorityScope: "PORTFOLIO_COORDINATION" | "SHARED_SERVICE" | "EXECUTIVE_AUDIT" | "RESTRICTED_OPERATION";
+  readonly allowedOperations: readonly string[];
+  readonly allowedObjectives: readonly string[];
+  readonly autonomyLimit: string;
+  readonly requiresApproval: boolean;
+  readonly status: "ACTIVE" | "EXPIRED" | "REVOKED";
+  readonly validFrom: string;
+  readonly validTo?: string | undefined;
+  readonly revocationReason?: string | undefined;
+  readonly version: number;
+  readonly concurrencyVersion: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export interface CreateGovernanceMandateRequestDTO {
+  readonly id: string;
+  readonly portfolioId?: string | undefined;
+  readonly sourceEnterpriseId: string;
+  readonly targetEnterpriseIds: readonly string[];
+  readonly granteePrincipalId: string;
+  readonly authorityScope: "PORTFOLIO_COORDINATION" | "SHARED_SERVICE" | "EXECUTIVE_AUDIT" | "RESTRICTED_OPERATION";
+  readonly allowedOperations?: readonly string[] | undefined;
+  readonly allowedObjectives?: readonly string[] | undefined;
+  readonly autonomyLimit?: string | undefined;
+  readonly requiresApproval?: boolean | undefined;
+  readonly validFrom?: string | undefined;
+  readonly validTo?: string | undefined;
+}
+
+export interface RevokeGovernanceMandateRequestDTO {
+  readonly reason?: string | undefined;
+  readonly expectedConcurrencyVersion?: number | undefined;
+}
+
+export interface LinkEnterpriseObjectiveRequestDTO {
+  readonly enterpriseObjectiveId: string;
+  readonly expectedConcurrencyVersion?: number | undefined;
+}
+
+export interface EnterpriseMetricContributionDTO {
+  readonly enterpriseId: string;
+  readonly metricId?: string | undefined;
+  readonly value?: number | undefined;
+  readonly weight?: number | undefined;
+  readonly recordedAt?: string | undefined;
+  readonly status: "MEASURED" | "MISSING" | "STALE" | "INVALID";
+}
+
+export interface AggregatePortfolioMetricsRequestDTO {
+  readonly objectiveId?: string | undefined;
+  readonly contributions?: readonly EnterpriseMetricContributionDTO[] | undefined;
+  readonly expectedConcurrencyVersion?: number | undefined;
+}
+
+export interface ValidateCrossEnterpriseAuthorityRequestDTO {
+  readonly portfolioId?: string | undefined;
+  readonly granteePrincipalId?: string | undefined;
+  readonly principalId?: string | undefined;
+  readonly sourceEnterpriseId: string;
+  readonly targetEnterpriseId: string;
+  readonly operation?: string | undefined;
+  readonly requestedOperation?: string | undefined;
+  readonly objectiveId?: string | undefined;
+  readonly requestedObjectiveId?: string | undefined;
+  readonly requestedAutonomy?: string | undefined;
+  readonly requiredAutonomyLevel?: string | undefined;
+}
+
+export interface ValidateCrossEnterpriseAuthorityResponseDTO {
+  readonly authorized: boolean;
+  readonly mandateId?: string | undefined;
+  readonly reason?: string | undefined;
+  readonly requiresApproval: boolean;
+  readonly evaluatedAt?: string | undefined;
+  readonly autonomyLimit?: string | undefined;
+}
+
+export interface PortfolioObjectiveDTO {
+  readonly id: string;
+  readonly tenantId: string;
+  readonly portfolioId: string;
+  readonly title: string;
+  readonly description: string;
+  readonly ownerPrincipalId: string;
+  readonly type: "STRATEGIC" | "OPERATIONAL" | "FINANCIAL" | "SUSTAINABILITY";
+  readonly lifecycleState: "DRAFT" | "ACTIVE" | "ACHIEVED" | "CANCELLED" | "ARCHIVED";
+  readonly status?: "DRAFT" | "ACTIVE" | "ACHIEVED" | "CANCELLED" | "ARCHIVED" | undefined;
+  readonly targetMetric?: {
+    readonly name: string;
+    readonly unit: string;
+    readonly targetValue: number;
+  } | undefined;
+  readonly participatingEnterpriseIds: readonly string[];
+  readonly linkedEnterpriseObjectiveIds: readonly string[];
+  readonly aggregationMethod: "SUM" | "AVERAGE" | "WEIGHTED_AVERAGE" | "MIN" | "MAX" | "COUNT";
+  readonly missingDataHandling: "EXCLUDE" | "FAIL_CLOSED" | "FLAG_PARTIAL";
+  readonly currentAggregatedValue?: number | undefined;
+  readonly gap?: number | undefined;
+  readonly contributions?: readonly EnterpriseMetricContributionDTO[] | undefined;
+  readonly lastAggregatedAt?: string | undefined;
+  readonly aggregationStatus?: "COMPLETE" | "PARTIAL" | "MISSING" | "FAILED" | undefined;
+  readonly version: number;
+  readonly concurrencyVersion: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export interface CreatePortfolioObjectiveRequestDTO {
+  readonly id: string;
+  readonly portfolioId?: string | undefined;
+  readonly title: string;
+  readonly description?: string | undefined;
+  readonly ownerPrincipalId?: string | undefined;
+  readonly type: "STRATEGIC" | "OPERATIONAL" | "FINANCIAL" | "SUSTAINABILITY";
+  readonly targetMetric?: {
+    readonly name: string;
+    readonly unit: string;
+    readonly targetValue: number;
+  } | undefined;
+  readonly participatingEnterpriseIds: readonly string[];
+  readonly aggregationMethod?: "SUM" | "AVERAGE" | "WEIGHTED_AVERAGE" | "MIN" | "MAX" | "COUNT" | undefined;
+  readonly missingDataHandling?: "EXCLUDE" | "FAIL_CLOSED" | "FLAG_PARTIAL" | undefined;
+}
+
+export interface PortfolioOperatingContextDTO {
+  readonly portfolio: EnterprisePortfolioDTO;
+  readonly enterprises: readonly { readonly id: string; readonly name?: string | undefined; readonly status: string }[];
+  readonly activeMandates: readonly EnterpriseGovernanceMandateDTO[];
+  readonly objectives: readonly PortfolioObjectiveDTO[];
+  readonly generatedAt: string;
+}

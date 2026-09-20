@@ -190,6 +190,22 @@ import { ApiCredentialRepositoryPort } from "../application/ports/api-credential
 import { SqliteApiCredentialRepository } from "../infrastructure/persistence/sqlite/sqlite-api-credential-repository.js";
 import { InMemoryApiCredentialRepository } from "../infrastructure/persistence/in-memory/in-memory-api-credential-repository.js";
 import { ApiCredentialService } from "../application/security/api-credential-service.js";
+import {
+  EnterprisePortfolioRepositoryPort,
+  GovernanceMandateRepositoryPort,
+  PortfolioObjectiveRepositoryPort,
+} from "../application/ports/portfolio-repository-port.js";
+import {
+  InMemoryEnterprisePortfolioRepository,
+  InMemoryGovernanceMandateRepository,
+  InMemoryPortfolioObjectiveRepository,
+} from "../infrastructure/persistence/in-memory/in-memory-portfolio-repository.js";
+import {
+  SqliteEnterprisePortfolioRepository,
+  SqliteGovernanceMandateRepository,
+  SqlitePortfolioObjectiveRepository,
+} from "../infrastructure/persistence/sqlite/sqlite-portfolio-repository.js";
+import { PortfolioGovernanceService } from "../application/portfolio/portfolio-governance-service.js";
 
 export interface CreatePlatformOptions {
   readonly logger?: StructuredLogger | undefined;
@@ -237,6 +253,10 @@ export interface CreatePlatformOptions {
   readonly businessMetricRepository?: BusinessMetricRepositoryPort | undefined;
   readonly executiveDecisionRepository?: ExecutiveDecisionRepositoryPort | undefined;
   readonly enterpriseOperatingService?: EnterpriseOperatingService | undefined;
+  readonly enterprisePortfolioRepository?: EnterprisePortfolioRepositoryPort | undefined;
+  readonly governanceMandateRepository?: GovernanceMandateRepositoryPort | undefined;
+  readonly portfolioObjectiveRepository?: PortfolioObjectiveRepositoryPort | undefined;
+  readonly portfolioGovernanceService?: PortfolioGovernanceService | undefined;
   readonly eventStream?: EventStreamAdapter | undefined;
 }
 
@@ -606,6 +626,36 @@ export const createPlatform = (
         eventPublisher: events,
       });
 
+  const enterprisePortfolioRepository: EnterprisePortfolioRepositoryPort = (!isLogger && (optionsOrLogger as CreatePlatformOptions).enterprisePortfolioRepository)
+    ? (optionsOrLogger as CreatePlatformOptions).enterprisePortfolioRepository!
+    : dbManager
+      ? new SqliteEnterprisePortfolioRepository(dbManager)
+      : new InMemoryEnterprisePortfolioRepository();
+
+  const governanceMandateRepository: GovernanceMandateRepositoryPort = (!isLogger && (optionsOrLogger as CreatePlatformOptions).governanceMandateRepository)
+    ? (optionsOrLogger as CreatePlatformOptions).governanceMandateRepository!
+    : dbManager
+      ? new SqliteGovernanceMandateRepository(dbManager)
+      : new InMemoryGovernanceMandateRepository();
+
+  const portfolioObjectiveRepository: PortfolioObjectiveRepositoryPort = (!isLogger && (optionsOrLogger as CreatePlatformOptions).portfolioObjectiveRepository)
+    ? (optionsOrLogger as CreatePlatformOptions).portfolioObjectiveRepository!
+    : dbManager
+      ? new SqlitePortfolioObjectiveRepository(dbManager)
+      : new InMemoryPortfolioObjectiveRepository();
+
+  const portfolioGovernanceService: PortfolioGovernanceService = (!isLogger && (optionsOrLogger as CreatePlatformOptions).portfolioGovernanceService)
+    ? (optionsOrLogger as CreatePlatformOptions).portfolioGovernanceService!
+    : new PortfolioGovernanceService({
+        portfolioRepo: enterprisePortfolioRepository,
+        mandateRepo: governanceMandateRepository,
+        objectiveRepo: portfolioObjectiveRepository,
+        enterpriseRepo: enterpriseRepository,
+        enterpriseObjectiveRepo: businessObjectiveRepository,
+        enterpriseMetricRepo: businessMetricRepository,
+        eventPublisher: events,
+      });
+
   const executiveCycleRepository: ExecutiveCycleRepositoryPort = dbManager
     ? new SqliteExecutiveCycleRepository(dbManager)
     : new InMemoryExecutiveCycleRepository();
@@ -806,6 +856,10 @@ export const createPlatform = (
     businessMetricRepository,
     executiveDecisionRepository,
     enterpriseOperatingService,
+    enterprisePortfolioRepository,
+    governanceMandateRepository,
+    portfolioObjectiveRepository,
+    portfolioGovernanceService,
     executiveCycleRepository,
     executiveContextSnapshotRepository,
     executiveAnalysisRepository,
