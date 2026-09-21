@@ -246,4 +246,27 @@ Este registro documenta de forma exhaustiva los componentes del sistema, organiz
 * **Documentación:** `docs/decisions/0044-multi-enterprise-governance-and-portfolio-operating-model.md`.
 * **Estado:** `IMPLEMENTED / OPERATIONAL`
 
+### 5.10 Servicio y Motor de Reconciliación de Mandatos & Consistencia de Runtime
+* **Componente:** `src/domain/portfolio/mandate-reconciliation-policy.ts`, `src/application/portfolio/mandate-reconciliation-service.ts`
+* **Capa:** Dominio / Aplicación / Reconciliación de Gobernanza
+* **Responsabilidad:** Reconciliar deterministamente flujos de trabajo e instancias de aprobación en vuelo cuando un mandato de gobernanza expira, se revoca, se cancela o restringe su alcance, garantizando la inmutabilidad de estados históricos (0 mutación retroactiva).
+* **Dependencias:** `GovernanceMandateRepositoryPort`, `WorkflowInstanceRepositoryPort`, `ApprovalRequestRepositoryPort`, `HumanOversightService`, `PolicyGateway`, `EventPublisher`.
+* **Public API:** `MandateReconciliationService.reconcileMandate()`, `MandateReconciliationService.reconcileExpiredMandates()`.
+* **Security Boundary:** Aislamiento multi-tenant fail-closed, control de concurrencia optimista (OCC), respeto a la prioridad de `EMERGENCY_HALT` y 0 inferencia LLM.
+* **Persistencia:** Mutación transaccional sobre repositorios existentes sin nuevas tablas.
+* **Tests:** `tests/unit/mandate-reconciliation.test.ts`, `tests/platform/mandate-reconciliation.test.ts` (35 tests).
+* **Documentación:** `docs/decisions/0046-governed-mandate-reconciliation-and-runtime-consistency.md`.
+* **Estado:** `IMPLEMENTED / OPERATIONAL`
+
+### 5.11 Servicio de Exportación de Evidencia de Gobernanza & Compliance
+* **Componente:** `src/domain/governance/evidence-export.ts`, `src/application/governance/evidence-export-service.ts`
+* **Capa:** Dominio / Aplicación / Exportación de Gobernanza & Compliance
+* **Responsabilidad:** Exportar paquetes de evidencia estructurados, deterministas y sellados con hash SHA-256 en 9 dimensiones organizacionales (`TENANT`, `PORTFOLIO`, `ENTERPRISE`, `WORKFLOW`, `EXECUTION`, `MANDATE`, `APPROVAL`, `RECONCILIATION`, `AUDIT_TRAIL`), garantizando cero mutación de estado y redacción estricta de secretos.
+* **Dependencias:** Repositorios de Portafolios, Mandatos, Flujos de trabajo, Auditoría, Reconciliación, `SensitiveDataRedactor`, `canonicalJsonStringify`, `node:crypto`.
+* **Public API:** `EvidenceExportService.exportEvidence()`, Endpoint REST `POST /api/v1/governance/evidence/export`, SDK `client.exportEvidence()`.
+* **Security Boundary:** Invariante de solo lectura (0 mutación de estado), aislamiento multi-tenant estricto, límites acotados (90 días, máx 1000 registros), redacción automática de secretos y sellado SHA-256.
+* **Persistencia:** Ninguna (servicio de consulta y agregación puramente inmutable con caché de idempotencia en memoria).
+* **Tests:** `tests/unit/evidence-export.test.ts`, `tests/platform/evidence-export.test.ts` (32 tests).
+* **Documentación:** `docs/decisions/0050-governance-and-compliance-evidence-export.md`.
+* **Estado:** `IMPLEMENTED / OPERATIONAL`
 

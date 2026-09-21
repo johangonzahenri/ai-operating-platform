@@ -206,6 +206,8 @@ import {
   SqlitePortfolioObjectiveRepository,
 } from "../infrastructure/persistence/sqlite/sqlite-portfolio-repository.js";
 import { PortfolioGovernanceService } from "../application/portfolio/portfolio-governance-service.js";
+import { MandateReconciliationService } from "../application/portfolio/mandate-reconciliation-service.js";
+import { EvidenceExportService } from "../application/governance/evidence-export-service.js";
 
 export interface CreatePlatformOptions {
   readonly logger?: StructuredLogger | undefined;
@@ -257,6 +259,8 @@ export interface CreatePlatformOptions {
   readonly governanceMandateRepository?: GovernanceMandateRepositoryPort | undefined;
   readonly portfolioObjectiveRepository?: PortfolioObjectiveRepositoryPort | undefined;
   readonly portfolioGovernanceService?: PortfolioGovernanceService | undefined;
+  readonly mandateReconciliationService?: MandateReconciliationService | undefined;
+  readonly evidenceExportService?: EvidenceExportService | undefined;
   readonly eventStream?: EventStreamAdapter | undefined;
 }
 
@@ -541,50 +545,6 @@ export const createPlatform = (
         events,
       });
 
-  const workflowOrchestratorService: WorkflowOrchestratorService = (!isLogger && (optionsOrLogger as CreatePlatformOptions).workflowOrchestratorService)
-    ? (optionsOrLogger as CreatePlatformOptions).workflowOrchestratorService!
-    : new WorkflowOrchestratorService({
-        definitionRepository: workflowDefinitionRepository,
-        instanceRepository: workflowInstanceRepository,
-        agentProfileService,
-        agentLifecycleService,
-        organizationRepository,
-        budgetService: teamResourceBudgetService,
-        policyGateway: policy,
-        verificationService: workflowVerificationService,
-        humanOversightService,
-        runtime: agentRuntime,
-        agentQuery: agents,
-        events,
-      });
-
-  const solutionRepository: AISolutionRepositoryPort = (!isLogger && (optionsOrLogger as CreatePlatformOptions).solutionRepository)
-    ? (optionsOrLogger as CreatePlatformOptions).solutionRepository!
-    : dbManager
-      ? new SqliteAISolutionRepository(dbManager)
-      : new InMemoryAISolutionRepository();
-
-  const solutionInstanceRepository: AISolutionInstanceRepositoryPort = (!isLogger && (optionsOrLogger as CreatePlatformOptions).solutionInstanceRepository)
-    ? (optionsOrLogger as CreatePlatformOptions).solutionInstanceRepository!
-    : dbManager
-      ? new SqliteAISolutionInstanceRepository(dbManager)
-      : new InMemoryAISolutionInstanceRepository();
-
-  const solutionBlueprintValidator = new SolutionBlueprintValidator({
-    workflowRepo: workflowDefinitionRepository,
-    agentProfileRepo: agentProfileRepository,
-    agentLifecycleService,
-  });
-
-  const solutionFactoryService: SolutionFactoryService = (!isLogger && (optionsOrLogger as CreatePlatformOptions).solutionFactoryService)
-    ? (optionsOrLogger as CreatePlatformOptions).solutionFactoryService!
-    : new SolutionFactoryService({
-        solutionRepo: solutionRepository,
-        instanceRepo: solutionInstanceRepository,
-        validator: solutionBlueprintValidator,
-        eventPublisher: events,
-      });
-
   const enterpriseRepository: EnterpriseRepositoryPort = (!isLogger && (optionsOrLogger as CreatePlatformOptions).enterpriseRepository)
     ? (optionsOrLogger as CreatePlatformOptions).enterpriseRepository!
     : dbManager
@@ -644,6 +604,18 @@ export const createPlatform = (
       ? new SqlitePortfolioObjectiveRepository(dbManager)
       : new InMemoryPortfolioObjectiveRepository();
 
+  const mandateReconciliationService: MandateReconciliationService = (!isLogger && (optionsOrLogger as CreatePlatformOptions).mandateReconciliationService)
+    ? (optionsOrLogger as CreatePlatformOptions).mandateReconciliationService!
+    : new MandateReconciliationService({
+        mandateRepo: governanceMandateRepository,
+        workflowInstanceRepo: workflowInstanceRepository,
+        workflowDefRepo: workflowDefinitionRepository,
+        approvalRequestRepo: approvalRequestRepository,
+        oversightService: humanOversightService,
+        policyGateway: policy,
+        eventPublisher: events,
+      });
+
   const portfolioGovernanceService: PortfolioGovernanceService = (!isLogger && (optionsOrLogger as CreatePlatformOptions).portfolioGovernanceService)
     ? (optionsOrLogger as CreatePlatformOptions).portfolioGovernanceService!
     : new PortfolioGovernanceService({
@@ -654,6 +626,71 @@ export const createPlatform = (
         enterpriseObjectiveRepo: businessObjectiveRepository,
         enterpriseMetricRepo: businessMetricRepository,
         eventPublisher: events,
+        reconciliationService: mandateReconciliationService,
+      });
+
+  const workflowOrchestratorService: WorkflowOrchestratorService = (!isLogger && (optionsOrLogger as CreatePlatformOptions).workflowOrchestratorService)
+    ? (optionsOrLogger as CreatePlatformOptions).workflowOrchestratorService!
+    : new WorkflowOrchestratorService({
+        definitionRepository: workflowDefinitionRepository,
+        instanceRepository: workflowInstanceRepository,
+        agentProfileService,
+        agentLifecycleService,
+        organizationRepository,
+        budgetService: teamResourceBudgetService,
+        policyGateway: policy,
+        verificationService: workflowVerificationService,
+        humanOversightService,
+        portfolioGovernanceService,
+        enterpriseOperatingService,
+        runtime: agentRuntime,
+        agentQuery: agents,
+        events,
+      });
+
+  const solutionRepository: AISolutionRepositoryPort = (!isLogger && (optionsOrLogger as CreatePlatformOptions).solutionRepository)
+    ? (optionsOrLogger as CreatePlatformOptions).solutionRepository!
+    : dbManager
+      ? new SqliteAISolutionRepository(dbManager)
+      : new InMemoryAISolutionRepository();
+
+  const solutionInstanceRepository: AISolutionInstanceRepositoryPort = (!isLogger && (optionsOrLogger as CreatePlatformOptions).solutionInstanceRepository)
+    ? (optionsOrLogger as CreatePlatformOptions).solutionInstanceRepository!
+    : dbManager
+      ? new SqliteAISolutionInstanceRepository(dbManager)
+      : new InMemoryAISolutionInstanceRepository();
+
+  const solutionBlueprintValidator = new SolutionBlueprintValidator({
+    workflowRepo: workflowDefinitionRepository,
+    agentProfileRepo: agentProfileRepository,
+    agentLifecycleService,
+  });
+
+  const solutionFactoryService: SolutionFactoryService = (!isLogger && (optionsOrLogger as CreatePlatformOptions).solutionFactoryService)
+    ? (optionsOrLogger as CreatePlatformOptions).solutionFactoryService!
+    : new SolutionFactoryService({
+        solutionRepo: solutionRepository,
+        instanceRepo: solutionInstanceRepository,
+        validator: solutionBlueprintValidator,
+        eventPublisher: events,
+      });
+
+  const evidenceExportService: EvidenceExportService = (!isLogger && (optionsOrLogger as CreatePlatformOptions).evidenceExportService)
+    ? (optionsOrLogger as CreatePlatformOptions).evidenceExportService!
+    : new EvidenceExportService({
+        enterpriseRepo: enterpriseRepository,
+        businessObjectiveRepo: businessObjectiveRepository,
+        businessInitiativeRepo: businessInitiativeRepository,
+        businessMetricRepo: businessMetricRepository,
+        executiveDecisionRepo: executiveDecisionRepository,
+        portfolioRepo: enterprisePortfolioRepository,
+        mandateRepo: governanceMandateRepository,
+        portfolioObjectiveRepo: portfolioObjectiveRepository,
+        workflowDefinitionRepo: workflowDefinitionRepository,
+        workflowInstanceRepo: workflowInstanceRepository,
+        verificationRepo: verificationResultRepository,
+        approvalRepo: approvalRequestRepository,
+        durableEventQueryPort: eventStore,
       });
 
   const executiveCycleRepository: ExecutiveCycleRepositoryPort = dbManager
@@ -860,6 +897,8 @@ export const createPlatform = (
     governanceMandateRepository,
     portfolioObjectiveRepository,
     portfolioGovernanceService,
+    mandateReconciliationService,
+    evidenceExportService,
     executiveCycleRepository,
     executiveContextSnapshotRepository,
     executiveAnalysisRepository,

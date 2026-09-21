@@ -62,6 +62,7 @@ export interface CreateGovernanceMandateProps {
   readonly allowedOperations?: readonly string[] | undefined;
   readonly allowedObjectives?: readonly string[] | undefined;
   readonly autonomyLimit?: AutonomyLevel | undefined;
+  readonly maxAutonomyLevel?: AutonomyLevel | undefined;
   readonly requiresApproval?: boolean | undefined;
   readonly validFrom?: Date | undefined;
   readonly validTo?: Date | undefined;
@@ -170,7 +171,7 @@ export class EnterpriseGovernanceMandate {
       ? props.allowedObjectives.map((obj) => obj.trim())
       : ["*"];
 
-    const autonomyLimit = props.autonomyLimit ?? "LEVEL_2_GOVERNED_AUTOMATION";
+    const autonomyLimit = props.autonomyLimit ?? props.maxAutonomyLevel ?? "LEVEL_2_GOVERNED_AUTOMATION";
 
     return new EnterpriseGovernanceMandate({
       id,
@@ -257,10 +258,11 @@ export class EnterpriseGovernanceMandate {
     }
 
     const cleanOp = criteria.operation?.trim().toUpperCase();
+    const upperAllowed = this.allowedOperations.map((op) => op.trim().toUpperCase());
     const matchesOp =
-      this.allowedOperations.includes("*") ||
-      this.allowedOperations.includes(cleanOp) ||
-      this.allowedOperations.some((pattern) => pattern.endsWith(".*") && cleanOp.startsWith(pattern.slice(0, -2)));
+      upperAllowed.includes("*") ||
+      upperAllowed.includes(cleanOp) ||
+      upperAllowed.some((pattern) => pattern.endsWith(".*") && cleanOp.startsWith(pattern.slice(0, -2)));
 
     if (!matchesOp) {
       return {
@@ -276,6 +278,25 @@ export class EnterpriseGovernanceMandate {
         reason: `Objective '${criteria.objectiveId}' is not permitted by mandate objectives`,
         requiresApproval: true,
       };
+    }
+
+    if (criteria.requestedAutonomy) {
+      const AUTONOMY_RANK: Record<AutonomyLevel, number> = {
+        LEVEL_0_MANUAL: 0,
+        LEVEL_1_ASSISTED: 1,
+        LEVEL_2_GOVERNED_AUTOMATION: 2,
+        LEVEL_3_GOVERNED_AUTONOMY: 3,
+        LEVEL_4_MULTI_ENTERPRISE_AUTONOMOUS: 4,
+      };
+      const reqRank = AUTONOMY_RANK[criteria.requestedAutonomy] ?? 0;
+      const limitRank = AUTONOMY_RANK[this.autonomyLimit] ?? 2;
+      if (reqRank > limitRank) {
+        return {
+          allowed: false,
+          reason: `Requested autonomy '${criteria.requestedAutonomy}' exceeds mandate autonomy limit '${this.autonomyLimit}'`,
+          requiresApproval: true,
+        };
+      }
     }
 
     // Check if human oversight is required based on mandate setting or autonomy level
@@ -315,6 +336,140 @@ export class EnterpriseGovernanceMandate {
       validFrom: this.validFrom,
       validTo: this.validTo,
       revocationReason: cleanReason,
+      version: this.version + 1,
+      concurrencyVersion: this.concurrencyVersion + 1,
+      createdAt: this.createdAt,
+      updatedAt: now,
+    });
+  }
+
+  expire(expectedConcurrencyVersion?: number): EnterpriseGovernanceMandate {
+    if (this.status === "EXPIRED") {
+      return this;
+    }
+    if (expectedConcurrencyVersion !== undefined && expectedConcurrencyVersion !== this.concurrencyVersion) {
+      throw new PortfolioConcurrencyConflictError(this.id, expectedConcurrencyVersion, this.concurrencyVersion);
+    }
+    const now = new Date();
+    return new EnterpriseGovernanceMandate({
+      id: this.id,
+      tenantId: this.tenantId,
+      portfolioId: this.portfolioId,
+      sourceEnterpriseId: this.sourceEnterpriseId,
+      targetEnterpriseIds: this.targetEnterpriseIds,
+      granteePrincipalId: this.granteePrincipalId,
+      authorityScope: this.authorityScope,
+      allowedOperations: this.allowedOperations,
+      allowedObjectives: this.allowedObjectives,
+      autonomyLimit: this.autonomyLimit,
+      requiresApproval: this.requiresApproval,
+      status: "EXPIRED",
+      validFrom: this.validFrom,
+      validTo: this.validTo && this.validTo < now ? this.validTo : now,
+      revocationReason: this.revocationReason,
+      version: this.version + 1,
+      concurrencyVersion: this.concurrencyVersion + 1,
+      createdAt: this.createdAt,
+      updatedAt: now,
+    });
+  }
+
+  cancel(reason?: string, expectedConcurrencyVersion?: number): EnterpriseGovernanceMandate {
+    if (this.status === "CANCELLED") {
+      return this;
+    }
+    if (expectedConcurrencyVersion !== undefined && expectedConcurrencyVersion !== this.concurrencyVersion) {
+      throw new PortfolioConcurrencyConflictError(this.id, expectedConcurrencyVersion, this.concurrencyVersion);
+    }
+    const now = new Date();
+    return new EnterpriseGovernanceMandate({
+      id: this.id,
+      tenantId: this.tenantId,
+      portfolioId: this.portfolioId,
+      sourceEnterpriseId: this.sourceEnterpriseId,
+      targetEnterpriseIds: this.targetEnterpriseIds,
+      granteePrincipalId: this.granteePrincipalId,
+      authorityScope: this.authorityScope,
+      allowedOperations: this.allowedOperations,
+      allowedObjectives: this.allowedObjectives,
+      autonomyLimit: this.autonomyLimit,
+      requiresApproval: this.requiresApproval,
+      status: "CANCELLED",
+      validFrom: this.validFrom,
+      validTo: this.validTo,
+      revocationReason: reason?.trim() || this.revocationReason,
+      version: this.version + 1,
+      concurrencyVersion: this.concurrencyVersion + 1,
+      createdAt: this.createdAt,
+      updatedAt: now,
+    });
+  }
+
+  updateScope(
+    props: {
+      readonly allowedOperations?: readonly string[];
+      readonly targetEnterpriseIds?: readonly string[];
+      readonly allowedObjectives?: readonly string[];
+    },
+    expectedConcurrencyVersion?: number
+  ): EnterpriseGovernanceMandate {
+    if (expectedConcurrencyVersion !== undefined && expectedConcurrencyVersion !== this.concurrencyVersion) {
+      throw new PortfolioConcurrencyConflictError(this.id, expectedConcurrencyVersion, this.concurrencyVersion);
+    }
+    const now = new Date();
+    return new EnterpriseGovernanceMandate({
+      id: this.id,
+      tenantId: this.tenantId,
+      portfolioId: this.portfolioId,
+      sourceEnterpriseId: this.sourceEnterpriseId,
+      targetEnterpriseIds: props.targetEnterpriseIds
+        ? Array.from(new Set(props.targetEnterpriseIds.map((t) => t.trim()).filter(Boolean)))
+        : this.targetEnterpriseIds,
+      granteePrincipalId: this.granteePrincipalId,
+      authorityScope: this.authorityScope,
+      allowedOperations: props.allowedOperations
+        ? Array.from(new Set(props.allowedOperations.map((o) => o.trim().toUpperCase()).filter(Boolean)))
+        : this.allowedOperations,
+      allowedObjectives: props.allowedObjectives
+        ? Array.from(new Set(props.allowedObjectives.map((o) => o.trim()).filter(Boolean)))
+        : this.allowedObjectives,
+      autonomyLimit: this.autonomyLimit,
+      requiresApproval: this.requiresApproval,
+      status: this.status,
+      validFrom: this.validFrom,
+      validTo: this.validTo,
+      revocationReason: this.revocationReason,
+      version: this.version + 1,
+      concurrencyVersion: this.concurrencyVersion + 1,
+      createdAt: this.createdAt,
+      updatedAt: now,
+    });
+  }
+
+  updateAutonomyLimit(
+    autonomyLimit: AutonomyLevel,
+    expectedConcurrencyVersion?: number
+  ): EnterpriseGovernanceMandate {
+    if (expectedConcurrencyVersion !== undefined && expectedConcurrencyVersion !== this.concurrencyVersion) {
+      throw new PortfolioConcurrencyConflictError(this.id, expectedConcurrencyVersion, this.concurrencyVersion);
+    }
+    const now = new Date();
+    return new EnterpriseGovernanceMandate({
+      id: this.id,
+      tenantId: this.tenantId,
+      portfolioId: this.portfolioId,
+      sourceEnterpriseId: this.sourceEnterpriseId,
+      targetEnterpriseIds: this.targetEnterpriseIds,
+      granteePrincipalId: this.granteePrincipalId,
+      authorityScope: this.authorityScope,
+      allowedOperations: this.allowedOperations,
+      allowedObjectives: this.allowedObjectives,
+      autonomyLimit,
+      requiresApproval: this.requiresApproval,
+      status: this.status,
+      validFrom: this.validFrom,
+      validTo: this.validTo,
+      revocationReason: this.revocationReason,
       version: this.version + 1,
       concurrencyVersion: this.concurrencyVersion + 1,
       createdAt: this.createdAt,

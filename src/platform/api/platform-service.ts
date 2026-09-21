@@ -221,6 +221,7 @@ import {
 } from "../../infrastructure/persistence/in-memory/in-memory-executive-repository.js";
 import { AutonomousOperationsRuntime } from "../../application/autonomous/autonomous-operations-runtime.js";
 import { PortfolioGovernanceService, PortfolioOperatingContext } from "../../application/portfolio/portfolio-governance-service.js";
+import { EvidenceExportService } from "../../application/governance/evidence-export-service.js";
 import { InMemoryEnterprisePortfolioRepository, InMemoryGovernanceMandateRepository, InMemoryPortfolioObjectiveRepository } from "../../infrastructure/persistence/in-memory/in-memory-portfolio-repository.js";
 import { EnterprisePortfolio } from "../../domain/portfolio/enterprise-portfolio.js";
 import { EnterpriseGovernanceMandate } from "../../domain/portfolio/governance-mandate.js";
@@ -307,6 +308,7 @@ export interface PlatformDependencies {
   readonly eventStream?: EventStreamAdapter | undefined;
   readonly apiCredentialService?: ApiCredentialService | undefined;
   readonly portfolioGovernanceService?: PortfolioGovernanceService | undefined;
+  readonly evidenceExportService?: EvidenceExportService | undefined;
 }
 
 export class PlatformService {
@@ -332,6 +334,7 @@ export class PlatformService {
   private readonly executiveOrchestratorService: ExecutiveOrchestratorService;
   private readonly autonomousOperationsRuntime?: AutonomousOperationsRuntime | undefined;
   private readonly portfolioGovernanceService: PortfolioGovernanceService;
+  private readonly evidenceExportService: EvidenceExportService;
   private readonly workflowOrchestratorService: WorkflowOrchestratorService;
   private readonly workflowVerificationService?: WorkflowVerificationService | undefined;
   private readonly humanOversightService?: HumanOversightService | undefined;
@@ -484,6 +487,22 @@ export class PlatformService {
       enterpriseObjectiveRepo: (this.enterpriseOperatingService as any)?.objectiveRepo,
       enterpriseMetricRepo: (this.enterpriseOperatingService as any)?.metricRepo,
       eventPublisher: deps.eventStore ? { publish: (e) => deps.eventStore!.append(e as any) } : undefined,
+    });
+
+    this.evidenceExportService = deps.evidenceExportService ?? new EvidenceExportService({
+      enterpriseRepo: (this.enterpriseOperatingService as any)?.enterpriseRepo,
+      businessObjectiveRepo: (this.enterpriseOperatingService as any)?.objectiveRepo,
+      businessInitiativeRepo: (this.enterpriseOperatingService as any)?.initiativeRepo,
+      businessMetricRepo: (this.enterpriseOperatingService as any)?.metricRepo,
+      executiveDecisionRepo: (this.enterpriseOperatingService as any)?.decisionRepo,
+      portfolioRepo: (this.portfolioGovernanceService as any)?.portfolioRepo,
+      mandateRepo: (this.portfolioGovernanceService as any)?.mandateRepo,
+      portfolioObjectiveRepo: (this.portfolioGovernanceService as any)?.objectiveRepo,
+      workflowDefinitionRepo: (this.workflowOrchestratorService as any)?.definitionRepository,
+      workflowInstanceRepo: (this.workflowOrchestratorService as any)?.instanceRepository,
+      verificationRepo: (this.workflowVerificationService as any)?.verificationRepo,
+      approvalRepo: (this.humanOversightService as any)?.approvalRepo,
+      durableEventQueryPort: deps.eventStore,
     });
 
     this.governanceService = new EnterpriseGovernanceService();
@@ -724,6 +743,10 @@ export class PlatformService {
         },
       },
     };
+  }
+
+  getEvidenceExportService(): EvidenceExportService {
+    return this.evidenceExportService;
   }
 
   getEvents(options?: AuditQueryOptions): DurableEventListResponseDTO {
@@ -3545,6 +3568,43 @@ export class PlatformService {
       createdAt: p.createdAt.toISOString(),
       updatedAt: p.updatedAt.toISOString(),
     };
+  }
+
+  // --- Mandate Reconciliation (Phase 77) ---
+
+  async reconcileMandate(
+    mandateId: string,
+    params: {
+      readonly triggerType: "MANDATE_EXPIRED" | "MANDATE_REVOKED" | "MANDATE_CANCELLED" | "MANDATE_SUSPENDED" | "MANDATE_SCOPE_REDUCED" | "MANDATE_AUTONOMY_REDUCED" | "MANDATE_OPERATION_REMOVED" | "PERIODIC_AUDIT";
+      readonly expectedMandateConcurrencyVersion?: number | undefined;
+      readonly reason?: string | undefined;
+      readonly idempotencyKey?: string | undefined;
+    },
+    tenantId: string,
+    traceId?: string
+  ): Promise<any> {
+    if (!this.portfolioGovernanceService) {
+      throw new PortfolioValidationError("Portfolio governance service is not configured");
+    }
+    return this.portfolioGovernanceService.reconcileMandate(
+      {
+        mandateId,
+        tenantId,
+        triggerType: params.triggerType,
+        expectedMandateConcurrencyVersion: params.expectedMandateConcurrencyVersion,
+        reason: params.reason,
+        idempotencyKey: params.idempotencyKey,
+        traceId,
+      },
+      traceId
+    );
+  }
+
+  async reconcileExpiredMandates(tenantId: string, traceId?: string): Promise<readonly any[]> {
+    if (!this.portfolioGovernanceService) {
+      throw new PortfolioValidationError("Portfolio governance service is not configured");
+    }
+    return this.portfolioGovernanceService.reconcileExpiredMandates(tenantId, traceId);
   }
 
   private mapMandateToDTO(m: EnterpriseGovernanceMandate): EnterpriseGovernanceMandateDTO {

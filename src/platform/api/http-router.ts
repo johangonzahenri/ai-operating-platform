@@ -163,6 +163,23 @@ import {
   PortfolioConcurrencyConflictError,
   PortfolioTenantMismatchError,
 } from "../../domain/portfolio/portfolio-errors.js";
+import {
+  ReconciliationError,
+  ReconciliationValidationError,
+  ReconciliationConcurrencyConflictError,
+  ReconciliationStaleMandateError,
+  ReconciliationEmergencyHaltActiveError,
+  ReconciliationTenantMismatchError,
+  ReconciliationPolicyDeniedError,
+} from "../../domain/portfolio/mandate-reconciliation-errors.js";
+import {
+  EvidenceExportError,
+  EvidenceExportValidationError,
+  EvidenceFilterBoundsExceededError,
+  EvidenceTenantMismatchError,
+  EvidenceScopeNotAuthorizedError,
+  EvidenceResourceNotFoundError,
+} from "../../domain/governance/evidence-export-errors.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -6908,6 +6925,18 @@ export function createHttpServer(
             sendError(400, err.message, "PORTFOLIO_VALIDATION_ERROR");
           } else if (err instanceof PortfolioError) {
             sendError(400, err.message, "PORTFOLIO_ERROR");
+          } else if (err instanceof ReconciliationValidationError) {
+            sendError(400, err.message, "VALIDATION_ERROR");
+          } else if (err instanceof ReconciliationConcurrencyConflictError) {
+            sendError(409, err.message, "CONCURRENCY_CONFLICT");
+          } else if (err instanceof ReconciliationEmergencyHaltActiveError) {
+            sendError(503, err.message, "EMERGENCY_HALT_ACTIVE");
+          } else if (err instanceof ReconciliationTenantMismatchError) {
+            sendError(403, err.message, "TENANT_MISMATCH");
+          } else if (err instanceof ReconciliationPolicyDeniedError) {
+            sendError(403, err.message, "POLICY_DENIED");
+          } else if (err instanceof ReconciliationError) {
+            sendError(400, err.message, "RECONCILIATION_ERROR");
           } else {
             sendError(500, err instanceof Error ? err.message : "Internal portfolio operation error", "INTERNAL_SERVER_ERROR");
           }
@@ -7110,6 +7139,49 @@ export function createHttpServer(
           }
         }
 
+        // POST /mandates/reconcile-expired (Phase 77)
+        if (subPath === "/mandates/reconcile-expired" && req.method === "POST") {
+          const authCheck = await authenticateAndAuthorize("mandate.manage", "API", undefined, undefined, false);
+          if (!authCheck.ok) {
+            sendError(authCheck.status, authCheck.message, authCheck.code);
+            return;
+          }
+          const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "default";
+          try {
+            const reports = await service.reconcileExpiredMandates(tenantId, currentTraceId);
+            sendJson(200, { reports, count: reports.length, total: reports.length });
+            return;
+          } catch (err) {
+            handlePortfolioError(err);
+            return;
+          }
+        }
+
+        // POST /mandates/:id/reconcile (Phase 77)
+        const mandateReconcileMatch = subPath.match(/^\/mandates\/([^/]+)\/reconcile$/);
+        if (mandateReconcileMatch && req.method === "POST") {
+          const id = normalizeId(mandateReconcileMatch[1] ?? "") ?? mandateReconcileMatch[1] ?? "";
+          const authCheck = await authenticateAndAuthorize("mandate.manage", "API", id, undefined, false);
+          if (!authCheck.ok) {
+            sendError(authCheck.status, authCheck.message, authCheck.code);
+            return;
+          }
+          const bodyResult = await readJsonBody();
+          if (!bodyResult.ok) {
+            sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+            return;
+          }
+          const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "default";
+          try {
+            const report = await service.reconcileMandate(id, bodyResult.body as any, tenantId, currentTraceId);
+            sendJson(200, report);
+            return;
+          } catch (err) {
+            handlePortfolioError(err);
+            return;
+          }
+        }
+
         // POST /mandates/validate-authority or POST /portfolios/validate-authority
         if ((subPath === "/mandates/validate-authority" || subPath === "/portfolios/validate-authority") && req.method === "POST") {
           const authCheck = await authenticateAndAuthorize("mandate.read", "API", undefined, undefined, false);
@@ -7242,6 +7314,52 @@ export function createHttpServer(
             return;
           } catch (err) {
             handlePortfolioError(err);
+            return;
+          }
+        }
+
+        // POST /governance/evidence/export
+        if (subPath === "/governance/evidence/export" && req.method === "POST") {
+          const authCheck = await authenticateAndAuthorize("governance.export_evidence", "API", "evidence", undefined, false);
+          if (!authCheck.ok) {
+            sendError(authCheck.status, authCheck.message, authCheck.code);
+            return;
+          }
+          const bodyResult = await readJsonBody();
+          if (!bodyResult.ok) {
+            sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+            return;
+          }
+          const tenantId = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "default";
+          const secContext: SecurityContext = authCheck.context ?? {
+            tenantId,
+            principal: { id: "system-principal", type: "SYSTEM" as const },
+            environment: "production",
+          };
+          try {
+            const exportService = service.getEvidenceExportService();
+            const exportPackage = await exportService.exportEvidence(secContext, bodyResult.body as any);
+            sendJson(200, exportPackage);
+            return;
+          } catch (err) {
+            if (err instanceof EvidenceExportValidationError || err instanceof EvidenceFilterBoundsExceededError) {
+              sendError(400, (err as Error).message, (err as EvidenceExportError).code);
+              return;
+            }
+            if (err instanceof EvidenceScopeNotAuthorizedError) {
+              sendError(403, (err as Error).message, (err as EvidenceExportError).code);
+              return;
+            }
+            if (err instanceof EvidenceTenantMismatchError || err instanceof EvidenceResourceNotFoundError) {
+              sendError(404, (err as Error).message, (err as EvidenceExportError).code);
+              return;
+            }
+            if (err instanceof EvidenceExportError) {
+              sendError(400, (err as Error).message, err.code);
+              return;
+            }
+            console.error("[HTTP 500] Evidence export error:", err);
+            sendError(500, "Internal error during evidence export", "INTERNAL_SERVER_ERROR");
             return;
           }
         }

@@ -49,6 +49,11 @@ import {
   createPortfolioObjectiveCreatedEvent,
   createPortfolioObjectiveAggregatedEvent,
 } from "../../domain/portfolio/portfolio-events.js";
+import {
+  MandateReconciliationService,
+  MandateReconciliationRequest,
+  MandateReconciliationReport,
+} from "./mandate-reconciliation-service.js";
 import { AutonomyLevel } from "../../domain/business/autonomy-level.js";
 
 export interface PortfolioGovernanceServiceOptions {
@@ -59,6 +64,7 @@ export interface PortfolioGovernanceServiceOptions {
   readonly enterpriseObjectiveRepo?: BusinessObjectiveRepositoryPort | undefined;
   readonly enterpriseMetricRepo?: BusinessMetricRepositoryPort | undefined;
   readonly eventPublisher?: EventPublisher | undefined;
+  readonly reconciliationService?: MandateReconciliationService | undefined;
 }
 
 export interface PortfolioOperatingContext {
@@ -77,6 +83,7 @@ export class PortfolioGovernanceService {
   private readonly enterpriseObjectiveRepo?: BusinessObjectiveRepositoryPort | undefined;
   private readonly enterpriseMetricRepo?: BusinessMetricRepositoryPort | undefined;
   private readonly eventPublisher?: EventPublisher | undefined;
+  private readonly reconciliationService?: MandateReconciliationService | undefined;
 
   constructor(options: PortfolioGovernanceServiceOptions) {
     this.portfolioRepo = options.portfolioRepo;
@@ -86,6 +93,7 @@ export class PortfolioGovernanceService {
     this.enterpriseObjectiveRepo = options.enterpriseObjectiveRepo;
     this.enterpriseMetricRepo = options.enterpriseMetricRepo;
     this.eventPublisher = options.eventPublisher;
+    this.reconciliationService = options.reconciliationService;
   }
 
   // --- Portfolio Management ---
@@ -419,5 +427,27 @@ export class PortfolioGovernanceService {
       objectives: Object.freeze(objectives),
       generatedAt: new Date(),
     };
+  }
+
+  // --- Mandate Reconciliation ---
+
+  async reconcileMandate(
+    request: MandateReconciliationRequest,
+    traceId?: string
+  ): Promise<MandateReconciliationReport> {
+    if (!this.reconciliationService) {
+      throw new PortfolioValidationError("Reconciliation service is not configured on PortfolioGovernanceService");
+    }
+    return this.reconciliationService.reconcileMandate(request, traceId);
+  }
+
+  async reconcileExpiredMandates(
+    tenantId: string,
+    traceId?: string
+  ): Promise<readonly MandateReconciliationReport[]> {
+    if (!this.reconciliationService) {
+      throw new PortfolioValidationError("Reconciliation service is not configured on PortfolioGovernanceService");
+    }
+    return this.reconciliationService.reconcileExpiredMandates(tenantId, traceId);
   }
 }

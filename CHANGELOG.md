@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.0] - 2026-09-21 (Multi-Enterprise Governance, Governed Runtime, Mandate Reconciliation & Compliance Export)
+
+### Added
+- **Governance & Compliance Evidence Export (`AOP-COMPLIANCE-EXPORT`, Phase 78 / ADR 0050)**:
+  - Deterministic export package generator across 9 scopes: `TENANT`, `PORTFOLIO`, `ENTERPRISE`, `WORKFLOW`, `EXECUTION`, `MANDATE`, `APPROVAL`, `RECONCILIATION`, `AUDIT_TRAIL`.
+  - Zero state mutation invariant: reading, packaging, and sealing evidence causes 0 state changes.
+  - Multi-tenant boundary isolation and fail-closed access control.
+  - Automated sensitive data redaction via `SensitiveDataRedactor` and deterministic canonical JSON serialization (`canonicalJsonStringify`).
+  - Cryptographic SHA-256 integrity seal in immutable export manifest (`EvidenceExportManifest.integritySeal`).
+  - Query bounds enforcement: `maxRecords <= 1000`, `dateRange <= 90 days`, `fromDate <= toDate`.
+  - REST endpoint `POST /api/v1/governance/evidence/export` with idempotency support and SDK methods `client.exportEvidence()` / `client.governance.exportEvidence()`.
+- **Governed Mandate Reconciliation & Runtime Consistency (`AOP-MANDATE-RECONCILIATION-DAEMON`, Phase 77 / ADR 0046)**:
+  - Deterministic evaluation engine (`evaluateMandateReconciliation()`) handling mandate expirations, revocations, cancellations, scope restrictions, and autonomy reductions.
+  - Zero retroactive mutation: terminal states (`COMPLETED`, `FAILED`, `CANCELLED`, `EXPIRED`, `REJECTED`, `BUDGET_EXHAUSTED`) are strictly preserved as immutable historical truth.
+  - In-flight execution adaptation: `QUEUED` steps are cancelled, `RUNNING` steps are safely paused for human oversight or cancelled, and pending `AWAITING_APPROVAL` requests are re-evaluated fail-closed.
+  - `MandateReconciliationService` with optimistic concurrency control (`concurrencyVersion`), idempotency caching (`idempotencyKey`), and periodic scanning daemon (`reconcileExpiredMandates`).
+  - REST endpoints `POST /api/v1/mandates/:id/reconcile` and `POST /api/v1/mandates/reconcile-expired`.
+  - SDK methods `client.portfolios.reconcileMandate()` and `client.portfolios.reconcileExpiredMandates()`.
+- **Multi-Enterprise Operational Runtime & Governed Execution (Phase 76 / ADR 0045)**:
+  - Canonical governance-to-execution chain ($\text{Portfolio} \to \text{Enterprise} \to \text{Objective} \to \text{Workflow} \to \text{Mandate} \to \text{Execution} \to \text{Metric Aggregation}$).
+  - Cross-Enterprise default-deny enforcement and 3-way Segregation of Duties (Executor $\neq$ Verifier $\neq$ Approver).
+- **Multi-Enterprise Governance & Portfolio Operating Model (Phase 75 / ADR 0044)**:
+  - Enterprise portfolio aggregates (`EnterprisePortfolio`, `EnterpriseGovernanceMandate`, `PortfolioObjective`).
+  - Deterministic mathematical metric rollup (0 LLM estimation).
+
 ## [1.3.0] - 2026-09-19 (Enterprise Authentication, Credential Governance, Autonomous Operations & Control Plane)
 
 ### Added

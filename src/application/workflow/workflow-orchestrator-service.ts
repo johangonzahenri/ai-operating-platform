@@ -42,6 +42,8 @@ import {
 import { WorkflowVerificationService } from "./workflow-verification-service.js";
 import { HumanOversightService } from "./human-oversight-service.js";
 import { AgentLifecycleService } from "../agent/agent-lifecycle-service.js";
+import { PortfolioGovernanceService } from "../portfolio/portfolio-governance-service.js";
+import { EnterpriseOperatingService } from "../business/enterprise-operating-service.js";
 
 export interface WorkflowOrchestratorServiceOptions {
   readonly definitionRepository: WorkflowDefinitionRepositoryPort;
@@ -53,6 +55,8 @@ export interface WorkflowOrchestratorServiceOptions {
   readonly budgetService?: TeamResourceBudgetService | undefined;
   readonly verificationService?: WorkflowVerificationService | undefined;
   readonly humanOversightService?: HumanOversightService | undefined;
+  readonly portfolioGovernanceService?: PortfolioGovernanceService | undefined;
+  readonly enterpriseOperatingService?: EnterpriseOperatingService | undefined;
   readonly runtime?: Runtime | undefined;
   readonly agentQuery?: AgentQueryPort | undefined;
   readonly events?: EventPublisher | undefined;
@@ -93,6 +97,8 @@ export class WorkflowOrchestratorService {
   private readonly budgetService?: TeamResourceBudgetService | undefined;
   private readonly verificationService?: WorkflowVerificationService | undefined;
   private readonly humanOversightService?: HumanOversightService | undefined;
+  private readonly portfolioGovernanceService?: PortfolioGovernanceService | undefined;
+  private readonly enterpriseOperatingService?: EnterpriseOperatingService | undefined;
   private readonly runtime?: Runtime | undefined;
   private readonly agentQuery?: AgentQueryPort | undefined;
   private readonly events?: EventPublisher | undefined;
@@ -107,6 +113,8 @@ export class WorkflowOrchestratorService {
     this.budgetService = options.budgetService;
     this.verificationService = options.verificationService;
     this.humanOversightService = options.humanOversightService;
+    this.portfolioGovernanceService = options.portfolioGovernanceService;
+    this.enterpriseOperatingService = options.enterpriseOperatingService;
     this.runtime = options.runtime;
     this.agentQuery = options.agentQuery;
     this.events = options.events;
@@ -382,6 +390,109 @@ export class WorkflowOrchestratorService {
       }
     }
 
+    // 1c. Segregation of Duties (SoD) Verification (fail-closed)
+    if (stepDef.verifierPrincipalId && assignedAgentId === stepDef.verifierPrincipalId) {
+      const sodMsg = `Segregation of Duties violation: Step executor '${assignedAgentId}' cannot be the step verifier`;
+      const failureResult = instance.markStepFailed(stepDef.stepId, sodMsg);
+      let updatedInstance = failureResult.instance;
+      await this.instanceRepo.save(updatedInstance);
+
+      if (this.events) {
+        const failedStep = updatedInstance.getStepState(stepDef.stepId)!;
+        this.events.publish(createWorkflowStepFailedEvent(updatedInstance, failedStep, traceId));
+        if (updatedInstance.status === "FAILED") {
+          this.events.publish(createWorkflowFailedEvent(updatedInstance, traceId));
+        }
+      }
+
+      return {
+        stepId: stepDef.stepId,
+        success: false,
+        error: { code: "SOD_VERIFIER_VIOLATION", message: sodMsg },
+      };
+    }
+
+    if (stepDef.approverPrincipalId && assignedAgentId === stepDef.approverPrincipalId) {
+      const sodMsg = `Segregation of Duties violation: Step executor '${assignedAgentId}' cannot be the step approver`;
+      const failureResult = instance.markStepFailed(stepDef.stepId, sodMsg);
+      let updatedInstance = failureResult.instance;
+      await this.instanceRepo.save(updatedInstance);
+
+      if (this.events) {
+        const failedStep = updatedInstance.getStepState(stepDef.stepId)!;
+        this.events.publish(createWorkflowStepFailedEvent(updatedInstance, failedStep, traceId));
+        if (updatedInstance.status === "FAILED") {
+          this.events.publish(createWorkflowFailedEvent(updatedInstance, traceId));
+        }
+      }
+
+      return {
+        stepId: stepDef.stepId,
+        success: false,
+        error: { code: "SOD_APPROVER_VIOLATION", message: sodMsg },
+      };
+    }
+
+    // 1d. Cross-Enterprise Authority & Governance Mandate Evaluation (Default Deny)
+    const sourceEnterpriseId = stepDef.sourceEnterpriseId ?? definition.enterpriseId;
+    const targetEnterpriseId = stepDef.targetEnterpriseId ?? definition.enterpriseId;
+    const portfolioId = stepDef.portfolioId ?? definition.portfolioId;
+
+    if (sourceEnterpriseId && targetEnterpriseId && sourceEnterpriseId !== targetEnterpriseId) {
+      if (this.portfolioGovernanceService && portfolioId) {
+        const authResult = await this.portfolioGovernanceService.validateCrossEnterpriseAuthority({
+          tenantId: instance.tenantId,
+          portfolioId,
+          granteePrincipalId: assignedAgentId,
+          sourceEnterpriseId,
+          targetEnterpriseId,
+          operation: `workflow.step.${stepDef.stepId}`,
+          requestedAutonomy: stepDef.requestedAutonomy,
+          objectiveId: definition.objectiveId,
+        });
+
+        if (!authResult.authorized) {
+          const crossErrMsg = `Cross-enterprise access denied: ${authResult.reason ?? "No active mandate"}`;
+          const failureResult = instance.markStepFailed(stepDef.stepId, crossErrMsg);
+          let updatedInstance = failureResult.instance;
+          await this.instanceRepo.save(updatedInstance);
+
+          if (this.events) {
+            const failedStep = updatedInstance.getStepState(stepDef.stepId)!;
+            this.events.publish(createWorkflowStepFailedEvent(updatedInstance, failedStep, traceId));
+            if (updatedInstance.status === "FAILED") {
+              this.events.publish(createWorkflowFailedEvent(updatedInstance, traceId));
+            }
+          }
+
+          return {
+            stepId: stepDef.stepId,
+            success: false,
+            error: { code: "CROSS_ENTERPRISE_ACCESS_DENIED", message: crossErrMsg },
+          };
+        }
+      } else {
+        const crossErrMsg = `Cross-enterprise access denied: No active governance mandate found granting principal '${assignedAgentId}' authority over target enterprise '${targetEnterpriseId}'`;
+        const failureResult = instance.markStepFailed(stepDef.stepId, crossErrMsg);
+        let updatedInstance = failureResult.instance;
+        await this.instanceRepo.save(updatedInstance);
+
+        if (this.events) {
+          const failedStep = updatedInstance.getStepState(stepDef.stepId)!;
+          this.events.publish(createWorkflowStepFailedEvent(updatedInstance, failedStep, traceId));
+          if (updatedInstance.status === "FAILED") {
+            this.events.publish(createWorkflowFailedEvent(updatedInstance, traceId));
+          }
+        }
+
+        return {
+          stepId: stepDef.stepId,
+          success: false,
+          error: { code: "CROSS_ENTERPRISE_ACCESS_DENIED", message: crossErrMsg },
+        };
+      }
+    }
+
     // 2. Mark step ASSIGNING
     let updatedInstance = instance.markStepAssigning(stepDef.stepId, assignedAgentId, targetTeamId);
     await this.instanceRepo.save(updatedInstance);
@@ -570,6 +681,24 @@ export class WorkflowOrchestratorService {
             );
           }
 
+          // Handle Step Metrics & Portfolio KPI Cascading
+          if (instance.input && typeof instance.input === "object") {
+            const metricId = (instance.input as Record<string, unknown>).enterpriseMetricId as string | undefined;
+            const metricVal = (instance.input as Record<string, unknown>).metricValue as number | undefined;
+            if (metricId && metricVal !== undefined && this.enterpriseOperatingService) {
+              await this.enterpriseOperatingService.recordMetricMeasurement(
+                metricId,
+                instance.tenantId,
+                { value: metricVal, source: "WORKFLOW" },
+                traceId
+              );
+            }
+            const portObjId = (instance.input as Record<string, unknown>).portfolioObjectiveId as string | undefined;
+            if (portObjId && metricVal !== undefined && this.portfolioGovernanceService) {
+              await this.portfolioGovernanceService.aggregatePortfolioMetrics(portObjId, instance.tenantId);
+            }
+          }
+
           return {
             stepId: stepDef.stepId,
             success: true,
@@ -663,6 +792,24 @@ export class WorkflowOrchestratorService {
               message: vResult.reason ?? `Verification yielded ${vResult.verdict}`,
             },
           };
+        }
+      }
+
+      // Handle Step Metrics & Portfolio KPI Cascading
+      if (instance.input && typeof instance.input === "object") {
+        const metricId = (instance.input as Record<string, unknown>).enterpriseMetricId as string | undefined;
+        const metricVal = (instance.input as Record<string, unknown>).metricValue as number | undefined;
+        if (metricId && metricVal !== undefined && this.enterpriseOperatingService) {
+          await this.enterpriseOperatingService.recordMetricMeasurement(
+            metricId,
+            instance.tenantId,
+            { value: metricVal, source: "WORKFLOW" },
+            traceId
+          );
+        }
+        const portObjId = (instance.input as Record<string, unknown>).portfolioObjectiveId as string | undefined;
+        if (portObjId && metricVal !== undefined && this.portfolioGovernanceService) {
+          await this.portfolioGovernanceService.aggregatePortfolioMetrics(portObjId, instance.tenantId);
         }
       }
 

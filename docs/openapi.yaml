@@ -1,0 +1,281 @@
+openapi: 3.1.0
+info:
+  title: AI Operating Platform API
+  version: 1.4.0
+  description: |
+    Operational infrastructure for AI systems.
+    Zero runtime dependencies. Fail-closed governance.
+
+servers:
+  - url: http://127.0.0.1:3000/api/v1
+    description: Local development
+
+security:
+  - apiKeyAuth: []
+  - bearerAuth: []
+
+paths:
+  /status:
+    get:
+      summary: Get platform status
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+  /health:
+    get:
+      summary: Get platform health
+      responses:
+        '200':
+          description: OK
+  /health/live:
+    get:
+      summary: Liveness probe
+      responses:
+        '200':
+          description: OK
+  /health/ready:
+    get:
+      summary: Readiness probe
+      responses:
+        '200':
+          description: OK
+  /agents:
+    get:
+      summary: List agents
+      parameters:
+        - name: offset
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: Create agent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Agent'
+      responses:
+        '200':
+          description: OK
+  /agents/{id}:
+    get:
+      summary: Get agent
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+  /agents/{id}/executions:
+    get:
+      summary: Get agent executions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+  /tasks:
+    get:
+      summary: List tasks
+      responses:
+        '200':
+          description: OK
+  /tasks/{id}:
+    get:
+      summary: Get task
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+  /tasks/{id}/cancel:
+    post:
+      summary: Cancel task
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+  /executions:
+    get:
+      summary: List executions
+      responses:
+        '200':
+          description: OK
+  /executions/{id}:
+    get:
+      summary: Get execution
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+  /executions/{id}/timeline:
+    get:
+      summary: Get execution timeline
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+  /operations:
+    get:
+      summary: List operations
+      responses:
+        '200':
+          description: OK
+  /operations/{id}:
+    get:
+      summary: Get operation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+  /operations/{id}/cancel:
+    post:
+      summary: Cancel operation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+  /orchestrate:
+    post:
+      summary: Orchestrate operations
+      responses:
+        '200':
+          description: OK
+  /organizations:
+    get:
+      summary: List organizations
+      responses:
+        '200':
+          description: OK
+  /teams/{id}/budget:
+    get:
+      summary: Get team budget
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+  /events:
+    get:
+      summary: List events
+      responses:
+        '200':
+          description: OK
+  /events/stream:
+    get:
+      summary: Stream events
+      responses:
+        '200':
+          description: OK
+  /metrics:
+    get:
+      summary: Get metrics
+      responses:
+        '200':
+          description: OK
+  /audit:
+    get:
+      summary: Get audit trail
+      responses:
+        '200':
+          description: OK
+  /credentials:
+    get:
+      summary: Get credentials
+      responses:
+        '200':
+          description: OK
+
+components:
+  schemas:
+    Error:
+      type: object
+      required: [type, title, status, code, traceId]
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        code: { type: string }
+        traceId: { type: string }
+        details: { type: object }
+    Task:
+      type: object
+      properties:
+        id: { type: string }
+    Execution:
+      type: object
+      properties:
+        id: { type: string }
+    Agent:
+      type: object
+      properties:
+        id: { type: string }
+    Operation:
+      type: object
+      properties:
+        id: { type: string }
+    Organization:
+      type: object
+      properties:
+        id: { type: string }
+  securitySchemes:
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

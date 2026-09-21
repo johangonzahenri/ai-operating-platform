@@ -10,13 +10,13 @@ Este registro documenta el inventario verificado de pruebas automatizadas del pr
 ============================================================
   ESTADO CANÓNICO DE PRUEBAS (TEST EXECUTION BASELINE)
 ============================================================
-  Línea Base Previa (Fase 74) : 1402 PASS
-  Total Tests Ejecutados      : 1431
-  Total Tests Aprobados       : 1431 (PASS)
+  Línea Base Previa (Fase 77) : 1499 PASS
+  Total Tests Ejecutados      : 1580
+  Total Tests Aprobados       : 1580 (PASS)
   Total Tests Fallidos        : 0    (FAIL)
   Total Tests Omitidos        : 0    (SKIPPED)
   Total Tests Pendientes      : 0    (TODO)
-  Suites Principales          : 65
+  Suites Principales          : 71
   Tasa de Éxito               : 100.0%
 ============================================================
 ```
@@ -271,6 +271,34 @@ Este registro documenta el inventario verificado de pruebas automatizadas del pr
 * **Pruebas Contenidas:** 12 tests pass (3 nuevos/expandidos).
 * **Aspectos Verificados:** Verificación de JWT asimétrico (RS256, ES256) con rotación dinámica de claves JWKS vía HTTP/HTTPS nativo; caché en memoria de JWKS con TTL y refresco forzado ante `kid` desconocido; tolerancia temporal (clock skew / `nbf` / `exp`); validación estricta fail-closed de URLs en configuración de producción (`OIDC_ISSUER`, `OIDC_JWKS_URI`); diagnósticos de Identity Provider en endpoints perimetrales; e integración en Composition Root.
 
+### 2.21 Multi-Enterprise Governance & Portfolio Operating Model (Fase 75 / ADR 0044)
+* **Archivos:**
+  - `tests/unit/portfolio-governance.test.ts`
+  - `tests/platform/multi-enterprise-governance.test.ts`
+* **Pruebas Contenidas:** 29 tests pass.
+* **Aspectos Verificados:** Modelo de datos de portafolio/holding, jerarquía de empresas, axioma Cross-Enterprise Default Deny, mandatos de autoridad delegada explícita, agregación de KPIs SUM y AVERAGE sin intervención de LLMs, persistencia SQLite WAL con control OCC e índices compuestos.
+
+### 2.22 Multi-Enterprise Operational Runtime & Governed Execution (Fase 76 / ADR 0045)
+* **Archivos:**
+  - `tests/unit/multi-enterprise-operational-runtime.test.ts`
+  - `tests/platform/multi-enterprise-operational-runtime.test.ts`
+* **Pruebas Contenidas:** 33 tests pass.
+* **Aspectos Verificados:** Acoplamiento directo entre el modelo de gobernanza y el runtime operacional de workflows, validación fail-closed de mandatos inter-empresariales, Segregación de Funciones (SoD) entre ejecutor, verificador y aprobador, propagación y cascada de mediciones de métricas hacia objetivos de portafolio.
+
+### 2.23 Governed Mandate Reconciliation & Runtime Consistency (Fase 77 / ADR 0046)
+* **Archivos:**
+  - `tests/unit/mandate-reconciliation.test.ts`
+  - `tests/platform/mandate-reconciliation.test.ts`
+* **Pruebas Contenidas:** 35 tests pass.
+* **Aspectos Verificados:** Reconciliación determinista de mandatos ante expiración, revocación, cancelación o reducción de alcance/autonomía, inmutabilidad de estados históricos (0 mutación retroactiva), aislamiento multi-tenant, control OCC, respeto prioritario de parada de emergencia (`EMERGENCY_HALT`).
+
+### 2.24 Governance & Compliance Evidence Export (Fase 78 / ADR 0050)
+* **Archivos:**
+  - `tests/unit/evidence-export.test.ts`
+  - `tests/platform/evidence-export.test.ts`
+* **Pruebas Contenidas:** 32 tests pass.
+* **Aspectos Verificados:** Exportación determinista de paquetes de evidencia estructurados en 9 alcances (`TENANT`, `PORTFOLIO`, `ENTERPRISE`, `WORKFLOW`, `EXECUTION`, `MANDATE`, `APPROVAL`, `RECONCILIATION`, `AUDIT_TRAIL`), invariante estricto de solo lectura (0 mutación de estado), redacción automática de secretos (`SensitiveDataRedactor`), serialización canónica, sellado criptográfico SHA-256 en manifiesto inmutable, límites acotados (90 días, máx 1000 registros), endpoints REST y SDK Client.
+
 ---
 
 ## 3. Resumen Global de Pruebas
@@ -296,4 +324,8 @@ Este registro documenta el inventario verificado de pruebas automatizadas del pr
 | Autonomous Operations Web Control Plane (Fase 70) | 1 | 14 | PASS |
 | Enterprise Authentication & Credential Governance (Fase 71) | 5 | 37 | PASS |
 | Enterprise Network Topology & Security (Fase 72) | 1 | 9 | PASS |
-| **TOTAL GENERAL** | **59** | **1402** | **PASS (100%)** |
+| Multi-Enterprise Governance & Portfolio (Fase 75) | 2 | 29 | PASS |
+| Multi-Enterprise Operational Runtime (Fase 76) | 2 | 33 | PASS |
+| Governed Mandate Reconciliation (Fase 77) | 2 | 35 | PASS |
+| Governance & Compliance Evidence Export (Fase 78) | 2 | 32 | PASS |
+| **TOTAL GENERAL** | **71** | **1580** | **PASS (100%)** |

@@ -99,6 +99,16 @@ export class InMemoryGovernanceMandateRepository implements GovernanceMandateRep
     return Object.freeze(results);
   }
 
+  async findByTenantId(tenantId: string): Promise<readonly EnterpriseGovernanceMandate[]> {
+    const results: EnterpriseGovernanceMandate[] = [];
+    for (const m of this.mandates.values()) {
+      if (m.tenantId === tenantId) {
+        results.push(m);
+      }
+    }
+    return Object.freeze(results);
+  }
+
   async findActiveMandates(
     granteePrincipalId: string,
     portfolioId: string,

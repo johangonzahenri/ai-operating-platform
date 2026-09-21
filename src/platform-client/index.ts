@@ -1,5 +1,10 @@
 import { randomUUID } from "node:crypto";
 import type {
+  EvidenceScope,
+  EvidenceExportFilterProps,
+  EvidenceExportPackage,
+} from "../domain/governance/evidence-export.js";
+import type {
   ApplicationDTO,
   DurableEventDTO,
   DurableEventListResponseDTO,
@@ -1476,6 +1481,15 @@ export function createPlatformClient(options: PlatformClientOptions) {
         method: "POST",
         body: JSON.stringify(input),
       }),
+    reconcileMandate: (mandateId: string, input: { readonly triggerType: string; readonly expectedMandateConcurrencyVersion?: number; readonly reason?: string; readonly idempotencyKey?: string }): Promise<any> =>
+      request<any>(`/mandates/${encodeURIComponent(mandateId)}/reconcile`, {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    reconcileExpiredMandates: (): Promise<{ reports: readonly any[]; count: number }> =>
+      request<{ reports: readonly any[]; count: number }>("/mandates/reconcile-expired", {
+        method: "POST",
+      }),
   };
 
   return {
@@ -1509,6 +1523,18 @@ export function createPlatformClient(options: PlatformClientOptions) {
     autonomous,
     credentials,
     portfolios,
+    governance: {
+      exportEvidence: (filter: EvidenceExportFilterProps): Promise<EvidenceExportPackage> =>
+        request<EvidenceExportPackage>("/governance/evidence/export", {
+          method: "POST",
+          body: JSON.stringify(filter),
+        }),
+    },
+    exportEvidence: (filter: EvidenceExportFilterProps): Promise<EvidenceExportPackage> =>
+      request<EvidenceExportPackage>("/governance/evidence/export", {
+        method: "POST",
+        body: JSON.stringify(filter),
+      }),
     connect: () => healthGet(),
     health: Object.assign(healthGet, { get: healthGet }),
     getPlatformInfo: () => platform.get(),
@@ -1632,4 +1658,7 @@ export type {
   AggregatePortfolioMetricsRequestDTO,
   ValidateCrossEnterpriseAuthorityRequestDTO,
   ValidateCrossEnterpriseAuthorityResponseDTO,
+  EvidenceScope,
+  EvidenceExportFilterProps,
+  EvidenceExportPackage,
 };
