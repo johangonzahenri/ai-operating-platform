@@ -1,8 +1,8 @@
 {
-  "traceId": "trace-verify-anthropic-5d427e3e",
+  "traceId": "trace-verify-anthropic-7faa3058",
   "provider": "anthropic",
   "environment": "production",
-  "verifiedAt": "2026-09-21T12:58:53.800Z",
+  "verifiedAt": "2026-09-21T21:15:34.725Z",
   "status": "OPERATIONAL",
   "latencyMs": 12,
   "metadata": {

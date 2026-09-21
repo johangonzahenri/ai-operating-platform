@@ -74,6 +74,10 @@
           <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></span>
           <span>Policies &amp; Precedence</span>
         </button>
+        <button class="nav-item" data-tab="evidence">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span>
+          <span>Evidence &amp; Compliance</span>
+        </button>
         <button class="nav-item" data-tab="factory">
           <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
           <span>Application Factory 2.0</span>
@@ -3284,7 +3288,7 @@ Total: $209.00 USD | Paid via Webpay Demo</textarea>
         </div>
       </section>
 
-      <!-- 16. View: Multi-Enterprise Portfolios & Governance Mandates (Prompt 122 - Phase 75) -->
+      <!-- 16. View: Multi-Enterprise Portfolios & Governance Mandates (Fase 75 - Fase 77 - Fase 79) -->
       <section id="tab-portfolios" class="tab-view">
         <div class="view-header">
           <div>
@@ -3294,6 +3298,24 @@ Total: $209.00 USD | Paid via Webpay Demo</textarea>
           <div class="header-actions">
             <button id="portfolio-refresh-btn" class="btn btn-secondary">Refresh Portfolios</button>
             <button id="portfolio-create-modal-btn" class="btn btn-primary">+ Create Portfolio</button>
+            <button id="reconcile-expired-btn" class="btn btn-secondary">Reconcile Expired Mandates</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:1.5rem;">
+          <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+            <h3>Portfolio Context &amp; Enterprise Membership</h3>
+            <div style="display:flex; gap:0.5rem; align-items:center;">
+              <label for="portfolio-active-select" style="font-size:0.85rem; font-weight:600;">Active Portfolio:</label>
+              <select id="portfolio-active-select" class="form-control" style="min-width:240px;">
+                <option value="">-- Select a Portfolio --</option>
+              </select>
+            </div>
+          </div>
+          <div class="card-body">
+            <div id="portfolio-context-display">
+              <div class="empty-state">Select a portfolio above to inspect operating context and member enterprises.</div>
+            </div>
           </div>
         </div>
 
@@ -3320,6 +3342,42 @@ Total: $209.00 USD | Paid via Webpay Demo</textarea>
                 <div class="empty-state">No active governance mandates found for selected portfolio.</div>
               </div>
             </div>
+          </div>
+        </div>
+
+        <!-- Mandate Reconciliation Panel (Phase 77) -->
+        <div class="card" style="margin-bottom:1.5rem;">
+          <div class="card-header">
+            <h3>Governed Mandate Reconciliation (Phase 77)</h3>
+            <span class="badge badge-warning" id="reconciliation-count-badge">Deterministic Runtime Guard</span>
+          </div>
+          <div class="card-body">
+            <div class="form-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:1rem; margin-bottom:1rem;">
+              <div class="form-group">
+                <label for="rec-mandate-id">Target Mandate ID</label>
+                <input type="text" id="rec-mandate-id" class="form-control" placeholder="mandate-..." />
+              </div>
+              <div class="form-group">
+                <label for="rec-trigger-type">Trigger Type</label>
+                <select id="rec-trigger-type" class="form-control">
+                  <option value="MANDATE_EXPIRED">MANDATE_EXPIRED</option>
+                  <option value="MANDATE_REVOKED">MANDATE_REVOKED</option>
+                  <option value="MANDATE_CANCELLED">MANDATE_CANCELLED</option>
+                  <option value="MANDATE_SUSPENDED">MANDATE_SUSPENDED</option>
+                  <option value="MANDATE_SCOPE_REDUCED">MANDATE_SCOPE_REDUCED</option>
+                  <option value="MANDATE_AUTONOMY_REDUCED">MANDATE_AUTONOMY_REDUCED</option>
+                  <option value="PERIODIC_AUDIT">PERIODIC_AUDIT</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="rec-reason">Reconciliation Reason</label>
+                <input type="text" id="rec-reason" class="form-control" placeholder="Executive revocation / audit reason" />
+              </div>
+            </div>
+            <div style="display:flex; gap:0.75rem;">
+              <button id="execute-reconciliation-btn" class="btn btn-secondary">Reconcile Mandate</button>
+            </div>
+            <div id="reconciliation-result-container" style="margin-top:1rem; padding:0.75rem; border-radius:6px; font-family:monospace; background:rgba(0,0,0,0.05);" hidden></div>
           </div>
         </div>
 
@@ -3364,6 +3422,76 @@ Total: $209.00 USD | Paid via Webpay Demo</textarea>
             </div>
             <button id="eval-authority-btn" class="btn btn-secondary">Evaluate Authority (Fail-Closed)</button>
             <div id="eval-authority-result" style="margin-top:1rem; padding:0.75rem; border-radius:6px; font-family:monospace; background:rgba(0,0,0,0.05);" hidden></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 17. View: Governance & Compliance Evidence Export (Phase 78 - Phase 79) -->
+      <section id="tab-evidence" class="tab-view">
+        <div class="view-header">
+          <div>
+            <h2>Governance &amp; Compliance Evidence Export</h2>
+            <p>Generate deterministic SHA-256 cryptographically sealed compliance packages across 9 operational scopes with zero state mutation.</p>
+          </div>
+          <div class="header-actions">
+            <button id="evidence-export-btn" class="btn btn-primary">Generate Evidence Package</button>
+            <button id="evidence-download-btn" class="btn btn-secondary" disabled>Download Canonical JSON</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:1.5rem;">
+          <div class="card-header">
+            <h3>Evidence Query Filters &amp; Scope Configuration</h3>
+            <span class="badge badge-info">Zero State Mutation (Read-Only)</span>
+          </div>
+          <div class="card-body">
+            <div class="form-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:1rem; margin-bottom:1rem;">
+              <div class="form-group">
+                <label for="evidence-scope-select">Export Scope</label>
+                <select id="evidence-scope-select" class="form-control">
+                  <option value="TENANT">TENANT</option>
+                  <option value="PORTFOLIO">PORTFOLIO</option>
+                  <option value="ENTERPRISE">ENTERPRISE</option>
+                  <option value="WORKFLOW">WORKFLOW</option>
+                  <option value="EXECUTION">EXECUTION</option>
+                  <option value="MANDATE">MANDATE</option>
+                  <option value="APPROVAL">APPROVAL</option>
+                  <option value="RECONCILIATION">RECONCILIATION</option>
+                  <option value="AUDIT_TRAIL">AUDIT_TRAIL</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="evidence-scope-id">Scope Resource ID (Optional for TENANT/AUDIT_TRAIL)</label>
+                <input type="text" id="evidence-scope-id" class="form-control" placeholder="portfolio-id / enterprise-id / etc." />
+              </div>
+              <div class="form-group">
+                <label for="evidence-from-date">From Date (Max 90 days range)</label>
+                <input type="date" id="evidence-from-date" class="form-control" />
+              </div>
+              <div class="form-group">
+                <label for="evidence-to-date">To Date</label>
+                <input type="date" id="evidence-to-date" class="form-control" />
+              </div>
+              <div class="form-group">
+                <label for="evidence-limit">Record Limit (Max 1000)</label>
+                <input type="number" id="evidence-limit" class="form-control" min="1" max="1000" value="100" />
+              </div>
+            </div>
+            <div class="info-banner" style="font-size:0.85rem; color:var(--text-muted, #666); padding:0.5rem; background:rgba(0,0,0,0.02); border-radius:4px;">
+              🛡️ All API keys, passwords, and tokens are automatically redacted via SensitiveDataRedactor. The SHA-256 seal is computed by the backend engine.
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3>Evidence Package Manifest &amp; Canonical Integrity Seal</h3>
+            <span class="badge badge-success" id="evidence-status-badge">Ready</span>
+          </div>
+          <div class="card-body">
+            <div id="evidence-manifest-container">
+              <div class="empty-state">Configure export filters above and click "Generate Evidence Package" to inspect cryptographic seal.</div>
+            </div>
           </div>
         </div>
       </section>

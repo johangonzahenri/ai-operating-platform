@@ -1556,3 +1556,31 @@ export async function aggregatePortfolioMetrics(objectiveId, data = {}) {
   });
 }
 
+// --- Governed Mandate Reconciliation (Phase 77) ---
+
+export async function reconcileMandate(mandateId, data = {}) {
+  return request(`/mandates/${encodeURIComponent(mandateId)}/reconcile`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function reconcileExpiredMandates(data = {}) {
+  return request("/mandates/reconcile-expired", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+// --- Governance & Compliance Evidence Export (Phase 78) ---
+
+export async function exportEvidence(data = {}) {
+  return request("/governance/evidence/export", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+

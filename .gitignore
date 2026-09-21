@@ -31,3 +31,11 @@ data/app.db-shm
 # Office temporary lock files
 ~$*
 *.xlsx.tmp
+
+# Worktrees and subagent scratch
+ai-operating-platform.worktrees/
+ai-operating-platform/
+implementation_plan.md
+start_dev.bat
+start_server.bat
+win-memory-daemon/

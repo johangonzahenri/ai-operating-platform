@@ -10,13 +10,13 @@ Este registro documenta el inventario verificado de pruebas automatizadas del pr
 ============================================================
   ESTADO CANÓNICO DE PRUEBAS (TEST EXECUTION BASELINE)
 ============================================================
-  Línea Base Previa (Fase 77) : 1499 PASS
-  Total Tests Ejecutados      : 1580
-  Total Tests Aprobados       : 1580 (PASS)
+  Línea Base Previa (Fase 78) : 1580 PASS
+  Total Tests Ejecutados      : 1591
+  Total Tests Aprobados       : 1591 (PASS)
   Total Tests Fallidos        : 0    (FAIL)
   Total Tests Omitidos        : 0    (SKIPPED)
   Total Tests Pendientes      : 0    (TODO)
-  Suites Principales          : 71
+  Suites Principales          : 73
   Tasa de Éxito               : 100.0%
 ============================================================
 ```
@@ -299,6 +299,13 @@ Este registro documenta el inventario verificado de pruebas automatizadas del pr
 * **Pruebas Contenidas:** 32 tests pass.
 * **Aspectos Verificados:** Exportación determinista de paquetes de evidencia estructurados en 9 alcances (`TENANT`, `PORTFOLIO`, `ENTERPRISE`, `WORKFLOW`, `EXECUTION`, `MANDATE`, `APPROVAL`, `RECONCILIATION`, `AUDIT_TRAIL`), invariante estricto de solo lectura (0 mutación de estado), redacción automática de secretos (`SensitiveDataRedactor`), serialización canónica, sellado criptográfico SHA-256 en manifiesto inmutable, límites acotados (90 días, máx 1000 registros), endpoints REST y SDK Client.
 
+### 2.25 Enterprise Control Plane — Portfolio, Governance & Evidence UI (Fase 79)
+* **Archivos:**
+  - `tests/platform/enterprise-control-plane-ui.test.ts`
+  - `tests/platform/enterprise-control-plane-scenario.test.ts`
+* **Pruebas Contenidas:** 11 tests pass.
+* **Aspectos Verificados:** Integración completa de la consola web para gestión de portafolios con selector activo, visualización de contexto operativo, árbol de mandatos con acciones de revocación segura, panel de reconciliación determinista de mandatos (Fase 77) con disparadores manuales y barrido de expirados, consola de exportación de evidencia (Fase 78) a través de los 9 alcances con validación de fechas (máx 90 días), límites (máx 1000), renderizado del hash de integridad SHA-256, descarga de JSON canónico, bilingüismo con `es-419` por defecto y estricto 0 `.innerHTML`.
+
 ---
 
 ## 3. Resumen Global de Pruebas
@@ -328,4 +335,5 @@ Este registro documenta el inventario verificado de pruebas automatizadas del pr
 | Multi-Enterprise Operational Runtime (Fase 76) | 2 | 33 | PASS |
 | Governed Mandate Reconciliation (Fase 77) | 2 | 35 | PASS |
 | Governance & Compliance Evidence Export (Fase 78) | 2 | 32 | PASS |
-| **TOTAL GENERAL** | **71** | **1580** | **PASS (100%)** |
+| Enterprise Control Plane UI (Fase 79) | 2 | 11 | PASS |
+| **TOTAL GENERAL** | **73** | **1591** | **PASS (100%)** |

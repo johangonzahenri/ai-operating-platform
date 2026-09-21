@@ -5,8 +5,8 @@
 ---
 
 **Documento:** AI Operating Platform — Official Architecture Book
-**Versión del Documento:** 3.8 (Governance & Compliance Evidence Export — ADR 0050)
-**Estado del Repositorio:** v1.4.0 Baseline (1580 tests PASS, 0 FAIL — 100% determinismo)
+**Versión del Documento:** 3.9 (Enterprise Control Plane — Portfolio, Governance & Evidence UI)
+**Estado del Repositorio:** v1.4.0 Baseline (1591 tests PASS, 0 FAIL — 100% determinismo)
 **Estado Documental:** Oficial / Sincronizado con Fuente de Verdad
 **Fecha de Verificación:** Septiembre de 2026
 **Fuente de Verdad Técnica:** Código fuente (`src/`) + Tests automatizados (`tests/`) + ADRs (`docs/decisions/`)
@@ -36,6 +36,7 @@
 | **3.6** | Septiembre 2026 | v1.4 Operational Runtime | **Multi-Enterprise Operational Runtime & Governed Execution (Fase 76 / ADR 0045):**<br>• Cierre de la cadena canónica completa desde Portfolio hasta la ejecución y agregación de métricas.<br>• Segregación de Funciones (SoD) en 3 roles independientes (Ejecutor $\neq$ Verificador $\neq$ Aprobador).<br>• Negación por defecto inter-empresarial y evaluación jerárquica de autonomía.<br>• Línea base canónica verificada en **1464 tests PASS** (0 FAIL, 67 suites, 0 deps npm runtime). |
 | **3.7** | Septiembre 2026 | v1.4 Mandate Reconciliation | **Governed Mandate Reconciliation & Runtime Consistency (Fase 77 / ADR 0046 / PROMPT 125):**<br>• Motor de evaluación de políticas de reconciliación determinista (`evaluateMandateReconciliation`).<br>• Preservación absoluta de la verdad histórica (0 mutación retroactiva en estados terminales).<br>• Adaptación determinista de recursos en vuelo (cancelación de `QUEUED`, pausa/cancelación de `RUNNING`, reevaluación de `AWAITING_APPROVAL`).<br>• Servicio `MandateReconciliationService` con control OCC (`concurrencyVersion`), caché de idempotencia y daemon de reconciliación periódica de mandatos expirados.<br>• Endpoints REST `POST /api/v1/mandates/:id/reconcile` y `POST /api/v1/mandates/reconcile-expired`, SDK y suite de pruebas integral.<br>• Línea base canónica verificada en **1499 tests PASS** (0 FAIL, 69 suites, 0 deps npm runtime). |
 | **3.8** | Septiembre 2026 | v1.4 Compliance Export | **Governance & Compliance Evidence Export (Fase 78 / ADR 0050 / AOP-COMPLIANCE-EXPORT):**<br>• Paquetes estructurados de evidencia inmutables y deterministas en 9 alcances organizacionales.<br>• Invariante estricto de solo lectura (cero mutación de estado del sistema).<br>• Redacción automática de secretos mediante `SensitiveDataRedactor` y sellado SHA-256 en manifiesto inmutable.<br>• Restricción de límites (90 días, máx 1000 registros), endpoints REST `POST /api/v1/governance/evidence/export` y SDK.<br>• Línea base canónica verificada en **1580 tests PASS** (0 FAIL, 71 suites, 0 deps npm runtime). |
+| **3.9** | Septiembre 2026 | v1.4 Control Plane UI | **Enterprise Control Plane — Portfolio, Governance & Evidence UI (Fase 79 / AOP-PORTFOLIO-UI):**<br>• Consola web integrada para gestión de portafolios multi-empresariales con selector activo y contexto operativo.<br>• Panel de reconciliación determinista de mandatos con disparadores de mutación acotada y barrido de expirados (Fase 77).<br>• Consola de exportación y descarga de paquetes de evidencia de cumplimiento normativo sellados con SHA-256 (Fase 78).<br>• Blindaje estricto de 0 `.innerHTML`, bilingüismo con `es-419` por defecto y frontera hexagonal pura.<br>• Línea base canónica verificada en **1591 tests PASS** (0 FAIL, 73 suites, 0 deps npm runtime). |
 
 ---
 

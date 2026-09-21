@@ -204,6 +204,7 @@ class PlatformApp {
     this.setupOrganizations();
     this.setupCredentials();
     this.setupPortfolios();
+    this.setupEvidenceExport();
     this.loadData();
     this.startAutoRefresh();
     this.initEventStreaming();
@@ -664,6 +665,7 @@ class PlatformApp {
       "device-detail": { title: "Device Identity & Capabilities", sub: "Deep hardware diagnostics, declared capabilities, and print queue inspection" },
       organizations: { title: "Virtual Organization Foundation", sub: "Multi-level organizational hierarchy, operational areas, working teams, and agent memberships" },
       portfolios: { title: "Multi-Enterprise Portfolios & Governance", sub: "Group-level portfolios, cross-enterprise mandates, and deterministic metric aggregation" },
+      evidence: { title: "Governance & Compliance Evidence Export", sub: "Deterministic SHA-256 sealed compliance packages across 9 operational scopes" },
     };
 
     this.updateViewHeader(tab);
@@ -696,6 +698,8 @@ class PlatformApp {
       this.loadOrganizationsData();
     } else if (tab === "portfolios") {
       this.loadPortfoliosData();
+    } else if (tab === "evidence") {
+      this.loadEvidenceData();
     } else if (tab === "agents" || tab === "models" || tab === "tools" || tab === "executions" || tab === "governance" || tab === "operations") {
       this.loadData();
     }
@@ -7309,12 +7313,95 @@ class PlatformApp {
     });
   }
 
-  // --- Portfolio Governance & Multi-Enterprise UI (Prompt 122 - Phase 75) ---
+  // --- Portfolio Governance & Multi-Enterprise UI (Fase 75 - Fase 77 - Fase 79) ---
 
   setupPortfolios() {
     const refreshBtn = document.getElementById("portfolio-refresh-btn");
     if (refreshBtn) {
       refreshBtn.addEventListener("click", () => this.loadPortfoliosData());
+    }
+
+    const selectElem = document.getElementById("portfolio-active-select");
+    if (selectElem) {
+      selectElem.addEventListener("change", (e) => {
+        const val = e.target.value;
+        if (val) {
+          this.loadPortfolioContext(val);
+        } else {
+          const display = document.getElementById("portfolio-context-display");
+          if (display) {
+            clearChildren(display);
+            const empty = document.createElement("div");
+            empty.className = "empty-state";
+            empty.textContent = "Select a portfolio above to inspect operating context and member enterprises.";
+            display.appendChild(empty);
+          }
+        }
+      });
+    }
+
+    const recExpiredBtn = document.getElementById("reconcile-expired-btn");
+    if (recExpiredBtn) {
+      recExpiredBtn.addEventListener("click", async () => {
+        this.showConfirmationModal(
+          "Reconcile Expired Mandates",
+          "This will trigger a fail-closed scan for all expired governance mandates in the tenant. In-flight tasks under expired authority will be safely paused or cancelled without retroactive mutation.",
+          async () => {
+            try {
+              const res = await api.reconcileExpiredMandates();
+              const resultContainer = document.getElementById("reconciliation-result-container");
+              if (resultContainer) {
+                resultContainer.hidden = false;
+                resultContainer.style.color = "var(--color-success, #28a745)";
+                resultContainer.textContent = `[EXPIRED RECONCILIATION COMPLETE] Processed: ${res?.count ?? 0} expired mandates. Status: RECONCILED.`;
+              }
+              await this.loadPortfoliosData();
+            } catch (err) {
+              const resultContainer = document.getElementById("reconciliation-result-container");
+              if (resultContainer) {
+                resultContainer.hidden = false;
+                resultContainer.style.color = "var(--color-danger, #d9534f)";
+                resultContainer.textContent = `[RECONCILIATION ERROR] ${err?.message || "Failed to reconcile expired mandates"}`;
+              }
+            }
+          }
+        );
+      });
+    }
+
+    const execRecBtn = document.getElementById("execute-reconciliation-btn");
+    if (execRecBtn) {
+      execRecBtn.addEventListener("click", async () => {
+        const mandateId = document.getElementById("rec-mandate-id")?.value?.trim();
+        const triggerType = document.getElementById("rec-trigger-type")?.value || "MANDATE_EXPIRED";
+        const reason = document.getElementById("rec-reason")?.value?.trim() || "Manual executive reconciliation cycle";
+        const resultContainer = document.getElementById("reconciliation-result-container");
+
+        if (!mandateId) {
+          if (resultContainer) {
+            resultContainer.hidden = false;
+            resultContainer.style.color = "var(--color-danger, #d9534f)";
+            resultContainer.textContent = "Mandate ID is required for targeted reconciliation.";
+          }
+          return;
+        }
+
+        try {
+          const report = await api.reconcileMandate(mandateId, { triggerType, reason });
+          if (resultContainer) {
+            resultContainer.hidden = false;
+            resultContainer.style.color = "var(--color-success, #28a745)";
+            resultContainer.textContent = `[RECONCILIATION RESULT] Mandate: ${report?.mandateId || mandateId} | Trigger: ${report?.triggerType || triggerType} | Action: ${report?.action || "PROCESSED"} | Resulting State: ${report?.resultingState || "PAUSED/CANCELLED"}`;
+          }
+          await this.loadPortfoliosData();
+        } catch (err) {
+          if (resultContainer) {
+            resultContainer.hidden = false;
+            resultContainer.style.color = "var(--color-danger, #d9534f)";
+            resultContainer.textContent = `[RECONCILIATION FAILED] ${err?.message || "Reconciliation rejected by governance engine"}`;
+          }
+        }
+      });
     }
 
     const evalBtn = document.getElementById("eval-authority-btn");
@@ -7366,6 +7453,108 @@ class PlatformApp {
     }
   }
 
+  async loadPortfolioContext(portfolioId) {
+    const display = document.getElementById("portfolio-context-display");
+    if (!display) return;
+    clearChildren(display);
+
+    const loading = document.createElement("div");
+    loading.className = "loading-state";
+    loading.textContent = "Loading portfolio context and memberships...";
+    display.appendChild(loading);
+
+    try {
+      const ctx = await api.getPortfolioOperatingContext(portfolioId);
+      clearChildren(display);
+
+      if (!ctx || !ctx.portfolio) {
+        const empty = document.createElement("div");
+        empty.className = "empty-state";
+        empty.textContent = "Sin datos disponibles para el portafolio seleccionado.";
+        display.appendChild(empty);
+        return;
+      }
+
+      const grid = document.createElement("div");
+      grid.style.display = "grid";
+      grid.style.gridTemplateColumns = "repeat(auto-fit, minmax(200px, 1fr))";
+      grid.style.gap = "1rem";
+      grid.style.marginBottom = "1rem";
+
+      const cardId = document.createElement("div");
+      cardId.style.padding = "0.75rem";
+      cardId.style.background = "rgba(0,0,0,0.03)";
+      cardId.style.borderRadius = "6px";
+      const lblId = document.createElement("div");
+      lblId.style.fontSize = "0.75rem";
+      lblId.style.color = "var(--text-muted, #666)";
+      lblId.textContent = "Portfolio ID / Version";
+      const valId = document.createElement("strong");
+      valId.style.fontFamily = "monospace";
+      valId.textContent = `${ctx.portfolio.id} (v${ctx.portfolio.concurrencyVersion ?? 1})`;
+      cardId.append(lblId, valId);
+
+      const cardStatus = document.createElement("div");
+      cardStatus.style.padding = "0.75rem";
+      cardStatus.style.background = "rgba(0,0,0,0.03)";
+      cardStatus.style.borderRadius = "6px";
+      const lblStatus = document.createElement("div");
+      lblStatus.style.fontSize = "0.75rem";
+      lblStatus.style.color = "var(--text-muted, #666)";
+      lblStatus.textContent = "Status & Scope";
+      const valStatus = document.createElement("strong");
+      valStatus.textContent = `${ctx.portfolio.status} | Multi-Enterprise`;
+      cardStatus.append(lblStatus, valStatus);
+
+      const cardMembers = document.createElement("div");
+      cardMembers.style.padding = "0.75rem";
+      cardMembers.style.background = "rgba(0,0,0,0.03)";
+      cardMembers.style.borderRadius = "6px";
+      const lblMembers = document.createElement("div");
+      lblMembers.style.fontSize = "0.75rem";
+      lblMembers.style.color = "var(--text-muted, #666)";
+      lblMembers.textContent = "Enterprise Members";
+      const valMembers = document.createElement("strong");
+      valMembers.textContent = `${ctx.enterprises?.length ?? 0} Enterprises Associated`;
+      cardMembers.append(lblMembers, valMembers);
+
+      grid.append(cardId, cardStatus, cardMembers);
+      display.appendChild(grid);
+
+      const memberTitle = document.createElement("h4");
+      memberTitle.style.marginBottom = "0.5rem";
+      memberTitle.textContent = "Associated Enterprise Memberships:";
+      display.appendChild(memberTitle);
+
+      if (!ctx.enterprises || ctx.enterprises.length === 0) {
+        const noEnt = document.createElement("div");
+        noEnt.className = "empty-state";
+        noEnt.textContent = "Sin empresas asociadas directamente en el contexto operativo.";
+        display.appendChild(noEnt);
+      } else {
+        const entList = document.createElement("div");
+        entList.style.display = "flex";
+        entList.style.flexWrap = "wrap";
+        entList.style.gap = "0.5rem";
+        ctx.enterprises.forEach((ent) => {
+          const chip = document.createElement("span");
+          chip.className = "badge badge-primary";
+          chip.style.padding = "0.4rem 0.75rem";
+          chip.style.fontSize = "0.85rem";
+          chip.textContent = `${ent.name || ent.id} (${ent.id})`;
+          entList.appendChild(chip);
+        });
+        display.appendChild(entList);
+      }
+    } catch (err) {
+      clearChildren(display);
+      const errElem = document.createElement("div");
+      errElem.className = "ops-error";
+      errElem.textContent = `Error loading portfolio context: ${err?.message || "Unauthorized or not found"}`;
+      display.appendChild(errElem);
+    }
+  }
+
   async loadPortfoliosData() {
     const listContainer = document.getElementById("portfolios-list-container");
     const mandatesContainer = document.getElementById("mandates-list-container");
@@ -7373,6 +7562,7 @@ class PlatformApp {
     const portfoliosBadge = document.getElementById("portfolios-count-badge");
     const mandatesBadge = document.getElementById("mandates-count-badge");
     const objectivesBadge = document.getElementById("portfolio-objectives-count-badge");
+    const selectElem = document.getElementById("portfolio-active-select");
 
     try {
       const res = await api.getPortfolios();
@@ -7380,6 +7570,28 @@ class PlatformApp {
 
       if (portfoliosBadge) {
         portfoliosBadge.textContent = `${portfolios.length} Portfolio${portfolios.length === 1 ? "" : "s"}`;
+      }
+
+      if (selectElem) {
+        const prevVal = selectElem.value;
+        clearChildren(selectElem);
+        const defaultOpt = document.createElement("option");
+        defaultOpt.value = "";
+        defaultOpt.textContent = "-- Select a Portfolio --";
+        selectElem.appendChild(defaultOpt);
+
+        portfolios.forEach((p) => {
+          const opt = document.createElement("option");
+          opt.value = p.id;
+          opt.textContent = `${p.name} (${p.id})`;
+          if (p.id === prevVal) opt.selected = true;
+          selectElem.appendChild(opt);
+        });
+
+        if (portfolios.length > 0 && !selectElem.value) {
+          selectElem.value = portfolios[0].id;
+          this.loadPortfolioContext(portfolios[0].id);
+        }
       }
 
       if (listContainer) {
@@ -7421,7 +7633,7 @@ class PlatformApp {
             const meta = document.createElement("div");
             meta.style.fontSize = "0.8rem";
             meta.style.fontFamily = "monospace";
-            meta.textContent = `ID: ${p.id} | Members: ${p.memberships?.length || 0} Enterprises`;
+            meta.textContent = `ID: ${p.id} | Members: ${p.memberships?.length || 0} Enterprises | Version: ${p.concurrencyVersion ?? 1}`;
 
             card.append(header, desc, meta);
             listContainer.appendChild(card);
@@ -7429,9 +7641,8 @@ class PlatformApp {
         }
       }
 
-      // If at least one portfolio exists, fetch mandates and objectives for the first
       if (portfolios.length > 0) {
-        const firstPortId = portfolios[0].id;
+        const firstPortId = selectElem?.value || portfolios[0].id;
         const [manRes, objRes] = await Promise.all([
           api.getPortfolioMandates(firstPortId).catch(() => ({ mandates: [] })),
           api.getPortfolioObjectives(firstPortId).catch(() => ({ objectives: [] })),
@@ -7448,25 +7659,71 @@ class PlatformApp {
           if (mandates.length === 0) {
             const empty = document.createElement("div");
             empty.className = "empty-state";
-            empty.textContent = "No governance mandates active.";
+            empty.textContent = "No governance mandates active for this portfolio.";
             mandatesContainer.appendChild(empty);
           } else {
             mandates.forEach((m) => {
               const item = document.createElement("div");
               item.className = "card-item";
-              item.style.padding = "0.5rem";
-              item.style.marginBottom = "0.25rem";
-              item.style.fontSize = "0.85rem";
+              item.style.padding = "0.75rem";
+              item.style.marginBottom = "0.5rem";
+              item.style.border = "1px solid var(--border-color, #e0e0e0)";
+              item.style.borderRadius = "6px";
+
+              const itemHeader = document.createElement("div");
+              itemHeader.style.display = "flex";
+              itemHeader.style.justifyContent = "space-between";
+              itemHeader.style.alignItems = "center";
 
               const title = document.createElement("strong");
               title.textContent = `[${m.authorityScope}] Grantee: ${m.granteePrincipalId}`;
 
-              const sub = document.createElement("div");
-              sub.style.fontSize = "0.75rem";
-              sub.style.color = "var(--text-muted, #666)";
-              sub.textContent = `Source: ${m.sourceEnterpriseId} -> Targets: ${m.targetEnterpriseIds.join(", ")} | Status: ${m.status}`;
+              const statusBadge = document.createElement("span");
+              statusBadge.className = `badge badge-${m.status === "ACTIVE" ? "success" : "danger"}`;
+              statusBadge.textContent = m.status;
 
-              item.append(title, sub);
+              itemHeader.append(title, statusBadge);
+
+              const sub = document.createElement("div");
+              sub.style.fontSize = "0.8rem";
+              sub.style.color = "var(--text-muted, #666)";
+              sub.style.margin = "0.25rem 0";
+              sub.textContent = `Source: ${m.sourceEnterpriseId} -> Targets: ${m.targetEnterpriseIds.join(", ")} | Operations: ${m.allowedOperations.join(", ") || "ALL"}`;
+
+              const metaInfo = document.createElement("div");
+              metaInfo.style.fontSize = "0.75rem";
+              metaInfo.style.fontFamily = "monospace";
+              metaInfo.textContent = `Mandate ID: ${m.id} | Autonomy Limit: ${m.autonomyLimit ?? "LEVEL_4"} | Version: ${m.concurrencyVersion ?? 1}`;
+
+              item.append(itemHeader, sub, metaInfo);
+
+              const terminalStates = ["REVOKED", "EXPIRED", "CANCELLED"];
+              if (!terminalStates.includes(m.status)) {
+                const actRow = document.createElement("div");
+                actRow.style.marginTop = "0.5rem";
+
+                const revokeBtn = document.createElement("button");
+                revokeBtn.className = "btn btn-danger btn-sm";
+                revokeBtn.textContent = "Revoke Mandate";
+                revokeBtn.addEventListener("click", () => {
+                  this.showConfirmationModal(
+                    "Revoke Governance Mandate",
+                    `Are you sure you want to revoke mandate '${m.id}'? This will immediately invalidate cross-enterprise execution authority.`,
+                    async () => {
+                      try {
+                        await api.revokeMandate(m.id, { reason: "Executive user revocation from Control Plane" });
+                        await this.loadPortfoliosData();
+                      } catch (err) {
+                        alert(`Failed to revoke mandate: ${err?.message || "Error"}`);
+                      }
+                    }
+                  );
+                });
+
+                actRow.appendChild(revokeBtn);
+                item.appendChild(actRow);
+              }
+
               mandatesContainer.appendChild(item);
             });
           }
@@ -7483,17 +7740,36 @@ class PlatformApp {
             objectives.forEach((o) => {
               const item = document.createElement("div");
               item.className = "card-item";
-              item.style.padding = "0.5rem";
-              item.style.marginBottom = "0.25rem";
+              item.style.padding = "0.75rem";
+              item.style.marginBottom = "0.5rem";
+              item.style.border = "1px solid var(--border-color, #e0e0e0)";
+              item.style.borderRadius = "6px";
+
+              const itemHeader = document.createElement("div");
+              itemHeader.style.display = "flex";
+              itemHeader.style.justifyContent = "space-between";
+              itemHeader.style.alignItems = "center";
 
               const title = document.createElement("strong");
               title.textContent = `${o.title} (${o.type})`;
 
-              const details = document.createElement("div");
-              details.style.fontSize = "0.8rem";
-              details.textContent = `Method: ${o.aggregationMethod} | Target: ${o.targetMetric?.targetValue ?? "N/A"} | Current Aggregated: ${o.currentAggregatedValue ?? "None"}`;
+              const statusBadge = document.createElement("span");
+              statusBadge.className = `badge badge-${o.status === "ACTIVE" ? "success" : "info"}`;
+              statusBadge.textContent = o.status;
 
-              item.append(title, details);
+              itemHeader.append(title, statusBadge);
+
+              const details = document.createElement("div");
+              details.style.fontSize = "0.85rem";
+              details.style.margin = "0.25rem 0";
+              details.textContent = `Aggregation Method: ${o.aggregationMethod} (0 LLM Deterministic) | Current Value: ${o.currentAggregatedValue ?? "None"}`;
+
+              const links = document.createElement("div");
+              links.style.fontSize = "0.75rem";
+              links.style.color = "var(--text-muted, #666)";
+              links.textContent = `Linked Objectives: ${o.linkedEnterpriseObjectives?.length || 0} Enterprise Objectives`;
+
+              item.append(itemHeader, details, links);
               objectivesContainer.appendChild(item);
             });
           }
@@ -7501,6 +7777,194 @@ class PlatformApp {
       }
     } catch (err) {
       console.error("Failed to load portfolio governance data:", err);
+    }
+  }
+
+  // --- Governance & Compliance Evidence Export UI (Fase 78 - Fase 79) ---
+
+  setupEvidenceExport() {
+    const exportBtn = document.getElementById("evidence-export-btn");
+    const downloadBtn = document.getElementById("evidence-download-btn");
+    let currentEvidencePackage = null;
+
+    if (exportBtn) {
+      exportBtn.addEventListener("click", async () => {
+        const scope = document.getElementById("evidence-scope-select")?.value || "TENANT";
+        const scopeId = document.getElementById("evidence-scope-id")?.value?.trim();
+        const fromDate = document.getElementById("evidence-from-date")?.value;
+        const toDate = document.getElementById("evidence-to-date")?.value;
+        const limitVal = parseInt(document.getElementById("evidence-limit")?.value, 10) || 100;
+        const container = document.getElementById("evidence-manifest-container");
+        const statusBadge = document.getElementById("evidence-status-badge");
+
+        if (limitVal > 1000 || limitVal < 1) {
+          alert("Record limit must be between 1 and 1000.");
+          return;
+        }
+
+        if (fromDate && toDate) {
+          const fromTime = new Date(fromDate).getTime();
+          const toTime = new Date(toDate).getTime();
+          if (fromTime > toTime) {
+            alert("From Date cannot be later than To Date.");
+            return;
+          }
+          const ninetyDaysMs = 90 * 24 * 60 * 60 * 1000;
+          if (toTime - fromTime > ninetyDaysMs) {
+            alert("Date range cannot exceed 90 days.");
+            return;
+          }
+        }
+
+        if (container) {
+          clearChildren(container);
+          const loading = document.createElement("div");
+          loading.className = "loading-state";
+          loading.textContent = "Generating deterministic SHA-256 sealed evidence package...";
+          container.appendChild(loading);
+        }
+
+        if (statusBadge) statusBadge.textContent = "Generating...";
+
+        try {
+          const payload = {
+            scope,
+            ...(scopeId ? { scopeId } : {}),
+            ...(fromDate ? { fromDate } : {}),
+            ...(toDate ? { toDate } : {}),
+            limit: limitVal,
+          };
+
+          const pkg = await api.exportEvidence(payload);
+          currentEvidencePackage = pkg;
+
+          if (downloadBtn) {
+            downloadBtn.disabled = false;
+          }
+
+          if (statusBadge) {
+            statusBadge.className = "badge badge-success";
+            statusBadge.textContent = "Sealed (SHA-256)";
+          }
+
+          if (container && pkg?.manifest) {
+            clearChildren(container);
+
+            const grid = document.createElement("div");
+            grid.style.display = "grid";
+            grid.style.gridTemplateColumns = "repeat(auto-fit, minmax(220px, 1fr))";
+            grid.style.gap = "1rem";
+            grid.style.marginBottom = "1.5rem";
+
+            const createMetaCard = (label, val, isMono = false) => {
+              const card = document.createElement("div");
+              card.style.padding = "0.75rem";
+              card.style.background = "rgba(0,0,0,0.03)";
+              card.style.borderRadius = "6px";
+              const l = document.createElement("div");
+              l.style.fontSize = "0.75rem";
+              l.style.color = "var(--text-muted, #666)";
+              l.textContent = label;
+              const v = document.createElement("strong");
+              if (isMono) v.style.fontFamily = "monospace";
+              v.textContent = String(val);
+              card.append(l, v);
+              return card;
+            };
+
+            grid.append(
+              createMetaCard("Package ID", pkg.manifest.exportId || "N/A", true),
+              createMetaCard("Export Scope", pkg.manifest.scope || scope),
+              createMetaCard("Total Records", pkg.manifest.totalRecords ?? 0),
+              createMetaCard("Schema Version", pkg.manifest.schemaVersion || "1.0.0"),
+              createMetaCard("Generated At", pkg.manifest.generatedAt ? new Date(pkg.manifest.generatedAt).toLocaleString() : "N/A"),
+              createMetaCard("Requesting Principal", pkg.manifest.requester?.id || "Authenticated Principal", true)
+            );
+
+            const sealCard = document.createElement("div");
+            sealCard.style.padding = "1rem";
+            sealCard.style.background = "var(--bg-elevated, #fff)";
+            sealCard.style.border = "1px solid var(--accent-green, #10b981)";
+            sealCard.style.borderRadius = "8px";
+            sealCard.style.marginBottom = "1rem";
+
+            const sealHeader = document.createElement("div");
+            sealHeader.style.display = "flex";
+            sealHeader.style.alignItems = "center";
+            sealHeader.style.gap = "0.5rem";
+            sealHeader.style.marginBottom = "0.5rem";
+            sealHeader.style.color = "var(--accent-green, #10b981)";
+            sealHeader.style.fontWeight = "bold";
+            sealHeader.textContent = "🔒 Cryptographic Integrity Seal (SHA-256):";
+
+            const sealCode = document.createElement("code");
+            sealCode.style.display = "block";
+            sealCode.style.padding = "0.5rem";
+            sealCode.style.background = "rgba(0,0,0,0.04)";
+            sealCode.style.borderRadius = "4px";
+            sealCode.style.fontSize = "0.9rem";
+            sealCode.style.wordBreak = "break-all";
+            sealCode.textContent = pkg.manifest.checksumSha256 || pkg.manifest.integritySeal || "No seal generated";
+
+            sealCard.append(sealHeader, sealCode);
+
+            const previewHeader = document.createElement("h4");
+            previewHeader.style.margin = "1rem 0 0.5rem 0";
+            previewHeader.textContent = "Data Summary (Redacted & Canonical):";
+
+            const preview = document.createElement("pre");
+            preview.style.maxHeight = "240px";
+            preview.style.overflow = "auto";
+            preview.style.padding = "0.75rem";
+            preview.style.background = "rgba(0,0,0,0.03)";
+            preview.style.borderRadius = "6px";
+            preview.style.fontSize = "0.8rem";
+            preview.textContent = JSON.stringify({ manifest: pkg.manifest, dataSummary: pkg.manifest.recordCounts }, null, 2);
+
+            container.append(grid, sealCard, previewHeader, preview);
+          }
+        } catch (err) {
+          if (statusBadge) {
+            statusBadge.className = "badge badge-danger";
+            statusBadge.textContent = "Failed";
+          }
+          if (container) {
+            clearChildren(container);
+            const errBox = document.createElement("div");
+            errBox.className = "ops-error";
+            errBox.textContent = `Evidence Export Error: ${err?.message || "Failed to generate compliance package"}`;
+            container.appendChild(errBox);
+          }
+        }
+      });
+    }
+
+    if (downloadBtn) {
+      downloadBtn.addEventListener("click", () => {
+        if (!currentEvidencePackage) return;
+        const blob = new Blob([JSON.stringify(currentEvidencePackage, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        const scope = currentEvidencePackage.manifest?.scope || "evidence";
+        const ts = new Date().toISOString().replace(/[:.]/g, "-");
+        a.download = `compliance-evidence-${scope.toLowerCase()}-${ts}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      });
+    }
+  }
+
+  async loadEvidenceData() {
+    // Initializer for Evidence tab
+    const container = document.getElementById("evidence-manifest-container");
+    if (container && !container.hasChildNodes()) {
+      const empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.textContent = "Configure export filters above and click 'Generate Evidence Package' to inspect cryptographic seal.";
+      container.appendChild(empty);
     }
   }
 }
@@ -7513,4 +7977,3 @@ if (typeof window !== "undefined" && typeof window.addEventListener === "functio
     new PlatformApp();
   });
 }
-
