@@ -10,13 +10,13 @@ Este registro documenta el inventario verificado de pruebas automatizadas del pr
 ============================================================
   ESTADO CANÓNICO DE PRUEBAS (TEST EXECUTION BASELINE)
 ============================================================
-  Línea Base Previa (Fase 78) : 1580 PASS
-  Total Tests Ejecutados      : 1591
-  Total Tests Aprobados       : 1591 (PASS)
+  Línea Base Previa (Fase 79) : 1591 PASS
+  Total Tests Ejecutados      : 1600
+  Total Tests Aprobados       : 1600 (PASS)
   Total Tests Fallidos        : 0    (FAIL)
   Total Tests Omitidos        : 0    (SKIPPED)
   Total Tests Pendientes      : 0    (TODO)
-  Suites Principales          : 73
+  Suites Principales          : 74
   Tasa de Éxito               : 100.0%
 ============================================================
 ```
@@ -306,6 +306,13 @@ Este registro documenta el inventario verificado de pruebas automatizadas del pr
 * **Pruebas Contenidas:** 11 tests pass.
 * **Aspectos Verificados:** Integración completa de la consola web para gestión de portafolios con selector activo, visualización de contexto operativo, árbol de mandatos con acciones de revocación segura, panel de reconciliación determinista de mandatos (Fase 77) con disparadores manuales y barrido de expirados, consola de exportación de evidencia (Fase 78) a través de los 9 alcances con validación de fechas (máx 90 días), límites (máx 1000), renderizado del hash de integridad SHA-256, descarga de JSON canónico, bilingüismo con `es-419` por defecto y estricto 0 `.innerHTML`.
 
+### 2.26 Operational Control Plane — Workflows, Executions, Verification & Human Oversight UI (Fase 80)
+* **Archivos:**
+  - `tests/platform/operational-control-plane-ui.test.ts`
+  - `tests/platform/operational-control-plane-scenario.test.ts`
+* **Pruebas Contenidas:** 9 tests pass.
+* **Aspectos Verificados:** Consola web integrada para definición de workflows en DAG (`#tab-workflows`), visualizador interactivo del estado de instancias y pipeline de pasos, ejecución paso a paso con avance (`advance`), pausa (`pause`) y reanudación (`resume`), verificación determinista en tiempo real (`verifyWorkflowStep`), bandeja de entrada de supervisión humana (`#tab-approvals`) con imposición fail-closed de Segregación de Funciones (SoD: `Productor ≠ Aprobador`), modal de decisión de aprobaciones/rechazos/escalamientos, navegación de trazabilidad correlacionada (Workflow -> Instancia -> Ejecución -> Verificación -> Aprobación -> Exportación de Evidencia SHA-256), bilingüismo completo `es-419` / `en` y cero dependencias npm runtime.
+
 ---
 
 ## 3. Resumen Global de Pruebas
@@ -336,4 +343,5 @@ Este registro documenta el inventario verificado de pruebas automatizadas del pr
 | Governed Mandate Reconciliation (Fase 77) | 2 | 35 | PASS |
 | Governance & Compliance Evidence Export (Fase 78) | 2 | 32 | PASS |
 | Enterprise Control Plane UI (Fase 79) | 2 | 11 | PASS |
-| **TOTAL GENERAL** | **73** | **1591** | **PASS (100%)** |
+| Operational Control Plane UI (Fase 80) | 2 | 9 | PASS |
+| **TOTAL GENERAL** | **74** | **1600** | **PASS (100%)** |

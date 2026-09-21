@@ -78,6 +78,15 @@ class PlatformApp {
     this.modelsStatusFilter = "ALL";
     this.appsSearchQuery = "";
     this.appsStatusFilter = "ALL";
+    this.cachedWorkflows = [];
+    this.cachedWorkflowInstances = [];
+    this.workflowsSearchQuery = "";
+    this.workflowsStatusFilter = "ALL";
+    this.instancesStatusFilter = "ALL";
+    this.cachedApprovals = [];
+    this.approvalsStatusFilter = "ALL";
+    this.selectedWorkflowInstanceId = null;
+    this.selectedApproval = null;
     this.pendingConfirmCallback = null;
     this.currentEventFilter = { limit: 50 };
     this.eventsCursorStack = [0]; // Stack of afterSequence cursors
@@ -205,6 +214,8 @@ class PlatformApp {
     this.setupCredentials();
     this.setupPortfolios();
     this.setupEvidenceExport();
+    this.setupWorkflows();
+    this.setupApprovals();
     this.loadData();
     this.startAutoRefresh();
     this.initEventStreaming();
@@ -700,8 +711,58 @@ class PlatformApp {
       this.loadPortfoliosData();
     } else if (tab === "evidence") {
       this.loadEvidenceData();
+    } else if (tab === "workflows") {
+      this.loadWorkflowsData();
+    } else if (tab === "approvals") {
+      this.loadApprovalsData();
     } else if (tab === "agents" || tab === "models" || tab === "tools" || tab === "executions" || tab === "governance" || tab === "operations") {
       this.loadData();
+    }
+  }
+
+  updateViewHeader(tab) {
+    const titles = {
+      "platform-operations": { title: "Platform Operations", sub: "Operational testing, system health, durable event stream, and governance audit trail" },
+      tenants: { title: "SaaS Tenants & Quotas", sub: "Multi-tenant tenant isolation, plan capacities, working quotas, and live consumption" },
+      usage: { title: "Platform Usage Telemetry", sub: "Aggregated invocation metrics, token counters, and tool execution truth" },
+      dashboard: { title: "Platform Telemetry", sub: "Real-time telemetry, operational status, and capability registry" },
+      applications: { title: "External Applications", sub: "Enterprise consumer integration contracts (AI Commerce)" },
+      factory: { title: "AI Application Factory", sub: "Standardized application manifest validation, SDK compliance, and contract verification" },
+      capabilities: { title: "Capabilities Catalog", sub: "Governed capability catalog with plan requirements and risk-tier classification" },
+      agents: { title: "Agent Management", sub: "Configure, inspect, activate, and dispatch first-class AI Agents" },
+      models: { title: "Registered Models", sub: "Provider model gateways and inference capabilities" },
+      tools: { title: "Registered Tools", sub: "Operational capabilities and parameter contracts" },
+      workflows: { title: "Workflows & Orchestrated DAGs", sub: "Deterministic multi-step workflow graphs, step transitions, and execution instances" },
+      approvals: { title: "Human Oversight & Approvals", sub: "Segregation-of-duties approval queue, tier escalation, and governed sign-offs" },
+      executions: { title: "Execution Explorer", sub: "Audit trails and correlated event timelines" },
+      "execution-detail": { title: "Execution Detail", sub: "Deep event reconstruction and lifecycle observation" },
+      operations: { title: "Autonomous Operations", sub: "Bounded autonomous execution loops with budget enforcement and fail-closed governance" },
+      playground: { title: "Execution Playground", sub: "Dispatch coordinated tasks and test sequential workflows" },
+      settings: { title: "Platform Settings", sub: "Configuration metadata, security postures, and architectural constraints" },
+      governance: { title: "Policy & Governance", sub: "Fail-closed evaluation history and policy audit trails" },
+      blueprints: { title: "Blueprints & Arquitectura Oficial", sub: "Mapas de ingeniería de software, topología hexagonal y gobernanza en español" },
+      showcase: { title: "Enterprise Showcase", sub: "Interactive demonstration of governed multi-agent orchestration and live application integration" },
+      integrations: { title: "Integrations & Truth Center", sub: "Live verification, runtime state inspection, and evidence tracking for 10 external services" },
+      tasks: { title: "Task Management & Explorer", sub: "Operational task submissions, lifecycle tracking, and status queries" },
+      events: { title: "Durable Event Stream & Audit", sub: "Append-only SQLite WAL durable event store, trace timelines, and sequence inspection" },
+      security: { title: "Enterprise Security Posture", sub: "Fail-closed default-deny security, RBAC policies, and tenant boundary verification" },
+      ecosystem: { title: "Application Ecosystem & Marketplace", sub: "Ecosystem directory, verified enterprise reference applications, and trust governance" },
+      diagnostics: { title: "System Diagnostics & Probes", sub: "Deep health checks, runtime probes, SQLite WAL integrity, and reconciliation telemetry" },
+      "application-detail": { title: "Application Detail & Trust", sub: "Deep dive into application manifest, lifecycle state, capabilities, and audit history" },
+      devices: { title: "Business Devices & Hardware Printing", sub: "Enterprise device registry and durable local spooler queue for business hardware" },
+      "device-detail": { title: "Device Identity & Capabilities", sub: "Deep hardware diagnostics, declared capabilities, and print queue inspection" },
+      organizations: { title: "Virtual Organization Foundation", sub: "Multi-level organizational hierarchy, operational areas, working teams, and agent memberships" },
+      portfolios: { title: "Multi-Enterprise Portfolios & Governance", sub: "Group-level portfolios, cross-enterprise mandates, and deterministic metric aggregation" },
+      evidence: { title: "Governance & Compliance Evidence Export", sub: "Deterministic SHA-256 sealed compliance packages across 9 operational scopes" },
+    };
+
+    const titleElem = document.getElementById("view-title");
+    const subElem = document.getElementById("view-subtitle");
+    if (titleElem && titles[tab]) {
+      titleElem.textContent = titles[tab].title;
+    }
+    if (subElem && titles[tab]) {
+      subElem.textContent = titles[tab].sub;
     }
   }
 
@@ -7966,6 +8027,961 @@ class PlatformApp {
       empty.textContent = "Configure export filters above and click 'Generate Evidence Package' to inspect cryptographic seal.";
       container.appendChild(empty);
     }
+  }
+
+  // =========================================================================
+  // Phase 80: Operational Control Plane (Workflows, Instances & DAG Execution)
+  // =========================================================================
+
+  setupWorkflows() {
+    const createModal = document.getElementById("create-workflow-modal");
+    const openCreateBtn = document.getElementById("workflow-create-modal-btn");
+    const closeCreateBtn = document.getElementById("close-create-wf-modal-btn");
+    const cancelCreateBtn = document.getElementById("cancel-create-wf-btn");
+    const createForm = document.getElementById("create-workflow-form");
+
+    if (openCreateBtn && createModal) {
+      openCreateBtn.addEventListener("click", () => {
+        createModal.style.display = "flex";
+      });
+    }
+
+    const hideCreateModal = () => {
+      if (createModal) createModal.style.display = "none";
+    };
+
+    if (closeCreateBtn) closeCreateBtn.addEventListener("click", hideCreateModal);
+    if (cancelCreateBtn) cancelCreateBtn.addEventListener("click", hideCreateModal);
+
+    if (createForm) {
+      createForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const id = document.getElementById("wf-id-input")?.value?.trim();
+        const name = document.getElementById("wf-name-input")?.value?.trim();
+        const organizationId = document.getElementById("wf-org-input")?.value?.trim() || "default-org";
+        const description = document.getElementById("wf-desc-input")?.value?.trim();
+        const stepsRaw = document.getElementById("wf-steps-json")?.value;
+
+        let steps = [];
+        try {
+          steps = JSON.parse(stepsRaw || "[]");
+          if (!Array.isArray(steps)) {
+            alert("Steps must be a JSON array of step definitions.");
+            return;
+          }
+        } catch {
+          alert("Invalid JSON in steps definition.");
+          return;
+        }
+
+        try {
+          await api.createWorkflowDefinition({
+            id: id || undefined,
+            name,
+            organizationId,
+            description,
+            steps,
+          });
+          hideCreateModal();
+          createForm.reset();
+          await this.loadWorkflowsData();
+        } catch (err) {
+          alert(`Failed to create workflow: ${err?.message || "Unknown error"}`);
+        }
+      });
+    }
+
+    const startModal = document.getElementById("start-instance-modal");
+    const closeStartBtn = document.getElementById("close-start-inst-modal-btn");
+    const cancelStartBtn = document.getElementById("cancel-start-inst-btn");
+    const startForm = document.getElementById("start-instance-form");
+
+    const hideStartModal = () => {
+      if (startModal) startModal.style.display = "none";
+    };
+
+    if (closeStartBtn) closeStartBtn.addEventListener("click", hideStartModal);
+    if (cancelStartBtn) cancelStartBtn.addEventListener("click", hideStartModal);
+
+    if (startForm) {
+      startForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const wfId = document.getElementById("start-inst-wfid")?.value?.trim();
+        const payloadRaw = document.getElementById("start-inst-payload")?.value;
+
+        if (!wfId) {
+          alert("Workflow ID is required.");
+          return;
+        }
+
+        let payload = {};
+        if (payloadRaw && payloadRaw.trim()) {
+          try {
+            payload = JSON.parse(payloadRaw);
+          } catch {
+            alert("Invalid JSON in initial payload.");
+            return;
+          }
+        }
+
+        try {
+          const res = await api.startWorkflow(wfId, payload);
+          hideStartModal();
+          await this.loadWorkflowsData();
+          const instanceId = res?.id || res?.instance?.id || (typeof res === "string" ? res : null);
+          if (instanceId) {
+            this.showInstanceDAG(instanceId);
+          }
+        } catch (err) {
+          alert(`Failed to launch instance: ${err?.message || "Unknown error"}`);
+        }
+      });
+    }
+
+    const refreshWfBtn = document.getElementById("workflows-refresh-btn");
+    if (refreshWfBtn) {
+      refreshWfBtn.addEventListener("click", () => this.loadWorkflowsData());
+    }
+
+    const refreshInstBtn = document.getElementById("workflow-instances-refresh-btn");
+    if (refreshInstBtn) {
+      refreshInstBtn.addEventListener("click", () => this.loadWorkflowsData());
+    }
+
+    const wfSearchInput = document.getElementById("workflows-search-input");
+    if (wfSearchInput) {
+      wfSearchInput.addEventListener("input", (e) => {
+        this.workflowsSearchQuery = e.target.value.toLowerCase().trim();
+        this.renderWorkflowsTable();
+      });
+    }
+
+    const wfStatusFilter = document.getElementById("workflows-status-filter");
+    if (wfStatusFilter) {
+      wfStatusFilter.addEventListener("change", (e) => {
+        this.workflowsStatusFilter = e.target.value;
+        this.renderWorkflowsTable();
+      });
+    }
+
+    const wfClearFilterBtn = document.getElementById("workflows-clear-filter-btn");
+    if (wfClearFilterBtn) {
+      wfClearFilterBtn.addEventListener("click", () => {
+        this.workflowsSearchQuery = "";
+        this.workflowsStatusFilter = "ALL";
+        if (wfSearchInput) wfSearchInput.value = "";
+        if (wfStatusFilter) wfStatusFilter.value = "ALL";
+        this.renderWorkflowsTable();
+      });
+    }
+
+    const instStatusFilter = document.getElementById("instances-status-filter");
+    if (instStatusFilter) {
+      instStatusFilter.addEventListener("change", (e) => {
+        this.instancesStatusFilter = e.target.value;
+        this.renderWorkflowInstancesTable();
+      });
+    }
+
+    const closeDagBtn = document.getElementById("close-dag-btn");
+    if (closeDagBtn) {
+      closeDagBtn.addEventListener("click", () => {
+        const dagCard = document.getElementById("workflow-dag-card");
+        if (dagCard) dagCard.style.display = "none";
+      });
+    }
+
+    const dagAdvanceBtn = document.getElementById("dag-advance-btn");
+    if (dagAdvanceBtn) {
+      dagAdvanceBtn.addEventListener("click", async () => {
+        if (!this.selectedWorkflowInstanceId) return;
+        try {
+          dagAdvanceBtn.disabled = true;
+          await api.advanceWorkflow(this.selectedWorkflowInstanceId);
+          await this.loadWorkflowsData();
+          await this.showInstanceDAG(this.selectedWorkflowInstanceId);
+        } catch (err) {
+          alert(`Failed to advance workflow step: ${err?.message || "Unknown error"}`);
+        } finally {
+          dagAdvanceBtn.disabled = false;
+        }
+      });
+    }
+
+    const dagPauseBtn = document.getElementById("dag-pause-btn");
+    if (dagPauseBtn) {
+      dagPauseBtn.addEventListener("click", async () => {
+        if (!this.selectedWorkflowInstanceId) return;
+        try {
+          dagPauseBtn.disabled = true;
+          await api.pauseWorkflow(this.selectedWorkflowInstanceId, "Manual operator pause via Control Plane");
+          await this.loadWorkflowsData();
+          await this.showInstanceDAG(this.selectedWorkflowInstanceId);
+        } catch (err) {
+          alert(`Failed to pause workflow: ${err?.message || "Unknown error"}`);
+        } finally {
+          dagPauseBtn.disabled = false;
+        }
+      });
+    }
+
+    const dagResumeBtn = document.getElementById("dag-resume-btn");
+    if (dagResumeBtn) {
+      dagResumeBtn.addEventListener("click", async () => {
+        if (!this.selectedWorkflowInstanceId) return;
+        try {
+          dagResumeBtn.disabled = true;
+          await api.resumeWorkflow(this.selectedWorkflowInstanceId);
+          await this.loadWorkflowsData();
+          await this.showInstanceDAG(this.selectedWorkflowInstanceId);
+        } catch (err) {
+          alert(`Failed to resume workflow: ${err?.message || "Unknown error"}`);
+        } finally {
+          dagResumeBtn.disabled = false;
+        }
+      });
+    }
+
+    const dagCancelBtn = document.getElementById("dag-cancel-btn");
+    if (dagCancelBtn) {
+      dagCancelBtn.addEventListener("click", async () => {
+        if (!this.selectedWorkflowInstanceId) return;
+        if (!confirm("Are you sure you want to cancel this workflow instance?")) return;
+        try {
+          dagCancelBtn.disabled = true;
+          await api.cancelWorkflow(this.selectedWorkflowInstanceId, "Operator cancelled execution");
+          await this.loadWorkflowsData();
+          await this.showInstanceDAG(this.selectedWorkflowInstanceId);
+        } catch (err) {
+          alert(`Failed to cancel workflow: ${err?.message || "Unknown error"}`);
+        } finally {
+          dagCancelBtn.disabled = false;
+        }
+      });
+    }
+
+    const dagEvidenceBtn = document.getElementById("dag-evidence-btn");
+    if (dagEvidenceBtn) {
+      dagEvidenceBtn.addEventListener("click", () => {
+        if (!this.selectedWorkflowInstanceId) return;
+        this.switchTab("evidence");
+        const scopeSelect = document.getElementById("evidence-scope-select");
+        const scopeIdInput = document.getElementById("evidence-scope-id");
+        if (scopeSelect) scopeSelect.value = "WORKFLOW";
+        if (scopeIdInput) scopeIdInput.value = this.selectedWorkflowInstanceId;
+        const exportBtn = document.getElementById("evidence-export-btn");
+        if (exportBtn) exportBtn.click();
+      });
+    }
+  }
+
+  async loadWorkflowsData() {
+    const wfTbody = document.getElementById("workflows-tbody");
+    const instTbody = document.getElementById("workflow-instances-tbody");
+
+    if (wfTbody) {
+      clearChildren(wfTbody);
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = 7;
+      td.className = "empty-state";
+      td.textContent = "Loading workflow definitions...";
+      tr.appendChild(td);
+      wfTbody.appendChild(tr);
+    }
+
+    try {
+      const [defsRes, instRes] = await Promise.all([
+        api.listWorkflowDefinitions().catch(() => []),
+        api.listWorkflowInstances().catch(() => []),
+      ]);
+
+      this.cachedWorkflows = Array.isArray(defsRes) ? defsRes : (defsRes?.definitions || defsRes?.items || []);
+      this.cachedWorkflowInstances = Array.isArray(instRes) ? instRes : (instRes?.instances || instRes?.items || []);
+
+      const wfCountBadge = document.getElementById("workflows-count-badge");
+      if (wfCountBadge) {
+        wfCountBadge.textContent = `${this.cachedWorkflows.length} Workflows`;
+      }
+
+      const instCountBadge = document.getElementById("workflow-instances-count-badge");
+      if (instCountBadge) {
+        instCountBadge.textContent = `${this.cachedWorkflowInstances.length} Instances`;
+      }
+
+      this.renderWorkflowsTable();
+      this.renderWorkflowInstancesTable();
+    } catch (err) {
+      if (wfTbody) {
+        clearChildren(wfTbody);
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = 7;
+        td.className = "empty-state";
+        td.style.color = "var(--accent-red)";
+        td.textContent = `Error loading workflows: ${err?.message || "Failed to fetch"}`;
+        tr.appendChild(td);
+        wfTbody.appendChild(tr);
+      }
+    }
+  }
+
+  renderWorkflowsTable() {
+    const tbody = document.getElementById("workflows-tbody");
+    if (!tbody) return;
+    clearChildren(tbody);
+
+    const filtered = (this.cachedWorkflows || []).filter((wf) => {
+      const q = this.workflowsSearchQuery;
+      const matchesSearch = !q ||
+        (wf.id && wf.id.toLowerCase().includes(q)) ||
+        (wf.name && wf.name.toLowerCase().includes(q)) ||
+        (wf.organizationId && wf.organizationId.toLowerCase().includes(q)) ||
+        (wf.description && wf.description.toLowerCase().includes(q));
+
+      const matchesStatus = this.workflowsStatusFilter === "ALL" || wf.status === this.workflowsStatusFilter;
+      return matchesSearch && matchesStatus;
+    });
+
+    if (filtered.length === 0) {
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = 7;
+      td.className = "empty-state";
+      td.textContent = "No workflow definitions found matching filter criteria.";
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+      return;
+    }
+
+    for (const wf of filtered) {
+      const tr = document.createElement("tr");
+
+      const tdId = document.createElement("td");
+      const codeId = document.createElement("code");
+      codeId.textContent = wf.id || "N/A";
+      tdId.appendChild(codeId);
+
+      const tdName = document.createElement("td");
+      const strongName = document.createElement("strong");
+      strongName.textContent = wf.name || "Untitled";
+      const descDiv = document.createElement("div");
+      descDiv.style.fontSize = "0.8rem";
+      descDiv.style.color = "var(--text-secondary)";
+      descDiv.textContent = wf.description || "No description provided";
+      tdName.append(strongName, descDiv);
+
+      const tdOrg = document.createElement("td");
+      tdOrg.textContent = wf.organizationId || "Global / Root";
+
+      const tdSteps = document.createElement("td");
+      const stepCount = Array.isArray(wf.steps) ? wf.steps.length : (wf.stepCount ?? 0);
+      const stepBadge = document.createElement("span");
+      stepBadge.className = "badge badge-info";
+      stepBadge.textContent = `${stepCount} steps`;
+      tdSteps.appendChild(stepBadge);
+
+      const tdVer = document.createElement("td");
+      tdVer.textContent = wf.version ? `v${wf.version}` : "v1.0.0";
+
+      const tdStatus = document.createElement("td");
+      const badgeStatus = document.createElement("span");
+      const isAct = wf.status === "ACTIVE";
+      badgeStatus.className = `badge badge-${isAct ? "success" : wf.status === "ARCHIVED" ? "secondary" : "warning"}`;
+      badgeStatus.textContent = wf.status || "DRAFT";
+      tdStatus.appendChild(badgeStatus);
+
+      const tdAction = document.createElement("td");
+      const btnGroup = document.createElement("div");
+      btnGroup.style.display = "flex";
+      btnGroup.style.gap = "0.35rem";
+      btnGroup.style.flexWrap = "wrap";
+
+      const launchBtn = document.createElement("button");
+      launchBtn.className = "btn btn-xs btn-primary";
+      launchBtn.textContent = "Launch Instance";
+      launchBtn.addEventListener("click", () => {
+        const startModal = document.getElementById("start-instance-modal");
+        const wfInput = document.getElementById("start-inst-wfid");
+        if (wfInput) wfInput.value = wf.id;
+        if (startModal) startModal.style.display = "flex";
+      });
+      btnGroup.appendChild(launchBtn);
+
+      if (!isAct) {
+        const actBtn = document.createElement("button");
+        actBtn.className = "btn btn-xs btn-success";
+        actBtn.textContent = "Activate";
+        actBtn.addEventListener("click", async () => {
+          try {
+            await api.activateWorkflowDefinition(wf.id);
+            await this.loadWorkflowsData();
+          } catch (err) {
+            alert(`Failed to activate workflow: ${err?.message || "Unknown error"}`);
+          }
+        });
+        btnGroup.appendChild(actBtn);
+      } else {
+        const archBtn = document.createElement("button");
+        archBtn.className = "btn btn-xs btn-secondary";
+        archBtn.textContent = "Archive";
+        archBtn.addEventListener("click", async () => {
+          try {
+            await api.archiveWorkflowDefinition(wf.id);
+            await this.loadWorkflowsData();
+          } catch (err) {
+            alert(`Failed to archive workflow: ${err?.message || "Unknown error"}`);
+          }
+        });
+        btnGroup.appendChild(archBtn);
+      }
+
+      tdAction.appendChild(btnGroup);
+      tr.append(tdId, tdName, tdOrg, tdSteps, tdVer, tdStatus, tdAction);
+      tbody.appendChild(tr);
+    }
+  }
+
+  renderWorkflowInstancesTable() {
+    const tbody = document.getElementById("workflow-instances-tbody");
+    if (!tbody) return;
+    clearChildren(tbody);
+
+    const filtered = (this.cachedWorkflowInstances || []).filter((inst) => {
+      if (this.instancesStatusFilter === "ALL") return true;
+      return inst.status === this.instancesStatusFilter;
+    });
+
+    if (filtered.length === 0) {
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = 7;
+      td.className = "empty-state";
+      td.textContent = "No workflow instances found matching status filter.";
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+      return;
+    }
+
+    for (const inst of filtered) {
+      const tr = document.createElement("tr");
+
+      const tdId = document.createElement("td");
+      const codeId = document.createElement("code");
+      codeId.style.cursor = "pointer";
+      codeId.style.textDecoration = "underline";
+      codeId.title = "Click to inspect DAG and step execution";
+      codeId.textContent = inst.id || "N/A";
+      codeId.addEventListener("click", () => this.showInstanceDAG(inst.id));
+      tdId.appendChild(codeId);
+
+      const tdWf = document.createElement("td");
+      tdWf.textContent = inst.workflowDefinitionId || inst.workflowId || "Unknown Definition";
+
+      const tdStep = document.createElement("td");
+      const curIdx = inst.currentStepIndex ?? 0;
+      const totalSteps = Array.isArray(inst.steps) ? inst.steps.length : (inst.totalSteps || "?");
+      tdStep.textContent = `Step ${curIdx + 1} of ${totalSteps}`;
+
+      const tdStatus = document.createElement("td");
+      const badge = document.createElement("span");
+      const st = inst.status || "PENDING";
+      badge.className = `badge badge-${st === "COMPLETED" ? "success" : st === "RUNNING" ? "info" : st === "PAUSED" || st === "WAITING_APPROVAL" ? "warning" : "danger"}`;
+      badge.textContent = st;
+      tdStatus.appendChild(badge);
+
+      const tdStart = document.createElement("td");
+      tdStart.textContent = inst.startedAt ? new Date(inst.startedAt).toLocaleString() : "-";
+
+      const tdUpd = document.createElement("td");
+      tdUpd.textContent = inst.updatedAt || inst.completedAt ? new Date(inst.updatedAt || inst.completedAt).toLocaleString() : "-";
+
+      const tdAction = document.createElement("td");
+      const btnGroup = document.createElement("div");
+      btnGroup.style.display = "flex";
+      btnGroup.style.gap = "0.35rem";
+
+      const inspectBtn = document.createElement("button");
+      inspectBtn.className = "btn btn-xs btn-primary";
+      inspectBtn.textContent = "Inspect DAG";
+      inspectBtn.addEventListener("click", () => this.showInstanceDAG(inst.id));
+      btnGroup.appendChild(inspectBtn);
+
+      if (st === "RUNNING" || st === "PENDING") {
+        const advBtn = document.createElement("button");
+        advBtn.className = "btn btn-xs btn-secondary";
+        advBtn.textContent = "Advance";
+        advBtn.addEventListener("click", async () => {
+          try {
+            await api.advanceWorkflow(inst.id);
+            await this.loadWorkflowsData();
+            await this.showInstanceDAG(inst.id);
+          } catch (err) {
+            alert(`Failed to advance workflow: ${err?.message || "Unknown error"}`);
+          }
+        });
+        btnGroup.appendChild(advBtn);
+      }
+
+      tdAction.appendChild(btnGroup);
+      tr.append(tdId, tdWf, tdStep, tdStatus, tdStart, tdUpd, tdAction);
+      tbody.appendChild(tr);
+    }
+  }
+
+  async showInstanceDAG(instanceId) {
+    this.selectedWorkflowInstanceId = instanceId;
+    const dagCard = document.getElementById("workflow-dag-card");
+    const dagTitle = document.getElementById("dag-instance-title");
+    const summaryContainer = document.getElementById("workflow-dag-summary");
+    const stepsContainer = document.getElementById("workflow-dag-steps-container");
+
+    if (dagCard) dagCard.style.display = "block";
+    if (dagTitle) dagTitle.textContent = instanceId;
+
+    if (summaryContainer) {
+      clearChildren(summaryContainer);
+      const loading = document.createElement("div");
+      loading.className = "loading-state";
+      loading.textContent = "Loading instance DAG state and deterministic verification...";
+      summaryContainer.appendChild(loading);
+    }
+    if (stepsContainer) clearChildren(stepsContainer);
+
+    try {
+      const [inst, verifs, apprs] = await Promise.all([
+        api.getWorkflowInstance(instanceId),
+        api.listVerificationsByInstance(instanceId).catch(() => []),
+        api.listApprovalsByInstance(instanceId).catch(() => []),
+      ]);
+
+      const verifList = Array.isArray(verifs) ? verifs : (verifs?.verifications || verifs?.items || []);
+      const apprList = Array.isArray(apprs) ? apprs : (apprs?.approvals || apprs?.items || []);
+
+      if (summaryContainer) {
+        clearChildren(summaryContainer);
+        const grid = document.createElement("div");
+        grid.style.display = "grid";
+        grid.style.gridTemplateColumns = "repeat(auto-fit, minmax(180px, 1fr))";
+        grid.style.gap = "0.75rem";
+        grid.style.marginBottom = "1rem";
+
+        const createStat = (label, val, badgeClass = null) => {
+          const box = document.createElement("div");
+          box.style.padding = "0.5rem 0.75rem";
+          box.style.background = "rgba(0,0,0,0.03)";
+          box.style.borderRadius = "6px";
+          const l = document.createElement("div");
+          l.style.fontSize = "0.75rem";
+          l.style.color = "var(--text-secondary)";
+          l.textContent = label;
+          const v = document.createElement("div");
+          v.style.fontWeight = "bold";
+          v.style.marginTop = "0.25rem";
+          if (badgeClass) {
+            const b = document.createElement("span");
+            b.className = `badge badge-${badgeClass}`;
+            b.textContent = String(val);
+            v.appendChild(b);
+          } else {
+            v.textContent = String(val);
+          }
+          box.append(l, v);
+          return box;
+        };
+
+        const st = inst.status || "PENDING";
+        const badgeColor = st === "COMPLETED" ? "success" : st === "RUNNING" ? "info" : st === "PAUSED" || st === "WAITING_APPROVAL" ? "warning" : "danger";
+
+        grid.append(
+          createStat("Status", st, badgeColor),
+          createStat("Workflow Definition", inst.workflowDefinitionId || inst.workflowId || "Unknown"),
+          createStat("Current Step", `${(inst.currentStepIndex ?? 0) + 1} / ${(inst.steps || []).length || 1}`),
+          createStat("Verifications", `${verifList.length} verified`),
+          createStat("Approvals", `${apprList.length} recorded`)
+        );
+
+        summaryContainer.appendChild(grid);
+      }
+
+      if (stepsContainer) {
+        clearChildren(stepsContainer);
+        const steps = inst.steps || [];
+        if (steps.length === 0) {
+          const empty = document.createElement("div");
+          empty.className = "empty-state";
+          empty.textContent = "No steps defined for this instance.";
+          stepsContainer.appendChild(empty);
+          return;
+        }
+
+        steps.forEach((step, index) => {
+          const stepCard = document.createElement("div");
+          stepCard.className = "card";
+          stepCard.style.padding = "1rem";
+          stepCard.style.border = "1px solid var(--border-color)";
+          stepCard.style.borderRadius = "8px";
+          stepCard.style.background = "var(--bg-secondary)";
+
+          const isCurrent = (inst.currentStepIndex ?? 0) === index;
+          if (isCurrent) {
+            stepCard.style.borderColor = "var(--accent-blue, #2563eb)";
+            stepCard.style.boxShadow = "0 0 0 2px rgba(37, 99, 235, 0.2)";
+          }
+
+          const header = document.createElement("div");
+          header.style.display = "flex";
+          header.style.justifyContent = "space-between";
+          header.style.alignItems = "center";
+          header.style.marginBottom = "0.5rem";
+
+          const titleGroup = document.createElement("div");
+          titleGroup.style.display = "flex";
+          titleGroup.style.alignItems = "center";
+          titleGroup.style.gap = "0.5rem";
+
+          const stepNum = document.createElement("span");
+          stepNum.className = "badge badge-secondary";
+          stepNum.textContent = `Step ${index + 1}`;
+
+          const stepTitle = document.createElement("strong");
+          stepTitle.textContent = step.name || step.stepId || `Step ${index + 1}`;
+
+          titleGroup.append(stepNum, stepTitle);
+
+          const stepStatusBadge = document.createElement("span");
+          const stepSt = step.status || (index < (inst.currentStepIndex ?? 0) ? "COMPLETED" : isCurrent ? inst.status : "PENDING");
+          stepStatusBadge.className = `badge badge-${stepSt === "COMPLETED" ? "success" : stepSt === "RUNNING" ? "info" : stepSt === "WAITING_APPROVAL" ? "warning" : "secondary"}`;
+          stepStatusBadge.textContent = stepSt;
+
+          header.append(titleGroup, stepStatusBadge);
+
+          const metaRow = document.createElement("div");
+          metaRow.style.display = "flex";
+          metaRow.style.gap = "1.5rem";
+          metaRow.style.fontSize = "0.85rem";
+          metaRow.style.color = "var(--text-secondary)";
+          metaRow.style.marginBottom = "0.5rem";
+
+          const capMeta = document.createElement("span");
+          capMeta.textContent = `Capability: ${step.requiredCapability || "general"}`;
+
+          const depMeta = document.createElement("span");
+          const deps = Array.isArray(step.dependencies) && step.dependencies.length > 0 ? step.dependencies.join(", ") : "None (Root)";
+          depMeta.textContent = `Dependencies: ${deps}`;
+
+          metaRow.append(capMeta, depMeta);
+
+          // Verification indicator for this step
+          const stepVerif = verifList.find((v) => v.stepId === step.stepId || v.context?.stepId === step.stepId);
+          const verifRow = document.createElement("div");
+          verifRow.style.display = "flex";
+          verifRow.style.alignItems = "center";
+          verifRow.style.justifyContent = "space-between";
+          verifRow.style.padding = "0.5rem 0.75rem";
+          verifRow.style.background = "var(--bg-tertiary, rgba(0,0,0,0.02))";
+          verifRow.style.borderRadius = "4px";
+          verifRow.style.fontSize = "0.85rem";
+
+          const verifText = document.createElement("span");
+          if (stepVerif) {
+            verifText.textContent = `🛡️ Deterministic Verification: ${stepVerif.verdict || "PASS"} (${stepVerif.ruleId || "canonical"})`;
+          } else {
+            verifText.textContent = "🛡️ Verification: Not evaluated yet";
+          }
+
+          const verifyBtn = document.createElement("button");
+          verifyBtn.className = "btn btn-xs btn-secondary";
+          verifyBtn.textContent = "Verify Determinism";
+          verifyBtn.addEventListener("click", async () => {
+            try {
+              verifyBtn.disabled = true;
+              await api.verifyWorkflowStep({
+                workflowInstanceId: instanceId,
+                stepId: step.stepId,
+                tenantId: inst.tenantId || "default-tenant",
+                inputPayload: step.input || {},
+                outputPayload: step.output || {},
+              });
+              await this.showInstanceDAG(instanceId);
+            } catch (err) {
+              alert(`Verification failed: ${err?.message || "Verification rejected"}`);
+            } finally {
+              verifyBtn.disabled = false;
+            }
+          });
+
+          verifRow.append(verifText, verifyBtn);
+
+          stepCard.append(header, metaRow, verifRow);
+          stepsContainer.appendChild(stepCard);
+        });
+      }
+    } catch (err) {
+      if (summaryContainer) {
+        clearChildren(summaryContainer);
+        const errBox = document.createElement("div");
+        errBox.className = "empty-state";
+        errBox.style.color = "var(--accent-red)";
+        errBox.textContent = `Error inspecting DAG: ${err?.message || "Instance not found"}`;
+        summaryContainer.appendChild(errBox);
+      }
+    }
+  }
+
+  // =========================================================================
+  // Phase 80: Human Oversight, Approval Inbox & Segregation of Duties
+  // =========================================================================
+
+  setupApprovals() {
+    const refreshBtn = document.getElementById("approvals-refresh-btn");
+    if (refreshBtn) {
+      refreshBtn.addEventListener("click", () => this.loadApprovalsData());
+    }
+
+    const statusFilter = document.getElementById("approvals-status-filter");
+    if (statusFilter) {
+      statusFilter.addEventListener("change", (e) => {
+        this.approvalsStatusFilter = e.target.value;
+        this.renderApprovalsTable();
+      });
+    }
+
+    const modal = document.getElementById("approval-detail-modal");
+    const closeBtn = document.getElementById("close-approval-modal-btn");
+    const hideModal = () => {
+      if (modal) modal.style.display = "none";
+    };
+    if (closeBtn) closeBtn.addEventListener("click", hideModal);
+
+    const approveBtn = document.getElementById("modal-appr-approve-btn");
+    if (approveBtn) {
+      approveBtn.addEventListener("click", async () => {
+        if (!this.selectedApproval) return;
+        const reason = document.getElementById("appr-decision-reason")?.value?.trim();
+        if (!reason) {
+          alert("Decision reason is mandatory for human sign-off audit trail.");
+          return;
+        }
+        try {
+          approveBtn.disabled = true;
+          await api.approveApprovalRequest(this.selectedApproval.id, {
+            approverId: "senior-compliance-officer",
+            decisionReason: reason,
+          });
+          hideModal();
+          await this.loadApprovalsData();
+        } catch (err) {
+          alert(`Approval Rejected by Governance Engine:\n${err?.message || "SoD Violation or Policy Error"}`);
+        } finally {
+          approveBtn.disabled = false;
+        }
+      });
+    }
+
+    const rejectBtn = document.getElementById("modal-appr-reject-btn");
+    if (rejectBtn) {
+      rejectBtn.addEventListener("click", async () => {
+        if (!this.selectedApproval) return;
+        const reason = document.getElementById("appr-decision-reason")?.value?.trim();
+        if (!reason) {
+          alert("Rejection rationale is required.");
+          return;
+        }
+        try {
+          rejectBtn.disabled = true;
+          await api.rejectApprovalRequest(this.selectedApproval.id, {
+            approverId: "senior-compliance-officer",
+            decisionReason: reason,
+          });
+          hideModal();
+          await this.loadApprovalsData();
+        } catch (err) {
+          alert(`Rejection error: ${err?.message || "Failed to submit rejection"}`);
+        } finally {
+          rejectBtn.disabled = false;
+        }
+      });
+    }
+
+    const escalateBtn = document.getElementById("modal-appr-escalate-btn");
+    if (escalateBtn) {
+      escalateBtn.addEventListener("click", async () => {
+        if (!this.selectedApproval) return;
+        const reason = document.getElementById("appr-decision-reason")?.value?.trim();
+        if (!reason) {
+          alert("Escalation reason is required.");
+          return;
+        }
+        try {
+          escalateBtn.disabled = true;
+          await api.escalateApprovalRequest(this.selectedApproval.id, {
+            reviewerId: "compliance-officer",
+            escalationReason: reason,
+            targetApproverRole: "EXECUTIVE_APPROVER",
+          });
+          hideModal();
+          await this.loadApprovalsData();
+        } catch (err) {
+          alert(`Escalation error: ${err?.message || "Failed to escalate request"}`);
+        } finally {
+          escalateBtn.disabled = false;
+        }
+      });
+    }
+
+    const evidenceBtn = document.getElementById("modal-appr-evidence-btn");
+    if (evidenceBtn) {
+      evidenceBtn.addEventListener("click", () => {
+        if (!this.selectedApproval) return;
+        hideModal();
+        this.switchTab("evidence");
+        const scopeSelect = document.getElementById("evidence-scope-select");
+        const scopeIdInput = document.getElementById("evidence-scope-id");
+        if (scopeSelect) scopeSelect.value = "APPROVAL";
+        if (scopeIdInput) scopeIdInput.value = this.selectedApproval.id;
+        const exportBtn = document.getElementById("evidence-export-btn");
+        if (exportBtn) exportBtn.click();
+      });
+    }
+  }
+
+  async loadApprovalsData() {
+    const tbody = document.getElementById("approvals-tbody");
+    if (tbody) {
+      clearChildren(tbody);
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = 8;
+      td.className = "empty-state";
+      td.textContent = "Loading approval requests...";
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+    }
+
+    try {
+      const res = await api.listApprovals().catch(() => []);
+      this.cachedApprovals = Array.isArray(res) ? res : (res?.approvals || res?.items || []);
+
+      const countBadge = document.getElementById("approvals-count-badge");
+      if (countBadge) {
+        const pendingCount = this.cachedApprovals.filter((a) => a.status === "PENDING" || a.status === "IN_REVIEW").length;
+        countBadge.textContent = `${pendingCount} Pending`;
+      }
+
+      this.renderApprovalsTable();
+    } catch (err) {
+      if (tbody) {
+        clearChildren(tbody);
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = 8;
+        td.className = "empty-state";
+        td.style.color = "var(--accent-red)";
+        td.textContent = `Error loading approvals: ${err?.message || "Failed to fetch"}`;
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+      }
+    }
+  }
+
+  renderApprovalsTable() {
+    const tbody = document.getElementById("approvals-tbody");
+    if (!tbody) return;
+    clearChildren(tbody);
+
+    const filtered = (this.cachedApprovals || []).filter((appr) => {
+      if (this.approvalsStatusFilter === "ALL") return true;
+      return appr.status === this.approvalsStatusFilter;
+    });
+
+    if (filtered.length === 0) {
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = 8;
+      td.className = "empty-state";
+      td.textContent = "No approval requests found matching status filter.";
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+      return;
+    }
+
+    for (const appr of filtered) {
+      const tr = document.createElement("tr");
+
+      const tdId = document.createElement("td");
+      const codeId = document.createElement("code");
+      codeId.textContent = appr.id || "N/A";
+      tdId.appendChild(codeId);
+
+      const tdScope = document.createElement("td");
+      tdScope.textContent = appr.operationType || appr.scope || "OPERATION";
+
+      const tdReq = document.createElement("td");
+      const codeReq = document.createElement("code");
+      codeReq.textContent = appr.requesterId || appr.producerId || "system";
+      tdReq.appendChild(codeReq);
+
+      const tdRole = document.createElement("td");
+      tdRole.textContent = appr.requiredApproverRole || appr.requiredAuthority || "OPERATOR";
+
+      const tdStatus = document.createElement("td");
+      const badge = document.createElement("span");
+      const st = appr.status || "PENDING";
+      badge.className = `badge badge-${st === "APPROVED" ? "success" : st === "PENDING" ? "warning" : st === "REJECTED" ? "danger" : st === "ESCALATED" ? "info" : "secondary"}`;
+      badge.textContent = st;
+      tdStatus.appendChild(badge);
+
+      const tdReqAt = document.createElement("td");
+      tdReqAt.textContent = appr.requestedAt || appr.createdAt ? new Date(appr.requestedAt || appr.createdAt).toLocaleString() : "-";
+
+      const tdExpAt = document.createElement("td");
+      tdExpAt.textContent = appr.expiresAt ? new Date(appr.expiresAt).toLocaleString() : "Never";
+
+      const tdAction = document.createElement("td");
+      const reviewBtn = document.createElement("button");
+      reviewBtn.className = "btn btn-xs btn-primary";
+      reviewBtn.textContent = "Review / Decide";
+      reviewBtn.addEventListener("click", () => this.openApprovalModal(appr));
+      tdAction.appendChild(reviewBtn);
+
+      tr.append(tdId, tdScope, tdReq, tdRole, tdStatus, tdReqAt, tdExpAt, tdAction);
+      tbody.appendChild(tr);
+    }
+  }
+
+  openApprovalModal(appr) {
+    this.selectedApproval = appr;
+    const modal = document.getElementById("approval-detail-modal");
+    if (!modal) return;
+
+    const modalId = document.getElementById("modal-appr-id");
+    const modalOp = document.getElementById("modal-appr-op");
+    const modalStatus = document.getElementById("modal-appr-status");
+    const modalReq = document.getElementById("modal-appr-requester");
+    const modalRole = document.getElementById("modal-appr-role");
+    const modalExp = document.getElementById("modal-appr-expires");
+    const modalPayload = document.getElementById("modal-appr-payload");
+    const modalWfId = document.getElementById("modal-appr-wfid");
+    const reasonInput = document.getElementById("appr-decision-reason");
+
+    if (modalId) modalId.textContent = appr.id || "N/A";
+    if (modalOp) modalOp.textContent = appr.operationType || appr.scope || "OPERATION";
+    if (modalStatus) modalStatus.textContent = appr.status || "PENDING";
+    if (modalReq) modalReq.textContent = appr.requesterId || appr.producerId || "system";
+    if (modalRole) modalRole.textContent = appr.requiredApproverRole || appr.requiredAuthority || "OPERATOR";
+    if (modalExp) modalExp.textContent = appr.expiresAt ? new Date(appr.expiresAt).toLocaleString() : "Never";
+    if (modalWfId) modalWfId.textContent = appr.workflowInstanceId || appr.context?.workflowInstanceId || "N/A";
+    if (reasonInput) reasonInput.value = "";
+
+    if (modalPayload) {
+      clearChildren(modalPayload);
+      const code = document.createElement("code");
+      code.textContent = JSON.stringify(appr.context || appr.payload || {}, null, 2);
+      modalPayload.appendChild(code);
+    }
+
+    modal.style.display = "flex";
   }
 }
 

@@ -64,6 +64,14 @@
           <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg></span>
           <span>Portfolios &amp; Mandates</span>
         </button>
+        <button class="nav-item" data-tab="workflows">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></span>
+          <span>Workflows &amp; Instances</span>
+        </button>
+        <button class="nav-item" data-tab="approvals">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></span>
+          <span>Human Oversight &amp; Approvals</span>
+        </button>
 
         <div class="nav-section-label">Governance &amp; Ecosystem</div>
         <button class="nav-item" data-tab="security">
@@ -3495,6 +3503,359 @@ Total: $209.00 USD | Paid via Webpay Demo</textarea>
           </div>
         </div>
       </section>
+
+      <!-- 18. View: Workflows & Instances (Phase 80) -->
+      <section id="tab-workflows" class="tab-view">
+        <div class="view-header">
+          <div>
+            <h2>Workflows &amp; Orchestration</h2>
+            <p>Deterministic workflow definitions in directed acyclic graph (DAG), instance lifecycles, and step governance.</p>
+          </div>
+          <div class="header-actions">
+            <button id="workflows-refresh-btn" class="btn btn-secondary">Refresh Workflows</button>
+            <button id="workflow-create-modal-btn" class="btn btn-primary">+ Create Workflow</button>
+          </div>
+        </div>
+
+        <!-- Workflows Table Card -->
+        <div class="card" style="margin-bottom:1.5rem;">
+          <div class="card-header" style="justify-content:space-between; align-items:center;">
+            <h3>Workflow Definitions</h3>
+            <span class="badge badge-info" id="workflows-count-badge">0 Workflows</span>
+          </div>
+          <div class="card-body">
+            <!-- Filter Bar -->
+            <div class="filter-bar">
+              <div class="filter-group" style="flex:1; min-width:200px;">
+                <label for="workflows-search-input">Search Workflows</label>
+                <input type="text" id="workflows-search-input" class="form-control" placeholder="Search by ID, name, or organization...">
+              </div>
+              <div class="filter-group">
+                <label for="workflows-status-filter">Status</label>
+                <select id="workflows-status-filter" class="form-control">
+                  <option value="ALL">All Statuses</option>
+                  <option value="ACTIVE">ACTIVE Only</option>
+                  <option value="DRAFT">DRAFT Only</option>
+                  <option value="ARCHIVED">ARCHIVED Only</option>
+                </select>
+              </div>
+              <button id="workflows-clear-filter-btn" class="btn btn-sm btn-secondary" style="align-self:flex-end;">Clear Filters</button>
+            </div>
+
+            <div style="overflow-x:auto;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Workflow ID</th>
+                    <th>Name</th>
+                    <th>Organization / Enterprise</th>
+                    <th>Steps</th>
+                    <th>Version</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="workflows-tbody">
+                  <tr><td colspan="7" class="empty-state">Loading workflow definitions...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Workflow Instances Card -->
+        <div class="card" style="margin-bottom:1.5rem;">
+          <div class="card-header" style="justify-content:space-between; align-items:center;">
+            <div>
+              <h3>Workflow Instances &amp; DAG Execution</h3>
+              <p style="font-size:0.85rem; color:var(--text-secondary); margin-top:0.25rem;">
+                Live orchestration state, step assignment, execution tracking, and DAG advancement.
+              </p>
+            </div>
+            <div style="display:flex; gap:0.5rem; align-items:center;">
+              <span class="badge badge-success" id="workflow-instances-count-badge">0 Instances</span>
+              <button id="workflow-instances-refresh-btn" class="btn btn-sm btn-secondary">Refresh Instances</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <!-- Instance Filter Bar -->
+            <div class="filter-bar">
+              <div class="filter-group">
+                <label for="instances-status-filter">Instance Status</label>
+                <select id="instances-status-filter" class="form-control">
+                  <option value="ALL">All Statuses</option>
+                  <option value="RUNNING">RUNNING</option>
+                  <option value="PENDING">PENDING</option>
+                  <option value="PAUSED">PAUSED</option>
+                  <option value="COMPLETED">COMPLETED</option>
+                  <option value="FAILED">FAILED</option>
+                  <option value="CANCELLED">CANCELLED</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="overflow-x:auto;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Instance ID</th>
+                    <th>Workflow</th>
+                    <th>Current Step</th>
+                    <th>Status</th>
+                    <th>Started At</th>
+                    <th>Updated At</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="workflow-instances-tbody">
+                  <tr><td colspan="7" class="empty-state">No workflow instances recorded. Start an instance above.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Selected Instance DAG Visualizer & Step Inspector Card -->
+        <div class="card full-width" id="workflow-dag-card" style="display:none; margin-bottom:1.5rem;">
+          <div class="card-header" style="justify-content:space-between; align-items:center;">
+            <div>
+              <h3>Instance DAG &amp; Step Execution Pipeline: <span id="dag-instance-title" class="code-text"></span></h3>
+              <p style="font-size:0.85rem; color:var(--text-secondary); margin-top:0.25rem;">
+                Workflow &rarr; Steps &rarr; Assignment &rarr; Execution &rarr; Verification &rarr; Approval
+              </p>
+            </div>
+            <div style="display:flex; gap:0.5rem;">
+              <button id="dag-advance-btn" class="btn btn-sm btn-primary">Advance Step</button>
+              <button id="dag-pause-btn" class="btn btn-sm btn-warning">Pause</button>
+              <button id="dag-resume-btn" class="btn btn-sm btn-success">Resume</button>
+              <button id="dag-cancel-btn" class="btn btn-sm btn-danger">Cancel</button>
+              <button id="dag-evidence-btn" class="btn btn-sm btn-secondary">Export Evidence</button>
+              <button id="close-dag-btn" class="btn btn-sm btn-secondary">Close</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div id="workflow-dag-summary" style="margin-bottom:1rem;"></div>
+            <div id="workflow-dag-steps-container" style="display:flex; flex-direction:column; gap:0.75rem;">
+              <!-- Populated dynamically via DOM -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 19. View: Human Oversight & Approvals (Phase 80) -->
+      <section id="tab-approvals" class="tab-view">
+        <div class="view-header">
+          <div>
+            <h2>Human Oversight &amp; Approval Inbox</h2>
+            <p>Governed human-in-the-loop review, multi-tier authorization for high-impact actions, and segregation of duties.</p>
+          </div>
+          <div class="header-actions">
+            <button id="approvals-refresh-btn" class="btn btn-secondary">Refresh Inbox</button>
+          </div>
+        </div>
+
+        <!-- SoD Security Notice Banner -->
+        <div class="card full-width" style="margin-bottom:1.5rem; background:rgba(37,99,235,0.05); border:1px solid var(--accent-blue);">
+          <div class="card-body" style="display:flex; align-items:center; gap:0.75rem; padding:0.75rem 1rem;">
+            <span style="font-size:1.25rem;">⚖️</span>
+            <div>
+              <strong>Segregation of Duties (SoD) Invariant:</strong>
+              <span style="font-size:0.85rem; color:var(--text-secondary); margin-left:0.5rem;">
+                <code>Executor &ne; Verifier</code> and <code>Executor &ne; Approver</code>. Self-approval is strictly prohibited and enforced fail-closed by the Platform Engine.
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Approvals Inbox Card -->
+        <div class="card full-width">
+          <div class="card-header" style="justify-content:space-between; align-items:center;">
+            <h3>Approval Requests</h3>
+            <span class="badge badge-warning" id="approvals-count-badge">0 Pending</span>
+          </div>
+          <div class="card-body">
+            <!-- Filter Bar -->
+            <div class="filter-bar">
+              <div class="filter-group">
+                <label for="approvals-status-filter">Request Status</label>
+                <select id="approvals-status-filter" class="form-control">
+                  <option value="ALL">All Statuses</option>
+                  <option value="PENDING" selected>PENDING Only</option>
+                  <option value="APPROVED">APPROVED</option>
+                  <option value="REJECTED">REJECTED</option>
+                  <option value="ESCALATED">ESCALATED</option>
+                  <option value="EXPIRED">EXPIRED</option>
+                  <option value="CANCELLED">CANCELLED</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="overflow-x:auto;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Request ID</th>
+                    <th>Operation / Scope</th>
+                    <th>Requester</th>
+                    <th>Required Authority</th>
+                    <th>Status</th>
+                    <th>Requested At</th>
+                    <th>Expires At</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="approvals-tbody">
+                  <tr><td colspan="8" class="empty-state">Approval inbox is empty. No pending requests.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Create Workflow Modal Dialog -->
+      <div id="create-workflow-modal" class="modal-backdrop" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="modal-create-wf-title">
+        <div class="modal-dialog" style="max-width:650px;">
+          <div class="modal-header">
+            <h3 id="modal-create-wf-title">Create Workflow Definition</h3>
+            <button id="close-create-wf-modal-btn" class="modal-close-btn" aria-label="Close modal">&times;</button>
+          </div>
+          <div class="modal-body">
+            <form id="create-workflow-form">
+              <div class="two-col-grid" style="margin-bottom:0.75rem;">
+                <div class="form-group">
+                  <label for="wf-id-input">Workflow ID *</label>
+                  <input type="text" id="wf-id-input" class="form-control" placeholder="e.g. wf-finance-audit" required>
+                </div>
+                <div class="form-group">
+                  <label for="wf-name-input">Workflow Name *</label>
+                  <input type="text" id="wf-name-input" class="form-control" placeholder="e.g. Quarterly Financial Verification" required>
+                </div>
+              </div>
+              <div class="two-col-grid" style="margin-bottom:0.75rem;">
+                <div class="form-group">
+                  <label for="wf-org-input">Organization ID *</label>
+                  <input type="text" id="wf-org-input" class="form-control" placeholder="e.g. org-finance" required>
+                </div>
+                <div class="form-group">
+                  <label for="wf-desc-input">Description</label>
+                  <input type="text" id="wf-desc-input" class="form-control" placeholder="Multi-step governed reconciliation workflow">
+                </div>
+              </div>
+              <div class="form-group" style="margin-bottom:1rem;">
+                <label for="wf-steps-json">Steps Definition (JSON Array) *</label>
+                <textarea id="wf-steps-json" class="form-control code-editor" rows="6" required>[
+  {
+    "stepId": "step-1-collect",
+    "name": "Collect Ledger Records",
+    "requiredCapability": "finance.read",
+    "dependencies": []
+  },
+  {
+    "stepId": "step-2-verify",
+    "name": "Verify Integrity",
+    "requiredCapability": "finance.audit",
+    "dependencies": ["step-1-collect"]
+  }
+]</textarea>
+              </div>
+              <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
+                <button type="button" id="cancel-create-wf-btn" class="btn btn-secondary">Cancel</button>
+                <button type="submit" class="btn btn-primary">Create Workflow</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Start Workflow Instance Modal Dialog -->
+      <div id="start-instance-modal" class="modal-backdrop" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="modal-start-inst-title">
+        <div class="modal-dialog">
+          <div class="modal-header">
+            <h3 id="modal-start-inst-title">Start Workflow Instance</h3>
+            <button id="close-start-inst-modal-btn" class="modal-close-btn" aria-label="Close modal">&times;</button>
+          </div>
+          <div class="modal-body">
+            <form id="start-instance-form">
+              <div class="form-group" style="margin-bottom:0.75rem;">
+                <label for="start-inst-wfid">Workflow ID</label>
+                <input type="text" id="start-inst-wfid" class="form-control" readonly>
+              </div>
+              <div class="form-group" style="margin-bottom:1rem;">
+                <label for="start-inst-payload">Initial Input / Context (JSON)</label>
+                <textarea id="start-inst-payload" class="form-control code-editor" rows="4">{"quarter": "Q3-2026", "auditScope": "STANDARD"}</textarea>
+              </div>
+              <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
+                <button type="button" id="cancel-start-inst-btn" class="btn btn-secondary">Cancel</button>
+                <button type="submit" class="btn btn-primary">Launch Instance</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Approval Request Review & Detail Modal Dialog -->
+      <div id="approval-detail-modal" class="modal-backdrop" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="modal-approval-id-title">
+        <div class="modal-dialog" style="max-width:750px;">
+          <div class="modal-header">
+            <h3 id="modal-approval-id-title">Approval Request Review</h3>
+            <button id="close-approval-modal-btn" class="modal-close-btn" aria-label="Close modal">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div class="detail-grid" style="grid-template-columns:repeat(3, 1fr); margin-bottom:1rem;">
+              <div class="detail-item">
+                <span class="detail-label">Request ID</span>
+                <span class="detail-value code-text" id="modal-appr-id">-</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Operation Type</span>
+                <span class="detail-value" id="modal-appr-op">-</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Status</span>
+                <span class="detail-value" id="modal-appr-status">-</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Requested By</span>
+                <span class="detail-value code-text" id="modal-appr-requester">-</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Required Role</span>
+                <span class="detail-value" id="modal-appr-role">-</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Expires At</span>
+                <span class="detail-value" id="modal-appr-expires">-</span>
+              </div>
+            </div>
+
+            <div style="margin-bottom:1rem;">
+              <h4 style="font-size:0.9rem; font-weight:600; margin-bottom:0.25rem;">Operation Context &amp; Payload</h4>
+              <pre id="modal-appr-payload" class="json-display" style="max-height:180px;"><code>{}</code></pre>
+            </div>
+
+            <!-- Decision Form (Approve / Reject / Escalate) -->
+            <div id="approval-decision-card" class="card" style="padding:1rem; border:1px solid var(--border-color); margin-bottom:1rem; background:var(--bg-secondary);">
+              <h4 style="font-size:0.9rem; font-weight:600; margin-bottom:0.5rem;">Submit Governed Decision</h4>
+              <div class="form-group" style="margin-bottom:0.75rem;">
+                <label for="appr-decision-reason">Decision Reason / Audit Notes *</label>
+                <input type="text" id="appr-decision-reason" class="form-control" placeholder="Rationale for approval or rejection" required>
+              </div>
+              <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
+                <button type="button" id="modal-appr-escalate-btn" class="btn btn-warning btn-sm">Escalate</button>
+                <button type="button" id="modal-appr-reject-btn" class="btn btn-danger btn-sm">Reject</button>
+                <button type="button" id="modal-appr-approve-btn" class="btn btn-success btn-sm">Approve</button>
+              </div>
+            </div>
+
+            <!-- Traceability Navigation -->
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.85rem; color:var(--text-secondary);">
+              <span id="modal-appr-workflow-link">Workflow Instance: <code id="modal-appr-wfid">-</code></span>
+              <button id="modal-appr-evidence-btn" class="btn btn-xs btn-secondary">View Compliance Evidence</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </main>
   </div>
 
