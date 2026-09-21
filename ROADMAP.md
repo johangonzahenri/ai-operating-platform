@@ -25,9 +25,9 @@ Este documento resume los hitos de versión y criterios de salida de la **AI Ope
 | **v1.1.0 Extended Ecosystem** | Proveedores reales (OpenAI, Anthropic, Ollama), impresora Brother, consola bilingüe. | 966 tests PASS (0 FAIL), 11 suites, 0 innerHTML, modo es-419 / en. | ✅ **Completed (Baseline)** |
 | **v1.2.0 Enterprise Cloud & Virtual Org** | Gateway Gemini, JWT asimétrico RS256/ES256, proxy reverso TLS, memoria duradera SQLite, Virtual Organization Foundation (Organization, Area, Team, AgentMembership). | 1019 tests PASS (0 FAIL), 11 suites. | ✅ **Completed** |
 | **v1.3.0 Team Resource Governance** | TeamResourceBudget con cuotas multidimensionales, enforcement fail-closed en runtime (AgentExecutionStrategy, ToolInvocationRuntime, AutonomousOrchestrator). | 1064 tests PASS (0 FAIL), 11 suites. | ✅ **Completed (Baseline)** |
-| **v1.4.0 Production Certification** | Certificación formal de criterios de salida para producción masiva (AOP-V1-EXIT). | Criterios AOP-EXIT verificados. | ⏳ **Planned (Backlog)** |
+| **v1.4.0 Production Hardening** | AbortSignal propagation (OAD-001), persistent RBAC, authorization trace, budget/cost separation, OpenAPI 3.1, failure injection tests, security controls, operations runbooks, platform narrative documentation. | 1500+ tests PASS (0 FAIL). | ✅ **Completed (Baseline)** |
 
 ---
 
 > [!NOTE]
-> La versión de runtime declarada canónicamente en `src/platform/version.ts` y `package.json` corresponde a **`1.3.0`**.
+> La versión de runtime declarada canónicamente en `src/platform/version.ts` y `package.json` corresponde a **`1.4.0`**.

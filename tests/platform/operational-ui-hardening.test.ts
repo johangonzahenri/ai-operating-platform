@@ -70,7 +70,7 @@ test("Operational UI Hardening & Version Consistency Suite", async (t) => {
   });
 
   await t.test("1. Version Consistency: PLATFORM_VERSION is single source of truth across API and package.json", async () => {
-    assert.equal(PLATFORM_VERSION, "1.3.0");
+    assert.equal(PLATFORM_VERSION, "1.4.0");
     const pkg = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), "package.json"), "utf8"));
     assert.equal(pkg.version, PLATFORM_VERSION, "package.json version must match PLATFORM_VERSION");
 

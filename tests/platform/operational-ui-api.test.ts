@@ -103,7 +103,7 @@ test("Operational UI Platform API Suite", async (t) => {
     const data = await res.json();
 
     assert.equal(data.status, "HEALTHY");
-    assert.equal(data.version, "1.3.0");
+    assert.equal(data.version, "1.4.0");
     assert.ok(typeof data.uptimeSeconds === "number");
     assert.ok(data.timestamp);
 

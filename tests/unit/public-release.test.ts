@@ -4,10 +4,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { PLATFORM_VERSION } from "../../src/platform/version.js";
 
-test("Prompt 87 - Public Release: Platform Version is 1.3.0 across single source of truth", () => {
-  assert.equal(PLATFORM_VERSION, "1.3.0");
+test("Public Release: Platform Version is 1.4.0 across single source of truth", () => {
+  assert.equal(PLATFORM_VERSION, "1.4.0");
   const pkg = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), "package.json"), "utf8"));
-  assert.equal(pkg.version, "1.3.0");
+  assert.equal(pkg.version, "1.4.0");
 });
 
 test("Prompt 87 - Public Release: Web Console DOM Security Guardrails (0 innerHTML, 0 eval)", () => {

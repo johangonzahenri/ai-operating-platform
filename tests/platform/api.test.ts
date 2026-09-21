@@ -46,7 +46,7 @@ test("Platform API Endpoints Suite", async (t) => {
     assert.equal(res.status, 200);
     const data = await res.json();
     assert.equal(data.status, "HEALTHY");
-    assert.equal(data.version, "1.3.0");
+    assert.equal(data.version, "1.4.0");
     assert.equal(data.tasksCount, 0, "Tasks count must be 0 on clean startup");
     assert.equal(data.executionsCount, 0, "Executions count must be 0 on clean startup");
   });
@@ -374,7 +374,7 @@ test("Platform API Endpoints Suite", async (t) => {
     assert.equal(res.status, 200);
     const data = await res.json();
     assert.equal(data.status, "HEALTHY");
-    assert.equal(data.version, "1.3.0");
+    assert.equal(data.version, "1.4.0");
     assert.ok(data.toolsCount >= 1);
     assert.ok(data.modelsCount >= 1);
   });

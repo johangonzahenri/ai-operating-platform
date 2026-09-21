@@ -4,11 +4,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { PLATFORM_VERSION } from "../../src/platform/version.js";
 
-test("Prompt 72 - Release Candidate v1.3.0 Versioning & Integrity Gate", () => {
-  assert.strictEqual(PLATFORM_VERSION, "1.3.0", "PLATFORM_VERSION must be 1.3.0");
+test("Release Candidate v1.4.0 Versioning & Integrity Gate", () => {
+  assert.strictEqual(PLATFORM_VERSION, "1.4.0", "PLATFORM_VERSION must be 1.4.0");
 
   const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
-  assert.strictEqual(pkg.version, "1.3.0", "package.json version must be 1.3.0");
+  assert.strictEqual(pkg.version, "1.4.0", "package.json version must be 1.4.0");
 
   // Check required core documentation assets
   const requiredDocs = [
