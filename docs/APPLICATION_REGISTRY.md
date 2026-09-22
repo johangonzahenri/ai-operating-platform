@@ -1,89 +1,99 @@
-# Registro de Aplicaciones del Ecosistema (Application Registry)
+# Registro Oficial de Aplicaciones del Ecosistema (Application Registry)
+## Registro Canónico del Portafolio y Estado de Proyectos
 
-Este registro documenta de manera formal las aplicaciones satélites del ecosistema gobernado por la **AI Operating Platform**, especificando su nivel de integración, capacidades consumidas, ciclo de vida, nivel de confianza y estado de verificación.
+Este registro documenta formalmente las aplicaciones satélites del ecosistema gobernado por la **AI Operating Platform**, especificando su nivel de integración, capacidades consumidas, tecnologías, repositorios y estado de verificación.
 
 ---
 
-## Invariante Fundamental del Ecosistema
+## 1. Invariante Fundamental del Ecosistema
 
-```text
-CORE ENGINE != PLATFORM PRODUCT != APPLICATIONS
-PLATFORM PRODUCT != APPLICATION
-APPLICATION != EXTERNAL SERVICE
-```
+$$\text{Core Engine} \neq \text{Platform Product} \neq \text{Child Applications}$$
+$$\text{Platform Product} \neq \text{Application}$$
+$$\text{Application} \neq \text{External Service}$$
 
 Las aplicaciones del ecosistema son **entidades de negocio independientes** que son dueñas de sus catálogos, lógica de inventario, carritos de compra y políticas comerciales. Consumen inteligencia artificial, automatizaciones y servicios de gobernanza de la plataforma a través de contratos REST seguros mediante `PlatformClient`.
 
 ---
 
-## 1. Aplicaciones Registradas
+## 2. Matriz Maestra del Registro de Proyectos
 
-### 1.1 Tentaciones AI Commerce (`tentaciones-commerce`)
-* **Descripción:** Plataforma de comercio electrónico para retail de vestuario femenino con recomendación inteligente, búsqueda semántica en lenguaje natural y probador virtual 3D/AR.
-* **Estado Oficial:** `IMPLEMENTED / LIVE ADAPTER`
-* **Nivel de Integración con Plataforma:** Integración profunda mediante `TentacionesPlatformAdapter` sobre `PlatformClient`.
-* **Capacidades Consumidas:**
-  - `product.discovery`: Búsqueda asistida por lenguaje natural y categorización semántica.
-  - `product.recommendation`: Algoritmo determinista de recomendaciones según perfil y temporada.
-  - `product.compare`: Análisis comparativo de atributos y ficha técnica de prendas.
-  - `cart.assistance`: Asistencia de carrito, validación de inventario y cálculo de envíos.
-  - `ar.fitting_room`: Probador virtual AR con cálculo de talla por perfil biométrico y renderizado 3D URN (`urn:ar:apparel:*`).
-* **Estrategia de Contingencia (Fallback):**
-  - Si la plataforma está en línea: Despacho a través de `PlatformClient` a la API REST.
-  - Si la plataforma no está disponible: Conmutación transparente a `LOCAL_FALLBACK` (motor local determinista en memoria) o `TRADITIONAL_COMMERCE` sin interrupción de la tienda.
-* **Nivel de Confianza (Trust Level):** `MANAGED_COMMERCE` (Tenant autenticado con capacidades de e-commerce habilitadas).
-* **Ciclo de Vida:** Operacional en tests end-to-end de golden journey y pruebas de catálogo realista.
-* **Dependencias Externas:** Ninguna requerida en runtime (soporta simulación de pasarela Webpay Demo para checkout determinista).
-* **Tests de Verificación:**
-  - `tests/platform/tentaciones-platform-adapter.test.ts`
-  - `tests/unit/e2e-tentaciones-golden-journey.test.ts`
-  - `tests/unit/tentaciones-live-integration.test.ts`
-  - `tests/unit/tentaciones-product-completion.test.ts`
-  - Total: 48 tests pass.
-* **Documentación:** `docs/TENTACIONES_PLATFORM_INTEGRATION.md`, `docs/case-study-tentaciones.md`, `docs/AI_COMMERCE.md`, `docs/AR_VIRTUAL_FITTING.md`.
+| Project ID | Name | Repository | Local Path | Status | Framework | Platform Integration | UI | Backend | AI | AR | Payments | Security | Tests | Documentation |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **`PROJ-00-PLATFORM`** | AI Operating Platform | `johangonzahenri/ai-operating-platform` | `.` (Root) | `IMPLEMENTED` | Node.js Nativo / TypeScript | Core Engine & Parent API | SPA Nativa (0 innerHTML) | Node.js REST API | Multi-Provider Gateway | N/A | API Key & Scopes | Zero-Trust, RBAC, PolicyGateway | 1600 PASS (74 suites) | `LIBRO_OFICIAL.md`, `MANUAL_OFICIAL.md` |
+| **`PROJ-01-TENTACIONES`** | Tentaciones AI Commerce | `johangonzahenri/tentaciones-ai-commerce` (Propuesto) | `src/application/platform/` | `PARTIAL` | TypeScript / Node.js | `TentacionesPlatformAdapter` sobre `PlatformClient` | Standalone Web (En diseño) | Motor Local + REST Client | Search, Recommendations, Cart Assist | URN Validation & Fitting Bridge | Webpay Demo Simulation | Tenant Scopes (`tenant-tentaciones`) | 48 PASS | `docs/TENTACIONES_PLATFORM_INTEGRATION.md` |
+| **`PROJ-02-SPAREPARTS`** | Spare Parts Store | `johangonzahenri/spare-parts-store` (Propuesto) | `tests/unit/vehicle-parts*` | `PARTIAL` | TypeScript / Node.js | `PlatformClient` + Fitment Engine | Catálogo Técnico (En diseño) | Motor de Ajuste Mecánico | Parts Discovery & Tradeoffs | N/A | Pre-mutation Stock Integrity | Role-gated APIs | 16 PASS | `docs/VEHICLE_PARTS_REFERENCE.md` |
+| **`PROJ-03-FLEET`** | Fleet Management | `johangonzahenri/fleet-management` (Propuesto) | Por crear | `PLANNED` | TypeScript / Web | Ingestion IoT hacia `PlatformClient` | Mapas & Telemetría (Planificado) | Event Dispatcher & Route Engine | Route Optimization & Pred. Maint. | N/A | N/A | Hardware Spooler Isolation | 0 PASS (Planificado) | `docs/APPLICATION_PORTFOLIO.md` |
+| **`PROJ-04-PORTAL`** | Customer Portal | `johangonzahenri/customer-portal` (Propuesto) | Por crear | `PLANNED` | TypeScript / Web | Webhooks hacia `PlatformClient` | Portal Autoservicio (Planificado) | Ticket Lifecycle & Triage | Helpdesk Triage & Solution Bot | N/A | N/A | Human Oversight & SoD Gating | 0 PASS (Planificado) | `docs/APPLICATION_PORTFOLIO.md` |
+| **`PROJ-05-ANALYTICS`** | Analytics AI | `johangonzahenri/analytics-ai` (Propuesto) | Por crear | `PLANNED` | TypeScript / Web | Harvester sobre `/api/v1/business/*` | Dashboard Gráfico (Planificado) | Metric Aggregator & Reporter | Trend Detection & Exec Briefing | N/A | N/A | Executive RBAC & Masking | 0 PASS (Planificado) | `docs/APPLICATION_PORTFOLIO.md` |
 
 ---
 
-### 1.2 Vehicle Parts Reference Platform (`vehicle-parts-platform`)
-* **Descripción:** Aplicación de referencia empresarial para catálogo de repuestos automotrices, verificación determinista de compatibilidad mecánica (marca, modelo, año, motor) y asistencia técnica de taller.
-* **Estado Oficial:** `IMPLEMENTED / REFERENCE APP`
-* **Nivel de Integración con Plataforma:** Desplegada como aplicación de referencia sobre el Application Factory 2.0.
-* **Capacidades Consumidas:**
-  - `parts.discovery`: Identificación de piezas automotrices mediante descripción en lenguaje coloquial o código OEM.
-  - `parts.compatibility`: Validación técnica de ajuste mecánico determinista basada en especificaciones de motor y chasis.
-  - `parts.compare`: Comparativa técnica entre repuestos originales (OEM) y alternativos de alta durabilidad.
-  - `cart.validation`: Control de stock pre-mutación y reserva atómica de inventario.
-* **Estrategia de Contingencia (Fallback):** Degradación a catálogo estático determinista ante indisponibilidad del servicio de IA.
-* **Nivel de Confianza (Trust Level):** `ENTERPRISE_REFERENCE` (Micro-frontend gobernado dentro del Web Control Plane).
-* **Ciclo de Vida:** Verificada en suite de compatibilidad automotriz multi-categoría.
-* **Dependencias Externas:** Ninguna. Catálogo e inventario gestionados localmente.
-* **Tests de Verificación:**
-  - `tests/unit/vehicle-parts-reference-app.test.ts` (16 tests pass).
-* **Documentación:** `docs/VEHICLE_PARTS_REFERENCE.md`, `docs/APPLICATION_FACTORY.md`.
+## 3. Fichas Arquitectónicas Detalladas por Aplicación
+
+### 3.1. PROJ-01-TENTACIONES — Tentaciones AI Commerce
+* **Propósito**: E-commerce para retail de vestuario femenino y deportivo con asistencia conversacional y probador virtual 3D/AR.
+* **Dominio de Negocio**: Retail / E-Commerce / Fashion Tech.
+* **Repositorio Propuesto**: `https://github.com/johangonzahenri/tentaciones-ai-commerce`
+* **Capacidades de Plataforma Utilizadas**: `product.discovery`, `product.recommendation`, `product.compare`, `cart.assistance`, `ar.fitting_room`.
+* **Agentes Potenciales**: `shopping-agent`, `stylist-agent`, `inventory-agent`.
+* **Flujos de Trabajo Potenciales**: Descubrimiento semántico -> Recomendación -> Ajuste de Talla AR -> Asistencia de Carrito -> Checkout.
+* **Integraciones Potenciales**: Webpay Plus (Transbank), Shopify/WooCommerce catalog sync, WebXR viewer.
+* **Estado Actual**: **`PARTIAL`** (Adaptador de plataforma y motor en memoria 100% testeados; interfaz gráfica standalone pendiente).
+* **MVP Planificado**: Single Page Application comercial con catálogo reactivo, probador AR y checkout determinista.
+* **Dependencias**: `ai-operating-platform` corriendo en `/api/v1/*` y cliente `@ai-platform/client`.
 
 ---
 
-### 1.3 Enterprise Support Agent (`enterprise-support-agent`)
-* **Descripción:** Sistema de atención y soporte técnico empresarial multicanal con triaje automatizado, clasificación de tickets por severidad y escalamiento a agentes humanos.
-* **Estado Oficial:** `DESIGNED / SPECIFIED`
-* **Nivel de Integración con Plataforma:** Especificada formalmente para despacho sobre `MultiAgentCoordinator` y agentes con perfil `support-agent`.
-* **Capacidades Consumidas:**
-  - `ticket.triage`: Análisis de intención y clasificación de urgencia.
-  - `ticket.resolution`: Consulta de bases de conocimiento y resolución autónoma de incidentes frecuentes.
-  - `ticket.escalate`: Generación de resumen contextual para traspaso a soporte de nivel 2.
-* **Estrategia de Contingencia (Fallback):** Enrutamiento directo a bandeja de entrada humana.
-* **Nivel de Confianza (Trust Level):** `INTERNAL_ENTERPRISE` (Acceso acotado a datos de tickets y registros de auditoría).
-* **Ciclo de Vida:** En backlog de implementación para fases posteriores.
-* **Dependencias Externas:** Integración planificada con webhooks de helpdesk corporativo.
-* **Tests de Verificación:** Pendiente (cero tests en runtime actual).
-* **Documentación:** `docs/APPLICATION_ECOSYSTEM.md`, `docs/MULTI_APPLICATION_ECOSYSTEM.md`.
+### 3.2. PROJ-02-SPAREPARTS — Spare Parts Store
+* **Propósito**: Plataforma de búsqueda, selección y compra de repuestos automotrices con garantía de compatibilidad mecánica.
+* **Dominio de Negocio**: Automotriz / Repuestos / Post-Venta.
+* **Repositorio Propuesto**: `https://github.com/johangonzahenri/spare-parts-store`
+* **Capacidades de Plataforma Utilizadas**: `parts.discovery`, `parts.compatibility`, `parts.compare`, `cart.validation`.
+* **Agentes Potenciales**: `mechanic-advisor-agent`, `parts-catalog-agent`, `fitment-verifier-agent`.
+* **Flujos de Trabajo Potenciales**: Búsqueda por síntoma -> Identificación OEM -> Validación de Motor/Chasis -> Cotización de Alternativas -> Reserva.
+* **Integraciones Potenciales**: Catálogo TecDoc, pasarelas de pago B2B, ERPs de repuesteros.
+* **Estado Actual**: **`PARTIAL`** (Motor de compatibilidad y catálogo de referencia verificados en tests unitarios).
+* **MVP Planificado**: Interfaz de búsqueda facetada por Marca/Modelo/Año con indicador visual de compatibilidad.
+* **Dependencias**: `ai-operating-platform` y cliente `@ai-platform/client`.
 
 ---
 
-## 2. Matriz de Estado del Ecosistema de Aplicaciones
+### 3.3. PROJ-03-FLEET — Fleet Management
+* **Propósito**: Gestión integral de flotas comerciales, seguimiento de telemetría IoT, mantenimiento predictivo y despacho inteligente de rutas.
+* **Dominio de Negocio**: Logística / Transporte / Gestión de Activos.
+* **Repositorio Propuesto**: `https://github.com/johangonzahenri/fleet-management`
+* **Capacidades de Plataforma Utilizadas**: `fleet.telemetry`, `route.optimization`, `maintenance.predictive`, `dispatch.agent`.
+* **Agentes Potenciales**: `fleet-dispatcher-agent`, `maintenance-planner-agent`, `fuel-efficiency-agent`.
+* **Flujos de Trabajo Potenciales**: Ingesta de telemetría -> Detección de anomalías -> Re-planificación de rutas -> Asignación a choferes.
+* **Integraciones Potenciales**: Dispositivos GPS/OBD-II, APIs de mapas y tráfico en tiempo real.
+* **Estado Actual**: **`PLANNED`** (Ficha arquitectónica definida; sin código fuente).
+* **MVP Planificado**: Consola de mapa con visualización de vehículos, estado de combustible y despacho de rutas optimizadas.
+* **Dependencias**: `ai-operating-platform` y cliente `@ai-platform/client`.
 
-| Identificador | Nombre Comercial | Estado | Tipo de Integración | Capabilities | Tests | Fallback Garantizado |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `tentaciones-commerce` | Tentaciones AI Commerce | **IMPLEMENTED** | Adapter + SDK | 5 capacidades | 48 tests PASS | SÍ (`LOCAL_FALLBACK`) |
-| `vehicle-parts-platform`| Vehicle Parts Platform | **IMPLEMENTED** | Reference App | 4 capacidades | 16 tests PASS | SÍ (`STATIC_CATALOG`) |
-| `enterprise-support-agent`| Enterprise Support Agent | **DESIGNED** | Agent Profile | 3 capacidades | 0 tests (Diseñado) | SÍ (`HUMAN_ROUTING`) |
+---
+
+### 3.4. PROJ-04-PORTAL — Customer Portal
+* **Propósito**: Portal unificado de atención al cliente y soporte técnico con agentes conversacionales, triaje inteligente y escalamiento gobernado.
+* **Dominio de Negocio**: Atención al Cliente / Helpdesk / Post-Venta.
+* **Repositorio Propuesto**: `https://github.com/johangonzahenri/customer-portal`
+* **Capacidades de Plataforma Utilizadas**: `ticket.triage`, `ticket.resolution`, `ticket.escalate`, `human.oversight`.
+* **Agentes Potenciales**: `triage-bot-agent`, `technical-support-agent`, `billing-agent`.
+* **Flujos de Trabajo Potenciales**: Recepción de consulta -> Clasificación de urgencia -> Respuesta autónoma con RAG -> Aprobación humana de reembolso.
+* **Integraciones Potenciales**: Zendesk, WhatsApp Business API, correo electrónico IMAP/SMTP.
+* **Estado Actual**: **`PLANNED`** (Ficha arquitectónica definida; sin código fuente).
+* **MVP Planificado**: Widget de chat web con historial de conversaciones y panel de agente humano supervisor.
+* **Dependencias**: `ai-operating-platform` y cliente `@ai-platform/client`.
+
+---
+
+### 3.5. PROJ-05-ANALYTICS — Analytics AI
+* **Propósito**: Plataforma de inteligencia de negocios (BI) y recolección analítica para monitoreo de rendimiento estratégico, financiero y operacional.
+* **Dominio de Negocio**: Business Intelligence / Analítica Predictiva / Dirección Ejecutiva.
+* **Repositorio Propuesto**: `https://github.com/johangonzahenri/analytics-ai`
+* **Capacidades de Plataforma Utilizadas**: `metric.harvesting`, `report.synthesis`, `anomaly.detection`, `executive.briefing`.
+* **Agentes Potenciales**: `data-analyst-agent`, `executive-briefing-agent`, `anomaly-auditor-agent`.
+* **Flujos de Trabajo Potenciales**: Agregación de eventos -> Cálculo de KPIs de portafolio -> Detección de desviaciones -> Generación de reporte PDF.
+* **Integraciones Potenciales**: Fuentes de datos SQL/NoSQL externas, herramientas de visualización de datos.
+* **Estado Actual**: **`PLANNED`** (Ficha arquitectónica definida; sin código fuente).
+* **MVP Planificado**: Dashboard de indicadores ejecutivos en tiempo real con resúmenes ejecutivos generados por agentes gobernados.
+* **Dependencias**: `ai-operating-platform` y cliente `@ai-platform/client`.
