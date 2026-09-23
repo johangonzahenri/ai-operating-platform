@@ -9,7 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.4.0] - 2026-09-21 (Multi-Enterprise Governance, Governed Runtime, Mandate Reconciliation & Compliance Export)
 
-### Added
+- **Application Factory Developer CLI (`create-aop-app`, Phase 135)**:
+  - Developer-facing scaffolding and certification CLI `create-aop-app` (`src/platform-client/create-aop-app.ts` / `npm run create-aop-app`) converting `ApplicationFactoryEngine` into an automated developer experience.
+  - Commands implemented: `init <app-id>` (full governed scaffolding with template, capabilities, tenant, plan, dry-run, force, and json flags), `templates` (factory catalog inspection), `capabilities` (platform capability catalog with dependency graph resolution), `validate <path>` (manifest validation), and `doctor <path>` (7-point certification harness).
+  - Canonical alignment: resolved legacy `@ai-platform/sdk` package reference to `@ai-platform/client` across all generated adapters.
+  - Comprehensive unit and integration test suite `tests/unit/create-aop-app-cli.test.ts`.
+  - Official technical guide: `docs/APPLICATION_FACTORY_CLI.md`.
 - **Developer Platform & SDK Productization (`AOP-DEV-PLATFORM`, Phase 125)**:
   - `@ai-platform/client` typed SDK productization: unified error mapping (`PlatformClientError`), deterministic retry engine for idempotent methods and requests with `Idempotency-Key` or `X-Idempotency-Key` headers (HTTP 500-504 & network codes `ECONNRESET`/`ETIMEDOUT`), and distributed trace ID extraction (`x-trace-id`).
   - Developer CLI (`src/platform-client/cli.ts` / `npm run cli:dev`) supporting `health`, `info`, `agents`, `tasks`, `applications`, and `governance export`.

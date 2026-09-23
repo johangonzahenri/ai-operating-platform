@@ -61,7 +61,8 @@ Las aplicaciones satélites **NUNCA** acceden directamente a:
 | :--- | :--- | :--- |
 | **`PlatformClient` SDK** | `src/platform-client/index.ts` | SDK fuertemente tipado en TypeScript con reintentos exponenciales, timeouts, propagación de correlación y gestión de errores. |
 | **Developer CLI (`aop-cli`)** | `src/platform-client/cli.ts` | Utilidad de línea de comandos para inspección de salud, listado de agentes, consulta de tareas y exportación de evidencias. |
-| **`ApplicationFactory` 2.0** | `src/application/factory/application-generator.ts` | Motor generador de andamiaje (*scaffolding*) de aplicaciones, validación de manifiestos y arnés de pruebas de conformidad. |
+| **Application Factory CLI (`create-aop-app`)** | `src/platform-client/create-aop-app.ts` | Herramienta CLI de andamiaje y verificación automatizada de aplicaciones satélites gobernadas ([Ver Guía](./APPLICATION_FACTORY_CLI.md)). |
+| **`ApplicationFactory` 2.0 Engine** | `src/application/factory/application-generator.ts` | Motor generador de andamiaje (*scaffolding*), validación de manifiestos, comprobación de derechos (entitlements) y arnés de pruebas de conformidad. |
 | **Motor de Compatibilidad** | `src/domain/application/application-trust.js` | Verificación declarativa de capacidades requeridas vs provistas y cálculo de nivel de confianza (`ApplicationTrustLevel`). |
 
 ---

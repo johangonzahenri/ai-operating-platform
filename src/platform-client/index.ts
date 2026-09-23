@@ -1662,3 +1662,11 @@ export type {
   EvidenceExportFilterProps,
   EvidenceExportPackage,
 };
+
+export {
+  runCreateAopAppCli,
+  parseCliArgs,
+  type CreateAppOptions,
+  type CliParsedCommand,
+} from "./create-aop-app.js";
+

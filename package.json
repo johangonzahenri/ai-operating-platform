@@ -9,8 +9,12 @@
     "test": "node scripts/test.js",
     "docs:check": "node scripts/docs-check.mjs",
     "excel:sync": "python scripts/generate_roadmap_excel.py",
+    "create-aop-app": "tsx src/platform-client/create-aop-app.ts",
     "check": "npm run build && npm test && npm run docs:check",
     "start": "npm run build && node dist/src/platform/server.js"
+  },
+  "bin": {
+    "create-aop-app": "dist/src/platform-client/create-aop-app.js"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

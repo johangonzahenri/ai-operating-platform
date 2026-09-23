@@ -504,7 +504,7 @@ test("${input.name} Health Contract Verification", () => {
       "",
       "## Quick Start",
       "1. Install the official Platform SDK in your project:",
-      "   `npm install @ai-platform/sdk`",
+      "   `npm install @ai-platform/client`",
       "2. Initialize the adapter with your base URL and API Key in environment variables.",
       "3. Call `adapter.checkPlatformHealth()` to verify connectivity.",
       "",

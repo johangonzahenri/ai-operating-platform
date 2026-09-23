@@ -46,6 +46,7 @@ Este índice proporciona el mapa canónico de navegación para toda la documenta
 | Documento | Ubicación | Propósito |
 | :--- | :--- | :--- |
 | **Plataforma para Desarrolladores** | [DEVELOPER_PLATFORM.md](./DEVELOPER_PLATFORM.md) | Especificación de Developer Platform, CLI, contratos de SDK y ApplicationFactory. |
+| **CLI de Application Factory** | [APPLICATION_FACTORY_CLI.md](./APPLICATION_FACTORY_CLI.md) | Manual de comandos para la herramienta de andamiaje y verificación `create-aop-app`. |
 | **Guía del SDK de Cliente** | [SDK_GUIDE.md](./SDK_GUIDE.md) | Manual de uso y referencia rápida del cliente `@ai-platform/client` en TypeScript. |
 | **Guía de Integración Satélite** | [APPLICATION_INTEGRATION_GUIDE.md](./APPLICATION_INTEGRATION_GUIDE.md) | Contrato canónico de integración para conectar aplicaciones de negocio satélites. |
 | **Especificación de Platform API** | [PLATFORM_API.md](./PLATFORM_API.md) | Especificación de endpoints REST v1 (`/api/v1/*`), contratos JSON y códigos de estado. |
