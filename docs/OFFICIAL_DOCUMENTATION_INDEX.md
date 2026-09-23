@@ -12,6 +12,7 @@ Este índice proporciona el mapa canónico de navegación para toda la documenta
 | **Nomenclatura Oficial** | [PROJECT_NOMENCLATURE.md](./PROJECT_NOMENCLATURE.md) | Nomenclatura canónica, glosario de términos técnicos y mapa conceptual del ecosistema con aplicaciones satélites. | Arquitectos, Desarrolladores |
 | **Mapa del Repositorio** | [REPOSITORY_MAP.md](./REPOSITORY_MAP.md) | Mapa físico del sistema de archivos, estructura de directorios y desglose por capas en `src/`. | Desarrolladores, Nuevos Integrantes |
 | **Libro Oficial** | [LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md](./LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md) | Tratado maestro integral del diseño, evolución histórica, matrices de verdad y certificación de la plataforma. | Auditores, Liderazgo Técnico |
+| **Línea Base del Producto** | [PLATFORM_PRODUCT_BASELINE_V1_4.md](./PLATFORM_PRODUCT_BASELINE_V1_4.md) | Especificación integral y estado del arte de la plataforma en v1.4.0 (qué es, qué no es, capacidades y roadmap). | Todos los roles |
 | **Índice de Documentación** | [OFFICIAL_DOCUMENTATION_INDEX.md](./OFFICIAL_DOCUMENTATION_INDEX.md) | Este índice de referencia y navegación rápida. | Todos los roles |
 
 ---

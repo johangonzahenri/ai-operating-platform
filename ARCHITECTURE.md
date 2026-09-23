@@ -1,59 +1,91 @@
-# Architecture
+# Architecture Specification (v1.4.0)
 
-## Layers and dependency direction
+## 1. Architectural Principles and Dependency Direction
 
-```
-Interfaces (future API / CLI)
+The AI Operating Platform follows **Hexagonal Architecture (Ports and Adapters)** and **Clean Architecture** with strict inward dependency rules:
+
+```text
+Interfaces / Platform (HTTP REST API, Web SPA, SDK)
         ↓
-Application (use cases)
+Application Layer (Use Cases, Orchestrators, Recovery, Services)
         ↓
-Domain (entities, policies, ports, events)
+Domain Layer (Aggregates, Policies, Value Objects, Domain Events)
         ↑
-Infrastructure (adapters implementing domain ports)
+Infrastructure Layer (SQLite WAL, Model Gateways, Tool Adapters)
 ```
 
-The arrow toward the domain is intentional: application and infrastructure depend on domain contracts, never the reverse.
+The inward arrow toward the domain is strict: Application and Infrastructure depend on Domain interfaces and ports, never the reverse.
 
-## Product boundaries
+---
 
-The existing layers are the **Core Engine**. The **Platform API** is the formal product boundary invoking application use case services and exposing stable, platform-facing contracts (`PlatformDTOs`). The **Web Platform Control Plane** (SPA) and external applications (including AI Commerce) consume that HTTP API; neither imports domain entities, repositories, runtime implementations, or infrastructure adapters.
+## 2. Structural Layer Boundaries
 
-## v0.8 domains
+```mermaid
+flowchart TD
+    subgraph ClientLayer["Superficies Externas & Consumidores"]
+        WebSPA["Web Control Plane (SPA Vanilla)"]
+        SatelliteApps["Aplicaciones Satélites (Tentaciones, etc.)"]
+        SDK["PlatformClient SDK (TypeScript)"]
+    end
 
-| Domain | Responsibility | Boundary |
-| --- | --- | --- |
-| Task System | Task lifecycle, result and failure | No models, tools, transport or persistence knowledge |
-| Execution | A concrete attempt to run a Task | Own lifecycle, correlation IDs, result metadata and error |
-| Execution Context | Small immutable operational context | Carries task, execution and trace identifiers only |
-| Core Runtime | Creates execution/context and coordinates lifecycle | Application service; delegates work through an Execution Strategy |
-| Agent | First-class capability configuration & identity | Model binding, instructions, tool whitelisting, memory scoping, lifecycle status |
-| Agent Registry | Repository port for Agent entities | Domain port; in-memory adapter in infrastructure |
-| Model Gateway | Uniform model invocation contract | Providers live in infrastructure |
-| Tool Gateway | Explicit execution capability for a named tool | Validates then delegates to a registry-resolved adapter |
-| Tool Registry | Resolves safe, local tool adapters | In-memory only; no remote discovery or plugins |
-| Orchestration Use Case | Dispatches declared sequences through CoreRuntime | Standard operational lifecycle (`task`, `execution`, `agent`) |
-| Orchestrator | Coordinates a declared sequence within an Execution | Sequential only; no planning, retries or parallelism |
-| Context | Immutable execution-scoped input and transient state | No global mutable state or implicit tool access |
-| Memory Gateway | Stores and retrieves scoped persistent values | Exact lookup only; adapters own storage technology |
-| Audit / Metrics | Records what happened | Event subscribers isolated from execution success |
-| Policy Gateway | Decides whether an operation is allowed | Centralized fail-closed enforcement on models, tools, and agents |
-| Events | Immutable execution facts and publishing port | Subscribers are decoupled |
-| Observability | Structured logs with trace correlation | Event subscriber, not domain behavior |
-| Platform API | HTTP facade serving DTOs and managing static UI | Decoupled; receives application use cases via dependency injection |
-| Web Platform | Single-Page Application (Control Plane) | Native zero-dependency DOM rendering, XSS-hardened |
+    subgraph PlatformLayer["Capa de Plataforma (src/platform)"]
+        HttpServer["Node.js Native HTTP Server"]
+        ApiV1["Platform API REST v1 (/api/v1/*)"]
+        ControlCenter["Platform Control Center & Telemetry"]
+    end
 
-Orchestration coordinates declared capabilities; it does not implement an agent loop or autonomous intelligence. Memory is explicitly read/written through its gateway and is not a retrieval or RAG system.
+    subgraph AppLayer["Capa de Aplicación (src/application)"]
+        Orchestration["Sequential Orchestrator & Plan Execution Engine"]
+        Recovery["RestartRecoveryService (Crash Recovery)"]
+        VirtualOrg["Organization & Team Resource Budget Services"]
+        WorkflowGov["DAG Workflow Orchestration & Verification"]
+    end
 
-## Execution flow
+    subgraph DomainLayer["Capa de Dominio Puro (src/domain)"]
+        Aggregates["Task, Execution, Agent, AutonomousOperation, Organization"]
+        Ports["Repository & Gateway Interfaces"]
+        Events["Immutable Domain Events"]
+    end
 
-`ExecuteTask` delegates to `CoreRuntime`. The runtime creates one Execution and ExecutionContext per invocation, coordinates Task and Execution transitions, and persists both through ports. `ModelExecutionStrategy` enforces policy through `PolicyGateway` before invoking the Model Gateway port. Events and structured logs carry the common `traceId`, `taskId`, and `executionId`.
+    subgraph InfraLayer["Capa de Infraestructura (src/infrastructure)"]
+        SqliteEngine["SQLite Database (node:sqlite WAL Mode)"]
+        ModelGateways["OpenAI, Anthropic, Gemini, Ollama, Stub"]
+        ToolAdapters["File, Shell, HTTP, Device Drivers"]
+    end
 
-`ExecuteOrchestration` is an application use case that routes orchestration requests through `CoreRuntime` using `OrchestratedExecutionStrategy`. Orchestration therefore traverses the exact same operational lifecycle (`task.created`, `task.started`, `execution.created`, `execution.started`, `execution.completed`, `task.completed`) as standard task executions.
+    ClientLayer --> PlatformLayer
+    PlatformLayer --> AppLayer
+    AppLayer --> DomainLayer
+    InfraLayer -.->|Implementa Puertos| DomainLayer
+```
 
-`AgentService.executeAgent()` dispatches agent executions through `SubmitTask` and `CoreRuntime` using `AgentExecutionStrategy`. The strategy emits `agent.started`, evaluates fail-closed `PolicyGateway`, binds memory strictly to `agent.memoryScope`, validates tool invocations against `agent.tools` whitelist, and emits `agent.completed` or `agent.failed`.
+---
 
-`RegistryToolGateway` resolves a Tool Definition, validates a small provider-independent schema, invokes the tool adapter, and emits tool lifecycle events.
+## 3. Domain Inventory & Subsystems
 
-`SequentialOrchestrator` executes declared Model and Tool operations in order. Bindings can copy a named output from a prior operation into a later input. It stops on the first failure and emits orchestration/operation events with the same execution correlation identifiers.
+| Subsystem | Responsibility | Architectural Boundary |
+| :--- | :--- | :--- |
+| **Task & Execution System** | Finite state machines for `Task` and atomic `Execution`. | Domain pure; 0 infrastructure dependencies. |
+| **Agent & Capability Registry** | First-class agent identities, tool whitelists, memory scopes. | Domain ports; SQLite WAL adapter with OCC versioning. |
+| **Model Gateways** | Uniform model invocation contract across OpenAI, Anthropic, Gemini, Ollama, and Stub. | Pure application ports; network adapters in infrastructure. |
+| **Tool Gateway & Runtime** | Validated, sandboxed tool dispatch with schema checks and prototype pollution guards. | Application runtime; local and process adapters in infrastructure. |
+| **Autonomous Operations** | Bounded autonomy engine (`AutonomousOperation`, `AutonomyBudget`, `PlanExecutionEngine`). | Multi-step plan execution with strict step, time, and tool limits. |
+| **Durable Persistence** | Relational SQLite persistence with WAL mode, schema v3, and transactions. | See `docs/PERSISTENCE_ARCHITECTURE.md`. |
+| **Crash Recovery & Reconciliation** | Automated reconciliation of orphan executions/tasks on startup. | `RestartRecoveryService` (see `docs/PERSISTENCE_ARCHITECTURE.md`). |
+| **Virtual Organization & Budgets** | Organizations, Areas, Teams, and multidimensional resource quotas (`TeamResourceBudget`). | Fail-closed quota enforcement and concurrency control. |
+| **Workflow DAG & Verification** | Governed workflow DAG orchestration with Segregation of Duties. | Producer $\neq$ Verifier $\neq$ Approver invariant. |
+| **Platform API & Client SDK** | REST endpoints (`/api/v1/*`) and typed TypeScript SDK (`PlatformClient`). | Decoupled client consumption for satellite apps. |
+| **Web Control Plane** | Browser interface SPA with bilingual support (`es-419` / `en`) and 0 `innerHTML`. | Native DOM sanitization. |
 
-`EventObservabilitySubscriber` records correlated audit observations and basic metrics without owning execution. `PolicyGateway` is evaluated immediately before each model generation, orchestration operation, and agent execution; deny and evaluation-unavailable are execution failures with distinct semantics (fail-closed).
+---
+
+## 4. Execution Lifecycle Flow
+
+1. **Submission:** A task or autonomous operation is submitted via Platform API or `PlatformClient`.
+2. **Authorization & Governance:** `PolicyGateway` and `TeamResourceBudget` evaluate permissions and remaining quotas fail-closed.
+3. **Execution & Context:** `CoreRuntime` / `PlanExecutionEngine` creates an immutable `ExecutionContext` correlated by `traceId`, `taskId`, and `executionId`.
+4. **Tool & Model Invocations:** Invocations pass through schema validators, secret redactors, and resource counters.
+5. **Durable Persistence & Events:** Aggregate state updates are persisted with optimistic concurrency checks (`version = version + 1`) and immutable events are appended to `SqliteEventStore`.
+6. **Recovery Safety:** If a crash interrupts processing, `RestartRecoveryService` at next boot transitions non-terminal records to `FAILED` / `CANCELLED` with audit logs.
+
+For physical codebase details, consult [`docs/REPOSITORY_MAP.md`](docs/REPOSITORY_MAP.md) and [`docs/PROJECT_NOMENCLATURE.md`](docs/PROJECT_NOMENCLATURE.md).

@@ -103,7 +103,7 @@ npm install
 # 3. Compilar TypeScript en modo estricto
 npm run build
 
-# 4. Ejecutar la suite completa de 1399 pruebas automatizadas
+# 4. Ejecutar la suite completa de 1600 pruebas automatizadas
 npm test
 
 # 5. Ejecutar la verificación integral de build, pruebas y consistencia documental
@@ -123,22 +123,27 @@ Acceder al plano de control en el navegador:
 
 El repositorio cuenta con documentación exhaustiva para desarrolladores, arquitectos y operadores:
 
+* 🧭 **[Índice Maestro de Documentación](docs/OFFICIAL_DOCUMENTATION_INDEX.md)** — Navegación estructurada de toda la documentación del repositorio.
 * 📖 **[Libro Oficial de la Plataforma](LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md)** — Fuente canónica de arquitectura, gobernanza y aplicaciones.
+* 🏛️ **[Nomenclatura Oficial & Mapa Conceptual](docs/PROJECT_NOMENCLATURE.md)** — Definición canónica del ecosistema y glosario.
+* 🗺️ **[Mapa del Repositorio](docs/REPOSITORY_MAP.md)** — Estructura física y desglose de capas en `src/`.
+* 💾 **[Arquitectura de Persistencia SQLite WAL](docs/PERSISTENCE_ARCHITECTURE.md)** — Persistencia duradera, OCC y recuperación ante caídas.
+* 🧪 **[Arquitectura de Pruebas Automatizadas (1600 Tests)](docs/TEST_ARCHITECTURE.md)** — Catálogo de 74 suites y 1600 tests.
+* 📜 **[Catálogo de Scripts](docs/SCRIPTS_CATALOG.md)** — Manual de utilidades operacionales y scripts de soporte.
 * 📕 **[Manual Oficial del Desarrollador (es-419)](docs/MANUAL_OFICIAL.md)** — Guía completa paso a paso para extender la plataforma.
-* 🏛️ **[Registro de Decisiones Arquitectónicas (ADRs)](docs/DECISIONS.md)** — Registro inmutable de arquitectura.
+* 🏛️ **[Registro de Decisiones Arquitectónicas (ADRs)](docs/DECISIONS.md)** — Registro inmutable de 61 ADRs.
 * 🌐 **[Topología de Red Empresarial](docs/NETWORK_TOPOLOGY.md)** — Topología perimetral, DMZ y exposición controlada de APIs.
 * 🛡️ **[Seguridad Perimetral y de Red](docs/NETWORK_SECURITY.md)** — Defensa en profundidad, cabeceras estrictas y aislamiento de dispositivos.
 * 🔌 **[Conectividad de Consumidores Externos](docs/EXTERNAL_CONSUMERS.md)** — Clientes SDK, apps de referencia y webhooks.
 * 🖨️ **[Registro de Dispositivos Empresariales](docs/DEVICE_REGISTRY.md)**
 * 🛡️ **[Registro de Seguridad & RBAC](docs/SECURITY_REGISTRY.md)**
 * 🔑 **[Gobernanza de Credenciales API & Autenticación](docs/CREDENTIAL_GOVERNANCE.md)**
-* 🧪 **[Registro Oficial de Pruebas Automatizadas (1399 Tests)](docs/TEST_REGISTRY.md)**
+* 🧪 **[Registro Oficial de Pruebas Automatizadas (1600 Tests)](docs/TEST_REGISTRY.md)**
 * ⚡ **[Runtime de Operaciones Autónomas](docs/AUTONOMOUS_OPERATIONS.md)**
 * 🛡️ **[Gobernanza Continua de Operaciones Autónomas](docs/AUTONOMOUS_GOVERNANCE.md)**
 * 📊 **[Observabilidad de Operaciones Autónomas](docs/AUTONOMOUS_OBSERVABILITY.md)**
 * ⚠️ **[Registro de Deuda Técnica y Brechas Reales](docs/TECHNICAL_DEBT.md)**
 * 🎯 **[Criterios de Salida para Producción](docs/V1_EXIT_CRITERIA.md)**
-* 📖 **[Manual Oficial de la Plataforma](docs/MANUAL_OFICIAL.md)**
 * 🏛️ **[Manual de Arquitectura Hexagonal](docs/MANUAL_ARQUITECTURA.md)**
 * 🛠️ **[Manual para Desarrolladores & SDK](docs/MANUAL_DESARROLLADOR.md)**
 * ⚙️ **[Manual Operacional](docs/MANUAL_OPERACIONAL.md)**

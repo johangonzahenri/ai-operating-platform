@@ -46,6 +46,7 @@ Este registro cataloga todos los documentos oficiales, técnicos y manuales oper
 | `docs/SCRIPTS_CATALOG.md` | Catálogo e inventario detallado de todos los scripts operacionales y comandos npm. | `es-419` | **SÍ** | VIGENTE | 2026-09-23 | `scripts/`, `package.json` |
 | `docs/TEST_ARCHITECTURE.md` | Arquitectura de pruebas, desglose de las 74 suites y 1600 tests en 8 dominios. | `es-419` | **SÍ** | VIGENTE | 2026-09-23 | `tests/unit/` (1600 tests PASS) |
 | `docs/OFFICIAL_DOCUMENTATION_INDEX.md` | Índice maestro de documentación oficial organizado por categorías y perfiles de rol. | `es-419` | **SÍ** | VIGENTE | 2026-09-23 | Todos los componentes y documentos |
+| `docs/PLATFORM_PRODUCT_BASELINE_V1_4.md` | Línea base del producto v1.4.0: arquitectura, capacidades, gaps y opciones de roadmap. | `es-419` | **SÍ** | VIGENTE | 2026-09-23 | Plataforma Estrella, Baseline v1.4 |
 | `docs/PHASE_81_DISCOVERY.md` | Documento de descubrimiento y auditoría de continuidad arquitectónica (Fase 81). | `es-419` | SÍ | VIGENTE | 2026-09-22 | Fase 81 Discovery |
 | `docs/PHASE_82_DISCOVERY.md` | Documento de descubrimiento de portafolio y formalización de proyectos (Fase 82). | `es-419` | SÍ | VIGENTE | 2026-09-22 | Fase 82 Discovery |
 | `docs/GLOSARIO.md` | Definiciones formales de términos técnicos y arquitectónicos del sistema. | `es-419` | SÍ | VIGENTE | 2026-09-17 | Conceptos de arquitectura de IA |
