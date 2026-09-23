@@ -467,6 +467,7 @@ export function createPlatformClient(options: PlatformClientOptions) {
     },
     stream(criteria?: {
       readonly tenantId?: string | undefined;
+      readonly applicationId?: string | undefined;
       readonly agentId?: string | undefined;
       readonly executionId?: string | undefined;
       readonly traceId?: string | undefined;
@@ -480,7 +481,8 @@ export function createPlatformClient(options: PlatformClientOptions) {
       const params = new URLSearchParams();
       if (options.apiKey) params.set("apiKey", options.apiKey);
       if (options.bearerToken) params.set("token", options.bearerToken);
-      if (criteria?.tenantId) params.set("tenantId", criteria.tenantId);
+      if (criteria?.tenantId || options.tenantId) params.set("tenantId", criteria?.tenantId ?? options.tenantId!);
+      if (criteria?.applicationId || options.applicationId) params.set("applicationId", criteria?.applicationId ?? options.applicationId!);
       if (criteria?.agentId) params.set("agentId", criteria.agentId);
       if (criteria?.executionId) params.set("executionId", criteria.executionId);
       if (criteria?.traceId) params.set("traceId", criteria.traceId);
@@ -558,85 +560,15 @@ export function createPlatformClient(options: PlatformClientOptions) {
         }
       })();
 
-      const workflows = {
-    async createDefinition(body: CreateWorkflowDefinitionRequestDTO): Promise<WorkflowDefinitionDTO> {
-      return request<WorkflowDefinitionDTO>("/workflows", {
-        method: "POST",
-        body: JSON.stringify(body),
-      });
-    },
-    async listDefinitions(): Promise<readonly WorkflowDefinitionDTO[]> {
-      return request<readonly WorkflowDefinitionDTO[]>("/workflows");
-    },
-    async getDefinition(id: string): Promise<WorkflowDefinitionDTO> {
-      return request<WorkflowDefinitionDTO>(`/workflows/${encodeURIComponent(id)}`);
-    },
-    async updateDefinition(id: string, body: UpdateWorkflowDefinitionRequestDTO): Promise<WorkflowDefinitionDTO> {
-      return request<WorkflowDefinitionDTO>(`/workflows/${encodeURIComponent(id)}`, {
-        method: "PUT",
-        body: JSON.stringify(body),
-      });
-    },
-    async activateDefinition(id: string): Promise<WorkflowDefinitionDTO> {
-      return request<WorkflowDefinitionDTO>(`/workflows/${encodeURIComponent(id)}/activate`, {
-        method: "POST",
-      });
-    },
-    async archiveDefinition(id: string): Promise<WorkflowDefinitionDTO> {
-      return request<WorkflowDefinitionDTO>(`/workflows/${encodeURIComponent(id)}/archive`, {
-        method: "POST",
-      });
-    },
-    async deleteDefinition(id: string): Promise<{ ok: boolean; id: string; deleted: boolean }> {
-      return request<{ ok: boolean; id: string; deleted: boolean }>(`/workflows/${encodeURIComponent(id)}`, {
-        method: "DELETE",
-      });
-    },
-    async start(definitionId: string, options?: { initiatedBy?: string; initialInput?: Record<string, unknown>; autoAdvance?: boolean }): Promise<AdvanceWorkflowResultDTO> {
-      return request<AdvanceWorkflowResultDTO>(`/workflows/${encodeURIComponent(definitionId)}/start`, {
-        method: "POST",
-        body: JSON.stringify(options ?? {}),
-      });
-    },
-    async listInstances(definitionId?: string): Promise<readonly WorkflowInstanceDTO[]> {
-      if (definitionId) {
-        return request<readonly WorkflowInstanceDTO[]>(`/workflows/${encodeURIComponent(definitionId)}/instances`);
-      }
-      return request<readonly WorkflowInstanceDTO[]>("/workflows/instances");
-    },
-    async getInstance(instanceId: string): Promise<WorkflowInstanceDTO> {
-      return request<WorkflowInstanceDTO>(`/workflows/instances/${encodeURIComponent(instanceId)}`);
-    },
-    async advance(instanceId: string): Promise<AdvanceWorkflowResultDTO> {
-      return request<AdvanceWorkflowResultDTO>(`/workflows/instances/${encodeURIComponent(instanceId)}/advance`, {
-        method: "POST",
-      });
-    },
-    async pause(instanceId: string, reason?: string): Promise<WorkflowInstanceDTO> {
-      return request<WorkflowInstanceDTO>(`/workflows/instances/${encodeURIComponent(instanceId)}/pause`, {
-        method: "POST",
-        body: JSON.stringify({ reason }),
-      });
-    },
-    async resume(instanceId: string): Promise<WorkflowInstanceDTO> {
-      return request<WorkflowInstanceDTO>(`/workflows/instances/${encodeURIComponent(instanceId)}/resume`, {
-        method: "POST",
-      });
-    },
-    async cancel(instanceId: string, reason?: string): Promise<WorkflowInstanceDTO> {
-      return request<WorkflowInstanceDTO>(`/workflows/instances/${encodeURIComponent(instanceId)}/cancel`, {
-        method: "POST",
-        body: JSON.stringify({ reason }),
-      });
-    },
-  };
-
-  return {
+      return {
         close: () => {
           aborted = true;
           ac.abort();
         },
       };
+    },
+    subscribe(criteria?: Parameters<typeof events.stream>[0], callbacks?: Parameters<typeof events.stream>[1]) {
+      return events.stream(criteria, callbacks);
     },
   };
 

@@ -253,6 +253,55 @@ paths:
       tags: [Health & Diagnostics]
       summary: Stream live platform events via Server-Sent Events (SSE)
       operationId: streamEvents
+      parameters:
+        - name: Last-Event-ID
+          in: header
+          description: Sequence number of the last received event for automatic replay and reconnection
+          required: false
+          schema:
+            type: integer
+        - name: tenantId
+          in: query
+          description: Filter events by tenant ID (enforces strict tenant isolation)
+          required: false
+          schema:
+            type: string
+        - name: applicationId
+          in: query
+          description: Filter events by application ID
+          required: false
+          schema:
+            type: string
+        - name: agentId
+          in: query
+          description: Filter events by agent ID
+          required: false
+          schema:
+            type: string
+        - name: executionId
+          in: query
+          description: Filter events by execution ID
+          required: false
+          schema:
+            type: string
+        - name: traceId
+          in: query
+          description: Filter events by trace ID
+          required: false
+          schema:
+            type: string
+        - name: eventType
+          in: query
+          description: Filter events by domain event type
+          required: false
+          schema:
+            type: string
+        - name: lastEventId
+          in: query
+          description: Alternative query param for Last-Event-ID
+          required: false
+          schema:
+            type: integer
       responses:
         '200':
           description: Server-sent event stream

@@ -25,7 +25,7 @@ Este documento resume los hitos de versión y criterios de salida de la **AI Ope
 | **v1.1.0 Extended Ecosystem** | Proveedores reales (OpenAI, Anthropic, Ollama), impresora Brother, consola bilingüe. | 966 tests PASS (0 FAIL), 11 suites, 0 innerHTML, modo es-419 / en. | ✅ **Completed (Baseline)** |
 | **v1.2.0 Enterprise Cloud & Virtual Org** | Gateway Gemini, JWT asimétrico RS256/ES256, proxy reverso TLS, memoria duradera SQLite, Virtual Organization Foundation (Organization, Area, Team, AgentMembership). | 1019 tests PASS (0 FAIL), 11 suites. | ✅ **Completed** |
 | **v1.3.0 Team Resource Governance** | TeamResourceBudget con cuotas multidimensionales, enforcement fail-closed en runtime (AgentExecutionStrategy, ToolInvocationRuntime, AutonomousOrchestrator). | 1064 tests PASS (0 FAIL), 11 suites. | ✅ **Completed (Baseline)** |
-| **v1.4.0 Production Hardening & Developer Platform** | AbortSignal propagation (OAD-001), persistent RBAC, authorization trace, budget/cost separation, OpenAPI 3.1, failure injection tests, security controls, operations runbooks, platform narrative, Developer Platform SDK productization & CLI. | 1623 tests PASS (0 FAIL), 74 suites. | ✅ **Completed (Baseline)** |
+| **v1.4.0 Production Hardening, Developer Platform & Real-Time SSE** | AbortSignal propagation (OAD-001), persistent RBAC, authorization trace, budget/cost separation, OpenAPI 3.1, Real-Time SSE Event Streaming (`/events/stream`), failure injection tests, security controls, operations runbooks, platform narrative, Developer Platform SDK productization & CLI. | 1646 tests PASS (0 FAIL), 74 suites. | ✅ **Completed (Baseline)** |
 
 ---
 

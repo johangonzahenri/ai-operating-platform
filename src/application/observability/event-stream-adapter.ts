@@ -5,6 +5,7 @@ import { DurableEvent, DurableEventQueryPort, DurableEventStore } from "../ports
 
 export interface StreamFilterCriteria {
   readonly tenantId: string;
+  readonly applicationId?: string | undefined;
   readonly organizationId?: string | undefined;
   readonly teamId?: string | undefined;
   readonly agentId?: string | undefined;
@@ -299,6 +300,13 @@ export class EventStreamAdapter {
       return false;
     }
 
+    if (filter.applicationId) {
+      const evtAppId = (payload?.applicationId as string | undefined) ?? (evt as { applicationId?: string }).applicationId;
+      if (evtAppId && evtAppId !== filter.applicationId) {
+        return false;
+      }
+    }
+
     if (filter.eventType && evt.eventType !== filter.eventType) return false;
     if (filter.traceId && evt.traceId !== filter.traceId) return false;
     if (filter.executionId && evt.payload?.executionId !== filter.executionId && evt.aggregateId !== filter.executionId) return false;
@@ -316,6 +324,13 @@ export class EventStreamAdapter {
     // Strict Tenant Isolation
     if (evtTenantId && evtTenantId !== filter.tenantId) {
       return false;
+    }
+
+    if (filter.applicationId) {
+      const evtAppId = (payload?.applicationId as string | undefined) ?? (evt as { applicationId?: string }).applicationId;
+      if (evtAppId && evtAppId !== filter.applicationId) {
+        return false;
+      }
     }
 
     if (filter.eventType && evt.type !== filter.eventType) return false;

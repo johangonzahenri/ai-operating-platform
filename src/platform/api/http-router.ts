@@ -877,6 +877,7 @@ export function createHttpServer(
 
           const filterCriteria = {
             tenantId: callerTenant,
+            applicationId: url.searchParams.get("applicationId")?.trim() || req.headers["x-application-id"]?.toString() || undefined,
             organizationId: url.searchParams.get("organizationId")?.trim() || undefined,
             teamId: url.searchParams.get("teamId")?.trim() || undefined,
             agentId: url.searchParams.get("agentId")?.trim() || undefined,

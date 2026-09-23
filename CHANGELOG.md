@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.4.0] - 2026-09-21 (Multi-Enterprise Governance, Governed Runtime, Mandate Reconciliation & Compliance Export)
 
+- **Real-Time Event Streaming via Server-Sent Events (`AOP-REALTIME-SSE`, Phase 137)**:
+  - Resilient, low-latency operational event stream endpoint `GET /api/v1/events/stream` based on W3C Server-Sent Events.
+  - Core streaming engine `EventStreamAdapter` supporting dynamic filtering by `tenantId`, `applicationId`, `agentId`, `executionId`, `traceId`, and `eventType`.
+  - Deterministic historical replay using `Last-Event-ID` header and `lastEventId` query parameter backed by `SqliteEventStore.query()`.
+  - Automatic sensitive data redaction (`sanitizePayload`) protecting passwords, bearer tokens, and API credentials.
+  - Heartbeat timer (15s interval) and comprehensive backpressure / connection limits (100 global / 20 tenant).
+  - SDK integration in `@ai-platform/client` with typed `client.events.stream()` and `client.events.subscribe()` methods.
+  - End-to-end contract and integration test suites: `tests/contract/sse-event-stream.test.ts` and `tests/integration/sse-event-stream.test.ts` (1646 tests PASS / 0 FAIL).
+  - Official technical guide: `docs/SSE_EVENT_STREAMING.md`.
+
 - **Platform API OpenAPI 3.1 Contract Productization (`AOP-API-OPENAPI`, Phase 136)**:
   - Canonical OpenAPI 3.1.0 formal specification (`docs/openapi.yaml`) covering 73 routes, 90 unique operationIds, and 138 component references across all 11 core platform domains.
   - Complete request/response schemas for Tasks, Executions, Agents, Autonomous Operations, Workflows, Solutions, Organizations, Multi-Enterprise Portfolios, Governance Evidence, Credentials, Applications, and Business Devices.
