@@ -25,9 +25,9 @@ DEVICE != CORE ENGINE
 ```
 
 * **Core Engine (Motor Principal):** Gobierna el ciclo de vida de tareas y ejecuciones mediante una máquina de estados finita determinista con **cero dependencias externas en tiempo de ejecución**.
-* **Platform Product (Producto Plataforma):** Expone la API REST nativa (`/api/v1/*`), el cliente SDK en TypeScript y el plano de control web SPA con soporte bilingüe (**Español Latinoamericano** por defecto / **Inglés**).
+* **Platform Product (Producto Plataforma):** Expone la API REST nativa (`/api/v1/*`), el contrato formal **OpenAPI 3.1** ([`docs/openapi.yaml`](docs/openapi.yaml)), el cliente SDK en TypeScript (`@ai-platform/client`) y el plano de control web SPA con soporte bilingüe (**Español Latinoamericano** por defecto / **Inglés**).
 * **Autonomous Operations Runtime:** Motor de ejecución operacional autónomo con gobernanza continua, arrendamiento concurrente (`RuntimeLease`), disyuntores de seguridad y reconciliación de ciclos.
-* **Developer Platform & Factory:** Kit de desarrollo, validación declarativa de manifiestos y generación de micro-frontends gobernados.
+* **Developer Platform & Factory:** Kit de desarrollo, CLI interactiva `create-aop-app`, validación declarativa de manifiestos y generación de micro-frontends gobernados.
 * **Aplicaciones Externas Gobernadas:** Aplicaciones de negocio independientes (como *Tentaciones AI Commerce* o *Vehicle Parts Platform*) que conservan la propiedad total de sus inventarios y carritos de compra, consumiendo inteligencia artificial exclusivamente mediante contratos de API autenticados.
 * **Dispositivos Empresariales:** Gestión de hardware físico local y spooler de impresión para impresoras comerciales (Brother DCP-1600 series en puerto `USB001`).
 

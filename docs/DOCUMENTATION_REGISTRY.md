@@ -49,6 +49,7 @@ Este registro cataloga todos los documentos oficiales, técnicos y manuales oper
 | `docs/PLATFORM_PRODUCT_BASELINE_V1_4.md` | Línea base del producto v1.4.0: arquitectura, capacidades, gaps y opciones de roadmap. | `es-419` | **SÍ** | VIGENTE | 2026-09-23 | Plataforma Estrella, Baseline v1.4 |
 | `docs/DEVELOPER_PLATFORM.md` | Especificación integral de la Developer Platform, Application Factory y CLI. | `es-419` | **SÍ** | VIGENTE | 2026-09-23 | Developer Platform, Application Factory, CLI |
 | `docs/APPLICATION_FACTORY_CLI.md` | Guía de referencia y manual de comandos para la CLI de andamiaje `create-aop-app`. | `es-419` | **SÍ** | VIGENTE | 2026-09-23 | `create-aop-app`, Scaffolding, CLI, ApplicationFactory |
+| `docs/OPENAPI_GUIDE.md` | Guía y especificación oficial del contrato OpenAPI 3.1 de la Platform REST API. | `es-419` | **SÍ** | VIGENTE | 2026-09-23 | OpenAPI 3.1, REST API, Contrato, SDK |
 | `docs/SDK_GUIDE.md` | Guía de referencia y manual de uso exhaustivo del SDK `@ai-platform/client`. | `es-419` | **SÍ** | VIGENTE | 2026-09-23 | `@ai-platform/client`, SDK, Client Error Codes |
 | `docs/APPLICATION_INTEGRATION_GUIDE.md` | Guía canónica de integración para aplicaciones satélites del ecosistema. | `es-419` | **SÍ** | VIGENTE | 2026-09-23 | Satélites, Portafolio, Webhooks, Idempotency |
 | `docs/PHASE_81_DISCOVERY.md` | Documento de descubrimiento y auditoría de continuidad arquitectónica (Fase 81). | `es-419` | SÍ | VIGENTE | 2026-09-22 | Fase 81 Discovery |

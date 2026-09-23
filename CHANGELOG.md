@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.4.0] - 2026-09-21 (Multi-Enterprise Governance, Governed Runtime, Mandate Reconciliation & Compliance Export)
 
+- **Platform API OpenAPI 3.1 Contract Productization (`AOP-API-OPENAPI`, Phase 136)**:
+  - Canonical OpenAPI 3.1.0 formal specification (`docs/openapi.yaml`) covering 73 routes, 90 unique operationIds, and 138 component references across all 11 core platform domains.
+  - Complete request/response schemas for Tasks, Executions, Agents, Autonomous Operations, Workflows, Solutions, Organizations, Multi-Enterprise Portfolios, Governance Evidence, Credentials, Applications, and Business Devices.
+  - Standard error envelope (`Error`) and status codes (400, 401, 403, 404, 409, 413, 415, 429, 500, 503).
+  - Security schemes for `apiKeyAuth` (SHA-256 hashed API key) and `bearerAuth` (asymmetric RS256/ES256 JWT) with scope enforcement.
+  - Automated contract test suite `tests/contract/openapi-contract.test.ts` ensuring zero unresolved references and 1:1 SDK alignment.
+  - Structural validator script `scripts/validate-openapi.mjs` and npm script `npm run api:check`.
+  - Official technical guide: `docs/OPENAPI_GUIDE.md`.
+
 - **Application Factory Developer CLI (`create-aop-app`, Phase 135)**:
   - Developer-facing scaffolding and certification CLI `create-aop-app` (`src/platform-client/create-aop-app.ts` / `npm run create-aop-app`) converting `ApplicationFactoryEngine` into an automated developer experience.
   - Commands implemented: `init <app-id>` (full governed scaffolding with template, capabilities, tenant, plan, dry-run, force, and json flags), `templates` (factory catalog inspection), `capabilities` (platform capability catalog with dependency graph resolution), `validate <path>` (manifest validation), and `doctor <path>` (7-point certification harness).
