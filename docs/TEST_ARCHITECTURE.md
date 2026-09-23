@@ -1,16 +1,16 @@
 # Arquitectura del Sistema de Pruebas (Test Architecture)
 
-Este documento describe la arquitectura, tipología, cobertura y metodología de la suite de pruebas automatizadas de **AI Operating Platform**, la cual cuenta con **74 suites y 1600 pruebas unitarias, de integración y de contrato**.
+Este documento describe la arquitectura, tipología, cobertura y metodología de la suite de pruebas automatizadas de **AI Operating Platform**, la cual cuenta con **74 suites y 1623 pruebas unitarias, de integración y de contrato**.
 
 ---
 
 ## 1. Métricas Globales y Estado de Verificación
 
 * **Suites de Pruebas:** 74 suites en `tests/unit/`.
-* **Pruebas Totales:** 1600 pruebas automatizadas.
-* **Tasa de Aprobación:** 100% (1600 / 1600 PASS).
-* **Tiempo Promedio de Ejecución:** ~40-45 segundos.
-* **Cobertura Funcional:** Dominio, Persistencia SQLite, Orquestación, Recuperación, Gobernanza, Seguridad, Pasarelas LLM y Plataforma API.
+* **Pruebas Totales:** 1623 pruebas automatizadas.
+* **Tasa de Aprobación:** 100% (1623 / 1623 PASS).
+* **Tiempo Promedio de Ejecución:** ~35-40 segundos.
+* **Cobertura Funcional:** Dominio, Persistencia SQLite, Orquestación, Recuperación, Gobernanza, Seguridad, Pasarelas LLM, Developer Platform & SDK y Plataforma API.
 
 ```mermaid
 pie title Distribución de las 74 Suites de Prueba
@@ -20,7 +20,7 @@ pie title Distribución de las 74 Suites de Prueba
     "Gateways LLM & Herramientas" : 10
     "Seguridad & Autenticación" : 8
     "Dominio & Ciclo de Vida" : 10
-    "Plataforma API & Integración Satélite" : 11
+    "Plataforma API, SDK & Satélites" : 11
     "Resiliencia & Recuperación de Caídas" : 4
 ```
 
@@ -104,8 +104,9 @@ Pruebas de unidad puras sobre agregados y reglas invariantes:
 * `in-memory-event-publisher.test.ts`: Publicador síncrono de eventos en memoria.
 * `in-memory-operation-repository.test.ts`: Almacenamiento volatil para tests unitarios.
 
-### 2.8 Plataforma API, Consola y Aplicaciones Satélites (11 Suites)
-Verifica la capa de servicio HTTP, el servidor de plataforma y los contratos de integración satélite:
+### 2.8 Plataforma API, SDK y Aplicaciones Satélites (11 Suites)
+Verifica la capa de servicio HTTP, el SDK `@ai-platform/client`, el generador de aplicaciones y los contratos de integración satélite:
+* `platform-client-sdk.test.ts`: Validación del cliente SDK `@ai-platform/client`, reintentos exponenciales en operaciones idempotentes, mapeo de errores `PlatformClientError`, inyección de encabezados de autenticación y herramientas CLI.
 * `platform-control-center.test.ts`: Métricas operacionales agregadas en tiempo real.
 * `platform-dashboard-runtime.test.ts`: Generación de telemetría para el panel de control.
 * `platform-product-architecture.test.ts`: Integración de componentes en el servidor nativo.
@@ -116,7 +117,6 @@ Verifica la capa de servicio HTTP, el servidor de plataforma y los contratos de 
 * `product-demo.test.ts`: Ejecución de demostraciones de plataforma.
 * `v1-release-gate.test.ts` & `public-release.test.ts`: Criterios de salida de versión y empaquetado.
 * `provider-verification.test.ts`: Verificación de compatibilidad con proveedores externos.
-* `integration-truth.test.ts`: Matriz de verdad de integración global.
 
 ---
 

@@ -273,7 +273,7 @@ export function createPlatformClient(options: PlatformClientOptions) {
         if (timeoutId) clearTimeout(timeoutId);
       }
 
-      if (response.status >= 502 && response.status <= 504 && allowRetry && attempt < attempts - 1) {
+      if (response.status >= 500 && response.status <= 504 && allowRetry && attempt < attempts - 1) {
         continue;
       }
 
@@ -316,7 +316,7 @@ export function createPlatformClient(options: PlatformClientOptions) {
         status: response.status,
         details: body.details ?? payload,
         requestId: responseRequestId,
-        traceId: typeof body.traceId === "string" ? body.traceId : undefined,
+        traceId: typeof body.traceId === "string" ? body.traceId : (response.headers.get("x-trace-id") ?? undefined),
       });
     }
 

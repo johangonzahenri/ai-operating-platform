@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.4.0] - 2026-09-21 (Multi-Enterprise Governance, Governed Runtime, Mandate Reconciliation & Compliance Export)
 
 ### Added
+- **Developer Platform & SDK Productization (`AOP-DEV-PLATFORM`, Phase 125)**:
+  - `@ai-platform/client` typed SDK productization: unified error mapping (`PlatformClientError`), deterministic retry engine for idempotent methods and requests with `Idempotency-Key` or `X-Idempotency-Key` headers (HTTP 500-504 & network codes `ECONNRESET`/`ETIMEDOUT`), and distributed trace ID extraction (`x-trace-id`).
+  - Developer CLI (`src/platform-client/cli.ts` / `npm run cli:dev`) supporting `health`, `info`, `agents`, `tasks`, `applications`, and `governance export`.
+  - Comprehensive technical specifications: `docs/DEVELOPER_PLATFORM.md`, `docs/SDK_GUIDE.md`, and `docs/APPLICATION_INTEGRATION_GUIDE.md`.
+  - Suite `tests/unit/platform-client-sdk.test.ts` with 23 new test assertions (Total test suite: **1623 tests PASS / 0 FAIL** across 74 suites).
 - **Governance & Compliance Evidence Export (`AOP-COMPLIANCE-EXPORT`, Phase 78 / ADR 0050)**:
   - Deterministic export package generator across 9 scopes: `TENANT`, `PORTFOLIO`, `ENTERPRISE`, `WORKFLOW`, `EXECUTION`, `MANDATE`, `APPROVAL`, `RECONCILIATION`, `AUDIT_TRAIL`.
   - Zero state mutation invariant: reading, packaging, and sealing evidence causes 0 state changes.
