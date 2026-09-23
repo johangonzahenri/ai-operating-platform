@@ -40,6 +40,12 @@ Este registro cataloga todos los documentos oficiales, técnicos y manuales oper
 | `docs/EXTERNAL_CONSUMERS.md` | Guía de integración de consumidores externos, SDK y conectividad webhooks. | `es-419` | SÍ | VIGENTE | 2026-09-20 | `src/platform-client/` |
 | `docs/AI_APPLICATION_PORTFOLIO_MAP.md` | Mapa visual y topología jerárquica del portafolio de aplicaciones satélites. | `es-419` | **SÍ** | VIGENTE | 2026-09-22 | Portafolio, Ecosistema, Mermaid |
 | `docs/APPLICATION_PORTFOLIO.md` | Cartera oficial de aplicaciones derivadas, estrategia de repositorios y ciclo de vida. | `es-419` | **SÍ** | VIGENTE | 2026-09-22 | Portafolio, Apps Satélites |
+| `docs/PROJECT_NOMENCLATURE.md` | Nomenclatura oficial canónica, mapa conceptual del ecosistema y glosario de términos. | `es-419` | **SÍ** | VIGENTE | 2026-09-23 | Gobernanza, Ecosistema, Mermaid |
+| `docs/REPOSITORY_MAP.md` | Mapa físico de directorios y desglose exhaustivo por capas del código fuente `src/`. | `es-419` | **SÍ** | VIGENTE | 2026-09-23 | Repositorio, Arquitectura Hexagonal |
+| `docs/PERSISTENCE_ARCHITECTURE.md` | Arquitectura de persistencia duradera en SQLite con WAL, OCC, rehidratación y recuperación. | `es-419` | **SÍ** | VIGENTE | 2026-09-23 | `src/infrastructure/persistence/sqlite/` |
+| `docs/SCRIPTS_CATALOG.md` | Catálogo e inventario detallado de todos los scripts operacionales y comandos npm. | `es-419` | **SÍ** | VIGENTE | 2026-09-23 | `scripts/`, `package.json` |
+| `docs/TEST_ARCHITECTURE.md` | Arquitectura de pruebas, desglose de las 74 suites y 1600 tests en 8 dominios. | `es-419` | **SÍ** | VIGENTE | 2026-09-23 | `tests/unit/` (1600 tests PASS) |
+| `docs/OFFICIAL_DOCUMENTATION_INDEX.md` | Índice maestro de documentación oficial organizado por categorías y perfiles de rol. | `es-419` | **SÍ** | VIGENTE | 2026-09-23 | Todos los componentes y documentos |
 | `docs/PHASE_81_DISCOVERY.md` | Documento de descubrimiento y auditoría de continuidad arquitectónica (Fase 81). | `es-419` | SÍ | VIGENTE | 2026-09-22 | Fase 81 Discovery |
 | `docs/PHASE_82_DISCOVERY.md` | Documento de descubrimiento de portafolio y formalización de proyectos (Fase 82). | `es-419` | SÍ | VIGENTE | 2026-09-22 | Fase 82 Discovery |
 | `docs/GLOSARIO.md` | Definiciones formales de términos técnicos y arquitectónicos del sistema. | `es-419` | SÍ | VIGENTE | 2026-09-17 | Conceptos de arquitectura de IA |

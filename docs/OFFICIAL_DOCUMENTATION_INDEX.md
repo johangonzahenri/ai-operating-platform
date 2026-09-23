@@ -1,0 +1,79 @@
+# Índice Maestro de Documentación Oficial (Official Documentation Index)
+
+Este índice proporciona el mapa canónico de navegación para toda la documentación técnica, arquitectónica y operativa del repositorio **AI Operating Platform** (`ai-operating-platform`).
+
+---
+
+## 1. Documentos Fundacionales y Gobernanza
+
+| Documento | Ubicación | Propósito | Audiencia Principal |
+| :--- | :--- | :--- | :--- |
+| **Fuente de Verdad** | [SOURCE_OF_TRUTH.md](./SOURCE_OF_TRUTH.md) | Jerarquía canónica de autoridad técnica (`CÓDIGO > TESTS > GIT > DOCS > ROADMAP`), taxonomía de estados y política de idioma. | Todos los roles |
+| **Nomenclatura Oficial** | [PROJECT_NOMENCLATURE.md](./PROJECT_NOMENCLATURE.md) | Nomenclatura canónica, glosario de términos técnicos y mapa conceptual del ecosistema con aplicaciones satélites. | Arquitectos, Desarrolladores |
+| **Mapa del Repositorio** | [REPOSITORY_MAP.md](./REPOSITORY_MAP.md) | Mapa físico del sistema de archivos, estructura de directorios y desglose por capas en `src/`. | Desarrolladores, Nuevos Integrantes |
+| **Libro Oficial** | [LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md](./LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md) | Tratado maestro integral del diseño, evolución histórica, matrices de verdad y certificación de la plataforma. | Auditores, Liderazgo Técnico |
+| **Índice de Documentación** | [OFFICIAL_DOCUMENTATION_INDEX.md](./OFFICIAL_DOCUMENTATION_INDEX.md) | Este índice de referencia y navegación rápida. | Todos los roles |
+
+---
+
+## 2. Arquitectura de Infraestructura, Persistencia y Pruebas
+
+| Documento | Ubicación | Propósito |
+| :--- | :--- | :--- |
+| **Arquitectura de Persistencia** | [PERSISTENCE_ARCHITECTURE.md](./PERSISTENCE_ARCHITECTURE.md) | Persistencia duradera en SQLite con `node:sqlite`, modo WAL, esquema relacional v3, OCC, inmutabilidad y `RestartRecoveryService`. |
+| **Arquitectura de Pruebas** | [TEST_ARCHITECTURE.md](./TEST_ARCHITECTURE.md) | Desglose y categorización de las 74 suites de prueba y los 1600 tests automatizados del repositorio. |
+| **Catálogo de Scripts** | [SCRIPTS_CATALOG.md](./SCRIPTS_CATALOG.md) | Inventario y guía de ejecución para todos los scripts operacionales, validadores de documentación y comandos npm. |
+| **Registro de Decisiones (ADR)** | [DECISIONS.md](./DECISIONS.md) & [decisions/](./decisions/) | Catálogo de las 61 Decisiones Arquitectónicas Registradas (ADR 0001 a ADR 0061). |
+| **Registro de Arquitectura** | [ARCHITECTURE_REGISTRY.md](./ARCHITECTURE_REGISTRY.md) | Inventario formal de subsistemas, módulos y componentes de la plataforma. |
+| **Topología de Red** | [PRODUCTION_NETWORK_TOPOLOGY.md](./PRODUCTION_NETWORK_TOPOLOGY.md) | Topología de red, puertos de escucha, proxies inversos y zonas de seguridad. |
+
+---
+
+## 3. Seguridad, Políticas y Gobernanza
+
+| Documento | Ubicación | Propósito |
+| :--- | :--- | :--- |
+| **Arquitectura de Seguridad** | [SECURITY_ARCHITECTURE.md](./SECURITY_ARCHITECTURE.md) | Modelo de contención de agentes, autenticación JWT, redacción de datos sensibles y sandbox de ejecución. |
+| **Registro de Seguridad** | [SECURITY_REGISTRY.md](./SECURITY_REGISTRY.md) | Inventario de controles de seguridad, algoritmos criptográficos y matrices de mitigación. |
+| **Modelo de Amenazas** | [THREAT_MODEL.md](./THREAT_MODEL.md) | Análisis STRIDE de vectores de ataque en ejecución autónoma y llamadas a herramientas. |
+| **Controles de Seguridad** | [SECURITY_CONTROLS.md](./SECURITY_CONTROLS.md) | Lista de verificación de controles operacionales implementados. |
+
+---
+
+## 4. Interfaces de Plataforma y Aplicaciones Satélites
+
+| Documento | Ubicación | Propósito |
+| :--- | :--- | :--- |
+| **Especificación de Platform API** | [PLATFORM_API.md](./PLATFORM_API.md) | Especificación de endpoints REST v1 (`/api/v1/*`), contratos JSON y códigos de estado. |
+| **SDK Platform Client** | [PLATFORM_CLIENT.md](./PLATFORM_CLIENT.md) | Guía de uso del SDK cliente en TypeScript para conectar aplicaciones externas. |
+| **Integración Tentaciones** | [TENTACIONES_PLATFORM_INTEGRATION.md](./TENTACIONES_PLATFORM_INTEGRATION.md) | Especificación de integración de la Aplicación Satélite 01 (Tentaciones AI Commerce). |
+| **Registro de Aplicaciones** | [APPLICATION_REGISTRY.md](./APPLICATION_REGISTRY.md) | Catálogo oficial de aplicaciones satélites del ecosistema (01 a 05). |
+| **Registro de Dispositivos** | [DEVICE_REGISTRY.md](./DEVICE_REGISTRY.md) | Catálogo y estado de integración de hardware y dispositivos periféricos. |
+| **Operaciones de Impresión** | [PRINT_OPERATIONS.md](./PRINT_OPERATIONS.md) | Documentación técnica del adaptador de impresión Brother DCP-1600 series. |
+
+---
+
+## 5. Roadmap, Auditoría y Deuda Técnica
+
+| Documento | Ubicación | Propósito |
+| :--- | :--- | :--- |
+| **Roadmap Maestro** | [ROADMAP_MASTER.md](./ROADMAP_MASTER.md) | Roadmap canónico estructurado por versiones (v0.1 a v1.4+), épicas y tareas verificadas. |
+| **Resumen del Roadmap** | [ROADMAP.md](../ROADMAP.md) | Vista ejecutiva del estado de las fases del proyecto. |
+| **Criterios de Salida v1.0** | [V1_EXIT_CRITERIA.md](./V1_EXIT_CRITERIA.md) | Criterios de verificación y certificación de producción para el release v1.0. |
+| **Preparación para Release** | [V1_RELEASE_READINESS.md](./V1_RELEASE_READINESS.md) | Matriz de comprobación de calidad, estabilidad y empaquetado para despliegue. |
+| **Registro de Deuda Técnica** | [TECHNICAL_DEBT.md](./TECHNICAL_DEBT.md) | Inventario formal de mejoras arquitectónicas, refactorizaciones y deudas técnicas gestionadas. |
+| **Trazabilidad de Prompts** | [PROMPT_TRACEABILITY.md](./PROMPT_TRACEABILITY.md) | Registro histórico de trazabilidad de fases y prompts de desarrollo. |
+
+---
+
+## 6. Guías de Navegación por Perfil de Usuario
+
+### Para Desarrolladores de Plataforma Core:
+1. Leer [SOURCE_OF_TRUTH.md](./SOURCE_OF_TRUTH.md) y [PROJECT_NOMENCLATURE.md](./PROJECT_NOMENCLATURE.md).
+2. Estudiar [REPOSITORY_MAP.md](./REPOSITORY_MAP.md) y [PERSISTENCE_ARCHITECTURE.md](./PERSISTENCE_ARCHITECTURE.md).
+3. Consultar [TEST_ARCHITECTURE.md](./TEST_ARCHITECTURE.md) y ejecutar `npm test` antes de cualquier cambio.
+
+### Para Desarrolladores de Aplicaciones Satélites (e.g. Tentaciones):
+1. Leer la sección de Aplicaciones Satélites en [PROJECT_NOMENCLATURE.md](./PROJECT_NOMENCLATURE.md).
+2. Consultar [PLATFORM_CLIENT.md](./PLATFORM_CLIENT.md) y [TENTACIONES_PLATFORM_INTEGRATION.md](./TENTACIONES_PLATFORM_INTEGRATION.md).
+3. Utilizar el SDK oficial de integración en `src/platform-client/`.
