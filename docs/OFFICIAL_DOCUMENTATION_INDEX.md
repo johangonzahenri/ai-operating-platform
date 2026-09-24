@@ -58,6 +58,8 @@ Este índice proporciona el mapa canónico de navegación para toda la documenta
 | **SDK Platform Client** | [PLATFORM_CLIENT.md](./PLATFORM_CLIENT.md) | Guía de uso del SDK cliente en TypeScript para conectar aplicaciones externas. |
 | **Integración Tentaciones** | [TENTACIONES_PLATFORM_INTEGRATION.md](./TENTACIONES_PLATFORM_INTEGRATION.md) | Especificación de integración de la Aplicación Satélite 01 (Tentaciones AI Commerce). |
 | **Charter PROJ-02 Spare Parts** | [PROJ_02_SPARE_PARTS_PRODUCT_CHARTER.md](./PROJ_02_SPARE_PARTS_PRODUCT_CHARTER.md) | Carta constitutiva y especificación del producto satélite Spare Parts Search & Comparison. |
+| **Plataforma Multi-Agente & Web AI** | [MULTI_AGENT_PLATFORM.md](./MULTI_AGENT_PLATFORM.md) | Arquitectura multi-agente, taxonomía, tool proficiency, Web AI, evaluación y proveedores externos. |
+| **Casos de Uso de Automatización** | [BUSINESS_AGENT_USE_CASES.md](./BUSINESS_AGENT_USE_CASES.md) | Catálogo canónico de casos de uso de automatización empresarial en 13 áreas operacionales. |
 | **Registro de Aplicaciones** | [APPLICATION_REGISTRY.md](./APPLICATION_REGISTRY.md) | Catálogo oficial de aplicaciones satélites del ecosistema (01 a 05). |
 | **Registro de Dispositivos** | [DEVICE_REGISTRY.md](./DEVICE_REGISTRY.md) | Catálogo y estado de integración de hardware y dispositivos periféricos. |
 | **Operaciones de Impresión** | [PRINT_OPERATIONS.md](./PRINT_OPERATIONS.md) | Documentación técnica del adaptador de impresión Brother DCP-1600 series. |

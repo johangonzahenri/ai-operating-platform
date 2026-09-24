@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.4.0] - 2026-09-21 (Multi-Enterprise Governance, Governed Runtime, Mandate Reconciliation & Compliance Export)
 
+- **Multi-Agent Web AI & Agent Capability Platform (`AOP-MULTI-AGENT-WEB-AI`, Phase 141)**:
+  - Formalized 8-type agent taxonomy (`NATIVE`, `MODEL`, `WEB`, `RESEARCH`, `CODE`, `AUTOMATION`, `VERIFICATION`, `EXTERNAL`) in `src/domain/agent/agent-taxonomy.ts`.
+  - Implemented `WebToolGateway` in `src/application/tools/web-tool-gateway.ts` with strict domain whitelist/blacklist controls, rate limiting, and structured evidence claims.
+  - Built `ExternalAgentGateway` in `src/application/agent/external-agent-gateway.ts` with decoupled adapters for OpenAI Codex CLI, OpenHands, and Aider pair programming without runtime core lock-in.
+  - Developed `AgentEvaluationHarness` in `src/application/agent/agent-evaluation-harness.ts` for reproducible benchmarking with multi-score metrics (task success, schema correctness, evidence completeness, latency, and lifecycle binding).
+  - Published canonical architecture specification in `docs/MULTI_AGENT_PLATFORM.md` and enterprise use-case matrix across 13 business areas in `docs/BUSINESS_AGENT_USE_CASES.md`.
+  - Added dedicated unit test suite in `tests/unit/multi-agent-capability-platform.test.ts` (1664 tests PASS / 0 FAIL across 75 suites).
+
 - **Master Work Plan Synchronization & PROJ-02 Product Charter (`AOP-MASTER-WORK-PLAN-V2`, Phase 140)**:
   - Synchronized Master Work Plan in `docs/MASTER_WORK_PLAN.md` incorporating active Phase 140 and preliminary product roadmap (Fases 141-149).
   - Established canonical Agent Operating Protocol in `docs/AGENT_OPERATING_PROTOCOL.md`, `.agent/rules/agent-operating-protocol.md`, and `AGENTS.md` for permanent agent workspace memory.

@@ -367,37 +367,103 @@ Sincronizar el Plan Maestro Operativo Oficial, formalizar el protocolo operativo
 
 ---
 
-## 10. Roadmap Preliminar del Producto PROJ-02 (Fases 141 a 149)
+## 10. FASE 141 — Multi-Agent Web AI & Agent Capability Platform
+
+### Objetivo
+Construir la base arquitectónica para **Multi-Agent Web AI** como capacidad nativa de la plataforma: formalizar la taxonomía de agentes, tool proficiency, arnés determinista de evaluación, pasarela de herramientas web gobernadas (`WebToolGateway`) y pasarela desacoplada para proveedores de agentes externos (`ExternalAgentGateway` para Codex, OpenHands y Aider).
+
+### Metadatos
+- **Estado Técnico**: `DONE`
+- **Estado Operativo**: `DONE`
+- **Prioridad**: `CRITICAL`
+- **Iniciativas Vinculadas**: `AOP-MULTI-AGENT-WEB-AI`
+- **Evidencia**: 1664 tests PASS (75 suites), 0 errores TypeScript, validadores 100% compliant.
+
+### Registro de Cambios y Ajustes Imprevistos (X.Y.Z)
+#### 141.0.1 — Reorganización de Fase 141 como Capacidad Central de Plataforma
+- **Tipo**: `CHANGE`
+- **Fecha**: 2026-09-24
+- **Detectado durante**: Planificación inicial de la Fase 141
+- **Origen**: Decisión estratégica de arquitectura de plataforma
+- **Motivo**: Establecer primero la capacidad de plataforma multi-agente, Web AI, evaluación y proveedores externos para beneficiar de forma horizontal a todo el portafolio (PROJ-01 a PROJ-05).
+- **Impacto**: Se reasignan las fases preliminares de PROJ-02 del rango 141-149 hacia 142-150.
+- **Estado**: `DONE`
+
+### Tareas
+
+#### 141.1 — Taxonomía de Agentes y Roles Canónicos
+- **Estado**: `DONE`
+- **Objetivo**: Formalizar `AgentTaxonomyType` (`NATIVE`, `MODEL`, `WEB`, `RESEARCH`, `CODE`, `AUTOMATION`, `VERIFICATION`, `EXTERNAL`).
+- **Evidencia**: `src/domain/agent/agent-taxonomy.ts` y tests unitarios.
+
+#### 141.2 — Modelo de Capacidades y Directivas de Gobernanza
+- **Estado**: `DONE`
+- **Objetivo**: Definir directivas de presupuesto (`budgetQuotaPerTask`), límites de handoff y requisito de procedencia de evidencia.
+- **Evidencia**: `AgentPolicyDirectives` y `StructuredClaimEvidence` en `src/domain/agent/agent-taxonomy.ts`.
+
+#### 141.3 — Nivel de Proficiencia de Herramientas (Tool Proficiency)
+- **Estado**: `DONE`
+- **Objetivo**: Modelar estados `DECLARED`, `VERIFIED`, `DEGRADED`, `DISABLED` para herramientas de agentes.
+- **Evidencia**: `GovernedToolProficiency` en `src/domain/agent/agent-taxonomy.ts`.
+
+#### 141.4 — Pasarela de Herramientas Web Seguras (WebToolGateway)
+- **Estado**: `DONE`
+- **Objetivo**: Implementar `WebToolGateway` con `allowedDomains`, `blockedDomains`, rate-limiting y herramientas `web.search` y `web.extract`.
+- **Evidencia**: `src/application/tools/web-tool-gateway.ts` y `src/domain/tools/web-tools.ts`.
+
+#### 141.5 — Pasarela de Proveedores de Agentes Externos (ExternalAgentGateway)
+- **Estado**: `DONE`
+- **Objetivo**: Crear abstracción desacoplada para agentes externos con adaptadores para OpenAI Codex CLI, OpenHands y Aider.
+- **Evidencia**: `src/application/agent/external-agent-gateway.ts` y `src/infrastructure/agent-providers/external-agent-adapters.ts`.
+
+#### 141.6 — Arnés de Evaluación Determinista de Agentes (AgentEvaluationHarness)
+- **Estado**: `DONE`
+- **Objetivo**: Implementar arnés determinista de benchmarking con scoring multidimensional y vinculación a `AgentLifecycleService`.
+- **Evidencia**: `src/application/agent/agent-evaluation-harness.ts`.
+
+#### 141.7 — Catálogo Canónico de Casos de Uso Empresariales
+- **Estado**: `DONE`
+- **Objetivo**: Formalizar matriz de 13 áreas de negocio con roles, herramientas, nivel de automatización y supervisión.
+- **Evidencia**: `docs/BUSINESS_AGENT_USE_CASES.md`.
+
+#### 141.8 — Documentación y Sincronización del Sistema
+- **Estado**: `DONE`
+- **Objetivo**: Actualizar `docs/MULTI_AGENT_PLATFORM.md`, `docs/ROADMAP_MASTER.md` y `docs/MASTER_WORK_PLAN.md`.
+- **Evidencia**: Documentos oficiales actualizados y validados con `scripts/master-work-plan-check.mjs`.
+
+---
+
+## 11. Roadmap Preliminar del Producto PROJ-02 (Fases 142 a 150)
 
 Las siguientes fases representan el plan de construcción del producto satélite *Spare Parts Search & Comparison* (`PROJ-02-SPAREPARTS`). Se declaran oficialmente en estado **`PLANNED / NOT_STARTED`** y no deben ejecutarse automáticamente sin un prompt de inicio específico:
 
 ```mermaid
 flowchart LR
-    F141["Fase 141: Discovery & Fuentes"] --> F142["Fase 142: Modelo de Dominio"]
-    F142 --> F143["Fase 143: Conectores Multi-Fuente"]
-    F143 --> F144["Fase 144: Normalización & Cross-Ref"]
-    F144 --> F145["Fase 145: Motor de Compatibilidad"]
-    F145 --> F146["Fase 146: Precios & Reputación"]
-    F146 --> F147["Fase 147: UX & Comparador SPA"]
-    F147 --> F148["Fase 148: Integración AOP & SSE"]
-    F148 --> F149["Fase 149: Certificación MVP"]
+    F142["Fase 142: Discovery & Fuentes"] --> F143["Fase 143: Modelo de Dominio"]
+    F143 --> F144["Fase 144: Conectores Multi-Fuente"]
+    F144 --> F145["Fase 145: Normalización & Cross-Ref"]
+    F145 --> F146["Fase 146: Motor de Compatibilidad"]
+    F146 --> F147["Fase 147: Precios & Reputación"]
+    F147 --> F148["Fase 148: UX & Comparador SPA"]
+    F148 --> F149["Fase 149: Integración AOP & SSE"]
+    F149 --> F150["Fase 150: Certificación MVP"]
 ```
 
 | Fase | Título de la Fase | Estado Técnico | Estado Operativo | Entregable Clave |
 | :--- | :--- | :--- | :--- | :--- |
-| **141** | Discovery y Mapa de Fuentes Automotrices | `PLANNED` | `NOT_STARTED` | Catálogo de fuentes, `SourceRegistry` y políticas de acceso. |
-| **142** | Modelo de Dominio Vehicle / Part / Fitment / Offer | `PLANNED` | `NOT_STARTED` | Esquemas de dominio tipados y contratos de identidad canónica. |
-| **143** | Motor de Búsqueda Multi-Fuente y Conectores | `PLANNED` | `NOT_STARTED` | Conectores paralelos con rate limiting y manejo de contingencia. |
-| **144** | Normalización, Deduplicación y Cross-Reference | `PLANNED` | `NOT_STARTED` | Agente de normalización e indexación de equivalencias OEM/Aftermarket. |
-| **145** | Motor Determinista de Verificación de Compatibilidad | `PLANNED` | `NOT_STARTED` | Verificador determinista de compatibilidad pieza-vehículo con evidencia. |
-| **146** | Inteligencia de Precios, Reputación y Costo Total | `PLANNED` | `NOT_STARTED` | Algoritmo de `SellerTrustScore` y cálculo transparente de precio total. |
-| **147** | UX Web: Búsqueda, Filtros y Comparador Lado a Lado | `PLANNED` | `NOT_STARTED` | Single-Page Application (0 `innerHTML`) con tabla comparativa. |
-| **148** | Integración Profunda con AI Operating Platform | `PLANNED` | `NOT_STARTED` | Adaptador satélite `@ai-platform/client` y telemetría SSE reactiva. |
-| **149** | Certificación de Aplicación, Seguridad y Release MVP | `PLANNED` | `NOT_STARTED` | Arnés de certificación de 9 puntos y empaquetado de producción. |
+| **142** | Discovery y Mapa de Fuentes Automotrices | `PLANNED` | `NOT_STARTED` | Catálogo de fuentes, `SourceRegistry` y políticas de acceso. |
+| **143** | Modelo de Dominio Vehicle / Part / Fitment / Offer | `PLANNED` | `NOT_STARTED` | Esquemas de dominio tipados y contratos de identidad canónica. |
+| **144** | Motor de Búsqueda Multi-Fuente y Conectores | `PLANNED` | `NOT_STARTED` | Conectores paralelos con rate limiting y manejo de contingencia. |
+| **145** | Normalización, Deduplicación y Cross-Reference | `PLANNED` | `NOT_STARTED` | Agente de normalización e indexación de equivalencias OEM/Aftermarket. |
+| **146** | Motor Determinista de Verificación de Compatibilidad | `PLANNED` | `NOT_STARTED` | Verificador determinista de compatibilidad pieza-vehículo con evidencia. |
+| **147** | Inteligencia de Precios, Reputación y Costo Total | `PLANNED` | `NOT_STARTED` | Algoritmo de `SellerTrustScore` y cálculo transparente de precio total. |
+| **148** | UX Web: Búsqueda, Filtros y Comparador Lado a Lado | `PLANNED` | `NOT_STARTED` | Single-Page Application (0 `innerHTML`) con tabla comparativa. |
+| **149** | Integración Profunda con AI Operating Platform | `PLANNED` | `NOT_STARTED` | Adaptador satélite `@ai-platform/client` y telemetría SSE reactiva. |
+| **150** | Certificación de Aplicación, Seguridad y Release MVP | `PLANNED` | `NOT_STARTED` | Arnés de certificación de 9 puntos y empaquetado de producción. |
 
 ---
 
-## 11. Checklist Global Obligatorio de Cierre de Fase
+## 12. Checklist Global Obligatorio de Cierre de Fase
 
 Toda fase futura debe satisfacer el siguiente checklist integral antes de ser declarada `DONE`:
 
@@ -424,7 +490,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ## 12. Plantillas Oficiales de Registro
 
-### 12.1. Plantilla de Fase Futura
+### 13.1. Plantilla de Fase Futura
 
 ```markdown
 ## FASE X — [Título de la Fase]
@@ -459,7 +525,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 - X.1.1 — [Título del cambio si surge]
 ```
 
-### 12.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
+### 13.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
 
 ```markdown
 ### X.Y.Z — [Nombre del Cambio Imprevisto]
@@ -478,7 +544,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 13. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
+## 14. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
 
 Las siguientes líneas de trabajo constituyen el backlog estratégico aprobado. Se mantienen en estado `PLANNED`, `BACKLOG` o `EXPLORATORY` y no deben marcarse como `DONE` hasta contar con código y pruebas completas:
 
@@ -516,7 +582,7 @@ flowchart LR
    - Especificaciones formales para clientes SDK en Python y Go.
 
 2. **Línea B — Expansión del Portafolio Satélite (`PLANNED / BACKLOG`)**:
-   - **`PROJ-02` (Spare Parts Search & Comparison)**: Fases 141-149 planificadas formalmente en [`docs/PROJ_02_SPARE_PARTS_PRODUCT_CHARTER.md`](./PROJ_02_SPARE_PARTS_PRODUCT_CHARTER.md).
+   - **`PROJ-02` (Spare Parts Search & Comparison)**: Fases 142-150 planificadas formalmente en [`docs/PROJ_02_SPARE_PARTS_PRODUCT_CHARTER.md`](./PROJ_02_SPARE_PARTS_PRODUCT_CHARTER.md).
    - **`PROJ-03` (Fleet Management)**: Gestión telemática y optimización de rutas con agentes autónomos.
    - **`PROJ-04` (Customer Portal)**: Triaje de soporte omnicanal y escalamiento humano con SoD.
    - **`PROJ-05` (Analytics AI)**: Agregación de KPIs ejecutivos y pronósticos sin alucinación.
