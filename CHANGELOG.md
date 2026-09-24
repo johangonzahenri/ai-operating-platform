@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.4.0] - 2026-09-21 (Multi-Enterprise Governance, Governed Runtime, Mandate Reconciliation & Compliance Export)
 
+- **Automotive Source Discovery & Intelligence Layer (`AOP-SPAREPARTS-DISCOVERY`, Phase 142)**:
+  - Implemented domain model for automotive sources in `src/domain/spareparts/automotive-source.ts` (`AutomotiveSource`, `AutomotiveSourceType`, `AutomotiveAccessMethod`, `AutomotiveSourceStatus`, `SourceDataCapabilities`, `SourceAccessPolicy`, `SourceCoverage`, and `SourceTrustRating`).
+  - Created `InMemoryAutomotiveSourceRegistry` in `src/application/spareparts/automotive-source-registry.ts` with multi-criteria filtering by region, vehicle make, part category, fitment, price, and trust rating.
+  - Defined canonical source dataset `CANONICAL_AUTOMOTIVE_SOURCES` in `src/infrastructure/spareparts/canonical-sources.ts` profiling 7 verified real-world sources (3 Chilean, 3 International, 1 OEM Catalog reference).
+  - Defined connector interface `AutomotiveSourceConnector` and base implementation in `src/application/spareparts/automotive-source-connector.ts` emitting `SourceProductOffer` with `StructuredClaimEvidence`.
+  - Created comprehensive source map documentation in `docs/AUTOMOTIVE_SOURCE_MAP.md`.
+  - Added dedicated unit test suite in `tests/unit/automotive-source-discovery.test.ts` (1669 tests PASS / 0 FAIL across 80 suites).
+
 - **Multi-Agent Web AI & Agent Capability Platform (`AOP-MULTI-AGENT-WEB-AI`, Phase 141)**:
   - Formalized 8-type agent taxonomy (`NATIVE`, `MODEL`, `WEB`, `RESEARCH`, `CODE`, `AUTOMATION`, `VERIFICATION`, `EXTERNAL`) in `src/domain/agent/agent-taxonomy.ts`.
   - Implemented `WebToolGateway` in `src/application/tools/web-tool-gateway.ts` with strict domain whitelist/blacklist controls, rate limiting, and structured evidence claims.

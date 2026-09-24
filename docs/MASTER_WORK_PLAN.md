@@ -380,10 +380,10 @@ Construir la base arquitectónica para **Multi-Agent Web AI** como capacidad nat
 - **Evidencia**: 1664 tests PASS (75 suites), 0 errores TypeScript, validadores 100% compliant.
 
 ### Registro de Cambios y Ajustes Imprevistos (X.Y.Z)
-#### 141.0.1 — Reorganización de Fase 141 como Capacidad Central de Plataforma
+#### 141.1.1 — Reorganización de Fase 141 como Capacidad Central de Plataforma
 - **Tipo**: `CHANGE`
 - **Fecha**: 2026-09-24
-- **Detectado durante**: Planificación inicial de la Fase 141
+- **Detectado durante**: Tarea 141.1 (Taxonomía de Agentes)
 - **Origen**: Decisión estratégica de arquitectura de plataforma
 - **Motivo**: Establecer primero la capacidad de plataforma multi-agente, Web AI, evaluación y proveedores externos para beneficiar de forma horizontal a todo el portafolio (PROJ-01 a PROJ-05).
 - **Impacto**: Se reasignan las fases preliminares de PROJ-02 del rango 141-149 hacia 142-150.
@@ -433,14 +433,59 @@ Construir la base arquitectónica para **Multi-Agent Web AI** como capacidad nat
 
 ---
 
-## 11. Roadmap Preliminar del Producto PROJ-02 (Fases 142 a 150)
+## 11. FASE 142 — Discovery y Mapa de Fuentes Automotrices
+
+### Objetivo
+Construir la capa de inteligencia y descubrimiento de fuentes automotrices (*Automotive Source Discovery & Source Intelligence Layer*) para **PROJ-02 — Spare Parts Search & Comparison**: definir la taxonomía de fuentes, modelo canónico de datos, políticas de acceso, arnés de conectores base y catalogación de fuentes para Chile e Internacionales.
+
+### Metadatos
+- **Estado Técnico**: `DONE`
+- **Estado Operativo**: `DONE`
+- **Prioridad**: `HIGH`
+- **Iniciativas Vinculadas**: `AOP-SPAREPARTS-SEARCH`
+- **Evidencia**: 1669 tests PASS (80 suites), 0 errores TypeScript, validadores 100% compliant.
+
+### Tareas
+
+#### 142.1 — Modelo de Dominio de Fuente Automotriz
+- **Estado**: `DONE`
+- **Objetivo**: Diseñar agregados `AutomotiveSource`, `SourceDataCapabilities`, `SourceAccessPolicy`, `SourceCoverage` y `SourceTrustRating`.
+- **Evidencia**: `src/domain/spareparts/automotive-source.ts`.
+
+#### 142.2 — Taxonomía de Fuentes y Métodos de Acceso
+- **Estado**: `DONE`
+- **Objetivo**: Formalizar categorías (`OFFICIAL_OEM`, `MARKETPLACE`, `SPECIALIZED_RETAILER`, etc.) y métodos de adquisición (`OFFICIAL_API`, `STRUCTURED_DATA`, `WEB_PAGE`).
+- **Evidencia**: `VALID_AUTOMOTIVE_SOURCE_TYPES` y `VALID_AUTOMOTIVE_ACCESS_METHODS` en `src/domain/spareparts/automotive-source.ts`.
+
+#### 142.3 — Registro de Fuentes en Memoria (AutomotiveSourceRegistry)
+- **Estado**: `DONE`
+- **Objetivo**: Implementar `InMemoryAutomotiveSourceRegistry` con búsqueda y filtrado multicriterio por región, capacidades y nivel de confianza.
+- **Evidencia**: `src/application/spareparts/automotive-source-registry.ts`.
+
+#### 142.4 — Investigación y Catalogación Canónica de Fuentes (Chile & Global)
+- **Estado**: `DONE`
+- **Objetivo**: Investigar y catalogar fuentes reales: Mercado Libre CL, Autoplanet CL, Repuestos Boston CL, RockAuto, eBay Motors, AutoDoc EU y OEM Catalog DB.
+- **Evidencia**: `src/infrastructure/spareparts/canonical-sources.ts`.
+
+#### 142.5 — Contrato de Conector y Piloto de Búsqueda con Evidencia
+- **Estado**: `DONE`
+- **Objetivo**: Implementar `AutomotiveSourceConnector` y `BaseAutomotiveSourceConnector` emitiendo `SourceProductOffer` con `StructuredClaimEvidence`.
+- **Evidencia**: `src/application/spareparts/automotive-source-connector.ts` y tests unitarios.
+
+#### 142.6 — Pruebas Automatizadas y Documentación
+- **Estado**: `DONE`
+- **Objetivo**: Crear suite de tests `tests/unit/automotive-source-discovery.test.ts` y publicar `docs/AUTOMOTIVE_SOURCE_MAP.md`.
+- **Evidencia**: 5 tests unitarios dedicados PASS, 1669 tests totales PASS.
+
+---
+
+## 12. Roadmap Preliminar del Producto PROJ-02 (Fases 143 a 150)
 
 Las siguientes fases representan el plan de construcción del producto satélite *Spare Parts Search & Comparison* (`PROJ-02-SPAREPARTS`). Se declaran oficialmente en estado **`PLANNED / NOT_STARTED`** y no deben ejecutarse automáticamente sin un prompt de inicio específico:
 
 ```mermaid
 flowchart LR
-    F142["Fase 142: Discovery & Fuentes"] --> F143["Fase 143: Modelo de Dominio"]
-    F143 --> F144["Fase 144: Conectores Multi-Fuente"]
+    F143["Fase 143: Modelo de Dominio"] --> F144["Fase 144: Conectores Multi-Fuente"]
     F144 --> F145["Fase 145: Normalización & Cross-Ref"]
     F145 --> F146["Fase 146: Motor de Compatibilidad"]
     F146 --> F147["Fase 147: Precios & Reputación"]
@@ -451,7 +496,6 @@ flowchart LR
 
 | Fase | Título de la Fase | Estado Técnico | Estado Operativo | Entregable Clave |
 | :--- | :--- | :--- | :--- | :--- |
-| **142** | Discovery y Mapa de Fuentes Automotrices | `PLANNED` | `NOT_STARTED` | Catálogo de fuentes, `SourceRegistry` y políticas de acceso. |
 | **143** | Modelo de Dominio Vehicle / Part / Fitment / Offer | `PLANNED` | `NOT_STARTED` | Esquemas de dominio tipados y contratos de identidad canónica. |
 | **144** | Motor de Búsqueda Multi-Fuente y Conectores | `PLANNED` | `NOT_STARTED` | Conectores paralelos con rate limiting y manejo de contingencia. |
 | **145** | Normalización, Deduplicación y Cross-Reference | `PLANNED` | `NOT_STARTED` | Agente de normalización e indexación de equivalencias OEM/Aftermarket. |
@@ -463,7 +507,7 @@ flowchart LR
 
 ---
 
-## 12. Checklist Global Obligatorio de Cierre de Fase
+## 13. Checklist Global Obligatorio de Cierre de Fase
 
 Toda fase futura debe satisfacer el siguiente checklist integral antes de ser declarada `DONE`:
 
@@ -488,7 +532,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 12. Plantillas Oficiales de Registro
+## 13. Plantillas Oficiales de Registro
 
 ### 13.1. Plantilla de Fase Futura
 
