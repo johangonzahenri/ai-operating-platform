@@ -1,0 +1,22 @@
+{
+  "applicationId": "reference-consumer",
+  "name": "AOP Reference Consumer Application",
+  "version": "1.0.0",
+  "runtime": "node",
+  "capabilities": [
+    "product.discovery",
+    "report.generate",
+    "automation.execute"
+  ],
+  "requiredFeatures": [],
+  "tenantRequirements": {
+    "minPlan": "FREE",
+    "requiredCapabilities": [
+      "product.discovery",
+      "report.generate",
+      "automation.execute"
+    ]
+  },
+  "minimumPlatformVersion": "1.4.0",
+  "environment": "development"
+}

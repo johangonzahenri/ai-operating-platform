@@ -135,3 +135,12 @@ mi-app/
 1. **Principio Fail-Closed en Derechos**: Si un tenant en plan `FREE` solicita capacidades exclusivas de `ENTERPRISE` (p. ej. `ar.fitting_room`), la CLI rechaza la creación de forma inmediata con código de salida `1` sin mutar el disco.
 2. **Dependencias Canónicas**: Todos los adaptadores generados importan el paquete canónico `@ai-platform/client`, erradicando discrepancias de nomenclatura de versiones previas.
 3. **Determinismo y Trazabilidad**: Todo manifiesto incluye metadatos de versión de plataforma, tenant ID y capacidades declaradas para su auditoría en el `DurableEventStore`.
+
+---
+
+## 6. Aplicación de Referencia Canónica
+
+Para examinar una aplicación satélite completamente implementada y certificada generada con `create-aop-app`, consulte:
+* `examples/reference-consumer/`
+* [Documentación de la Aplicación de Referencia](./REFERENCE_APPLICATION.md)
+

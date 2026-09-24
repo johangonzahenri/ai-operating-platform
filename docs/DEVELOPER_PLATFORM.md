@@ -104,3 +104,16 @@ try {
 * **Reintentos Automáticos:** El cliente reintenta automáticamente solicitudes fallidas (códigos HTTP 500-504 o fallos de red) **exclusivamente para métodos idempotentes** (`GET`, `HEAD`, `PUT`, `DELETE`, `OPTIONS`).
 * **Idempotencia en POST:** Para solicitudes `POST`, los reintentos solo se activan si la solicitud incluye la cabecera `Idempotency-Key` o `idempotencyKey` en la entrada de creación.
 * **Algoritmo de Retroceso:** Retroceso exponencial con factor configurable (`backoffFactor`, por defecto 2) y retardo base (`retryDelayMs`, por defecto 200ms).
+
+---
+
+## 6. Aplicación de Referencia y Certificación de Integración
+
+Para validar y certificar que la plataforma opera efectivamente como un producto consumible por terceros ("Platform as a Product"), se incluye la **Reference Consumer Application**:
+
+* **Código Fuente**: `examples/reference-consumer/`
+* **Especificación**: [docs/REFERENCE_APPLICATION.md](./REFERENCE_APPLICATION.md)
+* **Certificación Canónica**: `runReferenceAppCertification(adapter, manifest)` evaluando las 9 dimensiones críticas de integración (Identidad, Salud, Autenticación, Autorización, Capacidades, Versión, Observabilidad, OpenAPI y SSE).
+* **Consumo de Eventos en Vivo**: `LiveEventManager` con buffer circular y auto-reconexión.
+* **Dashboard Interactivo**: `/reference-app` y `/reference-consumer`.
+

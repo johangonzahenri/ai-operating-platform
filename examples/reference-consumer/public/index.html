@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AOP Reference Consumer Application</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="header-container">
+      <div class="header-titles">
+        <h1>AOP Reference Consumer</h1>
+        <p class="subtitle">Official Integration & Certification Consumer for AI Operating Platform</p>
+      </div>
+      <div class="header-badges">
+        <span class="badge" id="app-badge">APP: reference-consumer</span>
+        <span class="badge" id="tenant-badge">TENANT: tenant-reference-corp</span>
+        <span class="badge badge-online" id="status-badge">PLATFORM: CONNECTED</span>
+        <span class="badge badge-stream" id="stream-badge">SSE: LIVE</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="app-main">
+    <section class="grid-section">
+      <!-- Card 1: Application & Platform Identity -->
+      <div class="card">
+        <h2>Application Identity & Context</h2>
+        <div class="info-list">
+          <div class="info-row"><span class="label">Application ID:</span> <span class="val" id="val-app-id">reference-consumer</span></div>
+          <div class="info-row"><span class="label">Version:</span> <span class="val" id="val-app-ver">1.0.0</span></div>
+          <div class="info-row"><span class="label">Runtime:</span> <span class="val">node (ESM)</span></div>
+          <div class="info-row"><span class="label">Tenant Scope:</span> <span class="val" id="val-tenant">tenant-reference-corp</span></div>
+          <div class="info-row"><span class="label">Platform Version:</span> <span class="val" id="val-platform-ver">1.4.0</span></div>
+          <div class="info-row"><span class="label">API Base URL:</span> <span class="val" id="val-base-url">/api/v1</span></div>
+        </div>
+      </div>
+
+      <!-- Card 2: Granted Capabilities -->
+      <div class="card">
+        <h2>Governed Capabilities</h2>
+        <p class="card-desc">Capabilities declared in manifest and granted by Tenant Entitlements:</p>
+        <ul class="capability-list" id="cap-list">
+          <li><span class="cap-pill">product.discovery</span> <span class="cap-desc">Semantic search and LLM catalog discovery</span></li>
+          <li><span class="cap-pill">report.generate</span> <span class="cap-desc">Executive & operational telemetry reports</span></li>
+          <li><span class="cap-pill">automation.execute</span> <span class="cap-desc">Durable asynchronous workflows and webhooks</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Section 2: Interactive Actions & Certification -->
+    <section class="actions-section">
+      <div class="card">
+        <h2>Interactive Consumer Actions</h2>
+        <div class="button-group">
+          <button class="btn btn-primary" id="btn-run-discovery">Execute AI Discovery Task</button>
+          <button class="btn btn-secondary" id="btn-run-report">Generate Operational Report</button>
+          <button class="btn btn-outline" id="btn-toggle-sse">Reconnect SSE Stream</button>
+          <button class="btn btn-certify" id="btn-run-cert">Run 9-Point Certification</button>
+        </div>
+        <div class="action-feedback" id="action-feedback">Ready. Select an action to dispatch via PlatformClient.</div>
+      </div>
+    </section>
+
+    <!-- Section 3: Live Event Stream & Certification Report -->
+    <section class="grid-section">
+      <!-- Stream Feed -->
+      <div class="card feed-card">
+        <div class="feed-header">
+          <h2>Real-Time Event Stream (SSE)</h2>
+          <span class="last-id-pill" id="last-id-indicator">Last-Event-ID: --</span>
+        </div>
+        <div class="stream-feed" id="event-feed">
+          <div class="feed-placeholder">Waiting for platform domain events...</div>
+        </div>
+      </div>
+
+      <!-- Certification Panel -->
+      <div class="card cert-card">
+        <h2>Platform Certification Report</h2>
+        <pre class="cert-block" id="cert-output">REFERENCE APPLICATION CERTIFICATION
+-----------------------------------
+Identity       PENDING
+Authentication PENDING
+Authorization  PENDING
+Capabilities   PENDING
+Health         PENDING
+Version        PENDING
+Observability  PENDING
+OpenAPI        PENDING
+SSE            PENDING</pre>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <p>AI Operating Platform Reference Consumer &copy; 2026. Certified against OpenAPI 3.1 & W3C Server-Sent Events.</p>
+  </footer>
+
+  <script src="./app.js"></script>
+</body>
+</html>

@@ -53,6 +53,7 @@ Este registro cataloga todos los documentos oficiales, técnicos y manuales oper
 | `docs/SSE_EVENT_STREAMING.md` | Guía oficial y especificación técnica de streaming de eventos en tiempo real (SSE). | `es-419` | **SÍ** | VIGENTE | 2026-09-23 | Server-Sent Events, EventStreamAdapter, Web Control Plane |
 | `docs/SDK_GUIDE.md` | Guía de referencia y manual de uso exhaustivo del SDK `@ai-platform/client`. | `es-419` | **SÍ** | VIGENTE | 2026-09-23 | `@ai-platform/client`, SDK, Client Error Codes |
 | `docs/APPLICATION_INTEGRATION_GUIDE.md` | Guía canónica de integración para aplicaciones satélites del ecosistema. | `es-419` | **SÍ** | VIGENTE | 2026-09-23 | Satélites, Portafolio, Webhooks, Idempotency |
+| `docs/REFERENCE_APPLICATION.md` | Especificación y certificación de la aplicación de referencia canónica (Reference Consumer). | `es-419` | **SÍ** | VIGENTE | 2026-09-23 | Reference Consumer, Certification, Live SSE, Adapter |
 | `docs/PHASE_81_DISCOVERY.md` | Documento de descubrimiento y auditoría de continuidad arquitectónica (Fase 81). | `es-419` | SÍ | VIGENTE | 2026-09-22 | Fase 81 Discovery |
 | `docs/PHASE_82_DISCOVERY.md` | Documento de descubrimiento de portafolio y formalización de proyectos (Fase 82). | `es-419` | SÍ | VIGENTE | 2026-09-22 | Fase 82 Discovery |
 | `docs/GLOSARIO.md` | Definiciones formales de términos técnicos y arquitectónicos del sistema. | `es-419` | SÍ | VIGENTE | 2026-09-17 | Conceptos de arquitectura de IA |

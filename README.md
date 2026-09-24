@@ -5,7 +5,7 @@
 > *"Infraestructura operacional de IA sobre la cual se construyen, gobiernan y observan aplicaciones, automatizaciones y dispositivos empresariales."*
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
-[![Test Suite](https://img.shields.io/badge/tests-1623%20passing-success.svg)]()
+[![Test Suite](https://img.shields.io/badge/tests-1656%20passing-success.svg)]()
 [![Production Dependencies](https://img.shields.io/badge/npm%20dependencies-0%20runtime-blue.svg)]()
 [![Documentation](https://img.shields.io/badge/manual-oficial%20es--419-indigo.svg)](docs/MANUAL_OFICIAL.md)
 [![Libro Oficial](https://img.shields.io/badge/libro-oficial%20v2.0-blueviolet.svg)](LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md)
@@ -134,6 +134,8 @@ El repositorio cuenta con documentación exhaustiva para desarrolladores, arquit
 * 🏛️ **[Registro de Decisiones Arquitectónicas (ADRs)](docs/DECISIONS.md)** — Registro inmutable de 61 ADRs.
 * 🌐 **[Topología de Red Empresarial](docs/NETWORK_TOPOLOGY.md)** — Topología perimetral, DMZ y exposición controlada de APIs.
 * 🛡️ **[Seguridad Perimetral y de Red](docs/NETWORK_SECURITY.md)** — Defensa en profundidad, cabeceras estrictas y aislamiento de dispositivos.
+* 🔌 **[Guía de Integración Satélite](docs/APPLICATION_INTEGRATION_GUIDE.md)** — Contrato canónico de integración para conectar aplicaciones de negocio.
+* 📦 **[Aplicación de Referencia Canónica](docs/REFERENCE_APPLICATION.md)** — Implementación y certificación de la Reference Consumer Application.
 * 🔌 **[Conectividad de Consumidores Externos](docs/EXTERNAL_CONSUMERS.md)** — Clientes SDK, apps de referencia y webhooks.
 * 🖨️ **[Registro de Dispositivos Empresariales](docs/DEVICE_REGISTRY.md)**
 * 🛡️ **[Registro de Seguridad & RBAC](docs/SECURITY_REGISTRY.md)**

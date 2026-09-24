@@ -51,6 +51,7 @@ Este índice proporciona el mapa canónico de navegación para toda la documenta
 | **Streaming de Eventos (SSE)** | [SSE_EVENT_STREAMING.md](./SSE_EVENT_STREAMING.md) | Especificación y guía de streaming de eventos en tiempo real mediante Server-Sent Events. |
 | **Guía del SDK de Cliente** | [SDK_GUIDE.md](./SDK_GUIDE.md) | Manual de uso y referencia rápida del cliente `@ai-platform/client` en TypeScript. |
 | **Guía de Integración Satélite** | [APPLICATION_INTEGRATION_GUIDE.md](./APPLICATION_INTEGRATION_GUIDE.md) | Contrato canónico de integración para conectar aplicaciones de negocio satélites. |
+| **Aplicación de Referencia** | [REFERENCE_APPLICATION.md](./REFERENCE_APPLICATION.md) | Especificación y certificación de la aplicación de referencia canónica (Reference Consumer). |
 | **Especificación de Platform API** | [PLATFORM_API.md](./PLATFORM_API.md) | Especificación de endpoints REST v1 (`/api/v1/*`), contratos JSON y códigos de estado. |
 | **SDK Platform Client** | [PLATFORM_CLIENT.md](./PLATFORM_CLIENT.md) | Guía de uso del SDK cliente en TypeScript para conectar aplicaciones externas. |
 | **Integración Tentaciones** | [TENTACIONES_PLATFORM_INTEGRATION.md](./TENTACIONES_PLATFORM_INTEGRATION.md) | Especificación de integración de la Aplicación Satélite 01 (Tentaciones AI Commerce). |

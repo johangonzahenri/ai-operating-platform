@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.4.0] - 2026-09-21 (Multi-Enterprise Governance, Governed Runtime, Mandate Reconciliation & Compliance Export)
 
+- **Application Integration Certification & Reference Consumer (`AOP-APP-CERTIFICATION`, Phase 138)**:
+  - Canonical reference consumer application implemented in `examples/reference-consumer/` demonstrating the platform as a consumable product ("Platform as a Product").
+  - Scaffolding generated and validated via `create-aop-app init reference-consumer` and verified with `create-aop-app doctor` (7/7 checks PASS).
+  - Production-grade typed adapter `ReferenceConsumerPlatformAdapter` wrapping `@ai-platform/client` for health probes, metadata discovery, capability listing, and task execution.
+  - Real-time reactive event ingestion `LiveEventManager` with ring buffer (200 events), automatic reconnection, `Last-Event-ID` tracking, and client-side secret redaction.
+  - Official 9-point certification engine `runReferenceAppCertification()` evaluating Identity, Health, Authentication, Authorization, Capabilities, Version compatibility, Observability/traceId propagation, OpenAPI 3.1 contract compliance, and SSE live stream ingestion.
+  - Zero-dependency Vanilla JS web UI served via HTTP Router at `/reference-app` and `/reference-consumer` (0 `innerHTML`, 0 `eval`, full DOM API security purity).
+  - Comprehensive 3-tier test suites: `tests/unit/reference-consumer-unit.test.ts`, `tests/integration/reference-consumer-integration.test.ts`, and `tests/contract/reference-consumer-certification.test.ts` (1656 tests PASS / 0 FAIL across 74 suites).
+  - Official technical guide: `docs/REFERENCE_APPLICATION.md`.
+
 - **Real-Time Event Streaming via Server-Sent Events (`AOP-REALTIME-SSE`, Phase 137)**:
   - Resilient, low-latency operational event stream endpoint `GET /api/v1/events/stream` based on W3C Server-Sent Events.
   - Core streaming engine `EventStreamAdapter` supporting dynamic filtering by `tenantId`, `applicationId`, `agentId`, `executionId`, `traceId`, and `eventType`.

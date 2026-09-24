@@ -18,9 +18,10 @@ function walk(dir) {
 const rootDir = path.resolve(__dirname, '..');
 const srcFiles = walk(path.join(rootDir, 'src'));
 const testFiles = walk(path.join(rootDir, 'tests'));
-const allFiles = [...srcFiles, ...testFiles];
+const exampleFiles = walk(path.join(rootDir, 'examples'));
+const allFiles = [...srcFiles, ...testFiles, ...exampleFiles];
 
-console.log(`Found ${srcFiles.length} source files and ${testFiles.length} test files to compile.`);
+console.log(`Found ${srcFiles.length} source files, ${testFiles.length} test files, and ${exampleFiles.length} example files to compile.`);
 
 let success = 0;
 let errors = 0;

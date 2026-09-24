@@ -186,6 +186,9 @@ const __dirname = path.dirname(__filename);
 const WEB_DIR = fs.existsSync(path.resolve(process.cwd(), "src/platform/web"))
   ? path.resolve(process.cwd(), "src/platform/web")
   : path.resolve(__dirname, "../web");
+const REF_APP_DIR = fs.existsSync(path.resolve(process.cwd(), "examples/reference-consumer/public"))
+  ? path.resolve(process.cwd(), "examples/reference-consumer/public")
+  : path.resolve(__dirname, "../../../examples/reference-consumer/public");
 
 const ID_REGEX = /^[a-zA-Z0-9_.-]{1,128}$/;
 
@@ -7375,11 +7378,23 @@ export function createHttpServer(
         return;
       }
 
-      // Sanitize requested file path
-      let reqPath = pathname === "/" ? "index.html" : pathname.replace(/^\/+/, "");
-      // Resolve safely within WEB_DIR
-      const resolvedPath = path.resolve(WEB_DIR, "." + path.normalize("/" + reqPath));
-      const relative = path.relative(WEB_DIR, resolvedPath);
+      // Check if request is for Reference Consumer App (/reference-app or /reference-consumer)
+      const isRefApp = pathname === "/reference-app" || pathname.startsWith("/reference-app/") || pathname === "/reference-consumer" || pathname.startsWith("/reference-consumer/");
+      const baseDir = isRefApp ? REF_APP_DIR : WEB_DIR;
+      let reqPath: string;
+
+      if (isRefApp) {
+        const sub = pathname.startsWith("/reference-app")
+          ? pathname.substring("/reference-app".length)
+          : pathname.substring("/reference-consumer".length);
+        reqPath = sub === "" || sub === "/" ? "index.html" : sub.replace(/^\/+/, "");
+      } else {
+        reqPath = pathname === "/" ? "index.html" : pathname.replace(/^\/+/, "");
+      }
+
+      // Resolve safely within target directory
+      const resolvedPath = path.resolve(baseDir, "." + path.normalize("/" + reqPath));
+      const relative = path.relative(baseDir, resolvedPath);
       if (relative.startsWith("..") || path.isAbsolute(relative)) {
         sendError(403, "Forbidden", "FORBIDDEN");
         return;
