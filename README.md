@@ -125,6 +125,8 @@ El repositorio cuenta con documentación exhaustiva para desarrolladores, arquit
 
 * 🧭 **[Índice Maestro de Documentación](docs/OFFICIAL_DOCUMENTATION_INDEX.md)** — Navegación estructurada de toda la documentación del repositorio.
 * 📋 **[Plan Maestro Operativo Oficial](docs/MASTER_WORK_PLAN.md)** — Sistema de planificación, indexación `X.Y.Z`, checklists y trazabilidad.
+* 🛡️ **[Protocolo Operativo de Agentes](docs/AGENT_OPERATING_PROTOCOL.md)** — Directivas de comportamiento, seguridad y gobernanza para agentes IA.
+* 🚗 **[Charter PROJ-02 Spare Parts](docs/PROJ_02_SPARE_PARTS_PRODUCT_CHARTER.md)** — Carta constitutiva del producto satélite de búsqueda y comparación de repuestos.
 * 📖 **[Libro Oficial de la Plataforma](LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md)** — Fuente canónica de arquitectura, gobernanza y aplicaciones.
 * 🏛️ **[Nomenclatura Oficial & Mapa Conceptual](docs/PROJECT_NOMENCLATURE.md)** — Definición canónica del ecosistema y glosario.
 * 🗺️ **[Mapa del Repositorio](docs/REPOSITORY_MAP.md)** — Estructura física y desglose de capas en `src/`.

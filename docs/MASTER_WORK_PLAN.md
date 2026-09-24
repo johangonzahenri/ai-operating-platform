@@ -34,15 +34,18 @@ flowchart TD
     TDB["docs/TECHNICAL_DEBT.md\n(Registro Factual de Brechas y Deuda Técnica)"]
     DEC["docs/DECISIONS.md & decisions/\n(Registros de Decisiones Arquitectónicas ADR)"]
     XLS["AI_Operating_Platform_Roadmap.xlsx\n(Vista Derivada / Kanban Spreadsheets)"]
+    PROT["docs/AGENT_OPERATING_PROTOCOL.md\n(Protocolo de Comportamiento para Agentes)"]
 
     MWP -->|Gobierna la ejecución de| RDM
     MWP -->|Reconcilia iniciativas con| RMM
     MWP -->|Audita y resuelve brechas de| TDB
     MWP -->|Enlaza justificaciones a| DEC
     MWP -->|Sincroniza estados hacia| XLS
+    MWP -->|Establece directivas para| PROT
 ```
 
 * **`docs/MASTER_WORK_PLAN.md`**: Plan operativo de ejecución paso a paso, tareas activas, checklists y registro dinámico de eventos imprevistos.
+* **`docs/AGENT_OPERATING_PROTOCOL.md`**: Guía canónica de comportamiento operativo, jerarquía de verdad y reglas para agentes de IA y desarrolladores.
 * **`ROADMAP.md`**: Resumen ejecutivo de hitos de versión y estado general de la plataforma.
 * **`docs/ROADMAP_MASTER.md`**: Inventario maestro de iniciativas formales con código de iniciativa (`AOP-*`).
 * **`docs/TECHNICAL_DEBT.md`**: Registro factual de brechas técnicas, limitaciones conocidas y gaps ambientales.
@@ -67,13 +70,13 @@ $$\text{Código Fuente en } \texttt{src/} > \text{Tests / Evidencia Automatizada
 Para preservar el orden determinista y la inmutabilidad histórica, se establece la siguiente estructura jerárquica de 3 niveles:
 
 ```text
-X         → Identificador de FASE (ej. 139)
-X.Y       → Identificador de TAREA programada (ej. 139.1)
-X.Y.Z     → Identificador de CAMBIO / AJUSTE / EVENTO IMPREDECIBLE (ej. 139.1.1)
+X         → Identificador de FASE (ej. 140)
+X.Y       → Identificador de TAREA programada (ej. 140.3)
+X.Y.Z     → Identificador de CAMBIO / AJUSTE / EVENTO IMPREDECIBLE (ej. 140.2.1)
 ```
 
 ### Reglas de Numeración:
-1. **Límite de Profundidad (Máximo 3 Niveles)**: Queda terminantemente prohibido crear un cuarto nivel (e.g. `139.1.1.1`).
+1. **Límite de Profundidad (Máximo 3 Niveles)**: Queda terminantemente prohibido crear un cuarto nivel (e.g. `140.1.1.1`).
 2. **Tareas Programadas (`X.Y`)**: Representan el desglose natural y planificado de la fase.
 3. **Cambios Imprevisibles (`X.Y.Z`)**: Registran descubrimientos, desvíos, correcciones no anticipadas, discrepancias encontradas o bloqueos resueltos durante la ejecución de la tarea `X.Y`.
 4. **Inmutabilidad Histórica**: Una vez creada y cerrada una fase o tarea, su número jamás se reasigna, renombra o reinterpreta retrospectivamente.
@@ -147,6 +150,7 @@ sequenceDiagram
 | **137** | Real-Time SSE Event Streaming | `AOP-REALTIME-SSE` | `DONE` | `DONE` | `src/application/observability/event-stream-adapter.ts`, `docs/SSE_EVENT_STREAMING.md` | 1646 PASS |
 | **138** | Application Integration Certification | `AOP-APP-CERTIFICATION` | `DONE` | `DONE` | `examples/reference-consumer/`, `docs/REFERENCE_APPLICATION.md` | 1656 PASS |
 | **139** | Formalización del Plan Maestro Operativo | `AOP-MASTER-WORK-PLAN` | `DONE` | `DONE` | `docs/MASTER_WORK_PLAN.md`, `scripts/master-work-plan-check.mjs` | 1656 PASS |
+| **140** | Sincronización del Plan y Formalización PROJ-02 | `AOP-MASTER-WORK-PLAN-V2` | `DONE` | `DONE` | `docs/AGENT_OPERATING_PROTOCOL.md`, `docs/PROJ_02_SPARE_PARTS_PRODUCT_CHARTER.md` | 1656 PASS |
 
 ---
 
@@ -169,7 +173,6 @@ Establecer el sistema oficial de planificación, indexación jerárquica `X / X.
 - **Estado**: `DONE`
 - **Objetivo**: Revisar todos los documentos de gobernanza, roadmaps, inventarios de deuda técnica y registros de decisiones para identificar el estado factual de la plataforma.
 - **Evidencia**: Auditoría completada sobre 17 documentos canónicos, 61 ADRs y 74 suites de prueba.
-- **Criterios de Aceptación**: Mapeo completo de fuentes de verdad y detección de discrepancias.
 
 #### 139.2 — Definir jerarquía de planificación
 - **Estado**: `DONE`
@@ -189,12 +192,12 @@ Establecer el sistema oficial de planificación, indexación jerárquica `X / X.
 #### 139.5 — Definir checklists oficiales
 - **Estado**: `DONE`
 - **Objetivo**: Formalizar el checklist global obligatorio que debe satisfacer toda fase antes de cerrarse.
-- **Evidencia**: Sección 9 de `docs/MASTER_WORK_PLAN.md`.
+- **Evidencia**: Sección 11 de `docs/MASTER_WORK_PLAN.md`.
 
 #### 139.6 — Crear registro de cambios impredecibles
 - **Estado**: `DONE`
 - **Objetivo**: Establecer la plantilla y formato oficial para registrar eventos `X.Y.Z`.
-- **Evidencia**: Sección 10 de `docs/MASTER_WORK_PLAN.md`.
+- **Evidencia**: Sección 12 de `docs/MASTER_WORK_PLAN.md`.
 
 #### 139.7 — Reconciliar `ROADMAP.md` con `docs/ROADMAP_MASTER.md`
 - **Estado**: `DONE`
@@ -209,6 +212,7 @@ Establecer el sistema oficial de planificación, indexación jerárquica `X / X.
   - *Origen*: Las iniciativas de SSE, Certification y Master Plan estaban en CHANGELOG y ROADMAP pero no tenían filas dedicadas en la tabla maestra.
   - *Decisión*: Agregar las filas `AOP-DEV-FACTORY-CLI`, `AOP-REALTIME-SSE`, `AOP-APP-CERTIFICATION` y `AOP-MASTER-WORK-PLAN`.
   - *Impacto*: 100% de coherencia entre inventario maestro y código real.
+  - *Estado*: `DONE`
 
 #### 139.8 — Auditar Technical Debt contra implementación real
 - **Estado**: `DONE`
@@ -223,6 +227,7 @@ Establecer el sistema oficial de planificación, indexación jerárquica `X / X.
   - *Origen*: El ítem 1 listaba "Streaming Reactivo SSE" como mejora futura pendiente.
   - *Decisión*: Declarar Server-Sent Events como implementado (`DONE`, Fase 137) y aislar WebSockets como ítem de backlog de escala.
   - *Impacto*: Precisión absoluta en el estado de deuda técnica.
+  - *Estado*: `DONE`
 
 #### 139.9 — Auditar Application Portfolio Map
 - **Estado**: `DONE`
@@ -247,13 +252,154 @@ Establecer el sistema oficial de planificación, indexación jerárquica `X / X.
 #### 139.13 — Cerrar y publicar el sistema operativo de planificación
 - **Estado**: `DONE`
 - **Objetivo**: Ejecutar la suite completa de pruebas, verificar consistencia documental, realizar commit atómico y push hacia `origin/main`.
-- **Evidencia**: 1656 pruebas PASS, working tree clean, commit en rama `main`.
+- **Evidencia**: 1656 pruebas PASS, working tree clean, commit en rama `main` (`58f50fd`).
 
 ---
 
-## 9. Checklist Global Obligatorio de Cierre de Fase
+## 9. FASE 140 — Sincronización del Plan Maestro, Memoria de Agentes y Formalización de PROJ-02
 
-Toda fase futura (a partir de la Fase 140) debe satisfacer el siguiente checklist integral antes de ser declarada `DONE`:
+### Objetivo
+Sincronizar el Plan Maestro Operativo Oficial, formalizar el protocolo operativo persistente para agentes de IA ([`docs/AGENT_OPERATING_PROTOCOL.md`](./AGENT_OPERATING_PROTOCOL.md), `.agent/rules/agent-operating-protocol.md`, `AGENTS.md`) y formalizar la carta constitutiva del producto satélite `PROJ-02-SPAREPARTS` (*Spare Parts Search & Comparison*) para orientar las fases 141 a 149.
+
+* **Estado Técnico**: `DONE`
+* **Estado Operativo**: `DONE`
+* **Prioridad**: `CRITICAL`
+* **Dependencias**: Fase 139 cerrada y verificada
+* **Iniciativa Vinculada**: `AOP-MASTER-WORK-PLAN-V2`
+
+---
+
+### Tareas de la Fase 140
+
+#### 140.1 — Auditar arquitectura documental y repositorio
+- **Estado**: `DONE`
+- **Objetivo**: Realizar auditoría exhaustiva de Git, documentos de gobernanza, portfolio y roadmaps.
+- **Evidencia**: Estado Git limpio en `main` verificado, coherencia con baseline v1.4.0.
+
+#### 140.2 — Registrar cambios de sincronización
+- **Estado**: `DONE`
+- **Objetivo**: Documentar formalmente la evolución de alcance del `PROJ-02` y la distinción entre plataforma y aplicaciones.
+- **Evidencia**: Registros `140.2.1` y `140.2.2` formalizados.
+
+##### Cambios surgidos durante 140.2:
+- **140.2.1 — Evolución de PROJ-02 a Producto Web Satélite Multi-Tienda**:
+  - *Tipo*: `CHANGE`
+  - *Fecha*: 2026-09-24
+  - *Detectado durante*: Definición estratégica de `PROJ-02-SPAREPARTS`.
+  - *Origen*: Requerimiento de usuario de formalizar un comparador inteligente multi-fuente automotriz (inspirado en SoloTodo).
+  - *Decisión*: Formalizar el producto satélite en `docs/PROJ_02_SPARE_PARTS_PRODUCT_CHARTER.md` y programar fases preliminares 141-149 sin modificar la pureza del Core Engine.
+  - *Impacto*: Expansión del roadmap del portafolio satélite preservando el principio "Platform as a Product".
+  - *Estado*: `DONE`
+
+- **140.2.2 — Desacoplamiento Estricto Plataforma vs Producto Satélite**:
+  - *Tipo*: `CHANGE`
+  - *Fecha*: 2026-09-24
+  - *Detectado durante*: Auditoría de límites arquitectónicos.
+  - *Origen*: Clarificación de que `PROJ-02` no modifica el motor central ni importa módulos internos.
+  - *Decisión*: Establecer consumo exclusivo a través de `@ai-platform/client` y OpenAPI 3.1 REST/SSE.
+  - *Impacto*: Preservación absoluta de la regla de oro arquitectónica.
+  - *Estado*: `DONE`
+
+#### 140.3 — Crear e integrar Protocolo Operativo Canónico de Agentes
+- **Estado**: `DONE`
+- **Objetivo**: Redactar `docs/AGENT_OPERATING_PROTOCOL.md` y configurar `.agent/rules/agent-operating-protocol.md` y `AGENTS.md` como memoria permanente.
+- **Evidencia**: Archivos creados y verificados.
+
+#### 140.4 — Formalizar alcance y propuesta de valor de PROJ-02
+- **Estado**: `DONE`
+- **Objetivo**: Definir la visión, dimensiones de vehículos, búsqueda multi-fuente, verificación determinista de compatibilidad y ranking transparente.
+- **Evidencia**: Documentación exhaustiva en `docs/PROJ_02_SPARE_PARTS_PRODUCT_CHARTER.md`.
+
+#### 140.5 — Crear Carta Constitutiva del Producto (Product Charter)
+- **Estado**: `DONE`
+- **Objetivo**: Publicar `docs/PROJ_02_SPARE_PARTS_PRODUCT_CHARTER.md` con 8 secciones completas.
+- **Evidencia**: Documento `docs/PROJ_02_SPARE_PARTS_PRODUCT_CHARTER.md` creado.
+
+#### 140.6 — Diferenciar Reference App interna vs Producto Satélite Web
+- **Estado**: `DONE`
+- **Objetivo**: Distinguir formalmente el arnés unitario de referencia previa (`tests/unit/vehicle-parts*`) de la futura aplicación web satélite.
+- **Evidencia**: Registro `140.6.1` y actualización de `docs/APPLICATION_REGISTRY.md`.
+
+##### Cambios surgidos durante 140.6:
+- **140.6.1 — Clarificación Reference App vs Satélite Product**:
+  - *Tipo*: `CHANGE`
+  - *Fecha*: 2026-09-24
+  - *Detectado durante*: Auditoría de `docs/APPLICATION_REGISTRY.md`.
+  - *Origen*: La tabla de aplicaciones listaba `tests/unit/vehicle-parts*` como ruta local del proyecto.
+  - *Decisión*: Clarificar que `tests/unit/vehicle-parts-reference-app.test.ts` constituye una prueba unitaria de referencia de compatibilidad, mientras que `PROJ-02` es el producto web independiente previsto en `spare-parts-store`.
+  - *Impacto*: Precisión terminológica en el registro del portafolio.
+  - *Estado*: `DONE`
+
+#### 140.7 — Sincronizar Application Portfolio
+- **Estado**: `DONE`
+- **Objetivo**: Actualizar `docs/AI_APPLICATION_PORTFOLIO_MAP.md`, `docs/APPLICATION_PORTFOLIO.md` y `docs/APPLICATION_REGISTRY.md`.
+- **Evidencia**: Portafolio actualizado con el nuevo producto `Spare Parts Search & Comparison`.
+
+#### 140.8 — Sincronizar Roadmap Master
+- **Estado**: `DONE`
+- **Objetivo**: Agregar iniciativas `AOP-MASTER-WORK-PLAN-V2` y `AOP-SPAREPARTS-SEARCH` en `docs/ROADMAP_MASTER.md`.
+- **Evidencia**: `docs/ROADMAP_MASTER.md` actualizado con 61 iniciativas.
+
+#### 140.9 — Actualizar Master Work Plan con horizonte de Fases 141-149
+- **Estado**: `DONE`
+- **Objetivo**: Registrar las fases preliminares 141 a 149 en estado `PLANNED / NOT_STARTED`.
+- **Evidencia**: Sección 10 de `docs/MASTER_WORK_PLAN.md`.
+
+#### 140.10 — Sincronizar planillas Excel / Kanban
+- **Estado**: `DONE`
+- **Objetivo**: Sincronizar libros Excel derivados con `generate_roadmap_excel.py`.
+- **Evidencia**: Planillas Excel actualizadas con 14 pestañas validadas.
+
+#### 140.11 — Actualizar CHANGELOG
+- **Estado**: `DONE`
+- **Objetivo**: Registrar formalmente la Fase 140 sin atribuir funcionalidades de runtime no implementadas.
+- **Evidencia**: `CHANGELOG.md` actualizado.
+
+#### 140.12 — Actualizar Document Registry, Official Documentation Index y README
+- **Estado**: `DONE`
+- **Objetivo**: Catalogar `docs/AGENT_OPERATING_PROTOCOL.md` y `docs/PROJ_02_SPARE_PARTS_PRODUCT_CHARTER.md`.
+- **Evidencia**: Registros documentales actualizados.
+
+#### 140.13 — Validar con test suites, OpenAPI, checks documentales y browser
+- **Estado**: `DONE`
+- **Objetivo**: Ejecutar `npm run check`, verificar con scripts de integridad y comprobar estabilidad.
+- **Evidencia**: 1656 tests PASS, 0 errores de compilación, checks documentales 100% PASS.
+
+---
+
+## 10. Roadmap Preliminar del Producto PROJ-02 (Fases 141 a 149)
+
+Las siguientes fases representan el plan de construcción del producto satélite *Spare Parts Search & Comparison* (`PROJ-02-SPAREPARTS`). Se declaran oficialmente en estado **`PLANNED / NOT_STARTED`** y no deben ejecutarse automáticamente sin un prompt de inicio específico:
+
+```mermaid
+flowchart LR
+    F141["Fase 141: Discovery & Fuentes"] --> F142["Fase 142: Modelo de Dominio"]
+    F142 --> F143["Fase 143: Conectores Multi-Fuente"]
+    F143 --> F144["Fase 144: Normalización & Cross-Ref"]
+    F144 --> F145["Fase 145: Motor de Compatibilidad"]
+    F145 --> F146["Fase 146: Precios & Reputación"]
+    F146 --> F147["Fase 147: UX & Comparador SPA"]
+    F147 --> F148["Fase 148: Integración AOP & SSE"]
+    F148 --> F149["Fase 149: Certificación MVP"]
+```
+
+| Fase | Título de la Fase | Estado Técnico | Estado Operativo | Entregable Clave |
+| :--- | :--- | :--- | :--- | :--- |
+| **141** | Discovery y Mapa de Fuentes Automotrices | `PLANNED` | `NOT_STARTED` | Catálogo de fuentes, `SourceRegistry` y políticas de acceso. |
+| **142** | Modelo de Dominio Vehicle / Part / Fitment / Offer | `PLANNED` | `NOT_STARTED` | Esquemas de dominio tipados y contratos de identidad canónica. |
+| **143** | Motor de Búsqueda Multi-Fuente y Conectores | `PLANNED` | `NOT_STARTED` | Conectores paralelos con rate limiting y manejo de contingencia. |
+| **144** | Normalización, Deduplicación y Cross-Reference | `PLANNED` | `NOT_STARTED` | Agente de normalización e indexación de equivalencias OEM/Aftermarket. |
+| **145** | Motor Determinista de Verificación de Compatibilidad | `PLANNED` | `NOT_STARTED` | Verificador determinista de compatibilidad pieza-vehículo con evidencia. |
+| **146** | Inteligencia de Precios, Reputación y Costo Total | `PLANNED` | `NOT_STARTED` | Algoritmo de `SellerTrustScore` y cálculo transparente de precio total. |
+| **147** | UX Web: Búsqueda, Filtros y Comparador Lado a Lado | `PLANNED` | `NOT_STARTED` | Single-Page Application (0 `innerHTML`) con tabla comparativa. |
+| **148** | Integración Profunda con AI Operating Platform | `PLANNED` | `NOT_STARTED` | Adaptador satélite `@ai-platform/client` y telemetría SSE reactiva. |
+| **149** | Certificación de Aplicación, Seguridad y Release MVP | `PLANNED` | `NOT_STARTED` | Arnés de certificación de 9 puntos y empaquetado de producción. |
+
+---
+
+## 11. Checklist Global Obligatorio de Cierre de Fase
+
+Toda fase futura debe satisfacer el siguiente checklist integral antes de ser declarada `DONE`:
 
 ```markdown
 ### Checklist Global de Cierre de Fase
@@ -276,9 +422,9 @@ Toda fase futura (a partir de la Fase 140) debe satisfacer el siguiente checklis
 
 ---
 
-## 10. Plantillas Oficiales de Registro
+## 12. Plantillas Oficiales de Registro
 
-### 10.1. Plantilla de Fase Futura
+### 12.1. Plantilla de Fase Futura
 
 ```markdown
 ## FASE X — [Título de la Fase]
@@ -313,7 +459,7 @@ Toda fase futura (a partir de la Fase 140) debe satisfacer el siguiente checklis
 - X.1.1 — [Título del cambio si surge]
 ```
 
-### 10.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
+### 12.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
 
 ```markdown
 ### X.Y.Z — [Nombre del Cambio Imprevisto]
@@ -332,7 +478,7 @@ Toda fase futura (a partir de la Fase 140) debe satisfacer el siguiente checklis
 
 ---
 
-## 11. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
+## 13. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
 
 Las siguientes líneas de trabajo constituyen el backlog estratégico aprobado. Se mantienen en estado `PLANNED`, `BACKLOG` o `EXPLORATORY` y no deben marcarse como `DONE` hasta contar con código y pruebas completas:
 
@@ -345,10 +491,10 @@ flowchart LR
     end
 
     subgraph LineB["Línea B: Application Portfolio"]
-        LB1["02 Spare Parts Store (Full Satélite)"]
-        LB2["03 Fleet Management & Logistics"]
-        LB3["04 Customer Portal & AI Support"]
-        LB4["05 Analytics AI & Executive BI"]
+        LB1["PROJ-02: Spare Parts Search & Comparison"]
+        LB2["PROJ-03: Fleet Management & Logistics"]
+        LB3["PROJ-04: Customer Portal & AI Support"]
+        LB4["PROJ-05: Analytics AI & Executive BI"]
     end
 
     subgraph LineC["Línea C: Production Cloud"]
@@ -369,8 +515,8 @@ flowchart LR
    - Portal de autoservicio para desarrolladores con generación guiada de API keys y webhooks.
    - Especificaciones formales para clientes SDK en Python y Go.
 
-2. **Línea B — Expansión del Portafolio Satélite (`BACKLOG`)**:
-   - **`PROJ-02` (Spare Parts Store)**: Implementación de repositorio satélite desacoplado consumiendo SDK.
+2. **Línea B — Expansión del Portafolio Satélite (`PLANNED / BACKLOG`)**:
+   - **`PROJ-02` (Spare Parts Search & Comparison)**: Fases 141-149 planificadas formalmente en [`docs/PROJ_02_SPARE_PARTS_PRODUCT_CHARTER.md`](./PROJ_02_SPARE_PARTS_PRODUCT_CHARTER.md).
    - **`PROJ-03` (Fleet Management)**: Gestión telemática y optimización de rutas con agentes autónomos.
    - **`PROJ-04` (Customer Portal)**: Triaje de soporte omnicanal y escalamiento humano con SoD.
    - **`PROJ-05` (Analytics AI)**: Agregación de KPIs ejecutivos y pronósticos sin alucinación.

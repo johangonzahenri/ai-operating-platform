@@ -10,6 +10,7 @@ Este índice proporciona el mapa canónico de navegación para toda la documenta
 | :--- | :--- | :--- | :--- |
 | **Fuente de Verdad** | [SOURCE_OF_TRUTH.md](./SOURCE_OF_TRUTH.md) | Jerarquía canónica de autoridad técnica (`CÓDIGO > TESTS > GIT > DOCS > ROADMAP`), taxonomía de estados y política de idioma. | Todos los roles |
 | **Plan Maestro Operativo** | [MASTER_WORK_PLAN.md](./MASTER_WORK_PLAN.md) | Sistema oficial de planificación, indexación jerárquica `X.Y.Z`, checklists y trazabilidad dinámica de tareas. | Todos los roles, Agentes IA |
+| **Protocolo de Agentes** | [AGENT_OPERATING_PROTOCOL.md](./AGENT_OPERATING_PROTOCOL.md) | Guía canónica de comportamiento operativo, jerarquía de verdad y reglas para agentes de IA y desarrolladores. | Agentes IA, Desarrolladores |
 | **Nomenclatura Oficial** | [PROJECT_NOMENCLATURE.md](./PROJECT_NOMENCLATURE.md) | Nomenclatura canónica, glosario de términos técnicos y mapa conceptual del ecosistema con aplicaciones satélites. | Arquitectos, Desarrolladores |
 | **Mapa del Repositorio** | [REPOSITORY_MAP.md](./REPOSITORY_MAP.md) | Mapa físico del sistema de archivos, estructura de directorios y desglose por capas en `src/`. | Desarrolladores, Nuevos Integrantes |
 | **Libro Oficial** | [LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md](./LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md) | Tratado maestro integral del diseño, evolución histórica, matrices de verdad y certificación de la plataforma. | Auditores, Liderazgo Técnico |
@@ -56,6 +57,7 @@ Este índice proporciona el mapa canónico de navegación para toda la documenta
 | **Especificación de Platform API** | [PLATFORM_API.md](./PLATFORM_API.md) | Especificación de endpoints REST v1 (`/api/v1/*`), contratos JSON y códigos de estado. |
 | **SDK Platform Client** | [PLATFORM_CLIENT.md](./PLATFORM_CLIENT.md) | Guía de uso del SDK cliente en TypeScript para conectar aplicaciones externas. |
 | **Integración Tentaciones** | [TENTACIONES_PLATFORM_INTEGRATION.md](./TENTACIONES_PLATFORM_INTEGRATION.md) | Especificación de integración de la Aplicación Satélite 01 (Tentaciones AI Commerce). |
+| **Charter PROJ-02 Spare Parts** | [PROJ_02_SPARE_PARTS_PRODUCT_CHARTER.md](./PROJ_02_SPARE_PARTS_PRODUCT_CHARTER.md) | Carta constitutiva y especificación del producto satélite Spare Parts Search & Comparison. |
 | **Registro de Aplicaciones** | [APPLICATION_REGISTRY.md](./APPLICATION_REGISTRY.md) | Catálogo oficial de aplicaciones satélites del ecosistema (01 a 05). |
 | **Registro de Dispositivos** | [DEVICE_REGISTRY.md](./DEVICE_REGISTRY.md) | Catálogo y estado de integración de hardware y dispositivos periféricos. |
 | **Operaciones de Impresión** | [PRINT_OPERATIONS.md](./PRINT_OPERATIONS.md) | Documentación técnica del adaptador de impresión Brother DCP-1600 series. |

@@ -25,12 +25,13 @@ $$\text{Core Engine} \neq \text{Platform Product} \neq \text{Child Applications}
 * **Capacidades Consumidas**: `product.discovery`, `product.recommendation`, `product.compare`, `cart.assistance`, `ar.fitting_room`.
 * **Estrategia de Contingencia**: Conmutación automática a `LOCAL_FALLBACK` o `TRADITIONAL_COMMERCE` ante desconexión de la plataforma.
 
-### 2.2. Proyecto 02: Spare Parts Store (`PROJ-02-SPAREPARTS`)
-* **Propósito**: Tienda especializada en catálogo automotriz con verificación determinista de compatibilidad mecánica (marca, modelo, año, motor) y diagnóstico asistido por IA.
-* **Dominio de Negocio**: Automotriz, Repuestos, Servicios Mecánicos.
-* **Estado Actual**: **`PARTIAL / REFERENCE APP`** (Motor de compatibilidad y catálogo de referencia implementados con 16 tests pasando).
-* **Capacidades Consumidas**: `parts.discovery`, `parts.compatibility`, `parts.compare`, `cart.validation`.
-* **Estrategia de Contingencia**: Degradación a catálogo estático determinista ante fallas de red.
+### 2.2. Proyecto 02: Spare Parts Search & Comparison (`PROJ-02-SPAREPARTS`)
+* **Propósito**: Buscador y comparador inteligente de repuestos automotrices multi-tienda con verificación determinista de compatibilidad, cálculo de reputación de vendedores y costo total (inspirado en SoloTodo).
+* **Dominio de Negocio**: Automotriz, Búsqueda y Comparación, Repuestos.
+* **Documento Canónico**: [`docs/PROJ_02_SPARE_PARTS_PRODUCT_CHARTER.md`](./PROJ_02_SPARE_PARTS_PRODUCT_CHARTER.md)
+* **Estado Actual**: **`PLANNED / SATELLITE PRODUCT`** (Planificado formalmente en Fases 141-149; arnés de referencia previa validado).
+* **Capacidades Consumidas**: `product.discovery`, `parts.compatibility`, `product.compare`, `report.generate`, `automation.execute`.
+* **Estrategia de Contingencia**: Búsqueda estructurada directa y degradación a catálogos locales en caché ante desconexión de red.
 
 ### 2.3. Proyecto 03: Fleet Management (`PROJ-03-FLEET`)
 * **Propósito**: Sistema de gestión de flotas vehiculares, telemetría IoT en tiempo real, optimización de rutas de reparto y despacho asistido por agentes.

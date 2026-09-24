@@ -56,7 +56,7 @@ graph TD
 
     subgraph PORTFOLIO["APPLICATION PORTFOLIO (CHILD APPLICATIONS)"]
         App01["01. Tentaciones AI Commerce<br/>[PARTIAL / LIVE ADAPTER]<br/>Retail • AR Try-On • Smart Cart"]
-        App02["02. Spare Parts Store<br/>[PARTIAL / REFERENCE APP]<br/>Auto Parts • Fitment Matrix"]
+        App02["02. Spare Parts Search & Comparison<br/>[PLANNED / SATELLITE APP]<br/>Auto Parts • Multi-Store & Fitment"]
         App03["03. Fleet Management<br/>[PLANNED]<br/>IoT Telemetry • Route AI"]
         App04["04. Customer Portal<br/>[PLANNED]<br/>Omnichannel Support • Triage"]
         App05["05. Analytics AI<br/>[PLANNED]<br/>Executive BI • Predictive Insights"]

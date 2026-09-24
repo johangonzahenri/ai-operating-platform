@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.4.0] - 2026-09-21 (Multi-Enterprise Governance, Governed Runtime, Mandate Reconciliation & Compliance Export)
 
+- **Master Work Plan Synchronization & PROJ-02 Product Charter (`AOP-MASTER-WORK-PLAN-V2`, Phase 140)**:
+  - Synchronized Master Work Plan in `docs/MASTER_WORK_PLAN.md` incorporating active Phase 140 and preliminary product roadmap (Fases 141-149).
+  - Established canonical Agent Operating Protocol in `docs/AGENT_OPERATING_PROTOCOL.md`, `.agent/rules/agent-operating-protocol.md`, and `AGENTS.md` for permanent agent workspace memory.
+  - Formalized Product Charter for `PROJ-02-SPAREPARTS` (*Spare Parts Search & Comparison*) in `docs/PROJ_02_SPARE_PARTS_PRODUCT_CHARTER.md` (multi-store comparison, deterministic fitment verification, price intelligence, reputation trust score, and source registry).
+  - Reconciled application portfolio registries (`docs/AI_APPLICATION_PORTFOLIO_MAP.md`, `docs/APPLICATION_PORTFOLIO.md`, `docs/APPLICATION_REGISTRY.md`) and updated `docs/ROADMAP_MASTER.md` with `AOP-SPAREPARTS-SEARCH` in `PLANNED` status.
+
 - **Master Work Plan & Dynamic Traceability Governance (`AOP-MASTER-WORK-PLAN`, Phase 139)**:
   - Canonical operational planning and dynamic traceability system established in `docs/MASTER_WORK_PLAN.md`.
   - Hierarchical 3-level indexing convention (`X / X.Y / X.Y.Z`) preserving historical immutability across phases, scheduled tasks, and unpredictable change adjustments.

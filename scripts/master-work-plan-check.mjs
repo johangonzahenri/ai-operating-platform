@@ -77,7 +77,7 @@ if (errorCount === 0) {
 }
 
 // 3. Extraer Fases, Tareas y Cambios
-const phaseRegex = /^##\s+(?:8\.\s+)?FASE\s+(\d+)\s+[—-]\s+(.+)$/gm;
+const phaseRegex = /^##\s+(?:\d+\.\s+)?FASE\s+(\d+)\s+[—-]\s+(.+)$/gm;
 const taskRegex = /^####\s+(\d+)\.(\d+)\s+[—-]\s+(.+)$/gm;
 const changeRegex = /^[-*]\s+\*\*(\d+)\.(\d+)\.(\d+)\s+[—-]\s+([^*]+)\*\*:/gm;
 
