@@ -9,6 +9,7 @@ Este índice proporciona el mapa canónico de navegación para toda la documenta
 | Documento | Ubicación | Propósito | Audiencia Principal |
 | :--- | :--- | :--- | :--- |
 | **Fuente de Verdad** | [SOURCE_OF_TRUTH.md](./SOURCE_OF_TRUTH.md) | Jerarquía canónica de autoridad técnica (`CÓDIGO > TESTS > GIT > DOCS > ROADMAP`), taxonomía de estados y política de idioma. | Todos los roles |
+| **Plan Maestro Operativo** | [MASTER_WORK_PLAN.md](./MASTER_WORK_PLAN.md) | Sistema oficial de planificación, indexación jerárquica `X.Y.Z`, checklists y trazabilidad dinámica de tareas. | Todos los roles, Agentes IA |
 | **Nomenclatura Oficial** | [PROJECT_NOMENCLATURE.md](./PROJECT_NOMENCLATURE.md) | Nomenclatura canónica, glosario de términos técnicos y mapa conceptual del ecosistema con aplicaciones satélites. | Arquitectos, Desarrolladores |
 | **Mapa del Repositorio** | [REPOSITORY_MAP.md](./REPOSITORY_MAP.md) | Mapa físico del sistema de archivos, estructura de directorios y desglose por capas en `src/`. | Desarrolladores, Nuevos Integrantes |
 | **Libro Oficial** | [LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md](./LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md) | Tratado maestro integral del diseño, evolución histórica, matrices de verdad y certificación de la plataforma. | Auditores, Liderazgo Técnico |

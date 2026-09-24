@@ -11,6 +11,7 @@ Este registro cataloga todos los documentos oficiales, técnicos y manuales oper
 | `LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md` | Libro y especificación integral de arquitectura de la plataforma en 13 capítulos. | `es-419` | **SÍ** | VIGENTE | 2026-09-17 | Todos los componentes del sistema |
 | `docs/LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md` | Espejo sincronizado del Libro Oficial dentro del directorio de documentación. | `es-419` | SÍ (Espejo) | VIGENTE | 2026-09-17 | Todos los componentes del sistema |
 | `docs/SOURCE_OF_TRUTH.md` | Jerarquía oficial de autoridad documental y resolución de discrepancias. | `es-419` | **SÍ** | VIGENTE | 2026-09-17 | Gobernanza documental y calidad |
+| `docs/MASTER_WORK_PLAN.md` | Plan Maestro Operativo Oficial, indexación X.Y.Z, checklists y trazabilidad dinámica. | `es-419` | **SÍ** | VIGENTE | 2026-09-24 | Planificación operativa, gobernanza y tareas |
 | `docs/ROADMAP_MASTER.md` | Registro granular y estructurado de iniciativas técnicas con identificadores únicos. | `es-419` | **SÍ** | VIGENTE | 2026-09-17 | Roadmap, planificación y backlog |
 | `ROADMAP.md` | Resumen ejecutivo de hitos de versión y criterios de cierre de fase. | `es-419` | **SÍ** | VIGENTE | 2026-09-17 | Hitos v0.1 a v1.1 y futuro v1.2 |
 | `README.md` | Guía de bienvenida, visión general, arquitectura de capas e instrucciones de arranque. | `es-419` | **SÍ** | VIGENTE | 2026-09-17 | Control Plane, Servidor, Scripts |

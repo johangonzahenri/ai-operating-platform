@@ -98,7 +98,9 @@ Estas brechas representan dependencias de infraestructura y servicios externos q
 
 ## 3. Mejoras Post-Release y Backlog Futuro (Future Enhancements)
 
-1. **Streaming Reactivo SSE / WebSockets:** Sustitución de polling HTTP periódico en la Consola Web por Server-Sent Events nativos para streaming de tokens y telemetría de baja latencia.
-2. **Checkpoint Distribuido Multi-Nodo (`COR-08`):** Sincronización multi-región para despliegues federados en v2.0 (`BACKLOG`).
+1. **Streaming Reactivo Server-Sent Events (SSE):** *Resuelto en Fase 137 (`AOP-REALTIME-SSE`)* mediante el endpoint `GET /api/v1/events/stream`, el adaptador `EventStreamAdapter`, soporte `Last-Event-ID`, aislamiento multi-tenant y métodos `client.events.stream()` en el SDK.
+2. **Canal Bidireccional WebSockets:** Soporte de streaming bidireccional full-duplex de baja latencia como canal complementario a SSE (`BACKLOG`).
+3. **Checkpoint Distribuido Multi-Nodo (`COR-08`):** Sincronización multi-región para despliegues federados en v2.0 (`BACKLOG`).
+
 
 

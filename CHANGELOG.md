@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.4.0] - 2026-09-21 (Multi-Enterprise Governance, Governed Runtime, Mandate Reconciliation & Compliance Export)
 
+- **Master Work Plan & Dynamic Traceability Governance (`AOP-MASTER-WORK-PLAN`, Phase 139)**:
+  - Canonical operational planning and dynamic traceability system established in `docs/MASTER_WORK_PLAN.md`.
+  - Hierarchical 3-level indexing convention (`X / X.Y / X.Y.Z`) preserving historical immutability across phases, scheduled tasks, and unpredictable change adjustments.
+  - Formal taxonomy of record types (`PHASE`, `TASK`, `CHANGE`, `DECISION`, `BLOCKER`, `EVIDENCE`) and explicit separation between technical and operational states.
+  - Global mandatory phase close checklist (15 quality gates) governing execution from Phase 140 onwards.
+  - Automated integrity validator `scripts/master-work-plan-check.mjs` integrated into `npm run plan:check`, `scripts/docs-check.mjs`, and `npm run check`.
+  - Reconciled initiatives in `docs/ROADMAP_MASTER.md` and cleaned up resolved SSE streaming entries in `docs/TECHNICAL_DEBT.md`.
+
 - **Application Integration Certification & Reference Consumer (`AOP-APP-CERTIFICATION`, Phase 138)**:
   - Canonical reference consumer application implemented in `examples/reference-consumer/` demonstrating the platform as a consumable product ("Platform as a Product").
   - Scaffolding generated and validated via `create-aop-app init reference-consumer` and verified with `create-aop-app doctor` (7/7 checks PASS).

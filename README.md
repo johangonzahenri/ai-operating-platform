@@ -124,6 +124,7 @@ Acceder al plano de control en el navegador:
 El repositorio cuenta con documentación exhaustiva para desarrolladores, arquitectos y operadores:
 
 * 🧭 **[Índice Maestro de Documentación](docs/OFFICIAL_DOCUMENTATION_INDEX.md)** — Navegación estructurada de toda la documentación del repositorio.
+* 📋 **[Plan Maestro Operativo Oficial](docs/MASTER_WORK_PLAN.md)** — Sistema de planificación, indexación `X.Y.Z`, checklists y trazabilidad.
 * 📖 **[Libro Oficial de la Plataforma](LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md)** — Fuente canónica de arquitectura, gobernanza y aplicaciones.
 * 🏛️ **[Nomenclatura Oficial & Mapa Conceptual](docs/PROJECT_NOMENCLATURE.md)** — Definición canónica del ecosistema y glosario.
 * 🗺️ **[Mapa del Repositorio](docs/REPOSITORY_MAP.md)** — Estructura física y desglose de capas en `src/`.

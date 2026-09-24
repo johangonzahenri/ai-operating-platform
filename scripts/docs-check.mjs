@@ -98,6 +98,7 @@ const REQUIRED_DOCS = [
   'docs/TECHNICAL_DEBT.md',
   'docs/DECISIONS.md',
   'docs/V1_EXIT_CRITERIA.md',
+  'docs/MASTER_WORK_PLAN.md',
   'README.md',
   'ROADMAP.md',
   'CHANGELOG.md',
@@ -266,6 +267,46 @@ try {
   }
 } catch (err) {
   error(`Failed checking src/platform/web/app.js: ${err.message}`);
+}
+
+// -------------------------------------------------------------
+// 7. Master Work Plan Structure and Semantics Check
+// -------------------------------------------------------------
+console.log('\n7. Checking Master Work Plan (docs/MASTER_WORK_PLAN.md) structure...');
+
+try {
+  const mwpPath = path.join(ROOT_DIR, 'docs/MASTER_WORK_PLAN.md');
+  const mwpContent = fs.readFileSync(mwpPath, 'utf8');
+
+  const REQUIRED_MWP_SECTIONS = [
+    'Misión y Propósito',
+    'Separación Conceptual de Documentos',
+    'Jerarquía Canónica de Autoridad',
+    'Sistema Oficial de Indexación',
+    'Taxonomía de Registros y Estados',
+    'Protocolo de Operación',
+    'Historial Canónico de Fases',
+    'FASE 139',
+    'Checklist Global Obligatorio',
+    'Plantillas Oficiales de Registro',
+    'Planificación Futura y Candidatos Post-v1.4'
+  ];
+
+  for (const sec of REQUIRED_MWP_SECTIONS) {
+    if (!mwpContent.includes(sec)) {
+      error(`docs/MASTER_WORK_PLAN.md is missing mandatory section: "${sec}"`);
+    }
+  }
+
+  // Verify depth constraint (no 4th level headers)
+  const invalidDepth = mwpContent.match(/^(?:#{1,6}\s+|[-*]\s+\*\*)\d+\.\d+\.\d+\.\d+/gm);
+  if (invalidDepth) {
+    error(`Forbidden 4th-level identifier detected in MASTER_WORK_PLAN.md: ${invalidDepth.join(', ')}`);
+  }
+
+  console.log('   ✓ docs/MASTER_WORK_PLAN.md verified (all sections and depth limits valid)');
+} catch (err) {
+  error(`Failed checking docs/MASTER_WORK_PLAN.md: ${err.message}`);
 }
 
 // -------------------------------------------------------------
