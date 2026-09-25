@@ -576,14 +576,60 @@ Construir el motor de búsqueda multi-fuente paralelo para **PROJ-02 — Spare P
 
 ---
 
-## 14. Roadmap Preliminar del Producto PROJ-02 (Fases 145 a 150)
+## 14. FASE 145 — Motor de Normalización, Deduplicación y Referencias Cruzadas (Cross-Reference Engine)
+
+### Objetivo
+Construir el motor determinista de normalización, detección de duplicados y resolución de referencias cruzadas OEM <-> Aftermarket para **PROJ-02 — Spare Parts Search & Comparison**: estandarizar números de pieza, marcas, URLs y vendedores sin destrucción de datos originales (`PartNormalizationService`), clasificar pares de ofertas con protección fail-closed frente a falsos positivos (`DuplicateDetectionService`), resolver el grafo conexo de equivalencias y reemplazos (`CrossReferenceService`), y agrupar ofertas en clusters deterministas e idempotentes (`PartClusteringEngine`) con agregación acumulativa de evidencia estructurada (`CanonicalPartCluster`).
+
+### Metadatos
+- **Estado Técnico**: `DONE`
+- **Estado Operativo**: `DONE`
+- **Prioridad**: `HIGH`
+- **Iniciativas Vinculadas**: `AOP-SPAREPARTS-SEARCH`
+- **Evidencia**: 1709 tests PASS (96 suites), 0 errores TypeScript, validadores 100% compliant.
+
+### Tareas
+
+#### 145.1 — Modelo de Dominio de Clusters y Clasificación de Duplicados
+- **Estado**: `DONE`
+- **Objetivo**: Modelar `CanonicalPartCluster`, clasificaciones de emparejamiento (`MatchClassification`: `EXACT_DUPLICATE`, `PROBABLE_MATCH`, `DISTINCT`, `CONFLICT`, `UNRESOLVED`) y generador determinista `generateClusterId`.
+- **Evidencia**: `src/domain/spareparts/part-cluster.ts`.
+
+#### 145.2 — Servicio de Normalización Determinista de Entidades
+- **Estado**: `DONE`
+- **Objetivo**: Implementar `PartNormalizationService` para normalizar números de pieza (conservando `rawValue`), mapeo canónico de fabricantes/marcas con tiers, saneamiento de URLs sin tracking y estandarización de nombres de vendedores.
+- **Evidencia**: `src/application/spareparts/part-normalization-service.ts`.
+
+#### 145.3 — Servicio de Detección de Duplicados y Equivalencias
+- **Estado**: `DONE`
+- **Objetivo**: Implementar `DuplicateDetectionService` con evaluación basada en reglas deterministas, soporte de claves compuestas, discriminación de fabricantes en colisiones numéricas y protección fail-closed.
+- **Evidencia**: `src/application/spareparts/duplicate-detection-service.ts`.
+
+#### 145.4 — Motor de Grafo de Referencias Cruzadas (CrossReferenceService)
+- **Estado**: `DONE`
+- **Objetivo**: Desarrollar `CrossReferenceService` con indexación bidireccional y resolución determinista de componentes conexos (`resolveEquivalentPartNumbers`) para relaciones OEM <-> Aftermarket y reemplazos (`SUPERSEDES`).
+- **Evidencia**: `src/application/spareparts/cross-reference-service.ts`.
+
+#### 145.5 — Motor de Agrupamiento Determinista, Idempotente e Invariante al Orden
+- **Estado**: `DONE`
+- **Objetivo**: Construir `PartClusteringEngine` utilizando algoritmo Disjoint-Set con ordenamiento previo de ofertas, preservación ininterrumpida de evidencias y clustering sin pérdida de datos.
+- **Evidencia**: `src/application/spareparts/part-clustering-engine.ts`.
+
+#### 145.6 — Pruebas Automatizadas y Documentación Canónica
+- **Estado**: `DONE`
+- **Objetivo**: Crear suite de pruebas exhaustiva `tests/unit/normalization-deduplication-crossref.test.ts` cubriendo los 11 escenarios y publicar `docs/SPARE_PARTS_NORMALIZATION_DEDUP_CROSS_REFERENCE.md`.
+- **Evidencia**: 11 tests dedicados PASS, 1709 tests totales PASS (96 suites).
+
+---
+
+## 16. Roadmap Preliminar del Producto PROJ-02 (Fases 146 a 150)
 
 Las siguientes fases representan el plan de construcción del producto satélite *Spare Parts Search & Comparison* (`PROJ-02-SPAREPARTS`). Se declaran oficialmente en estado **`PLANNED / NOT_STARTED`** y no deben ejecutarse automáticamente sin un prompt de inicio específico:
 
 ```mermaid
 flowchart LR
     F143["Fase 143: Modelo de Dominio (DONE)"] --> F144["Fase 144: Búsqueda Multi-Fuente (DONE)"]
-    F144 --> F145["Fase 145: Normalización & Cross-Ref"]
+    F144 --> F145["Fase 145: Normalización & Cross-Ref (DONE)"]
     F145 --> F146["Fase 146: Motor de Compatibilidad"]
     F146 --> F147["Fase 147: Precios & Reputación"]
     F147 --> F148["Fase 148: UX & Comparador SPA"]
@@ -595,7 +641,7 @@ flowchart LR
 | :--- | :--- | :--- | :--- | :--- |
 | **143** | Modelo de Dominio Vehicle / Part / Fitment / Offer | `DONE` | `DONE` | Esquemas de dominio tipados y contratos de identidad canónica (`src/domain/spareparts/`). |
 | **144** | Motor de Búsqueda Multi-Fuente y Conectores | `DONE` | `DONE` | Conectores paralelos con rate limiting y manejo de contingencia (`src/application/spareparts/`). |
-| **145** | Normalización, Deduplicación y Cross-Reference | `PLANNED` | `NOT_STARTED` | Agente de normalización e indexación de equivalencias OEM/Aftermarket. |
+| **145** | Normalización, Deduplicación y Cross-Reference | `DONE` | `DONE` | Agente de normalización e indexación de equivalencias OEM/Aftermarket. |
 | **146** | Motor Determinista de Verificación de Compatibilidad | `PLANNED` | `NOT_STARTED` | Verificador determinista de compatibilidad pieza-vehículo con evidencia. |
 | **147** | Inteligencia de Precios, Reputación y Costo Total | `PLANNED` | `NOT_STARTED` | Algoritmo de `SellerTrustScore` y cálculo transparente de precio total. |
 | **148** | UX Web: Búsqueda, Filtros y Comparador Lado a Lado | `PLANNED` | `NOT_STARTED` | Single-Page Application (0 `innerHTML`) con tabla comparativa. |
@@ -604,7 +650,7 @@ flowchart LR
 
 ---
 
-## 15. Checklist Global Obligatorio de Cierre de Fase
+## 17. Checklist Global Obligatorio de Cierre de Fase
 
 Toda fase futura debe satisfacer el siguiente checklist integral antes de ser declarada `DONE`:
 
@@ -629,9 +675,9 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 16. Plantillas Oficiales de Registro
+## 18. Plantillas Oficiales de Registro
 
-### 16.1. Plantilla de Fase Futura
+### 18.1. Plantilla de Fase Futura
 
 ```markdown
 ## FASE X — [Título de la Fase]
@@ -666,7 +712,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 - X.1.1 — [Título del cambio si surge]
 ```
 
-### 16.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
+### 18.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
 
 ```markdown
 ### X.Y.Z — [Nombre del Cambio Imprevisto]
@@ -685,7 +731,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 17. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
+## 19. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
 
 Las siguientes líneas de trabajo constituyen el backlog estratégico aprobado. Se mantienen en estado `PLANNED`, `BACKLOG` o `EXPLORATORY` y no deben marcarse como `DONE` hasta contar con código y pruebas completas:
 

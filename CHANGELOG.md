@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.4.0] - 2026-09-21 (Multi-Enterprise Governance, Governed Runtime, Mandate Reconciliation & Compliance Export)
 
+- **Normalization, Deduplication & Cross-Reference Engine (`AOP-SPAREPARTS-SEARCH`, Phase 145)**:
+  - Implemented domain model for entity clustering and deduplication in `src/domain/spareparts/part-cluster.ts` (`CanonicalPartCluster`, `MatchClassification`, `DuplicateMatchResult`, `generateClusterId`, `createPartCluster`).
+  - Developed `PartNormalizationService` in `src/application/spareparts/part-normalization-service.ts` providing deterministic part number stripping (preserving `rawValue`), canonical brand mapping with market tiers, listing URL tracking sanitation, and seller name normalization.
+  - Built rule-based `DuplicateDetectionService` in `src/application/spareparts/duplicate-detection-service.ts` evaluating `EXACT_DUPLICATE`, `PROBABLE_MATCH`, `DISTINCT`, and `CONFLICT` classifications with fail-closed protection against accidental merges.
+  - Implemented `CrossReferenceService` in `src/application/spareparts/cross-reference-service.ts` maintaining bidirectional OEM <-> Aftermarket relationships and resolving connected components of equivalence graphs.
+  - Created `PartClusteringEngine` in `src/application/spareparts/part-clustering-engine.ts` orchestrating deterministic Disjoint-Set grouping, ensuring order-independence and idempotency while preserving structured evidence losslessly.
+  - Added dedicated unit test suite in `tests/unit/normalization-deduplication-crossref.test.ts` (1709 tests PASS / 0 FAIL across 96 suites).
+  - Published official technical specification in `docs/SPARE_PARTS_NORMALIZATION_DEDUP_CROSS_REFERENCE.md`.
+
 - **Multi-Source Automotive Search & Specialized Agent Routing (`AOP-SPAREPARTS-SEARCH`, Phase 144)**:
   - Implemented deterministic intent classification and task decomposition in `src/domain/spareparts/search-intent.ts` (`SearchIntentType`, `SearchTask`, `SearchBudget`).
   - Created `SourceSelectionService` in `src/application/spareparts/source-selection-service.ts` with multi-criteria candidate selection and explicit inclusion/exclusion reason tracking.
