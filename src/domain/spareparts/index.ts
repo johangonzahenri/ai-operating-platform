@@ -9,6 +9,7 @@ export * from "./part-number.js";
 export * from "./part.js";
 export * from "./cross-reference.js";
 export * from "./fitment.js";
+export * from "./fitment-verdict.js";
 export * from "./product-offer.js";
 export * from "./part-cluster.js";
 export * from "./search-query.js";

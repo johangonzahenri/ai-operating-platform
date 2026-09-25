@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.4.0] - 2026-09-21 (Multi-Enterprise Governance, Governed Runtime, Mandate Reconciliation & Compliance Export)
 
+- **Deterministic Fitment Verification Engine (`AOP-SPAREPARTS-SEARCH`, Phase 146)**:
+  - Implemented domain model for compatibility verdicts and parametric evaluation in `src/domain/spareparts/fitment-verdict.ts` (`FitmentVerdict`: `FIT`, `NOT_FIT`, `UNKNOWN`, `CONFLICT`; `FitmentParameterResult`, `FitmentConflictDetail`, `buildVehicleFitmentKey`).
+  - Developed `FitmentVerificationEngine` in `src/application/spareparts/fitment-verification-engine.ts` with parameter-by-parameter evaluation (make, model, year, engine, generation, market), fail-closed handling of missing critical parameters, and explicit isolation of contradicting source evidence.
+  - Implemented lossless evidence propagation, preserving all `StructuredClaimEvidence` without allowing trust scores to override mandatory parametric fitment constraints.
+  - Added dedicated unit test suite in `tests/unit/fitment-verification-engine.test.ts` (1721 tests PASS / 0 FAIL across 97 suites).
+  - Published official technical specification in `docs/SPARE_PARTS_FITMENT_VERIFICATION.md`.
+
 - **Normalization, Deduplication & Cross-Reference Engine (`AOP-SPAREPARTS-SEARCH`, Phase 145)**:
   - Implemented domain model for entity clustering and deduplication in `src/domain/spareparts/part-cluster.ts` (`CanonicalPartCluster`, `MatchClassification`, `DuplicateMatchResult`, `generateClusterId`, `createPartCluster`).
   - Developed `PartNormalizationService` in `src/application/spareparts/part-normalization-service.ts` providing deterministic part number stripping (preserving `rawValue`), canonical brand mapping with market tiers, listing URL tracking sanitation, and seller name normalization.

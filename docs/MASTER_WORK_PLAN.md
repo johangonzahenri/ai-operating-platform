@@ -622,7 +622,48 @@ Construir el motor determinista de normalización, detección de duplicados y re
 
 ---
 
-## 16. Roadmap Preliminar del Producto PROJ-02 (Fases 146 a 150)
+## 15. FASE 146 — Motor Determinista de Verificación de Compatibilidad (Deterministic Fitment Verification Engine)
+
+### Objetivo
+Construir el motor determinista de verificación de compatibilidad pieza-vehículo para **PROJ-02 — Spare Parts Search & Comparison**: evaluar compatibilidad paramétrica atributo por atributo (`FitmentVerificationEngine`), generar claves unívocas de vehículo (`VehicleFitmentKey`), emitir veredictos estructurados (`FitmentVerdict`: `FIT`, `NOT_FIT`, `UNKNOWN`, `CONFLICT`), propagar claims de evidencia estructurada (`StructuredClaimEvidence`), aislar contradicciones entre fuentes confiables y garantizar comportamiento fail-closed ante ausencia de datos obligatorios sin recurrir a inferencias libres o LLMs.
+
+### Metadatos
+- **Estado Técnico**: `DONE`
+- **Estado Operativo**: `DONE`
+- **Prioridad**: `HIGH`
+- **Iniciativas Vinculadas**: `AOP-SPAREPARTS-SEARCH`
+- **Evidencia**: 1721 tests PASS (97 suites), 0 errores TypeScript, validadores 100% compliant.
+
+### Tareas
+
+#### 146.1 — Modelo de Veredictos de Fitment y Claves de Compatibilidad
+- **Estado**: `DONE`
+- **Objetivo**: Modelar `FitmentVerdict` (`FIT`, `NOT_FIT`, `UNKNOWN`, `CONFLICT`), resultados por parámetro `FitmentParameterResult`, detalles de conflicto `FitmentConflictDetail` y generador determinista `buildVehicleFitmentKey`.
+- **Evidencia**: `src/domain/spareparts/fitment-verdict.ts`.
+
+#### 146.2 — Motor de Verificación Paramétrica y Reglas de Compatibilidad
+- **Estado**: `DONE`
+- **Objetivo**: Implementar `FitmentVerificationEngine` evaluando parámetros obligatorios (`make`, `model`, `year`) y condicionales (`engine`, `generation`, `market`) con preservación de justificación individual.
+- **Evidencia**: `src/application/spareparts/fitment-verification-engine.ts`.
+
+#### 146.3 — Resolución de Conflictos y Propagación de Evidencias
+- **Estado**: `DONE`
+- **Objetivo**: Detectar contradicciones documentales entre fuentes y propagar acumulativamente evidencias estructuradas (`StructuredClaimEvidence`) sin sustituir reglas con scores de reputación.
+- **Evidencia**: `src/application/spareparts/fitment-verification-engine.ts`.
+
+#### 146.4 — Política Fail-Closed y Protección Contra Falsos Positivos
+- **Estado**: `DONE`
+- **Objetivo**: Asegurar que falta de datos derive estrictamente en `UNKNOWN` y prevenir falsos positivos entre motores diferentes (1.8L vs 2.0L), generaciones de transición (E170 vs E210) o mercados distintos (CL vs US).
+- **Evidencia**: `src/application/spareparts/fitment-verification-engine.ts`.
+
+#### 146.5 — Pruebas Automatizadas y Documentación Canónica
+- **Estado**: `DONE`
+- **Objetivo**: Crear suite de pruebas exhaustiva `tests/unit/fitment-verification-engine.test.ts` cubriendo los 12 escenarios requeridos y publicar `docs/SPARE_PARTS_FITMENT_VERIFICATION.md`.
+- **Evidencia**: 12 tests dedicados PASS, 1721 tests totales PASS (97 suites).
+
+---
+
+## 16. Roadmap Preliminar del Producto PROJ-02 (Fases 147 a 150)
 
 Las siguientes fases representan el plan de construcción del producto satélite *Spare Parts Search & Comparison* (`PROJ-02-SPAREPARTS`). Se declaran oficialmente en estado **`PLANNED / NOT_STARTED`** y no deben ejecutarse automáticamente sin un prompt de inicio específico:
 
@@ -630,7 +671,7 @@ Las siguientes fases representan el plan de construcción del producto satélite
 flowchart LR
     F143["Fase 143: Modelo de Dominio (DONE)"] --> F144["Fase 144: Búsqueda Multi-Fuente (DONE)"]
     F144 --> F145["Fase 145: Normalización & Cross-Ref (DONE)"]
-    F145 --> F146["Fase 146: Motor de Compatibilidad"]
+    F145 --> F146["Fase 146: Motor de Compatibilidad (DONE)"]
     F146 --> F147["Fase 147: Precios & Reputación"]
     F147 --> F148["Fase 148: UX & Comparador SPA"]
     F148 --> F149["Fase 149: Integración AOP & SSE"]
@@ -642,7 +683,7 @@ flowchart LR
 | **143** | Modelo de Dominio Vehicle / Part / Fitment / Offer | `DONE` | `DONE` | Esquemas de dominio tipados y contratos de identidad canónica (`src/domain/spareparts/`). |
 | **144** | Motor de Búsqueda Multi-Fuente y Conectores | `DONE` | `DONE` | Conectores paralelos con rate limiting y manejo de contingencia (`src/application/spareparts/`). |
 | **145** | Normalización, Deduplicación y Cross-Reference | `DONE` | `DONE` | Agente de normalización e indexación de equivalencias OEM/Aftermarket. |
-| **146** | Motor Determinista de Verificación de Compatibilidad | `PLANNED` | `NOT_STARTED` | Verificador determinista de compatibilidad pieza-vehículo con evidencia. |
+| **146** | Motor Determinista de Verificación de Compatibilidad | `DONE` | `DONE` | Verificador determinista de compatibilidad pieza-vehículo con evidencia. |
 | **147** | Inteligencia de Precios, Reputación y Costo Total | `PLANNED` | `NOT_STARTED` | Algoritmo de `SellerTrustScore` y cálculo transparente de precio total. |
 | **148** | UX Web: Búsqueda, Filtros y Comparador Lado a Lado | `PLANNED` | `NOT_STARTED` | Single-Page Application (0 `innerHTML`) con tabla comparativa. |
 | **149** | Integración Profunda con AI Operating Platform | `PLANNED` | `NOT_STARTED` | Adaptador satélite `@ai-platform/client` y telemetría SSE reactiva. |

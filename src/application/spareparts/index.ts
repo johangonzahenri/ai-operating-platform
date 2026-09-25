@@ -11,3 +11,4 @@ export * from "./part-normalization-service.js";
 export * from "./duplicate-detection-service.js";
 export * from "./cross-reference-service.js";
 export * from "./part-clustering-engine.js";
+export * from "./fitment-verification-engine.js";

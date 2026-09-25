@@ -62,6 +62,7 @@ Este índice proporciona el mapa canónico de navegación para toda la documenta
 | **Modelo de Dominio Repuestos** | [SPARE_PARTS_DOMAIN_MODEL.md](./SPARE_PARTS_DOMAIN_MODEL.md) | Modelo de dominio canónico para repuestos, vehículos, compatibilidad y ofertas (PROJ-02). |
 | **Búsqueda Multi-Fuente Repuestos** | [SPARE_PARTS_MULTI_SOURCE_SEARCH.md](./SPARE_PARTS_MULTI_SOURCE_SEARCH.md) | Especificación de búsqueda multi-fuente paralela, selección y aislamiento de fallos (PROJ-02). |
 | **Normalización y Deduplicación Repuestos** | [SPARE_PARTS_NORMALIZATION_DEDUP_CROSS_REFERENCE.md](./SPARE_PARTS_NORMALIZATION_DEDUP_CROSS_REFERENCE.md) | Motor de normalización, deduplicación y referencias cruzadas OEM/Aftermarket (PROJ-02). |
+| **Verificación Determinista de Fitment** | [SPARE_PARTS_FITMENT_VERIFICATION.md](./SPARE_PARTS_FITMENT_VERIFICATION.md) | Motor determinista de verificación de compatibilidad pieza-vehículo y resolución de conflictos (PROJ-02). |
 | **Arquitectura AR 3D AI & VTO** | [AR_3D_AI_VISION_ARCHITECTURE.md](./AR_3D_AI_VISION_ARCHITECTURE.md) | Arquitectura de visión computacional AR 3D, Virtual Try-On, modelos neuronales y oclusión para Tentaciones. |
 | **Plataforma Multi-Agente & Web AI** | [MULTI_AGENT_PLATFORM.md](./MULTI_AGENT_PLATFORM.md) | Arquitectura multi-agente, taxonomía, tool proficiency, Web AI, evaluación y proveedores externos. |
 | **Casos de Uso de Automatización** | [BUSINESS_AGENT_USE_CASES.md](./BUSINESS_AGENT_USE_CASES.md) | Catálogo canónico de casos de uso de automatización empresarial en 13 áreas operacionales. |
