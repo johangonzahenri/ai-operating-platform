@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.4.0] - 2026-09-21 (Multi-Enterprise Governance, Governed Runtime, Mandate Reconciliation & Compliance Export)
 
+- **Multi-Source Automotive Search & Specialized Agent Routing (`AOP-SPAREPARTS-SEARCH`, Phase 144)**:
+  - Implemented deterministic intent classification and task decomposition in `src/domain/spareparts/search-intent.ts` (`SearchIntentType`, `SearchTask`, `SearchBudget`).
+  - Created `SourceSelectionService` in `src/application/spareparts/source-selection-service.ts` with multi-criteria candidate selection and explicit inclusion/exclusion reason tracking.
+  - Developed `MultiSourceSearchOrchestrator` in `src/application/spareparts/multi-source-search-orchestrator.ts` enabling parallel multi-source execution, per-source timeout races, failure isolation (`SUCCESS`, `PARTIAL_SUCCESS`, `NO_RESULTS`, `FAILED`), and verification agent integration.
+  - Implemented configurable test fixture connectors in `src/infrastructure/spareparts/fixture-connectors.ts` for deterministic simulation of success, empty results, timeouts, rate limits, and blocks.
+  - Published technical specification in `docs/SPARE_PARTS_MULTI_SOURCE_SEARCH.md`.
+  - Added dedicated unit test suite in `tests/unit/multi-source-search-orchestrator.test.ts` (1698 tests PASS / 0 FAIL across 95 suites).
+
 - **Canonical Automotive Domain Model for Spare Parts Search & Comparison (`AOP-SPAREPARTS-SEARCH`, Phase 143)**:
   - Formalized canonical vehicle domain (`VehicleProfile`, `VehicleSpecification`, `VehicleVariant`, `VehicleIdentifier`) and normalization rules in `src/domain/spareparts/vehicle.ts`.
   - Implemented part number value objects, type taxonomy, and normalization stripping noise/brand prefixes in `src/domain/spareparts/part-number.ts`.

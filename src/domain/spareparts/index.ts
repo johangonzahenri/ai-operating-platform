@@ -11,3 +11,4 @@ export * from "./cross-reference.js";
 export * from "./fitment.js";
 export * from "./product-offer.js";
 export * from "./search-query.js";
+export * from "./search-intent.js";

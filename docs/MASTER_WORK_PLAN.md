@@ -535,13 +535,54 @@ Construir el modelo de dominio canónico para **PROJ-02 — Spare Parts Search &
 
 ---
 
-## 13. Roadmap Preliminar del Producto PROJ-02 (Fases 144 a 150)
+## 13. FASE 144 — Búsqueda Multi-Fuente y Enrutamiento de Agentes Especializados
+
+### Objetivo
+Construir el motor de búsqueda multi-fuente paralelo para **PROJ-02 — Spare Parts Search & Comparison**: clasificar la intención de búsqueda (`SearchIntent`), descomponer consultas en tareas priorizadas (`SearchTask`), seleccionar fuentes relevantes con explicabilidad de inclusiones y exclusiones (`SourceSelectionService`), coordinar ejecución paralela con aislamiento de fallos (`MultiSourceSearchOrchestrator`), integrar compuerta de agente verificador y mapear resultados crudos al modelo de dominio canónico con captura de evidencia estructurada.
+
+### Metadatos
+- **Estado Técnico**: `DONE`
+- **Estado Operativo**: `DONE`
+- **Prioridad**: `HIGH`
+- **Iniciativas Vinculadas**: `AOP-SPAREPARTS-SEARCH`
+- **Evidencia**: 1698 tests PASS (95 suites), 0 errores TypeScript, validadores 100% compliant.
+
+### Tareas
+
+#### 144.1 — Clasificación de Intenciones y Descomposición de Consultas
+- **Estado**: `DONE`
+- **Objetivo**: Implementar `classifySearchIntent` para tipologías de búsqueda (`OEM_LOOKUP`, `PART_NUMBER_LOOKUP`, `VEHICLE_FITMENT_SEARCH`, `PRICE_DISCOVERY`), contratos de `SearchTask` y gobernanza de `SearchBudget`.
+- **Evidencia**: `src/domain/spareparts/search-intent.ts`.
+
+#### 144.2 — Servicio de Selección y Exclusión de Fuentes
+- **Estado**: `DONE`
+- **Objetivo**: Desarrollar `SourceSelectionService` con evaluación multicriterio por región, marcas, capacidades y rastreo explícito de razones de exclusión (`WRONG_REGION`, `NO_RELEVANT_COVERAGE`, etc.).
+- **Evidencia**: `src/application/spareparts/source-selection-service.ts`.
+
+#### 144.3 — Conectores Fixture de Prueba Deterministas
+- **Estado**: `DONE`
+- **Objetivo**: Implementar `TestFixtureAutomotiveConnector` para simulación controlada de éxitos, resultados vacíos, timeouts, límites de tasa y bloqueos perimetrales.
+- **Evidencia**: `src/infrastructure/spareparts/fixture-connectors.ts`.
+
+#### 144.4 — Orquestador de Búsqueda Multi-Fuente y Aislamiento de Fallos
+- **Estado**: `DONE`
+- **Objetivo**: Construir `MultiSourceSearchOrchestrator` ejecutando consultas en paralelo con carreras de timeout, tolerancia a fallos parciales (`PARTIAL_SUCCESS`), validación de ofertas por agente verificador y mapeo canónico.
+- **Evidencia**: `src/application/spareparts/multi-source-search-orchestrator.ts`.
+
+#### 144.5 — Pruebas Automatizadas y Documentación Canónica
+- **Estado**: `DONE`
+- **Objetivo**: Implementar suite de tests `tests/unit/multi-source-search-orchestrator.test.ts` y publicar `docs/SPARE_PARTS_MULTI_SOURCE_SEARCH.md`.
+- **Evidencia**: 10 tests dedicados PASS, 1698 tests totales PASS.
+
+---
+
+## 14. Roadmap Preliminar del Producto PROJ-02 (Fases 145 a 150)
 
 Las siguientes fases representan el plan de construcción del producto satélite *Spare Parts Search & Comparison* (`PROJ-02-SPAREPARTS`). Se declaran oficialmente en estado **`PLANNED / NOT_STARTED`** y no deben ejecutarse automáticamente sin un prompt de inicio específico:
 
 ```mermaid
 flowchart LR
-    F143["Fase 143: Modelo de Dominio (DONE)"] --> F144["Fase 144: Conectores Multi-Fuente"]
+    F143["Fase 143: Modelo de Dominio (DONE)"] --> F144["Fase 144: Búsqueda Multi-Fuente (DONE)"]
     F144 --> F145["Fase 145: Normalización & Cross-Ref"]
     F145 --> F146["Fase 146: Motor de Compatibilidad"]
     F146 --> F147["Fase 147: Precios & Reputación"]
@@ -553,7 +594,7 @@ flowchart LR
 | Fase | Título de la Fase | Estado Técnico | Estado Operativo | Entregable Clave |
 | :--- | :--- | :--- | :--- | :--- |
 | **143** | Modelo de Dominio Vehicle / Part / Fitment / Offer | `DONE` | `DONE` | Esquemas de dominio tipados y contratos de identidad canónica (`src/domain/spareparts/`). |
-| **144** | Motor de Búsqueda Multi-Fuente y Conectores | `PLANNED` | `NOT_STARTED` | Conectores paralelos con rate limiting y manejo de contingencia. |
+| **144** | Motor de Búsqueda Multi-Fuente y Conectores | `DONE` | `DONE` | Conectores paralelos con rate limiting y manejo de contingencia (`src/application/spareparts/`). |
 | **145** | Normalización, Deduplicación y Cross-Reference | `PLANNED` | `NOT_STARTED` | Agente de normalización e indexación de equivalencias OEM/Aftermarket. |
 | **146** | Motor Determinista de Verificación de Compatibilidad | `PLANNED` | `NOT_STARTED` | Verificador determinista de compatibilidad pieza-vehículo con evidencia. |
 | **147** | Inteligencia de Precios, Reputación y Costo Total | `PLANNED` | `NOT_STARTED` | Algoritmo de `SellerTrustScore` y cálculo transparente de precio total. |
@@ -563,7 +604,7 @@ flowchart LR
 
 ---
 
-## 14. Checklist Global Obligatorio de Cierre de Fase
+## 15. Checklist Global Obligatorio de Cierre de Fase
 
 Toda fase futura debe satisfacer el siguiente checklist integral antes de ser declarada `DONE`:
 
@@ -588,9 +629,9 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 15. Plantillas Oficiales de Registro
+## 16. Plantillas Oficiales de Registro
 
-### 15.1. Plantilla de Fase Futura
+### 16.1. Plantilla de Fase Futura
 
 ```markdown
 ## FASE X — [Título de la Fase]
@@ -625,7 +666,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 - X.1.1 — [Título del cambio si surge]
 ```
 
-### 15.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
+### 16.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
 
 ```markdown
 ### X.Y.Z — [Nombre del Cambio Imprevisto]
@@ -644,7 +685,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 16. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
+## 17. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
 
 Las siguientes líneas de trabajo constituyen el backlog estratégico aprobado. Se mantienen en estado `PLANNED`, `BACKLOG` o `EXPLORATORY` y no deben marcarse como `DONE` hasta contar con código y pruebas completas:
 
