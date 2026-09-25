@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.4.0] - 2026-09-21 (Multi-Enterprise Governance, Governed Runtime, Mandate Reconciliation & Compliance Export)
 
+- **Canonical Automotive Domain Model for Spare Parts Search & Comparison (`AOP-SPAREPARTS-SEARCH`, Phase 143)**:
+  - Formalized canonical vehicle domain (`VehicleProfile`, `VehicleSpecification`, `VehicleVariant`, `VehicleIdentifier`) and normalization rules in `src/domain/spareparts/vehicle.ts`.
+  - Implemented part number value objects, type taxonomy, and normalization stripping noise/brand prefixes in `src/domain/spareparts/part-number.ts`.
+  - Developed canonical `Part` aggregate with category hierarchy, condition, position, and strict separation between `Brand` and `Manufacturer` in `src/domain/spareparts/part.ts`.
+  - Created `CrossReference` entity supporting `EXACT`, `EQUIVALENT`, `REPLACEMENT`, `SUPERSEDES` and confidence scoring in `src/domain/spareparts/cross-reference.ts`.
+  - Built `Fitment` aggregate with parametric rules evaluation (`matchesFitmentRule`), provenance, and `CONFLICT` status preservation in `src/domain/spareparts/fitment.ts`.
+  - Established commerce aggregates (`Product`, `Listing`, `Seller`, `SellerReputation`, `ProductRating`, `Price`, `TotalCost`, `Availability`, `ShippingInfo`, and `Offer`) in `src/domain/spareparts/product-offer.ts`.
+  - Defined search query contracts (`SparePartsSearchQuery`, `SearchCriteria`, `NormalizedSearchInput`) in `src/domain/spareparts/search-query.ts`.
+  - Published canonical domain model documentation in `docs/SPARE_PARTS_DOMAIN_MODEL.md`.
+  - Added dedicated unit test suite in `tests/unit/spareparts-domain-model.test.ts` (1688 tests PASS / 0 FAIL across 91 suites).
+
 - **Automotive Source Discovery & Intelligence Layer (`AOP-SPAREPARTS-DISCOVERY`, Phase 142)**:
   - Implemented domain model for automotive sources in `src/domain/spareparts/automotive-source.ts` (`AutomotiveSource`, `AutomotiveSourceType`, `AutomotiveAccessMethod`, `AutomotiveSourceStatus`, `SourceDataCapabilities`, `SourceAccessPolicy`, `SourceCoverage`, and `SourceTrustRating`).
   - Created `InMemoryAutomotiveSourceRegistry` in `src/application/spareparts/automotive-source-registry.ts` with multi-criteria filtering by region, vehicle make, part category, fitment, price, and trust rating.

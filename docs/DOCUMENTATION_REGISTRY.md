@@ -60,6 +60,7 @@ Este registro cataloga todos los documentos oficiales, técnicos y manuales oper
 | `docs/MULTI_AGENT_PLATFORM.md` | Arquitectura de plataforma multi-agente, taxonomía, tool proficiency, Web AI y proveedores externos. | `es-419` | **SÍ** | VIGENTE | 2026-09-24 | Multi-Agent, Web AI, Evaluation, External Providers |
 | `docs/BUSINESS_AGENT_USE_CASES.md` | Catálogo canónico de casos de uso de automatización empresarial en 13 áreas de negocio. | `es-419` | **SÍ** | VIGENTE | 2026-09-24 | Business Automation, Agents, Oversight, Evidence |
 | `docs/AUTOMOTIVE_SOURCE_MAP.md` | Mapa canónico de fuentes automotrices, taxonomía, métodos de acceso y modelo de confianza. | `es-419` | **SÍ** | VIGENTE | 2026-09-24 | Spare Parts, Source Discovery, PROJ-02, Fitment |
+| `docs/SPARE_PARTS_DOMAIN_MODEL.md` | Modelo de dominio canónico para repuestos, vehículos, compatibilidad y ofertas (PROJ-02). | `es-419` | **SÍ** | VIGENTE | 2026-09-24 | Spare Parts, Domain Model, Fitment, Offers |
 | `docs/AR_3D_AI_VISION_ARCHITECTURE.md` | Arquitectura de visión computacional AR 3D, VTO, modelos neuronales y oclusión para Tentaciones. | `es-419` | **SÍ** | VIGENTE | 2026-09-24 | Tentaciones, AR 3D, Virtual Try-On, Computer Vision |
 | `docs/PHASE_81_DISCOVERY.md` | Documento de descubrimiento y auditoría de continuidad arquitectónica (Fase 81). | `es-419` | SÍ | VIGENTE | 2026-09-22 | Fase 81 Discovery |
 | `docs/PHASE_82_DISCOVERY.md` | Documento de descubrimiento de portafolio y formalización de proyectos (Fase 82). | `es-419` | SÍ | VIGENTE | 2026-09-22 | Fase 82 Discovery |

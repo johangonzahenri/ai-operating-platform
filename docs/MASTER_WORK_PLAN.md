@@ -479,13 +479,69 @@ Construir la capa de inteligencia y descubrimiento de fuentes automotrices (*Aut
 
 ---
 
-## 12. Roadmap Preliminar del Producto PROJ-02 (Fases 143 a 150)
+## 12. FASE 143 — Modelo de Dominio Canónico de Repuestos (Vehicle, Part, Fitment, Offer)
+
+### Objetivo
+Construir el modelo de dominio canónico para **PROJ-02 — Spare Parts Search & Comparison**: formalizar agregados tipados para Vehículos (`VehicleProfile`), Repuestos (`Part`, `PartNumber`), Enlaces Cruzados (`CrossReference`), Compatibilidad (`Fitment`, `FitmentRule`, `FitmentProvenance`), Ofertas Comerciales (`Product`, `Listing`, `Seller`, `Price`, `TotalCost`, `Availability`, `Offer`), y Consultas de Búsqueda (`SparePartsSearchQuery`, `SearchCriteria`).
+
+### Metadatos
+- **Estado Técnico**: `DONE`
+- **Estado Operativo**: `DONE`
+- **Prioridad**: `HIGH`
+- **Iniciativas Vinculadas**: `AOP-SPAREPARTS-SEARCH`
+- **Evidencia**: 1688 tests PASS (91 suites), 0 errores TypeScript, validadores 100% compliant.
+
+### Tareas
+
+#### 143.1 — Dominio de Vehículos y Normalización
+- **Estado**: `DONE`
+- **Objetivo**: Diseñar agregados `VehicleSpecification`, `VehicleProfile`, identificadores (`CANONICAL`, `VIN`, etc.), normalización de marcas/modelos y generador de `canonicalVehicleId`.
+- **Evidencia**: `src/domain/spareparts/vehicle.ts`.
+
+#### 143.2 — Dominio de Números de Pieza (PartNumber)
+- **Estado**: `DONE`
+- **Objetivo**: Implementar tipos de identificadores (`OEM`, `MPN`, `SKU`, `EAN`, etc.), normalización estricta descartando ruido y evaluación de equivalencia.
+- **Evidencia**: `src/domain/spareparts/part-number.ts`.
+
+#### 143.3 — Dominio de Repuestos y Taxonomía de Categorías (Part)
+- **Estado**: `DONE`
+- **Objetivo**: Formalizar agregado `Part`, taxonomía jerárquica de 19 categorías, condiciones (`NEW`, `USED`, etc.), posiciones de instalación y separación entre `Brand` y `Manufacturer`.
+- **Evidencia**: `src/domain/spareparts/part.ts`.
+
+#### 143.4 — Dominio de Enlaces Cruzados (CrossReference)
+- **Estado**: `DONE`
+- **Objetivo**: Modelar relaciones de equivalencia (`EXACT`, `EQUIVALENT`, `REPLACEMENT`, `SUPERSEDES`) entre códigos OEM y Aftermarket con confianza numérica.
+- **Evidencia**: `src/domain/spareparts/cross-reference.ts`.
+
+#### 143.5 — Dominio de Compatibilidad (Fitment & Conflict Model)
+- **Estado**: `DONE`
+- **Objetivo**: Modelar agregados `Fitment`, evaluación de reglas paramétricas (`matchesFitmentRule`), procedencia de evidencia y estado `CONFLICT` ante datos contradictorires.
+- **Evidencia**: `src/domain/spareparts/fitment.ts`.
+
+#### 143.6 — Dominio Comercial y Ofertas (Product, Seller, Price, Offer)
+- **Estado**: `DONE`
+- **Objetivo**: Crear agregados `Product`, `Listing`, `Seller`, `SellerReputation`, `ProductRating`, `Price`, `Availability`, `ShippingInfo` y `Offer` con generador de `canonicalOfferId`.
+- **Evidencia**: `src/domain/spareparts/product-offer.ts`.
+
+#### 143.7 — Contratos de Búsqueda y Normalización de Entrada (SearchQuery)
+- **Estado**: `DONE`
+- **Objetivo**: Formalizar contratos `SparePartsSearchQuery`, `SearchCriteria` y normalizador de entradas en lenguaje natural.
+- **Evidencia**: `src/domain/spareparts/search-query.ts`.
+
+#### 143.8 — Pruebas Automatizadas y Documentación Canónica
+- **Estado**: `DONE`
+- **Objetivo**: Implementar suite de pruebas unitarias `tests/unit/spareparts-domain-model.test.ts` y publicar `docs/SPARE_PARTS_DOMAIN_MODEL.md`.
+- **Evidencia**: 19 tests dedicados PASS, 1688 tests totales PASS.
+
+---
+
+## 13. Roadmap Preliminar del Producto PROJ-02 (Fases 144 a 150)
 
 Las siguientes fases representan el plan de construcción del producto satélite *Spare Parts Search & Comparison* (`PROJ-02-SPAREPARTS`). Se declaran oficialmente en estado **`PLANNED / NOT_STARTED`** y no deben ejecutarse automáticamente sin un prompt de inicio específico:
 
 ```mermaid
 flowchart LR
-    F143["Fase 143: Modelo de Dominio"] --> F144["Fase 144: Conectores Multi-Fuente"]
+    F143["Fase 143: Modelo de Dominio (DONE)"] --> F144["Fase 144: Conectores Multi-Fuente"]
     F144 --> F145["Fase 145: Normalización & Cross-Ref"]
     F145 --> F146["Fase 146: Motor de Compatibilidad"]
     F146 --> F147["Fase 147: Precios & Reputación"]
@@ -496,7 +552,7 @@ flowchart LR
 
 | Fase | Título de la Fase | Estado Técnico | Estado Operativo | Entregable Clave |
 | :--- | :--- | :--- | :--- | :--- |
-| **143** | Modelo de Dominio Vehicle / Part / Fitment / Offer | `PLANNED` | `NOT_STARTED` | Esquemas de dominio tipados y contratos de identidad canónica. |
+| **143** | Modelo de Dominio Vehicle / Part / Fitment / Offer | `DONE` | `DONE` | Esquemas de dominio tipados y contratos de identidad canónica (`src/domain/spareparts/`). |
 | **144** | Motor de Búsqueda Multi-Fuente y Conectores | `PLANNED` | `NOT_STARTED` | Conectores paralelos con rate limiting y manejo de contingencia. |
 | **145** | Normalización, Deduplicación y Cross-Reference | `PLANNED` | `NOT_STARTED` | Agente de normalización e indexación de equivalencias OEM/Aftermarket. |
 | **146** | Motor Determinista de Verificación de Compatibilidad | `PLANNED` | `NOT_STARTED` | Verificador determinista de compatibilidad pieza-vehículo con evidencia. |
@@ -507,7 +563,7 @@ flowchart LR
 
 ---
 
-## 13. Checklist Global Obligatorio de Cierre de Fase
+## 14. Checklist Global Obligatorio de Cierre de Fase
 
 Toda fase futura debe satisfacer el siguiente checklist integral antes de ser declarada `DONE`:
 
@@ -532,9 +588,9 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 13. Plantillas Oficiales de Registro
+## 15. Plantillas Oficiales de Registro
 
-### 13.1. Plantilla de Fase Futura
+### 15.1. Plantilla de Fase Futura
 
 ```markdown
 ## FASE X — [Título de la Fase]
@@ -569,7 +625,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 - X.1.1 — [Título del cambio si surge]
 ```
 
-### 13.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
+### 15.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
 
 ```markdown
 ### X.Y.Z — [Nombre del Cambio Imprevisto]
@@ -588,7 +644,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 14. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
+## 16. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
 
 Las siguientes líneas de trabajo constituyen el backlog estratégico aprobado. Se mantienen en estado `PLANNED`, `BACKLOG` o `EXPLORATORY` y no deben marcarse como `DONE` hasta contar con código y pruebas completas:
 

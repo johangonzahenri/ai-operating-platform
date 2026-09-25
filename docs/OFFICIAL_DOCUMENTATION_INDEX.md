@@ -59,6 +59,7 @@ Este índice proporciona el mapa canónico de navegación para toda la documenta
 | **Integración Tentaciones** | [TENTACIONES_PLATFORM_INTEGRATION.md](./TENTACIONES_PLATFORM_INTEGRATION.md) | Especificación de integración de la Aplicación Satélite 01 (Tentaciones AI Commerce). |
 | **Charter PROJ-02 Spare Parts** | [PROJ_02_SPARE_PARTS_PRODUCT_CHARTER.md](./PROJ_02_SPARE_PARTS_PRODUCT_CHARTER.md) | Carta constitutiva y especificación del producto satélite Spare Parts Search & Comparison. |
 | **Mapa de Fuentes Automotrices** | [AUTOMOTIVE_SOURCE_MAP.md](./AUTOMOTIVE_SOURCE_MAP.md) | Mapa canónico de fuentes automotrices, taxonomía, métodos de acceso y modelo de confianza. |
+| **Modelo de Dominio Repuestos** | [SPARE_PARTS_DOMAIN_MODEL.md](./SPARE_PARTS_DOMAIN_MODEL.md) | Modelo de dominio canónico para repuestos, vehículos, compatibilidad y ofertas (PROJ-02). |
 | **Arquitectura AR 3D AI & VTO** | [AR_3D_AI_VISION_ARCHITECTURE.md](./AR_3D_AI_VISION_ARCHITECTURE.md) | Arquitectura de visión computacional AR 3D, Virtual Try-On, modelos neuronales y oclusión para Tentaciones. |
 | **Plataforma Multi-Agente & Web AI** | [MULTI_AGENT_PLATFORM.md](./MULTI_AGENT_PLATFORM.md) | Arquitectura multi-agente, taxonomía, tool proficiency, Web AI, evaluación y proveedores externos. |
 | **Casos de Uso de Automatización** | [BUSINESS_AGENT_USE_CASES.md](./BUSINESS_AGENT_USE_CASES.md) | Catálogo canónico de casos de uso de automatización empresarial en 13 áreas operacionales. |

@@ -1,8 +1,8 @@
 {
-  "traceId": "trace-verify-openai-f5961281",
+  "traceId": "trace-verify-openai-c8eefb89",
   "provider": "openai",
   "environment": "production",
-  "verifiedAt": "2026-09-25T00:17:05.970Z",
+  "verifiedAt": "2026-09-25T00:25:57.540Z",
   "status": "OPERATIONAL",
   "latencyMs": 6,
   "metadata": {
