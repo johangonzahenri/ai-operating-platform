@@ -808,6 +808,106 @@ describe("Track 4 — GAP-07 Official Enterprise MCP Server Suite", () => {
       assert.equal(parsedRes.id, "http-req-1");
       assert.ok(parsedRes.result.tools);
     });
+
+    it("7.3 serveMcpStdio processes modern server/discover and tool invocation through official SDK transport", async () => {
+      const secCtx = createTestSecurityContext();
+      const stdin = new Readable({ read() {} });
+      const stdoutChunks: string[] = [];
+      const stdout = new Writable({
+        write(chunk, encoding, callback) {
+          stdoutChunks.push(chunk.toString());
+          callback();
+        },
+      });
+
+      const runner = serveMcpStdio(mcpServer, {
+        stdin,
+        stdout,
+        defaultSecurityContext: secCtx,
+        defaultTenantId: "tenant-acme",
+      });
+
+      // Send modern server/discover
+      const discoverReq = {
+        jsonrpc: "2.0",
+        id: "stdio-discover-1",
+        method: "server/discover",
+        params: {
+          _meta: {
+            "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+            "io.modelcontextprotocol/clientCapabilities": {},
+          },
+          clientInfo: { name: "antigravity-ide", version: "2.0.0" },
+        },
+      };
+
+      stdin.push(JSON.stringify(discoverReq) + "\n");
+      await new Promise((resolve) => setTimeout(resolve, 60));
+
+      assert.ok(stdoutChunks.length > 0);
+      const res1 = JSON.parse(stdoutChunks.join("").trim());
+      assert.equal(res1.id, "stdio-discover-1");
+      assert.ok(res1.result);
+
+      if (typeof runner.close === "function") {
+        await runner.close();
+      }
+    });
+
+    it("7.4 handleMcpHttpRequest handles modern HTTP request headers delegating directly to official handler", async () => {
+      const secCtx = createTestSecurityContext();
+      const reqPayload = JSON.stringify({
+        jsonrpc: "2.0",
+        id: "http-modern-1",
+        method: "tools/list",
+        params: {
+          _meta: {
+            "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+            "io.modelcontextprotocol/clientCapabilities": {},
+          },
+        },
+      });
+
+      const reqStream = new Readable({
+        read() {
+          this.push(reqPayload);
+          this.push(null);
+        },
+      });
+      (reqStream as any).method = "POST";
+      (reqStream as any).url = "/mcp";
+      (reqStream as any).headers = {
+        "content-type": "application/json",
+        "mcp-protocol-version": "2026-07-28",
+        "mcp-method": "tools/list",
+        "x-tenant-id": "tenant-acme",
+      };
+
+      let responseStatusCode = 0;
+      const responseHeaders: Record<string, string> = {};
+      let responseBody = "";
+
+      const resStream = new Writable({
+        write(chunk, encoding, callback) {
+          responseBody += chunk.toString();
+          callback();
+        },
+      });
+      (resStream as any).writeHead = (statusCode: number, headers: Record<string, string>) => {
+        responseStatusCode = statusCode;
+        Object.assign(responseHeaders, headers);
+      };
+
+      await handleMcpHttpRequest(reqStream as any, resStream as any, mcpServer, {
+        defaultSecurityContext: secCtx,
+        defaultTenantId: "tenant-acme",
+      });
+
+      assert.equal(responseStatusCode, 200);
+      const parsedRes = JSON.parse(responseBody);
+      assert.equal(parsedRes.id, "http-modern-1");
+      assert.ok(parsedRes.result?.tools);
+    });
   });
 
   // =========================================================================

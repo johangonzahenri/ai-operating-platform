@@ -15,10 +15,11 @@
  */
 
 import { PlatformMcpServer, McpRequestContext } from "./platform-mcp-server.js";
-import { McpJsonRpcRequest, McpJsonRpcResponse } from "./mcp-dto.js";
+import { McpJsonRpcRequest } from "./mcp-dto.js";
 import { Readable, Writable } from "node:stream";
 import { IncomingMessage, ServerResponse } from "node:http";
 import { SecurityContext } from "../../domain/security/security.js";
+import { serveStdio, StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 
 export interface McpHttpHandlerOptions {
   readonly defaultSecurityContext?: SecurityContext | undefined;
@@ -84,8 +85,8 @@ export async function handleMcpHttpRequest(
           typeof parsedJsonBody === "object" &&
           (parsedJsonBody as any).jsonrpc === "2.0";
 
-        // If it's a direct JSON-RPC request without MCP SDK HTTP headers, we can route
-        // via server.handleRequest to maintain deterministic JSON response payloads for API endpoints
+        // If it's a direct JSON-RPC request without MCP SDK HTTP headers, route
+        // via server.handleRequest to maintain deterministic JSON response payloads
         const hasMcpHeader =
           req.headers["mcp-protocol-version"] !== undefined ||
           req.headers["mcp-method"] !== undefined;
@@ -169,8 +170,9 @@ export async function handleMcpHttpRequest(
 }
 
 /**
- * Starts a Stdio transport listener over readable/writable streams (defaults to stdin/stdout).
- * Suitable for subprocess execution by local IDEs and CLI tools (e.g. Antigravity, Claude Desktop, Cursor).
+ * Starts a Stdio transport runner over readable/writable streams (defaults to stdin/stdout)
+ * powered directly by the official MCP TypeScript SDK (@modelcontextprotocol/server/stdio).
+ * Suitable for subprocess execution by local IDEs and CLI tools (Antigravity, Claude Desktop, Cursor).
  */
 export function serveMcpStdio(
   server: PlatformMcpServer,
@@ -184,71 +186,34 @@ export function serveMcpStdio(
     readonly defaultSecurityContext?: SecurityContext | undefined;
     readonly apiKey?: string | undefined;
   } = {}
-): { close: () => void } {
-  const input = options.stdin ?? options.input ?? process.stdin;
-  const output = options.stdout ?? options.output ?? process.stdout;
+): { close: () => Promise<void> | void } {
+  const stdin = (options.stdin ?? options.input ?? process.stdin) as any;
+  const stdout = (options.stdout ?? options.output ?? process.stdout) as any;
   const logStderr = options.logStderr ?? true;
 
-  let buffer = "";
+  const transport = new StdioServerTransport(stdin, stdout);
 
-  const onData = async (chunk: Buffer | string) => {
-    buffer += chunk.toString();
-
-    // Process line-delimited JSON-RPC messages
-    const lines = buffer.split("\n");
-    // Keep incomplete tail in buffer
-    buffer = lines.pop() ?? "";
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed) continue;
-
-      let rpcReq: McpJsonRpcRequest;
-      try {
-        rpcReq = JSON.parse(trimmed);
-      } catch (parseErr) {
-        if (logStderr) {
-          process.stderr.write(`[MCP-STDIO] Parse error: ${(parseErr as Error).message}\n`);
-        }
-        output.write(
-          JSON.stringify({
-            jsonrpc: "2.0",
-            id: null,
-            error: { code: -32700, message: "Parse error" },
-          }) + "\n"
-        );
-        continue;
-      }
-
+  const runner = serveStdio(
+    () => {
       const reqCtx: McpRequestContext = {
         tenantId: options.defaultTenantId,
         securityContext: options.defaultSecurityContext,
         apiKey: options.apiKey,
       };
-
-      try {
-        const response: McpJsonRpcResponse = await server.handleRequest(rpcReq, reqCtx);
-        output.write(JSON.stringify(response) + "\n");
-      } catch (handleErr) {
-        if (logStderr) {
-          process.stderr.write(`[MCP-STDIO] Unhandled error: ${(handleErr as Error).message}\n`);
-        }
-        output.write(
-          JSON.stringify({
-            jsonrpc: "2.0",
-            id: rpcReq.id ?? null,
-            error: { code: -32603, message: (handleErr as Error).message },
-          }) + "\n"
-        );
-      }
+      return server.buildOfficialMcpServer(reqCtx);
+    },
+    {
+      transport,
+      legacy: "serve",
+      onerror: logStderr
+        ? (err: Error) => {
+            process.stderr.write(`[MCP-STDIO] ${err.message}\n`);
+          }
+        : undefined,
     }
-  };
-
-  input.on("data", onData);
+  );
 
   return {
-    close: () => {
-      input.off("data", onData);
-    },
+    close: () => runner.close(),
   };
 }
