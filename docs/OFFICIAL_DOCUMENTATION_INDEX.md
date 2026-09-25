@@ -83,6 +83,7 @@ Este índice proporciona el mapa canónico de navegación para toda la documenta
 | **Resumen del Roadmap** | [ROADMAP.md](../ROADMAP.md) | Vista ejecutiva del estado de las fases del proyecto. |
 | **Criterios de Salida v1.0** | [V1_EXIT_CRITERIA.md](./V1_EXIT_CRITERIA.md) | Criterios de verificación y certificación de producción para el release v1.0. |
 | **Preparación para Release** | [V1_RELEASE_READINESS.md](./V1_RELEASE_READINESS.md) | Matriz de comprobación de calidad, estabilidad y empaquetado para despliegue. |
+| **Auditoría de Hardening Arquitectónico** | [ARCHITECTURAL_HARDENING_AUDIT.md](./ARCHITECTURAL_HARDENING_AUDIT.md) | Auditoría transversal: Multi-Agent Runtime, MCP, HITL, Gobernanza de Tools, Evidencia y Seguridad. |
 | **Registro de Deuda Técnica** | [TECHNICAL_DEBT.md](./TECHNICAL_DEBT.md) | Inventario formal de mejoras arquitectónicas, refactorizaciones y deudas técnicas gestionadas. |
 | **Trazabilidad de Prompts** | [PROMPT_TRACEABILITY.md](./PROMPT_TRACEABILITY.md) | Registro histórico de trazabilidad de fases y prompts de desarrollo. |
 

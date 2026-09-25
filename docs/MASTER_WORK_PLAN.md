@@ -29,6 +29,33 @@ Este documento responde de forma inequívoca en todo momento:
 > **Decisión**: Formalizar los 8 principios en `LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md` (raíz y `docs/`), validar consistencia criptográfica mediante `scripts/docs-check.mjs` y ratificar invariantes de plataforma.  
 > **Evidencia**: `LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md`, `docs/LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md`, `scripts/docs-check.mjs` (SHA-256 match).
 
+### Tarea Inesperada 1.1.2 — Auditoría y Hardening del Runtime Multi-Agente / MCP / HITL
+> **Identificador Canónico**: `1.1.2` (Cross-Cutting Architectural Hardening / Unexpected Governance Task)  
+> **Fecha**: 2026-09-25  
+> **Estado Técnico**: `PLANNED` | **Estado Operativo**: `READY`  
+> **Prioridad**: `HIGH`  
+> **Iniciativas Vinculadas**: `AOP-MULTIAGENT-HARDENING` (`docs/ROADMAP_MASTER.md`)  
+> **Detectado durante**: Prompt 150 — Auditoría Arquitectónica Transversal Multi-Agente, MCP, HITL, Tool Governance, Evidence & Security.  
+> **Origen**: Revisión transversal de propuestas externas contra el código real de `src/`, confirmando 9 brechas arquitectónicas objetivas (GAP-01 a GAP-09) y descartando propuestas incompatibles con la arquitectura hexagonal y la política zero third-party en Core.  
+> **Decisión**: Formalizar la auditoría en `docs/ARCHITECTURAL_HARDENING_AUDIT.md`, registrar la iniciativa en el Roadmap Maestro y definir la secuencia técnica de ejecución sin alterar el código operativo en esta fase preliminar.  
+> **Evidencia**: `docs/ARCHITECTURAL_HARDENING_AUDIT.md`, `docs/ROADMAP_MASTER.md`, `docs/DOCUMENTATION_REGISTRY.md`.  
+>
+> **Checklist de Tracks de Hardening (4 Fases Técnicas Secuenciales)**:
+> - [ ] Track 1 — Gobernanza de Herramientas, Idempotencia & Rate Limiting (GAP-02, GAP-04, GAP-03):
+>   - Deduplicación previa e integración de IdempotencyPort en ToolInvocationRuntime.
+>   - Evolución semántica de esquemas y anotaciones operacionales (readOnlyHint, destructiveHint, idempotentHint, openWorldHint).
+>   - Limitador de velocidad por agente (sliding window burst rate limit) para llamadas a herramientas de terceros.
+> - [ ] Track 2 — Aislamiento de Datos, Taint Tracking & Compensación Saga (GAP-01, GAP-05):
+>   - Envoltorio de frontera (TaintWrapper) para neutralizar inyecciones de datos no confiables provenientes de herramientas externas.
+>   - Contrato CompensableTool y orquestador de compensación en reversa ante fallos en planes multi-paso.
+> - [ ] Track 3 — Criptografía de Evidencia, W3C Tracing & HITL Bridge (GAP-06, GAP-08, GAP-09):
+>   - Encadenamiento criptográfico continuo de bloques de evidencia (previousPackageHashSha256) en exportaciones de cumplimiento.
+>   - Puente de suspensión y reanudación asíncrona para herramientas con aprobación requerida respetando SoD de dominio.
+>   - Propagación de cabeceras W3C traceparent y tracestate en PlatformClient y HTTP Router.
+> - [ ] Track 4 — Servidor MCP Enterprise Oficial (GAP-07):
+>   - Implementación del servidor oficial MCP SDK v2 en la capa perimetral (src/platform/mcp/) con transportes Stdio y Streamable HTTP.
+>   - Exposición gobernada del catálogo de herramientas y prompts sin violar fronteras hexagonales de dominio ni persistencia.
+
 ---
 
 ## 2. Separación Conceptual de Documentos
