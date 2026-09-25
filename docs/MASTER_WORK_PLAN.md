@@ -625,8 +625,9 @@ flowchart LR
    - Portal de autoservicio para desarrolladores con generación guiada de API keys y webhooks.
    - Especificaciones formales para clientes SDK en Python y Go.
 
-2. **Línea B — Expansión del Portafolio Satélite (`PLANNED / BACKLOG`)**:
-   - **`PROJ-02` (Spare Parts Search & Comparison)**: Fases 142-150 planificadas formalmente en [`docs/PROJ_02_SPARE_PARTS_PRODUCT_CHARTER.md`](./PROJ_02_SPARE_PARTS_PRODUCT_CHARTER.md).
+2. **Línea B — Expansión del Portafolio Satélite (`PLANNED / IN_PROGRESS`)**:
+   - **`PROJ-01` (Tentaciones AI Commerce - `AOP-TENTACIONES-AR-3D-AI`)**: Capa de visión computacional avanzada, VTO neuronal on-device, segmentación de prendas, estimación de pose 3D (BlazePose), oclusión dinámica y orquestación multi-agente (`docs/AR_3D_AI_VISION_ARCHITECTURE.md`).
+   - **`PROJ-02` (Spare Parts Search & Comparison - `AOP-SPAREPARTS-SEARCH`)**: Fases 142-150 planificadas formalmente en [`docs/PROJ_02_SPARE_PARTS_PRODUCT_CHARTER.md`](./PROJ_02_SPARE_PARTS_PRODUCT_CHARTER.md) y [`docs/AUTOMOTIVE_SOURCE_MAP.md`](./AUTOMOTIVE_SOURCE_MAP.md).
    - **`PROJ-03` (Fleet Management)**: Gestión telemática y optimización de rutas con agentes autónomos.
    - **`PROJ-04` (Customer Portal)**: Triaje de soporte omnicanal y escalamiento humano con SoD.
    - **`PROJ-05` (Analytics AI)**: Agregación de KPIs ejecutivos y pronósticos sin alucinación.
