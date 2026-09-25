@@ -180,6 +180,7 @@ import {
   EvidenceScopeNotAuthorizedError,
   EvidenceResourceNotFoundError,
 } from "../../domain/governance/evidence-export-errors.js";
+import { SparePartsFacade } from "../../application/spareparts/spare-parts-facade.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -229,6 +230,7 @@ export function createHttpServer(
   service: PlatformService,
   options?: HttpServerOptions
 ): http.Server {
+  const defaultSparePartsFacade = new SparePartsFacade();
   const credService = options?.apiCredentialService ?? service.getApiCredentialService();
   const authService =
     options?.authService ??
@@ -7364,6 +7366,29 @@ export function createHttpServer(
             }
             console.error("[HTTP 500] Evidence export error:", err);
             sendError(500, "Internal error during evidence export", "INTERNAL_SERVER_ERROR");
+            return;
+          }
+        }
+
+        // POST /spareparts/search (PROJ-02 Phase 148)
+        if (subPath === "/spareparts/search" && req.method === "POST") {
+          const authCheck = await authenticateAndAuthorize("tool.invoke", "API", "spareparts", undefined, false);
+          if (!authCheck.ok) {
+            sendError(authCheck.status, authCheck.message, authCheck.code);
+            return;
+          }
+          const bodyResult = await readJsonBody();
+          if (!bodyResult.ok) {
+            sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+            return;
+          }
+          try {
+            const searchResponse = await defaultSparePartsFacade.searchAndCompare(bodyResult.body as any);
+            sendJson(200, searchResponse);
+            return;
+          } catch (err: any) {
+            console.error("[HTTP 500] Spare parts search error:", err);
+            sendError(500, err?.message || "Internal error during spare parts search", "INTERNAL_SERVER_ERROR");
             return;
           }
         }

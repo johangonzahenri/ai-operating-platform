@@ -127,8 +127,18 @@ export class PartClusteringEngine {
     const clusters: CanonicalPartCluster[] = [];
 
     for (const [rootIdx, groupOffers] of groupMap.entries()) {
-      // Offers in this group are already deterministically sorted
-      const representativeOffer = groupOffers[0];
+      // Offers in this group are deterministically sorted
+      // Select representative offer: prefer OEM brand or OE part number if available
+      let representativeOffer = groupOffers[0];
+      for (const off of groupOffers) {
+        const offParts = off.canonicalPartId.split(":");
+        const offBrand = offParts.length >= 2 ? offParts[1] : "";
+        const normBrand = this.normalizer.normalizeBrand(offBrand);
+        if (normBrand.tier === "OEM_GENUINE") {
+          representativeOffer = off;
+          break;
+        }
+      }
 
       // Extract canonical part details from representative
       const parts = representativeOffer.canonicalPartId.split(":");
@@ -138,7 +148,7 @@ export class PartClusteringEngine {
       const brand = this.normalizer.normalizeBrand(rawBrand);
       const primaryPn = this.normalizer.normalizePartNumber(rawPn, {
         brand: brand.name,
-        type: "OEM",
+        type: brand.tier === "OEM_GENUINE" ? "OEM" : "MPN",
       });
 
       // Collect alternate part numbers across all group offers
@@ -152,7 +162,7 @@ export class PartClusteringEngine {
               offPn.toUpperCase(),
               createPartNumber({
                 rawValue: offPn,
-                type: "AFTERMARKET_EQUIVALENT" as any,
+                type: "MPN",
                 brand: brand.name,
                 isPrimary: false,
               })

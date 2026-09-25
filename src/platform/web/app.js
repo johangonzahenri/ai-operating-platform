@@ -1,6 +1,7 @@
 import { i18n } from "./i18n/index.js";
 // Web Platform Client Application (Strictly typed DOM construction, zero innerHTML, consumes api-client.js)
 import * as api from "./api-client.js";
+import { SparePartsView } from "./spare-parts-view.js";
 
 // Scenarios for Playground
 const SCENARIOS = {
@@ -216,6 +217,7 @@ class PlatformApp {
     this.setupEvidenceExport();
     this.setupWorkflows();
     this.setupApprovals();
+    this.setupSparePartsView();
     this.loadData();
     this.startAutoRefresh();
     this.initEventStreaming();
@@ -677,6 +679,7 @@ class PlatformApp {
       organizations: { title: "Virtual Organization Foundation", sub: "Multi-level organizational hierarchy, operational areas, working teams, and agent memberships" },
       portfolios: { title: "Multi-Enterprise Portfolios & Governance", sub: "Group-level portfolios, cross-enterprise mandates, and deterministic metric aggregation" },
       evidence: { title: "Governance & Compliance Evidence Export", sub: "Deterministic SHA-256 sealed compliance packages across 9 operational scopes" },
+      "spare-parts": { title: "Spare Parts Search & Comparison (PROJ-02)", sub: "Multi-source automotive search, deterministic fitment verification, and landed cost intelligence" },
     };
 
     this.updateViewHeader(tab);

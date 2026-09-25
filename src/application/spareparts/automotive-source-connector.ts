@@ -29,9 +29,22 @@ export interface SourceProductOffer {
   readonly sellerName?: string | undefined;
   readonly sellerTrustScore?: number | undefined;
   readonly productUrl: string;
-  readonly fitmentVerified: boolean;
-  readonly evidenceClaims: readonly StructuredClaimEvidence[];
-  readonly lastCheckedAt: Date;
+  readonly fitmentVerified?: boolean | undefined;
+  readonly evidenceClaims?: readonly StructuredClaimEvidence[] | undefined;
+  readonly shipping?: Readonly<{
+    readonly fee?: number | undefined;
+    readonly freeShipping?: boolean | undefined;
+    readonly carrier?: string | undefined;
+    readonly estimatedDaysMin?: number | undefined;
+    readonly estimatedDaysMax?: number | undefined;
+  }> | undefined;
+  readonly taxInfo?: Readonly<{
+    readonly taxIncluded?: boolean | undefined;
+    readonly taxRate?: number | undefined;
+  }> | undefined;
+  readonly warrantyMonths?: number | undefined;
+  readonly returnPolicyDays?: number | undefined;
+  readonly lastCheckedAt?: Date | undefined;
 }
 
 export interface SourceSearchResult {

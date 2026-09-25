@@ -1,0 +1,309 @@
+
+/* Spare Parts Search & Comparison UI (PROJ-02) */
+.sp-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.sp-header-card .sp-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 1.25rem;
+}
+
+.sp-subtitle {
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  margin-top: 0.25rem;
+}
+
+.sp-badges {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.sp-presets-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.sp-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.sp-active-vehicle-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.85rem;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+}
+
+.sp-search-form {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.sp-search-input {
+  flex: 1;
+  font-size: 1rem;
+  padding: 0.75rem 1rem;
+}
+
+.sp-search-submit-btn {
+  padding: 0.75rem 1.5rem;
+  white-space: nowrap;
+}
+
+.sp-suggestions-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.sp-source-chips-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem;
+}
+
+.sp-source-chip {
+  padding: 0.75rem;
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.sp-source-meta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.sp-main-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .sp-main-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sp-filter-sidebar {
+  position: sticky;
+  top: 1rem;
+}
+
+.sp-filters-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.sp-results-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.sp-cluster-tabs {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.sp-cluster-banner {
+  border-left: 4px solid var(--accent-blue);
+}
+
+.sp-cluster-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.sp-cluster-verdict {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+
+.sp-results-count-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.sp-offer-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1rem;
+}
+
+.sp-offer-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  border: 1px solid var(--border-color);
+}
+
+.sp-offer-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.sp-offer-card-selected {
+  border-color: var(--accent-blue) !important;
+  box-shadow: 0 0 0 2px var(--border-focus);
+}
+
+.sp-offer-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.sp-card-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.sp-seller-name {
+  font-size: 0.95rem;
+  margin-right: 0.5rem;
+}
+
+.sp-picks-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+
+.sp-price-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.6rem 0;
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.sp-price-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.sp-price-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.sp-base-price-val {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.sp-landed-price-val {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.sp-breakdown-text {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  background: var(--bg-secondary);
+  padding: 0.4rem 0.6rem;
+  border-radius: var(--radius-xs);
+  word-break: break-all;
+}
+
+.sp-card-meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+}
+
+.sp-trust-pill {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.sp-warning-box {
+  font-size: 0.75rem;
+  color: var(--accent-rose);
+  background: rgba(225, 29, 72, 0.08);
+  padding: 0.4rem 0.6rem;
+  border-radius: var(--radius-xs);
+  border: 1px solid rgba(225, 29, 72, 0.2);
+}
+
+.sp-card-action-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.25rem;
+}
+
+/* Side-by-Side Comparison Table */
+.sp-comparison-card {
+  margin-top: 1.5rem;
+}
+
+.sp-comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.sp-comparison-table th,
+.sp-comparison-table td {
+  padding: 0.85rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 0.88rem;
+}
+
+.sp-comp-th-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.sp-row-highlight {
+  background: rgba(37, 99, 235, 0.05);
+  font-weight: 600;
+}
+
+.sp-empty-card,
+.sp-initial-card,
+.sp-loading-card,
+.sp-noresults-card {
+  padding: 2.5rem 1.5rem;
+}

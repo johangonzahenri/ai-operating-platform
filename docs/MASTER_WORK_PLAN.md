@@ -704,7 +704,48 @@ Construir el motor determinista de inteligencia de precios y reputación de vend
 
 ---
 
-## 17. Roadmap Preliminar del Producto PROJ-02 (Fases 148 a 150)
+## 17. FASE 148 — UX Web: Búsqueda, Filtros y Comparador Lado a Lado (Spare Parts Web UX & Side-by-Side Comparison)
+
+### Objetivo
+Construir la experiencia de usuario web (Single-Page Application) y la fachada unificada de aplicación (`SparePartsFacade`) para **PROJ-02 — Spare Parts Search & Comparison**: implementar selector contextual de vehículo con presets rápidos, buscador multi-criterio con telemetría de conectores por fuente, filtros reactivos en sidebar (precio, compatibilidad, reputación, disponibilidad), tarjetas de clusters con badges de mejor precio/confianza/recomendado, y comparador lado a lado (*side-by-side*) de hasta 4 ofertas simultáneas bajo la regla inquebrantable de **cero `.innerHTML`** y preservación de verdad (`UNKNOWN ≠ 0`).
+
+### Metadatos
+- **Estado Técnico**: `DONE`
+- **Estado Operativo**: `DONE`
+- **Prioridad**: `HIGH`
+- **Iniciativas Vinculadas**: `AOP-SPAREPARTS-SEARCH`
+- **Evidencia**: 1744 tests PASS (99 suites), 9 tests dedicados en `tests/unit/spare-parts-web-ux.test.ts`, 0 `.innerHTML` en todo `src/platform/web/`.
+
+### Tareas
+
+#### 148.1 — Fachada de Aplicación y Endpoint de Búsqueda
+- **Estado**: `DONE`
+- **Objetivo**: Implementar `SparePartsFacade` integrando búsqueda multi-fuente, clustering canónico, fitment paramétrico y comparación de precios, exponiendo el endpoint `POST /spareparts/search` en `http-router.ts`.
+- **Evidencia**: `src/application/spareparts/spare-parts-facade.ts`, `src/platform/api/http-router.ts`.
+
+#### 148.2 — Selector de Vehículo y Búsqueda Reactiva Multi-Fuente
+- **Estado**: `DONE`
+- **Objetivo**: Diseñar selector vehicular (`make`, `model`, `year`, `generation`, `engine`) con presets de acceso rápido y barra de búsqueda con chips de estado y latencia por conector.
+- **Evidencia**: `src/platform/web/spare-parts-view.js`, `src/platform/web/spare-parts.css`.
+
+#### 148.3 — Filtros Reactivos en Barra Lateral
+- **Estado**: `DONE`
+- **Objetivo**: Implementar filtrado dinámico en memoria por rango de precio, veredicto de compatibilidad (`FIT`, `UNKNOWN`, `NOT_FIT`), puntaje mínimo de reputación del vendedor y stock disponible.
+- **Evidencia**: `src/platform/web/spare-parts-view.js`.
+
+#### 148.4 — Comparador Lado a Lado y Protección de Invariantes
+- **Estado**: `DONE`
+- **Objetivo**: Desarrollar tabla comparativa en cuadrícula para hasta 4 ofertas con atributos detallados, exclusión fail-closed de ofertas incompatibles (`NOT_FIT`) y renderizado transparente de costos incompletos como `TOTAL_UNKNOWN`.
+- **Evidencia**: `src/platform/web/spare-parts-view.js`, `src/platform/web/app.js`, `src/platform/web/api-client.js`.
+
+#### 148.5 — Pruebas Automatizadas, Auditoría de Seguridad y Documentación
+- **Estado**: `DONE`
+- **Objetivo**: Crear suite de pruebas exhaustiva `tests/unit/spare-parts-web-ux.test.ts` cubriendo 9 escenarios (incluyendo auditoría de 0 `innerHTML`) y publicar `docs/SPARE_PARTS_WEB_UX.md`.
+- **Evidencia**: 9 tests dedicados PASS, 1744 tests totales PASS (99 suites), `docs/SPARE_PARTS_WEB_UX.md`.
+
+---
+
+## 18. Roadmap Preliminar del Producto PROJ-02 (Fases 149 a 150)
 
 Las siguientes fases representan el plan de construcción del producto satélite *Spare Parts Search & Comparison* (`PROJ-02-SPAREPARTS`). Se declaran oficialmente en estado **`PLANNED / NOT_STARTED`** y no deben ejecutarse automáticamente sin un prompt de inicio específico:
 
@@ -714,7 +755,7 @@ flowchart LR
     F144 --> F145["Fase 145: Normalización & Cross-Ref (DONE)"]
     F145 --> F146["Fase 146: Motor de Compatibilidad (DONE)"]
     F146 --> F147["Fase 147: Precios & Reputación (DONE)"]
-    F147 --> F148["Fase 148: UX & Comparador SPA"]
+    F147 --> F148["Fase 148: UX & Comparador SPA (DONE)"]
     F148 --> F149["Fase 149: Integración AOP & SSE"]
     F149 --> F150["Fase 150: Certificación MVP"]
 ```
@@ -726,7 +767,7 @@ flowchart LR
 | **145** | Normalización, Deduplicación y Cross-Reference | `DONE` | `DONE` | Agente de normalización e indexación de equivalencias OEM/Aftermarket. |
 | **146** | Motor Determinista de Verificación de Compatibilidad | `DONE` | `DONE` | Verificador determinista de compatibilidad pieza-vehículo con evidencia. |
 | **147** | Inteligencia de Precios, Reputación y Costo Total | `DONE` | `DONE` | Algoritmo de `SellerTrustScore` y cálculo transparente de precio total. |
-| **148** | UX Web: Búsqueda, Filtros y Comparador Lado a Lado | `PLANNED` | `NOT_STARTED` | Single-Page Application (0 `innerHTML`) con tabla comparativa. |
+| **148** | UX Web: Búsqueda, Filtros y Comparador Lado a Lado | `DONE` | `DONE` | Single-Page Application (0 `innerHTML`) con tabla comparativa y `SparePartsFacade`. |
 | **149** | Integración Profunda con AI Operating Platform | `PLANNED` | `NOT_STARTED` | Adaptador satélite `@ai-platform/client` y telemetría SSE reactiva. |
 | **150** | Certificación de Aplicación, Seguridad y Release MVP | `PLANNED` | `NOT_STARTED` | Arnés de certificación de 9 puntos y empaquetado de producción. |
 

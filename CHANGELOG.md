@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.4.0] - 2026-09-21 (Multi-Enterprise Governance, Governed Runtime, Mandate Reconciliation & Compliance Export)
 
+- **Spare Parts Web UX, Reactive Filters & Side-by-Side Comparison (`AOP-SPAREPARTS-SEARCH`, Phase 148)**:
+  - Built unified application facade `SparePartsFacade` in `src/application/spareparts/spare-parts-facade.ts` coordinating multi-source search orchestration, canonical clustering, parametric fitment verification, and price comparison.
+  - Exposed HTTP REST endpoint `POST /spareparts/search` in `src/platform/api/http-router.ts` governed by `tool.invoke` permissions.
+  - Implemented vanilla Single-Page Application view `SparePartsView` in `src/platform/web/spare-parts-view.js` with vehicle selector bar, quick vehicle presets, multi-source telemetry chips, reactive sidebar filters, offer cards, and side-by-side comparison modal/drawer.
+  - Enforced strict 0 `.innerHTML`, 0 `outerHTML`, 0 `insertAdjacentHTML`, and 0 `eval` security audit across all web source files in `src/platform/web/`.
+  - Enforced truth preservation invariant (`UNKNOWN ≠ 0`), rendering undisclosed shipping/tax costs as `TOTAL_UNKNOWN` with full calculation breakdown.
+  - Implemented fail-closed fitment enforcement, marking `NOT_FIT` products with incompatibility alerts and disqualifying them from side-by-side comparison.
+  - Added modern responsive CSS styling in `src/platform/web/spare-parts.css` adhering to platform design system and bilingüe navigation tabs in `src/platform/web/index.html` and `src/platform/web/app.js`.
+  - Added dedicated test suite in `tests/unit/spare-parts-web-ux.test.ts` (1744 tests PASS / 0 FAIL across 99 suites).
+  - Published official technical specification in `docs/SPARE_PARTS_WEB_UX.md`.
+
 - **Price Intelligence, Reputation & Total Cost Engine (`AOP-SPAREPARTS-SEARCH`, Phase 147)**:
   - Implemented domain model for cost breakdown, total acquisition cost (*Landed Cost*) and seller trust score in `src/domain/spareparts/price-intelligence.ts` (`NormalizedPrice`, `ShippingCostItem`, `TaxCostItem`, `ImportCostItem`, `TotalAcquisitionCost`, `SellerTrustScore`, `TransparentPriceComparison`).
   - Developed `SellerReputationService` in `src/application/spareparts/seller-reputation-service.ts` evaluating seller reliability deterministically across 5 explicit weighted factors while maintaining strict separation between platform source trust and direct seller trustworthiness.

@@ -1584,3 +1584,12 @@ export async function exportEvidence(data = {}) {
   });
 }
 
+// --- Spare Parts Search & Comparison (PROJ-02) (Phase 148) ---
+
+export async function searchSpareParts(searchRequest = {}) {
+  return request("/spareparts/search", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(searchRequest),
+  });
+}

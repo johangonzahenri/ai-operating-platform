@@ -286,6 +286,18 @@ export class MultiSourceSearchOrchestrator {
           sourceId: res.sourceId,
         });
 
+        let shippingInfo = undefined;
+        if (raw.shipping) {
+          shippingInfo = {
+            cost: raw.shipping.fee !== undefined ? raw.shipping.fee : (raw.shipping.freeShipping ? 0 : 0),
+            currency: raw.currency,
+            destinationCountry: options?.targetRegion || query.region || "CL",
+            estimatedDeliveryDays: raw.shipping.estimatedDaysMax || raw.shipping.estimatedDaysMin,
+            carrier: raw.shipping.carrier,
+            isFreeShipping: Boolean(raw.shipping.freeShipping || raw.shipping.fee === 0),
+          };
+        }
+
         const canonicalOffer = createOffer({
           canonicalPartId,
           sourceId: res.sourceId,
@@ -305,6 +317,9 @@ export class MultiSourceSearchOrchestrator {
             status: raw.inStock ? "IN_STOCK" : "OUT_OF_STOCK",
             checkedAt: raw.lastCheckedAt || new Date(),
           },
+          shipping: shippingInfo,
+          warrantyMonths: raw.warrantyMonths,
+          returnPolicyDays: raw.returnPolicyDays,
           evidenceClaims: raw.evidenceClaims || [],
           retrievedAt: raw.lastCheckedAt || new Date(),
         });

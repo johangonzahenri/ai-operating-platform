@@ -14,3 +14,4 @@ export * from "./part-clustering-engine.js";
 export * from "./fitment-verification-engine.js";
 export * from "./seller-reputation-service.js";
 export * from "./price-intelligence-engine.js";
+export * from "./spare-parts-facade.js";

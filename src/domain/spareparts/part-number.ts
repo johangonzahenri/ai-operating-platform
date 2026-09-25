@@ -62,8 +62,8 @@ export function normalizePartNumber(raw: string): string {
     throw new PartNumberValidationError("Part number cannot be whitespace only");
   }
 
-  // Remove common brand prefixes separated by colon or slash if present
-  let clean = trimmed.replace(/^(BOSCH|DENSO|BREMBO|VALEO|MANN|MAHLE|NGK|ACDELCO|TRW|FERODO|SKF|GATES|INA)\s*[:/]\s*/i, "");
+  // Remove common brand prefixes separated by colon, slash, or hyphen if present
+  let clean = trimmed.replace(/^(BOSCH|DENSO|BREMBO|VALEO|MANN|MAHLE|NGK|ACDELCO|TRW|FERODO|SKF|GATES|INA)\s*[:/\-]\s*/i, "");
 
   // Strip spaces, dashes, slashes, dots, underscores
   clean = clean.replace(/[\s\-_/.\\]/g, "").toUpperCase();
