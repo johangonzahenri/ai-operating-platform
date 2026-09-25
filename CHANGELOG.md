@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.4.0] - 2026-09-21 (Multi-Enterprise Governance, Governed Runtime, Mandate Reconciliation & Compliance Export)
 
+- **Price Intelligence, Reputation & Total Cost Engine (`AOP-SPAREPARTS-SEARCH`, Phase 147)**:
+  - Implemented domain model for cost breakdown, total acquisition cost (*Landed Cost*) and seller trust score in `src/domain/spareparts/price-intelligence.ts` (`NormalizedPrice`, `ShippingCostItem`, `TaxCostItem`, `ImportCostItem`, `TotalAcquisitionCost`, `SellerTrustScore`, `TransparentPriceComparison`).
+  - Developed `SellerReputationService` in `src/application/spareparts/seller-reputation-service.ts` evaluating seller reliability deterministically across 5 explicit weighted factors while maintaining strict separation between platform source trust and direct seller trustworthiness.
+  - Implemented `PriceIntelligenceEngine` in `src/application/spareparts/price-intelligence-engine.ts` supporting traceable FX conversion, unit price normalization by pack size, discount deduction, and total acquisition cost computation enforcing `UNKNOWN ≠ 0` fail-closed rules.
+  - Built transparent multi-source comparison engine filtering out-of-stock listings and integrating fitment verification verdicts (`NOT_FIT` exclusion).
+  - Added dedicated unit test suite in `tests/unit/price-intelligence.test.ts` (1735 tests PASS / 0 FAIL across 98 suites).
+  - Published official technical specification in `docs/SPARE_PARTS_PRICE_INTELLIGENCE.md`.
+
 - **Deterministic Fitment Verification Engine (`AOP-SPAREPARTS-SEARCH`, Phase 146)**:
   - Implemented domain model for compatibility verdicts and parametric evaluation in `src/domain/spareparts/fitment-verdict.ts` (`FitmentVerdict`: `FIT`, `NOT_FIT`, `UNKNOWN`, `CONFLICT`; `FitmentParameterResult`, `FitmentConflictDetail`, `buildVehicleFitmentKey`).
   - Developed `FitmentVerificationEngine` in `src/application/spareparts/fitment-verification-engine.ts` with parameter-by-parameter evaluation (make, model, year, engine, generation, market), fail-closed handling of missing critical parameters, and explicit isolation of contradicting source evidence.

@@ -663,7 +663,48 @@ Construir el motor determinista de verificación de compatibilidad pieza-vehícu
 
 ---
 
-## 16. Roadmap Preliminar del Producto PROJ-02 (Fases 147 a 150)
+## 16. FASE 147 — Inteligencia de Precios, Reputación y Costo Total (Price Intelligence, Reputation & Total Cost Engine)
+
+### Objetivo
+Construir el motor determinista de inteligencia de precios y reputación de vendedores para **PROJ-02 — Spare Parts Search & Comparison**: normalizar precios y monedas mediante proveedores deterministas de FX (`PriceIntelligenceEngine`), modelar el costo total de adquisición (*Total Landed Cost*) con desglose transparente de envío, impuestos y aranceles bajo el principio estricto de `UNKNOWN ≠ 0`, evaluar la confiabilidad de vendedores mediante un algoritmo explicable y ponderado (`SellerReputationService`), y proveer comparaciones multi-fuente rigurosas integrando filtros de compatibilidad vehicular (`FitmentVerdict`) y quiebres de inventario.
+
+### Metadatos
+- **Estado Técnico**: `DONE`
+- **Estado Operativo**: `DONE`
+- **Prioridad**: `HIGH`
+- **Iniciativas Vinculadas**: `AOP-SPAREPARTS-SEARCH`
+- **Evidencia**: 1735 tests PASS (98 suites), 0 errores TypeScript, validadores 100% compliant.
+
+### Tareas
+
+#### 147.1 — Modelo de Dominio de Precios, Costo Total y Reputación
+- **Estado**: `DONE`
+- **Objetivo**: Modelar `NormalizedPrice`, rubros de costo (`ShippingCostItem`, `TaxCostItem`, `ImportCostItem`), `TotalAcquisitionCost`, `SellerTrustScore` y contratos de comparación multi-fuente `TransparentPriceComparison`.
+- **Evidencia**: `src/domain/spareparts/price-intelligence.ts`.
+
+#### 147.2 — Servicio Explicable de Confianza del Vendedor (SellerReputationService)
+- **Estado**: `DONE`
+- **Objetivo**: Implementar `SellerReputationService` con descomposición en 5 factores ponderados (`SELLER_VERIFICATION`, `SOURCE_RELIABILITY`, `CUSTOMER_RATING`, `POLICY_TRANSPARENCY`, `EVIDENCE_COMPLETENESS`) separando la reputación de la plataforma de la del vendedor.
+- **Evidencia**: `src/application/spareparts/seller-reputation-service.ts`.
+
+#### 147.3 — Motor de Normalización de Precios y Costo Total (PriceIntelligenceEngine)
+- **Estado**: `DONE`
+- **Objetivo**: Implementar `PriceIntelligenceEngine` con conversión de FX trazable, normalización por cantidad/empaque (*pack size*), deducción de descuentos explícitos y cómputo de costo total garantizando que rubros desconocidos deriven en `TOTAL_UNKNOWN` (cero asunción de gratuidad).
+- **Evidencia**: `src/application/spareparts/price-intelligence-engine.ts`.
+
+#### 147.4 — Comparador Multi-Fuente Transparente e Integración con Fitment
+- **Estado**: `DONE`
+- **Objetivo**: Integrar comparador sobre `CanonicalPartCluster` excluyendo o señalando ofertas incompatibles (`NOT_FIT`), publicaciones agotadas (*out of stock*) y determinando de forma objetiva la mejor oferta en precio, confianza y balance global.
+- **Evidencia**: `src/application/spareparts/price-intelligence-engine.ts`.
+
+#### 147.5 — Pruebas Automatizadas y Documentación Canónica
+- **Estado**: `DONE`
+- **Objetivo**: Crear suite de pruebas exhaustiva `tests/unit/price-intelligence.test.ts` cubriendo los 14 escenarios clave y publicar `docs/SPARE_PARTS_PRICE_INTELLIGENCE.md`.
+- **Evidencia**: 14 tests dedicados PASS, 1735 tests totales PASS (98 suites).
+
+---
+
+## 17. Roadmap Preliminar del Producto PROJ-02 (Fases 148 a 150)
 
 Las siguientes fases representan el plan de construcción del producto satélite *Spare Parts Search & Comparison* (`PROJ-02-SPAREPARTS`). Se declaran oficialmente en estado **`PLANNED / NOT_STARTED`** y no deben ejecutarse automáticamente sin un prompt de inicio específico:
 
@@ -672,7 +713,7 @@ flowchart LR
     F143["Fase 143: Modelo de Dominio (DONE)"] --> F144["Fase 144: Búsqueda Multi-Fuente (DONE)"]
     F144 --> F145["Fase 145: Normalización & Cross-Ref (DONE)"]
     F145 --> F146["Fase 146: Motor de Compatibilidad (DONE)"]
-    F146 --> F147["Fase 147: Precios & Reputación"]
+    F146 --> F147["Fase 147: Precios & Reputación (DONE)"]
     F147 --> F148["Fase 148: UX & Comparador SPA"]
     F148 --> F149["Fase 149: Integración AOP & SSE"]
     F149 --> F150["Fase 150: Certificación MVP"]
@@ -684,7 +725,7 @@ flowchart LR
 | **144** | Motor de Búsqueda Multi-Fuente y Conectores | `DONE` | `DONE` | Conectores paralelos con rate limiting y manejo de contingencia (`src/application/spareparts/`). |
 | **145** | Normalización, Deduplicación y Cross-Reference | `DONE` | `DONE` | Agente de normalización e indexación de equivalencias OEM/Aftermarket. |
 | **146** | Motor Determinista de Verificación de Compatibilidad | `DONE` | `DONE` | Verificador determinista de compatibilidad pieza-vehículo con evidencia. |
-| **147** | Inteligencia de Precios, Reputación y Costo Total | `PLANNED` | `NOT_STARTED` | Algoritmo de `SellerTrustScore` y cálculo transparente de precio total. |
+| **147** | Inteligencia de Precios, Reputación y Costo Total | `DONE` | `DONE` | Algoritmo de `SellerTrustScore` y cálculo transparente de precio total. |
 | **148** | UX Web: Búsqueda, Filtros y Comparador Lado a Lado | `PLANNED` | `NOT_STARTED` | Single-Page Application (0 `innerHTML`) con tabla comparativa. |
 | **149** | Integración Profunda con AI Operating Platform | `PLANNED` | `NOT_STARTED` | Adaptador satélite `@ai-platform/client` y telemetría SSE reactiva. |
 | **150** | Certificación de Aplicación, Seguridad y Release MVP | `PLANNED` | `NOT_STARTED` | Arnés de certificación de 9 puntos y empaquetado de producción. |

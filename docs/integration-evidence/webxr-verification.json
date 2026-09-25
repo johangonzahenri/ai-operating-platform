@@ -1,8 +1,8 @@
 {
-  "traceId": "trace-verify-webxr-c47cbe58",
+  "traceId": "trace-verify-webxr-9b15d2e4",
   "provider": "webxr",
   "environment": "browser_client",
-  "verifiedAt": "2026-09-25T01:35:34.213Z",
+  "verifiedAt": "2026-09-25T01:44:13.655Z",
   "status": "STANDBY",
   "latencyMs": 1,
   "metadata": {
