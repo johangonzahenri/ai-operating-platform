@@ -60,7 +60,8 @@ export type EventType =
   | "workflow.completed" | "workflow.failed" | "workflow.cancelled"
   | "spareparts.search.started" | "spareparts.source.completed" | "spareparts.search.completed" | "spareparts.search.failed"
   | "saga.started" | "saga.step.completed" | "saga.forward.failed" | "saga.compensation.started" | "saga.compensation.completed" | "saga.compensation.failed" | "saga.completed" | "saga.in_doubt"
-  | "taint.boundary_violation" | "taint.sanitized";
+  | "taint.boundary_violation" | "taint.sanitized"
+  | "hitl.suspended" | "hitl.input_required" | "hitl.approval_required" | "hitl.resumed" | "hitl.approved" | "hitl.rejected" | "hitl.expired" | "hitl.cancelled" | "hitl.resume_rejected";
 
 
 export interface DomainEvent {

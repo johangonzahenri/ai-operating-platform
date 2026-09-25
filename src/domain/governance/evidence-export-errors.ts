@@ -52,3 +52,17 @@ export class EvidenceResourceNotFoundError extends EvidenceExportError {
     this.name = "EvidenceResourceNotFoundError";
   }
 }
+
+export class EvidenceChainContinuityError extends EvidenceExportError {
+  constructor(message: string) {
+    super("EVIDENCE_CHAIN_CONTINUITY_ERROR", message);
+    this.name = "EvidenceChainContinuityError";
+  }
+}
+
+export class EvidenceChainTamperError extends EvidenceExportError {
+  constructor(message: string) {
+    super("EVIDENCE_CHAIN_TAMPER_ERROR", message);
+    this.name = "EvidenceChainTamperError";
+  }
+}

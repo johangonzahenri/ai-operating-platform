@@ -107,6 +107,9 @@ export class EvidenceExportService {
   // Idempotency cache: tenantId:scope:idempotencyKey -> EvidenceExportPackage
   private readonly idempotencyCache = new Map<string, EvidenceExportPackage>();
 
+  // Hash chain heads per tenant: tenantId -> { sequenceNumber: number, packageHashSha256: string }
+  private readonly chainHeads = new Map<string, { sequenceNumber: number; packageHashSha256: string }>();
+
   constructor(deps: EvidenceExportServiceDependencies = {}) {
     this.enterpriseRepo = deps.enterpriseRepo;
     this.businessObjectiveRepo = deps.businessObjectiveRepo;
@@ -122,6 +125,13 @@ export class EvidenceExportService {
     this.approvalRepo = deps.approvalRepo;
     this.durableEventQueryPort = deps.durableEventQueryPort;
     this.redactor = deps.redactor ?? new SensitiveDataRedactor();
+  }
+
+  /**
+   * Returns current chain head for a tenant, if any.
+   */
+  getChainHead(tenantId: string): { sequenceNumber: number; packageHashSha256: string } | undefined {
+    return this.chainHeads.get(tenantId);
   }
 
   async exportEvidence(
@@ -168,7 +178,12 @@ export class EvidenceExportService {
     const canonicalDataStr = canonicalJsonStringify(redactedData);
     const checksumSha256 = crypto.createHash("sha256").update(canonicalDataStr, "utf8").digest("hex");
 
-    // 8. Construct Immutable Manifest & Package
+    // 8. Hash Chain State Management (Per-Tenant)
+    const currentHead = this.chainHeads.get(tenantId);
+    const sequenceNumber = currentHead ? currentHead.sequenceNumber + 1 : 1;
+    const previousPackageHashSha256 = currentHead ? currentHead.packageHashSha256 : null;
+
+    // 9. Construct Immutable Manifest & Package
     const exportId = `exp-${crypto.randomUUID()}`;
     const manifest = new EvidenceExportManifest({
       exportId,
@@ -186,6 +201,8 @@ export class EvidenceExportService {
       recordCounts,
       totalRecords,
       checksumSha256,
+      sequenceNumber,
+      previousPackageHashSha256,
     });
 
     const exportPackage = new EvidenceExportPackage({
@@ -193,7 +210,13 @@ export class EvidenceExportService {
       data: redactedData,
     });
 
-    // 9. Store Idempotency Cache if requested
+    // 10. Update Chain Head for Tenant
+    this.chainHeads.set(tenantId, {
+      sequenceNumber: manifest.sequenceNumber,
+      packageHashSha256: manifest.packageHashSha256,
+    });
+
+    // 11. Store Idempotency Cache if requested
     if (filter.idempotencyKey) {
       const cacheKey = `${tenantId}:${filter.scope}:${filter.idempotencyKey}`;
       this.idempotencyCache.set(cacheKey, exportPackage);

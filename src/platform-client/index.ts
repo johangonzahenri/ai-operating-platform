@@ -143,6 +143,8 @@ export interface PlatformClientOptions {
   readonly retryPolicy?: PlatformRetryPolicy | undefined;
   readonly fetch?: typeof globalThis.fetch | undefined;
   readonly defaultHeaders?: Readonly<Record<string, string>> | undefined;
+  readonly traceparent?: string | undefined;
+  readonly tracestate?: string | undefined;
 }
 
 export interface CreateTaskInput {
@@ -151,6 +153,8 @@ export interface CreateTaskInput {
   readonly traceId?: string | undefined;
   readonly metadata?: Readonly<Record<string, string>> | undefined;
   readonly idempotencyKey?: string | undefined;
+  readonly traceparent?: string | undefined;
+  readonly tracestate?: string | undefined;
 }
 
 export class PlatformClientError extends Error {
@@ -217,6 +221,13 @@ export function createPlatformClient(options: PlatformClientOptions) {
     }
     if (options.applicationId && !headers.has("X-Application-Id")) {
       headers.set("X-Application-Id", options.applicationId);
+    }
+
+    if (options.traceparent && !headers.has("traceparent")) {
+      headers.set("traceparent", options.traceparent);
+    }
+    if (options.tracestate && !headers.has("tracestate")) {
+      headers.set("tracestate", options.tracestate);
     }
 
     if (options.apiKey && !headers.has("Authorization") && !headers.has("X-API-Key")) {

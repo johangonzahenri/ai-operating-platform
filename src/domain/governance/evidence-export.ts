@@ -13,7 +13,10 @@
 import {
   EvidenceExportValidationError,
   EvidenceFilterBoundsExceededError,
+  EvidenceChainContinuityError,
+  EvidenceChainTamperError,
 } from "./evidence-export-errors.js";
+import crypto from "node:crypto";
 
 export type EvidenceScope =
   | "TENANT"
@@ -175,6 +178,65 @@ export interface EvidenceExportManifestProps {
   readonly recordCounts: Readonly<Record<string, number>>;
   readonly totalRecords: number;
   readonly checksumSha256: string;
+  readonly sequenceNumber?: number | undefined;
+  readonly previousPackageHashSha256?: string | null | undefined;
+  readonly packageHashSha256?: string | undefined;
+}
+
+/**
+ * Deterministic canonical JSON stringifier that sorts object keys recursively.
+ */
+export function canonicalJsonStringify(obj: unknown): string {
+  if (obj === null || typeof obj !== "object") {
+    return JSON.stringify(obj);
+  }
+  if (obj instanceof Date) {
+    return JSON.stringify(obj.toISOString());
+  }
+  if (Array.isArray(obj)) {
+    return "[" + obj.map((item) => canonicalJsonStringify(item)).join(",") + "]";
+  }
+  const keys = Object.keys(obj as Record<string, unknown>).sort();
+  const pairs = keys.map((key) => {
+    const val = (obj as Record<string, unknown>)[key];
+    return JSON.stringify(key) + ":" + canonicalJsonStringify(val);
+  });
+  return "{" + pairs.join(",") + "}";
+}
+
+/**
+ * Computes the canonical SHA-256 seal for an evidence export manifest (excluding packageHashSha256 itself).
+ */
+export function computeManifestPackageHash(manifest: {
+  exportId: string;
+  schemaVersion: string;
+  tenantId: string;
+  requestedByPrincipalId: string;
+  generatedAt: Date;
+  scope: EvidenceScope;
+  filters: Readonly<Record<string, unknown>>;
+  recordCounts: Readonly<Record<string, number>>;
+  totalRecords: number;
+  checksumSha256: string;
+  sequenceNumber?: number | undefined;
+  previousPackageHashSha256?: string | null | undefined;
+}): string {
+  const payload = {
+    exportId: manifest.exportId,
+    schemaVersion: manifest.schemaVersion,
+    tenantId: manifest.tenantId,
+    requestedByPrincipalId: manifest.requestedByPrincipalId,
+    generatedAt: manifest.generatedAt.toISOString(),
+    scope: manifest.scope,
+    filters: manifest.filters,
+    recordCounts: manifest.recordCounts,
+    totalRecords: manifest.totalRecords,
+    checksumSha256: manifest.checksumSha256,
+    sequenceNumber: manifest.sequenceNumber ?? null,
+    previousPackageHashSha256: manifest.previousPackageHashSha256 ?? null,
+  };
+  const canonicalStr = canonicalJsonStringify(payload);
+  return crypto.createHash("sha256").update(canonicalStr, "utf8").digest("hex");
 }
 
 export class EvidenceExportManifest {
@@ -188,6 +250,9 @@ export class EvidenceExportManifest {
   readonly recordCounts: Readonly<Record<string, number>>;
   readonly totalRecords: number;
   readonly checksumSha256: string;
+  readonly sequenceNumber: number;
+  readonly previousPackageHashSha256: string | null;
+  readonly packageHashSha256: string;
 
   constructor(props: EvidenceExportManifestProps) {
     if (!props.exportId || typeof props.exportId !== "string") {
@@ -203,6 +268,18 @@ export class EvidenceExportManifest {
       throw new EvidenceExportValidationError("checksumSha256 is required and must be a non-empty string");
     }
 
+    const seq = props.sequenceNumber ?? 1;
+    if (typeof seq !== "number" || !Number.isInteger(seq) || seq < 1) {
+      throw new EvidenceExportValidationError(`sequenceNumber must be an integer >= 1, received: ${seq}`);
+    }
+
+    if (seq === 1 && props.previousPackageHashSha256 !== undefined && props.previousPackageHashSha256 !== null) {
+      throw new EvidenceExportValidationError("Genesis package (sequenceNumber 1) must have previousPackageHashSha256 equal to null");
+    }
+    if (seq > 1 && (!props.previousPackageHashSha256 || typeof props.previousPackageHashSha256 !== "string")) {
+      throw new EvidenceExportValidationError(`Non-genesis package (sequenceNumber ${seq}) must provide previousPackageHashSha256`);
+    }
+
     this.exportId = props.exportId;
     this.schemaVersion = "1.0.0";
     this.tenantId = props.tenantId;
@@ -213,6 +290,16 @@ export class EvidenceExportManifest {
     this.recordCounts = Object.freeze({ ...props.recordCounts });
     this.totalRecords = props.totalRecords;
     this.checksumSha256 = props.checksumSha256;
+    this.sequenceNumber = seq;
+    this.previousPackageHashSha256 = props.previousPackageHashSha256 ?? null;
+
+    const computedPackageHash = computeManifestPackageHash(this);
+    if (props.packageHashSha256 && props.packageHashSha256 !== computedPackageHash) {
+      throw new EvidenceChainTamperError(
+        `Manifest packageHashSha256 mismatch for exportId '${props.exportId}'. Expected '${computedPackageHash}', got '${props.packageHashSha256}'`
+      );
+    }
+    this.packageHashSha256 = computedPackageHash;
     Object.freeze(this);
   }
 }
@@ -243,5 +330,89 @@ export class EvidenceExportPackage {
     }
     this.data = Object.freeze(frozenData);
     Object.freeze(this);
+  }
+}
+
+export interface EvidenceChainVerificationResult {
+  readonly valid: boolean;
+  readonly packageCount: number;
+  readonly headPackageHash: string;
+  readonly headSequenceNumber: number;
+  readonly errors: readonly string[];
+}
+
+export class EvidenceHashChainVerifier {
+  /**
+   * Verifies an array of EvidenceExportManifests or EvidenceExportPackages for continuity,
+   * integrity, genesis invariants, sequence ordering, and tamper-freedom.
+   */
+  static verifyChain(
+    items: readonly (EvidenceExportManifest | EvidenceExportPackage)[]
+  ): EvidenceChainVerificationResult {
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      throw new EvidenceChainContinuityError("Cannot verify empty evidence package chain");
+    }
+
+    const manifests: EvidenceExportManifest[] = items.map((item) =>
+      item instanceof EvidenceExportPackage ? item.manifest : item
+    );
+
+    let expectedSequence = 1;
+    let expectedPreviousHash: string | null = null;
+    let expectedTenantId = manifests[0]!.tenantId;
+
+    for (let i = 0; i < manifests.length; i++) {
+      const manifest = manifests[i]!;
+
+      // 1. Tenant consistency
+      if (manifest.tenantId !== expectedTenantId) {
+        throw new EvidenceChainContinuityError(
+          `Tenant mismatch in evidence chain at index ${i}: expected '${expectedTenantId}', found '${manifest.tenantId}'`
+        );
+      }
+
+      // 2. Sequence continuity
+      if (manifest.sequenceNumber !== expectedSequence) {
+        throw new EvidenceChainContinuityError(
+          `Sequence break in evidence chain at index ${i}: expected sequence ${expectedSequence}, found ${manifest.sequenceNumber}`
+        );
+      }
+
+      // 3. Genesis verification
+      if (i === 0) {
+        if (manifest.previousPackageHashSha256 !== null) {
+          throw new EvidenceChainContinuityError(
+            `Genesis package at index 0 must have previousPackageHashSha256=null, found '${manifest.previousPackageHashSha256}'`
+          );
+        }
+      } else {
+        // 4. Hash chain continuity
+        if (manifest.previousPackageHashSha256 !== expectedPreviousHash) {
+          throw new EvidenceChainContinuityError(
+            `Hash link mismatch at sequence ${manifest.sequenceNumber}: expected previous hash '${expectedPreviousHash}', found '${manifest.previousPackageHashSha256}'`
+          );
+        }
+      }
+
+      // 5. Manifest hash integrity / tamper detection
+      const recalculatedHash = computeManifestPackageHash(manifest);
+      if (recalculatedHash !== manifest.packageHashSha256) {
+        throw new EvidenceChainTamperError(
+          `Tampered package manifest detected at sequence ${manifest.sequenceNumber} (exportId '${manifest.exportId}'): recalculated hash '${recalculatedHash}' does not match sealed hash '${manifest.packageHashSha256}'`
+        );
+      }
+
+      expectedPreviousHash = manifest.packageHashSha256;
+      expectedSequence++;
+    }
+
+    const headManifest = manifests[manifests.length - 1]!;
+    return {
+      valid: true,
+      packageCount: manifests.length,
+      headPackageHash: headManifest.packageHashSha256,
+      headSequenceNumber: headManifest.sequenceNumber,
+      errors: [],
+    };
   }
 }

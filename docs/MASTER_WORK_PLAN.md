@@ -49,10 +49,10 @@ Este documento responde de forma inequívoca en todo momento:
 >   - Envoltorio de frontera (TaintedValue, derive, sanitize, formatModelInputWithTaintEnvelopes) para neutralizar inyecciones de datos no confiables provenientes de herramientas externas.
 >   - Aislamiento de plano de control fail-closed frente a inyecciones de control (assertNoTaintedControlKeys).
 >   - Contrato CompensableTool, máquina de estados SagaExecution (8 estados) y orquestador de compensación en reversa LIFO ante fallos en planes multi-paso.
-> - [ ] Track 3 — Criptografía de Evidencia, W3C Tracing & HITL Bridge (GAP-06, GAP-08, GAP-09):
->   - Encadenamiento criptográfico continuo de bloques de evidencia (previousPackageHashSha256) en exportaciones de cumplimiento.
->   - Puente de suspensión y reanudación asíncrona para herramientas con aprobación requerida respetando SoD de dominio.
->   - Propagación de cabeceras W3C traceparent y tracestate en PlatformClient y HTTP Router.
+> - [x] Track 3 — Criptografía de Evidencia, W3C Tracing & HITL Bridge (GAP-06, GAP-08, GAP-09):
+>   - Encadenamiento criptográfico continuo de bloques de evidencia (sequenceNumber, previousPackageHashSha256, packageHashSha256) y EvidenceHashChainVerifier en exportaciones de cumplimiento.
+>   - Puente de suspensión y reanudación asíncrona (HITLSuspensionRecord, HITLBridgePort, InMemoryHITLBridge) con preservación estricta de SoD (Producer/Requester ≠ Approver), protección de replay y eventos de ciclo de vida.
+>   - Parseo, serialización y propagación canónica de cabeceras W3C Trace Context (traceparent, tracestate, spans hijos) en RequestContext, PlatformClient y adaptadores HTTP.
 > - [ ] Track 4 — Servidor MCP Enterprise Oficial (GAP-07):
 >   - Implementación del servidor oficial MCP SDK v2 en la capa perimetral (src/platform/mcp/) con transportes Stdio y Streamable HTTP.
 >   - Exposición gobernada del catálogo de herramientas y prompts sin violar fronteras hexagonales de dominio ni persistencia.

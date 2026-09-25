@@ -1,6 +1,7 @@
 import { deepFreeze, sanitizeBoundedValue, DEFAULT_BOUNDED_DATA_LIMITS } from "./bounded-data.js";
 import { SecurityContext } from "../security/security.js";
 import { randomUUID } from "node:crypto";
+import { W3CTraceContext } from "./w3c-trace-context.js";
 
 export type RequestSource = "HTTP_API" | "PLATFORM_CONSOLE" | "SDK" | "AUTOMATION" | "INTERNAL";
 
@@ -20,6 +21,7 @@ export interface RequestContextProps {
   readonly apiVersion?: string | undefined;
   readonly timestamp?: Date | undefined;
   readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+  readonly traceContext?: W3CTraceContext | undefined;
 }
 
 export class RequestContext {
@@ -32,6 +34,7 @@ export class RequestContext {
   public readonly apiVersion: string;
   public readonly timestamp: Date;
   public readonly metadata: Readonly<Record<string, unknown>>;
+  public readonly traceContext?: W3CTraceContext | undefined;
 
   private constructor(props: {
     readonly requestId: string;
@@ -43,6 +46,7 @@ export class RequestContext {
     readonly apiVersion: string;
     readonly timestamp: Date;
     readonly metadata: Readonly<Record<string, unknown>>;
+    readonly traceContext?: W3CTraceContext | undefined;
   }) {
     this.requestId = props.requestId;
     this.correlationId = props.correlationId;
@@ -57,6 +61,7 @@ export class RequestContext {
     this.apiVersion = props.apiVersion;
     this.timestamp = new Date(props.timestamp.getTime());
     this.metadata = sanitizeBoundedValue(props.metadata, DEFAULT_BOUNDED_DATA_LIMITS, 0) as Readonly<Record<string, unknown>>;
+    this.traceContext = props.traceContext;
     deepFreeze(this);
   }
 
@@ -74,6 +79,7 @@ export class RequestContext {
     const apiVersion = props?.apiVersion?.trim() || "v1";
     const timestamp = props?.timestamp ?? new Date();
     const metadata = props?.metadata ?? {};
+    const traceContext = props?.traceContext;
 
     return new RequestContext({
       requestId,
@@ -85,6 +91,7 @@ export class RequestContext {
       apiVersion,
       timestamp,
       metadata,
+      traceContext,
     });
   }
 
@@ -97,6 +104,7 @@ export class RequestContext {
       readonly source?: RequestSource | undefined;
       readonly apiVersion?: string | undefined;
       readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+      readonly traceContext?: W3CTraceContext | undefined;
     }
   ): RequestContext {
     const requestId = options?.requestId?.trim() || randomUUID();
@@ -112,6 +120,7 @@ export class RequestContext {
     const apiVersion = options?.apiVersion ?? "v1";
     const timestamp = new Date();
     const metadata = options?.metadata ?? {};
+    const traceContext = options?.traceContext;
 
     return new RequestContext({
       requestId,
@@ -123,6 +132,7 @@ export class RequestContext {
       apiVersion,
       timestamp,
       metadata,
+      traceContext,
     });
   }
 
@@ -137,6 +147,7 @@ export class RequestContext {
       apiVersion: this.apiVersion,
       timestamp: this.timestamp,
       metadata: this.metadata,
+      traceContext: this.traceContext,
     });
   }
 
@@ -151,6 +162,22 @@ export class RequestContext {
       apiVersion: this.apiVersion,
       timestamp: this.timestamp,
       metadata: this.metadata,
+      traceContext: this.traceContext,
+    });
+  }
+
+  public withTraceContext(traceContext: W3CTraceContext): RequestContext {
+    return new RequestContext({
+      requestId: this.requestId,
+      correlationId: this.correlationId,
+      tenantId: this.tenantId,
+      applicationId: this.applicationId,
+      principal: this.principal,
+      source: this.source,
+      apiVersion: this.apiVersion,
+      timestamp: this.timestamp,
+      metadata: this.metadata,
+      traceContext,
     });
   }
 }
@@ -173,6 +200,9 @@ export function extractRequestContextFromHeaders(
   const principalId = getHeader("x-principal-id") || "anonymous";
   const apiVersion = getHeader("x-api-version") || "v1";
 
+  // Parse W3C Trace Context headers if present
+  const traceContext = W3CTraceContext.tryParseHeaders(headers);
+
   return RequestContext.create({
     requestId,
     correlationId,
@@ -189,6 +219,7 @@ export function extractRequestContextFromHeaders(
       method: extra?.method,
       path: extra?.path,
     },
+    traceContext,
   });
 }
 
