@@ -160,6 +160,7 @@ sequenceDiagram
 | **138** | Application Integration Certification | `AOP-APP-CERTIFICATION` | `DONE` | `DONE` | `examples/reference-consumer/`, `docs/REFERENCE_APPLICATION.md` | 1656 PASS |
 | **139** | Formalización del Plan Maestro Operativo | `AOP-MASTER-WORK-PLAN` | `DONE` | `DONE` | `docs/MASTER_WORK_PLAN.md`, `scripts/master-work-plan-check.mjs` | 1656 PASS |
 | **140** | Sincronización del Plan y Formalización PROJ-02 | `AOP-MASTER-WORK-PLAN-V2` | `DONE` | `DONE` | `docs/AGENT_OPERATING_PROTOCOL.md`, `docs/PROJ_02_SPARE_PARTS_PRODUCT_CHARTER.md` | 1656 PASS |
+| **149** | Integración Profunda con AI Operating Platform | `AOP-SPAREPARTS-SEARCH` | `DONE` | `DONE` | `src/application/spareparts/spare-parts-platform-adapter.ts`, `docs/SPARE_PARTS_PLATFORM_INTEGRATION.md` | 1754 PASS |
 
 ---
 
@@ -765,7 +766,48 @@ Construir la experiencia de usuario web (Single-Page Application) y la fachada u
 
 ---
 
-## 18. Roadmap Preliminar del Producto PROJ-02 (Fases 149 a 150)
+## 18. FASE 149 — Integración Profunda con AI Operating Platform (Satellite Adapter & Reactive SSE Telemetry)
+
+### Objetivo
+Conectar el producto satélite `PROJ-02-SPAREPARTS` a la **AI Operating Platform** como aplicación cliente desacoplada y soberana mediante `@ai-platform/client`, registrar la capacidad canónica `spareparts.search` en `PLATFORM_CAPABILITY_CATALOG`, implementar el adaptador satélite `SparePartsPlatformAdapter`, proveer telemetría reactiva en tiempo real con `SparePartsTelemetryManager` sobre Server-Sent Events (SSE) con reconexión exponencial y deduplicación determinista, emitir eventos de dominio correlacionados desde el router HTTP (`POST /spareparts/search`), e integrar el estado de conexión y feed reactivo en la UI web bajo estricto estándar de cero `.innerHTML`.
+
+### Metadatos
+- **Estado Técnico**: `DONE`
+- **Estado Operativo**: `DONE`
+- **Prioridad**: `CRITICAL`
+- **Iniciativas Vinculadas**: `AOP-SPAREPARTS-SEARCH`
+- **Evidencia**: 1754 tests PASS (100 suites), 10 tests dedicados en `tests/unit/spare-parts-platform-integration.test.ts`, 0 `.innerHTML` en `src/platform/web/spare-parts-view.js`.
+
+### Tareas
+
+#### 149.1 — Adaptador de Plataforma Satélite y Gestor de Telemetría SSE
+- **Estado**: `DONE`
+- **Objetivo**: Implementar `SparePartsPlatformAdapter` y `SparePartsTelemetryManager` encapsulando `@ai-platform/client`, reconexión con backoff exponencial, tracking monotónico de `Last-Event-ID`, deduplicación de eventos y propagación estricta de headers contextuales (`x-trace-id`, `x-request-id`, `x-tenant-id`, `x-application-id`).
+- **Evidencia**: `src/application/spareparts/spare-parts-platform-adapter.ts`.
+
+#### 149.2 — Emisión de Telemetría en el Enrutador HTTP de Plataforma
+- **Estado**: `DONE`
+- **Objetivo**: Instrumentar `POST /spareparts/search` en `src/platform/api/http-router.ts` para emitir eventos de ciclo de vida (`spareparts.search.started`, `spareparts.source.completed`, `spareparts.search.completed`, `spareparts.search.failed`) de manera no bloqueante hacia `EventStreamAdapter`.
+- **Evidencia**: `src/platform/api/http-router.ts`, `src/domain/events/events.ts`, `src/application/observability/event-stream-adapter.ts`.
+
+#### 149.3 — Registro de Capacidad en el Catálogo de Plataforma
+- **Estado**: `DONE`
+- **Objetivo**: Registrar la capacidad `spareparts.search` en `PLATFORM_CAPABILITY_CATALOG` (`src/domain/application/application-contract.ts`) con descripción, esquema y endpoint canónico `POST /api/v1/spareparts/search`.
+- **Evidencia**: `src/domain/application/application-contract.ts`.
+
+#### 149.4 — Integración Reactiva en Web UX (SparePartsView)
+- **Estado**: `DONE`
+- **Objetivo**: Integrar telemetría SSE reactiva en `SparePartsView` mostrando badge de estado de conexión (`CONNECTED`, `CONNECTING`, `DEGRADED`, `DISCONNECTED`) y feed de eventos en panel de fuentes sin mutaciones inseguras de DOM (0 `.innerHTML`).
+- **Evidencia**: `src/platform/web/spare-parts-view.js`, `src/platform/web/spare-parts.css`.
+
+#### 149.5 — Pruebas Automatizadas y Documentación Canónica
+- **Estado**: `DONE`
+- **Objetivo**: Implementar suite de pruebas `tests/unit/spare-parts-platform-integration.test.ts` con 10 pruebas exhaustivas y publicar la documentación técnica canónica `docs/SPARE_PARTS_PLATFORM_INTEGRATION.md`.
+- **Evidencia**: `tests/unit/spare-parts-platform-integration.test.ts` (10 tests PASS), `docs/SPARE_PARTS_PLATFORM_INTEGRATION.md`.
+
+---
+
+## 19. Roadmap Preliminar del Producto PROJ-02 (Fase 150)
 
 Las siguientes fases representan el plan de construcción del producto satélite *Spare Parts Search & Comparison* (`PROJ-02-SPAREPARTS`). Se declaran oficialmente en estado **`PLANNED / NOT_STARTED`** y no deben ejecutarse automáticamente sin un prompt de inicio específico:
 
@@ -776,7 +818,7 @@ flowchart LR
     F145 --> F146["Fase 146: Motor de Compatibilidad (DONE)"]
     F146 --> F147["Fase 147: Precios & Reputación (DONE)"]
     F147 --> F148["Fase 148: UX & Comparador SPA (DONE)"]
-    F148 --> F149["Fase 149: Integración AOP & SSE"]
+    F148 --> F149["Fase 149: Integración AOP & SSE (DONE)"]
     F149 --> F150["Fase 150: Certificación MVP"]
 ```
 
@@ -788,7 +830,7 @@ flowchart LR
 | **146** | Motor Determinista de Verificación de Compatibilidad | `DONE` | `DONE` | Verificador determinista de compatibilidad pieza-vehículo con evidencia. |
 | **147** | Inteligencia de Precios, Reputación y Costo Total | `DONE` | `DONE` | Algoritmo de `SellerTrustScore` y cálculo transparente de precio total. |
 | **148** | UX Web: Búsqueda, Filtros y Comparador Lado a Lado | `DONE` | `DONE` | Single-Page Application (0 `innerHTML`) con tabla comparativa y `SparePartsFacade`. |
-| **149** | Integración Profunda con AI Operating Platform | `PLANNED` | `NOT_STARTED` | Adaptador satélite `@ai-platform/client` y telemetría SSE reactiva. |
+| **149** | Integración Profunda con AI Operating Platform | `DONE` | `DONE` | Adaptador satélite `@ai-platform/client` y telemetría SSE reactiva. |
 | **150** | Certificación de Aplicación, Seguridad y Release MVP | `PLANNED` | `NOT_STARTED` | Arnés de certificación de 9 puntos y empaquetado de producción. |
 
 ---

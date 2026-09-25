@@ -2483,6 +2483,10 @@ export class PlatformService {
     };
   }
 
+  getEventStream(): EventStreamAdapter | undefined {
+    return this.eventStream;
+  }
+
   // ========================================================================
   // Organizational Agent Coordination Methods (Prompt 109)
   // ========================================================================

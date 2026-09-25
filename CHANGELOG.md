@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.4.0] - 2026-09-21 (Multi-Enterprise Governance, Governed Runtime, Mandate Reconciliation & Compliance Export)
 
+- **Deep Platform Integration & Reactive SSE Telemetry (`AOP-SPAREPARTS-SEARCH`, Phase 149)**:
+  - Developed satellite client adapter `SparePartsPlatformAdapter` and reactive stream manager `SparePartsTelemetryManager` in `src/application/spareparts/spare-parts-platform-adapter.ts` consuming `@ai-platform/client` with zero internal domain leakage.
+  - Implemented exponential backoff reconnection, monotonic `Last-Event-ID` tracking, and deterministic event deduplication.
+  - Registered `spareparts.search` capability in `PLATFORM_CAPABILITY_CATALOG` (`src/domain/application/application-contract.ts`) with canonical endpoint `POST /api/v1/spareparts/search`.
+  - Instrumenting `POST /spareparts/search` in `src/platform/api/http-router.ts` to emit lifecycle telemetry events (`spareparts.search.started`, `spareparts.source.completed`, `spareparts.search.completed`, `spareparts.search.failed`) to `EventStreamAdapter`.
+  - Connected reactive telemetry state and live event feed into Web UX `SparePartsView` with strict 0 `.innerHTML` DOM manipulation.
+  - Created dedicated unit and integration test suite `tests/unit/spare-parts-platform-integration.test.ts` (1754 tests PASS / 0 FAIL across 100 suites).
+  - Published official technical specification in `docs/SPARE_PARTS_PLATFORM_INTEGRATION.md`.
+
 - **Spare Parts Web UX, Reactive Filters & Side-by-Side Comparison (`AOP-SPAREPARTS-SEARCH`, Phase 148)**:
   - Built unified application facade `SparePartsFacade` in `src/application/spareparts/spare-parts-facade.ts` coordinating multi-source search orchestration, canonical clustering, parametric fitment verification, and price comparison.
   - Exposed HTTP REST endpoint `POST /spareparts/search` in `src/platform/api/http-router.ts` governed by `tool.invoke` permissions.

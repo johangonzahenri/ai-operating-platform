@@ -369,4 +369,8 @@ export class EventStreamAdapter {
   disconnectAll(): void {
     this.closeAll();
   }
+
+  publishEvent(event: DomainEvent): void {
+    this.broadcastLiveEvent(event);
+  }
 }

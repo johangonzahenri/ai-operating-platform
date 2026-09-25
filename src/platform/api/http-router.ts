@@ -224,13 +224,14 @@ export interface HttpServerOptions {
   readonly oidcIssuer?: string | undefined;
   readonly oidcJwksUri?: string | undefined;
   readonly oidcAllowedAlgorithms?: readonly string[] | undefined;
+  readonly sparePartsFacade?: SparePartsFacade | undefined;
 }
 
 export function createHttpServer(
   service: PlatformService,
   options?: HttpServerOptions
 ): http.Server {
-  const defaultSparePartsFacade = new SparePartsFacade();
+  const defaultSparePartsFacade = options?.sparePartsFacade ?? new SparePartsFacade();
   const credService = options?.apiCredentialService ?? service.getApiCredentialService();
   const authService =
     options?.authService ??
@@ -7382,11 +7383,109 @@ export function createHttpServer(
             sendError(bodyResult.status, bodyResult.error, bodyResult.code);
             return;
           }
+          const callerTenant = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "tenant-enterprise-01";
+          const clientTraceId = reqCtx.traceId || (bodyResult.body as any)?.context?.traceId || `trace-sp-${crypto.randomUUID()}`;
+          const eventStream = service.getEventStream();
+
+          // 1. Emit telemetry event: spareparts.search.started
+          if (eventStream) {
+            try {
+              eventStream.publishEvent({
+                id: crypto.randomUUID(),
+                type: "spareparts.search.started",
+                occurredAt: new Date(),
+                traceId: clientTraceId,
+                aggregateId: "spare-parts-store",
+                payload: {
+                  applicationId: "spare-parts-store",
+                  tenantId: callerTenant,
+                  traceId: clientTraceId,
+                  query: (bodyResult.body as any)?.query ?? "",
+                  vehicle: (bodyResult.body as any)?.vehicle,
+                },
+              });
+            } catch {
+              // Telemetry emission failure must not block search execution
+            }
+          }
+
           try {
             const searchResponse = await defaultSparePartsFacade.searchAndCompare(bodyResult.body as any);
+
+            // 2. Emit telemetry event for individual sources
+            if (eventStream && searchResponse.sourceReports) {
+              for (const report of searchResponse.sourceReports) {
+                try {
+                  eventStream.publishEvent({
+                    id: crypto.randomUUID(),
+                    type: "spareparts.source.completed",
+                    occurredAt: new Date(),
+                    traceId: clientTraceId,
+                    aggregateId: report.sourceId,
+                    payload: {
+                      applicationId: "spare-parts-store",
+                      tenantId: callerTenant,
+                      traceId: clientTraceId,
+                      sourceId: report.sourceId,
+                      sourceName: report.sourceName,
+                      status: report.status,
+                      latencyMs: report.latencyMs,
+                      offersFound: report.offersFound,
+                    },
+                  });
+                } catch {
+                  // Non-blocking telemetry
+                }
+              }
+            }
+
+            // 3. Emit telemetry event: spareparts.search.completed
+            if (eventStream) {
+              try {
+                eventStream.publishEvent({
+                  id: crypto.randomUUID(),
+                  type: "spareparts.search.completed",
+                  occurredAt: new Date(),
+                  traceId: clientTraceId,
+                  aggregateId: "spare-parts-store",
+                  payload: {
+                    applicationId: "spare-parts-store",
+                    tenantId: callerTenant,
+                    traceId: clientTraceId,
+                    searchId: searchResponse.searchId,
+                    status: searchResponse.status,
+                    totalOffersFound: searchResponse.totalOffersFound,
+                    clustersCount: searchResponse.clustersCount,
+                    executionTimeMs: searchResponse.executionTimeMs,
+                  },
+                });
+              } catch {
+                // Non-blocking telemetry
+              }
+            }
+
             sendJson(200, searchResponse);
             return;
           } catch (err: any) {
+            if (eventStream) {
+              try {
+                eventStream.publishEvent({
+                  id: crypto.randomUUID(),
+                  type: "spareparts.search.failed",
+                  occurredAt: new Date(),
+                  traceId: clientTraceId,
+                  aggregateId: "spare-parts-store",
+                  payload: {
+                    applicationId: "spare-parts-store",
+                    tenantId: callerTenant,
+                    traceId: clientTraceId,
+                    error: err?.message || "Internal error during spare parts search",
+                  },
+                });
+              } catch {
+                // Non-blocking telemetry
+              }
+            }
             console.error("[HTTP 500] Spare parts search error:", err);
             sendError(500, err?.message || "Internal error during spare parts search", "INTERNAL_SERVER_ERROR");
             return;

@@ -307,3 +307,22 @@
 .sp-noresults-card {
   padding: 2.5rem 1.5rem;
 }
+
+
+/* Reactive Telemetry Live Feed (Phase 149) */
+.sp-telemetry-feed {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.75rem;
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.sp-telemetry-item {
+  display: flex;
+  align-items: center;
+  font-family: var(--font-mono, monospace);
+}

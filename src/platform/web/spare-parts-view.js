@@ -47,6 +47,9 @@ export class SparePartsView {
     this.selectedOfferIds = new Set(); // Up to 4 offers for comparison
     this.isLoading = false;
     this.errorMessage = null;
+    this.telemetryStatus = options.telemetryStatus || 'IDLE';
+    this.liveEvents = [];
+    this.telemetryManager = options.telemetryManager || null;
 
     // Pre-populated demo vehicle dataset for quick user selection
     this.vehicleCatalog = [
@@ -73,6 +76,19 @@ export class SparePartsView {
       this.activeCluster = results.clusters[0];
     } else {
       this.activeCluster = null;
+    }
+    this.render();
+  }
+
+  setTelemetryStatus(status) {
+    this.telemetryStatus = status;
+    this.render();
+  }
+
+  addTelemetryEvent(event) {
+    this.liveEvents.unshift(event);
+    if (this.liveEvents.length > 20) {
+      this.liveEvents.pop();
     }
     this.render();
   }
@@ -174,7 +190,10 @@ export class SparePartsView {
     b3.className = "badge badge-neutral";
     b3.textContent = "Cross-Reference Graph";
 
-    badgeGroup.append(b1, b2, b3);
+    const bTelemetry = document.createElement('span');
+    bTelemetry.className = 'badge ' + (this.telemetryStatus === 'CONNECTED' ? 'badge-success' : (this.telemetryStatus === 'DEGRADED' || this.telemetryStatus === 'RECONNECTING' ? 'badge-warning' : 'badge-neutral'));
+    bTelemetry.textContent = 'SSE: ' + this.telemetryStatus;
+    badgeGroup.append(b1, b2, b3, bTelemetry);
     titleRow.append(titleDiv, badgeGroup);
     card.appendChild(titleRow);
     return card;
@@ -413,6 +432,32 @@ export class SparePartsView {
     });
 
     body.appendChild(grid);
+
+    // Real-Time SSE Telemetry Live Feed
+    if (this.liveEvents.length > 0) {
+      const liveHeader = document.createElement('h5');
+      liveHeader.className = 'font-sm text-muted mt-2 mb-1';
+      liveHeader.textContent = 'Reactive Telemetry Feed (SSE Live):';
+      body.appendChild(liveHeader);
+
+      const feedList = document.createElement('div');
+      feedList.className = 'sp-telemetry-feed';
+      this.liveEvents.slice(0, 5).forEach(evt => {
+        const feedItem = document.createElement('div');
+        feedItem.className = 'sp-telemetry-item font-xs';
+        const timeSpan = document.createElement('span');
+        timeSpan.className = 'text-muted mr-1';
+        timeSpan.textContent = '[' + (evt.occurredAt ? evt.occurredAt.split('T')[1]?.slice(0, 8) : '') + '] ';
+        const typeSpan = document.createElement('strong');
+        typeSpan.textContent = evt.eventType + ': ';
+        const detailSpan = document.createElement('span');
+        detailSpan.textContent = evt.payload?.sourceId ? ('source ' + evt.payload.sourceId + ' (' + evt.payload.status + ')') : (evt.payload?.status || 'event received');
+        feedItem.append(timeSpan, typeSpan, detailSpan);
+        feedList.appendChild(feedItem);
+      });
+      body.appendChild(feedList);
+    }
+
     card.appendChild(body);
     return card;
   }

@@ -124,6 +124,15 @@ export const PLATFORM_CAPABILITY_CATALOG: readonly PlatformCapabilityDefinition[
     requiredPlan: "PRO",
     endpoints: ["GET /api/v1/devices", "GET /api/v1/devices/:id/health", "GET /api/v1/devices/:id/capabilities"],
   },
+  {
+    id: "spareparts.search",
+    name: "Automotive Spare Parts Multi-Source Search & Comparison",
+    category: "COMMERCE",
+    description: "Multi-source automotive spare parts discovery, deterministic fitment verification and landed price comparison.",
+    riskTier: "LOW",
+    requiredPlan: "FREE",
+    endpoints: ["POST /api/v1/spareparts/search"],
+  },
 ]);
 
 export class ApplicationValidator {

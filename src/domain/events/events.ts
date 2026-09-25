@@ -57,7 +57,8 @@ export type EventType =
   | "portfolio.created" | "portfolio.enterprise_added" | "portfolio.enterprise_removed"
   | "mandate.granted" | "mandate.revoked"
   | "portfolio_objective.created" | "portfolio_objective.aggregated"
-  | "workflow.completed" | "workflow.failed" | "workflow.cancelled";
+  | "workflow.completed" | "workflow.failed" | "workflow.cancelled"
+  | "spareparts.search.started" | "spareparts.source.completed" | "spareparts.search.completed" | "spareparts.search.failed";
 
 
 export interface DomainEvent {
