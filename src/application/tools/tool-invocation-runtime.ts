@@ -138,6 +138,10 @@ export class ToolInvocationRuntime implements ToolGateway {
     };
   }
 
+  async invokeTool(options: SecureToolInvocationOptions): Promise<ToolExecutionResult> {
+    return this.invokeSecurely(options);
+  }
+
   async invokeSecurely(options: SecureToolInvocationOptions): Promise<ToolExecutionResult> {
     const { request, context, securityContext, agentId, cancellationToken } = options;
     const startTime = this.now();

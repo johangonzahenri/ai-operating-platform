@@ -833,6 +833,17 @@ Conectar el producto satélite `PROJ-02-SPAREPARTS` a la **AI Operating Platform
 - **Objetivo**: Implementar suite de pruebas `tests/unit/spare-parts-platform-integration.test.ts` con 10 pruebas exhaustivas y publicar la documentación técnica canónica `docs/SPARE_PARTS_PLATFORM_INTEGRATION.md`.
 - **Evidencia**: `tests/unit/spare-parts-platform-integration.test.ts` (10 tests PASS), `docs/SPARE_PARTS_PLATFORM_INTEGRATION.md`.
 
+##### Cambios surgidos durante 149.5:
+- **149.5.2 — Hardening Multi-Agente Track 4: Official Enterprise MCP Server (GAP-07 / Tarea 1.1.2)**:
+  - *Tipo*: `CHANGE`
+  - *Fecha*: 2026-09-25
+  - *Detectado durante*: Tarea 149.5 / Hardening de Gobernanza Multi-Agente
+  - *Origen*: Implementación formal del último track de `AOP-MULTIAGENT-HARDENING` (GAP-07) conforme a la especificación estándar Model Context Protocol (MCP rev `2026-07-28`).
+  - *Motivo*: Exponer el catálogo gobernado de herramientas, recursos y prompts de la plataforma a clientes MCP externos (IDEs como Antigravity, VS Code, Cursor y agentes autónomos remotos) sin contaminar el Core Engine ni violar las fronteras hexagonales.
+  - *Impacto*: Servidor MCP oficial implementado en capa de plataforma (`src/platform/mcp/`) con transportes Stdio y Streamable HTTP (`POST /mcp`), mapeo seguro de errores sin fuga de secretos ni trazas internas, integración bidireccional con `ToolInvocationRuntime` (idempotencia, rate limiting, SoD, taint boundary) y suspensión no bloqueante en puente HITL (`HITLBridgePort`). 24 pruebas unitarias dedicadas en `tests/unit/platform-mcp-server.test.ts` pasando al 100% (1,836 tests totales en verde). Documentación arquitectónica `docs/MCP_SERVER_ARCHITECTURE.md`, `docs/MCP_SECURITY_MODEL.md` y `docs/MCP_CONFORMANCE_MATRIX.md` publicadas.
+  - *Decisión*: Adoptar MCP Driving Adapter en capa de plataforma (`src/platform/mcp/platform-mcp-server.ts`), preservar política de cero dependencias en Core/Domain, y cerrar el ciclo completo de los 4 tracks de hardening multi-agente (`AOP-MULTIAGENT-HARDENING` marcado como `DONE`).
+  - *Estado*: `DONE`
+
 ---
 
 ## 19. Roadmap Preliminar del Producto PROJ-02 (Fase 150)

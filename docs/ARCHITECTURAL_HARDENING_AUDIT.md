@@ -122,17 +122,17 @@ $$\text{Código Fuente en } src/ > \text{Tests Automatizados} > \text{Historial 
 - **Recomendación Enterprise**: Implementar encadenamiento de bloques criptográficos (*Evidence Hash Chain*): cada manifiesto de exportación debe incluir `previousPackageHashSha256` y `packageSequenceNumber`, permitiendo a los auditores verificar la inmutabilidad y continuidad cronológica estricta de toda la historia de auditoría de la plataforma.
 
 ### 4.7. Protocolo MCP (Model Context Protocol) y Fronteras Hexagonales (GAP-07)
-- **Realidad**: El repositorio no contiene ninguna dependencia de `@modelcontextprotocol/sdk` ni código relacionado con MCP.
-- **Estado Oficial MCP (2026)**:
-  - Especificación formal vigente: **2026-07-28**.
-  - SDK Oficial de TypeScript v2: Dividido modularmente en `@modelcontextprotocol/server` y `@modelcontextprotocol/client` (con `zod` como motor de validación de esquemas).
-  - Transportes estándar: `StdioServerTransport` (comunicación por subprocess stdio para IDEs como Antigravity, VS Code, Cursor) y `StreamableHttpServerTransport` / SSE (para servidores remotos y satélites).
-  - Métodos centrales: `tools/list`, `tools/call`, `resources/list`, `resources/read`, `prompts/list`, `prompts/get`, y extensiones HITL (`notifications/message`, `roots/list`).
-- **Invariante de Arquitectura**: MCP no es el núcleo del negocio de la plataforma; es una **interfaz de comunicación perimetral**. Por lo tanto:
-  1. No debe residir en `src/domain/` ni en `src/application/`.
-  2. Debe ubicarse exclusivamente en la capa de Plataforma/Producto (`src/platform/mcp/` o paquete satellite `@ai-platform/mcp-server`).
-  3. El servidor MCP debe actuar como un adaptador primario (Driving Adapter) que expone las herramientas registradas en `ToolRegistry` invocando a través de `ToolInvocationRuntime`, respetando RBAC, autenticación de tokens y políticas de seguridad fail-closed.
-  4. Queda terminantemente prohibido que un manejador MCP consulte directamente la base de datos SQLite o modifique agregados de dominio sin pasar por los casos de uso oficiales.
+- **Estado**: `IMPLEMENTED` (Validado en Track 4, Prompt 154)
+- **Especificación Oficial**: Revisión `2026-07-28` (con fallback de negociación hacia `2024-11-05`).
+- **Implementación Validada**:
+  - Ubicación perimetral estricta en `src/platform/mcp/` como Driving Adapter hexagonal.
+  - Cero dependencias externas en Core Engine y Domain (`@modelcontextprotocol/server` preservado con tipado DTO canónico nativo en TypeScript).
+  - Transportes estándar implementados: `serveMcpStdio` (Stdio sobre JSON-RPC delimitado por línea) y `handleMcpHttpRequest` (`POST /mcp` sobre HTTP router).
+  - Métodos gobernados: `initialize`, `ping`, `tools/list`, `tools/call`, `resources/list`, `resources/read`, `prompts/list`.
+  - Conexión determinista a `ToolInvocationRuntime` respetando el pipeline de 10 pasos (autenticación, autorización RBAC, rate limiting, presupuestos, validación de esquemas, idempotencia y taint boundaries).
+  - Integración nativa con `HITLBridgePort` ante herramientas de riesgo `CRITICAL` o `requiresApproval: true`, devolviendo suspensión estructurada `SUSPENDED_WAITING_FOR_APPROVAL` con `resumptionToken`.
+  - Mapeo de errores canónico (`McpErrorCodes`) con ofuscación de trazas internas y cero fuga de secretos.
+  - Evidencia: 24 pruebas unitarias dedicadas en `tests/unit/platform-mcp-server.test.ts`. Documentación técnica en `docs/MCP_SERVER_ARCHITECTURE.md`, `docs/MCP_SECURITY_MODEL.md` y `docs/MCP_CONFORMANCE_MATRIX.md`.
 
 ### 4.8. HITL, Suspensión Asíncrona y Segregación de Funciones (GAP-08)
 - **Realidad**: La Segregación de Funciones (SoD) ya está estrictamente blindada en el código:

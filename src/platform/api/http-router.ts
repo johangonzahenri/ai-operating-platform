@@ -225,6 +225,7 @@ export interface HttpServerOptions {
   readonly oidcJwksUri?: string | undefined;
   readonly oidcAllowedAlgorithms?: readonly string[] | undefined;
   readonly sparePartsFacade?: SparePartsFacade | undefined;
+  readonly mcpServer?: import("../mcp/platform-mcp-server.js").PlatformMcpServer | undefined;
 }
 
 export function createHttpServer(
@@ -7369,6 +7370,17 @@ export function createHttpServer(
             sendError(500, "Internal error during evidence export", "INTERNAL_SERVER_ERROR");
             return;
           }
+        }
+
+        // POST /mcp (GAP-07 Official Enterprise MCP Server)
+        if (subPath === "/mcp" && req.method === "POST") {
+          if (!options?.mcpServer) {
+            sendError(503, "MCP Server adapter not configured or enabled", "SERVICE_UNAVAILABLE");
+            return;
+          }
+          const { handleMcpHttpRequest } = await import("../mcp/mcp-transports.js");
+          await handleMcpHttpRequest(req, res, options.mcpServer);
+          return;
         }
 
         // POST /spareparts/search (PROJ-02 Phase 148)
