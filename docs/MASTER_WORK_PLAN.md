@@ -20,6 +20,15 @@ Este documento responde de forma inequívoca en todo momento:
 5. **¿Qué cambió durante la ejecución y por qué?** (Decisiones y adaptaciones)
 6. **¿Qué evidencia cerró cada tarea?** (Tests, contratos, rutas, commits)
 
+### Tarea Inesperada 1.1.1 — Hardening de Principios de Ingeniería y Gobernanza Arquitectónica
+> **Identificador Canónico**: `1.1.1` (Cross-Cutting Architectural Improvement / Unexpected Governance Task)  
+> **Fecha**: 2026-09-25  
+> **Estado Técnico**: `DONE` | **Estado Operativo**: `DONE`  
+> **Detectado durante**: Revisión de Gobernanza Arquitectónica posterior al cierre de Fase 148.  
+> **Origen**: Auditoría arquitectónica tras entrega de Fase 148 detectando la necesidad de explicitar y blindar 8 principios de ingeniería no negociables en el Libro Oficial y guías de arquitectura (Arquitectura Hexagonal, Zero Third-Party en Core/Backend, Concurrencia Acotada Observable, Determinismo, Fail-Closed ante Ambigüedad Material, Dirección Unidireccional de Dependencias, Aislamiento de DevDependencies y Evidencia Estructurada).  
+> **Decisión**: Formalizar los 8 principios en `LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md` (raíz y `docs/`), validar consistencia criptográfica mediante `scripts/docs-check.mjs` y ratificar invariantes de plataforma.  
+> **Evidencia**: `LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md`, `docs/LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md`, `scripts/docs-check.mjs` (SHA-256 match).
+
 ---
 
 ## 2. Separación Conceptual de Documentos
@@ -742,6 +751,17 @@ Construir la experiencia de usuario web (Single-Page Application) y la fachada u
 - **Estado**: `DONE`
 - **Objetivo**: Crear suite de pruebas exhaustiva `tests/unit/spare-parts-web-ux.test.ts` cubriendo 9 escenarios (incluyendo auditoría de 0 `innerHTML`) y publicar `docs/SPARE_PARTS_WEB_UX.md`.
 - **Evidencia**: 9 tests dedicados PASS, 1744 tests totales PASS (99 suites), `docs/SPARE_PARTS_WEB_UX.md`.
+
+##### Cambios surgidos durante 148.5:
+- **148.5.1 — Hardening de Principios de Ingeniería y Gobernanza Arquitectónica (Tarea Inesperada 1.1.1)**:
+  - *Tipo*: `CHANGE`
+  - *Fecha*: 2026-09-25
+  - *Detectado durante*: Tarea 148.5
+  - *Origen*: Auditoría de cierre posterior a la implementación web SPA identificando la necesidad de robustecer y asentar de forma inquebrantable los 8 principios no negociables de ingeniería en el Libro Oficial y guías arquitectónicas.
+  - *Motivo*: Prevenir degradación arquitectónica, fugas de abstracción en dependencias de terceros, y asentar la frontera sagrada plataforma-aplicación satélite.
+  - *Impacto*: Documentación canónica actualizada (`LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md` en raíz y `docs/`), 0 regresión en tests, validación de integridad 100%.
+  - *Decisión*: Registrar la Tarea Inesperada de Gobernanza 1.1.1 en el Plan Maestro y actualizar la Sección 1.2 del Libro Oficial con los 8 principios hardened.
+  - *Estado*: `DONE`
 
 ---
 
