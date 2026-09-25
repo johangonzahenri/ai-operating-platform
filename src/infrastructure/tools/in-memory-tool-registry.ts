@@ -11,6 +11,7 @@ import {
   ToolRiskLevel,
   ToolExecutionMode,
   MAX_TOOL_TIMEOUT_MS,
+  CompensableTool,
 } from "../../domain/tools/tool-registry.js";
 import { SecurityContext } from "../../domain/security/security.js";
 
@@ -68,14 +69,17 @@ export class InMemoryToolRegistry implements ToolRegistry {
       metadata: tool.definition.metadata ? Object.freeze({ ...tool.definition.metadata }) : undefined,
     });
 
-    const registeredTool: Tool = {
+    const registeredTool: Tool & Partial<CompensableTool> = {
       definition: frozenDefinition,
-      execute: tool.execute.bind(tool),
+      execute: (input, ctx) => tool.execute(input, ctx),
+      ...(typeof (tool as any).compensate === "function"
+        ? { compensate: (input, ctx, forwardOutput) => (tool as any).compensate(input, ctx, forwardOutput) }
+        : {}),
     };
 
-    this.versionedTools.set(key, registeredTool);
+    this.versionedTools.set(key, registeredTool as Tool);
     // Keep the most recently registered tool as default for unversioned lookups
-    this.defaultTools.set(id, registeredTool);
+    this.defaultTools.set(id, registeredTool as Tool);
   }
 
   unregister(id: string, version?: string): boolean {

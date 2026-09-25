@@ -12,6 +12,7 @@ import {
   ModelRoutingDecision,
 } from "../../domain/model/model-router.js";
 import { StubModelGateway } from "../../infrastructure/model/stub-model-gateway.js";
+import { TaintedValue } from "../../domain/security/taint-tracking.js";
 
 export interface GovernedModelRouterOptions {
   readonly primaryGateway?: ModelGateway;
@@ -54,7 +55,9 @@ export class GovernedModelRouter implements ModelRouter {
   }
 
   async route(request: ModelRoutingRequest): Promise<ModelRoutingDecision> {
-    const rawPrompt = JSON.stringify(request.modelRequest.input);
+    // GAP-01: Isolate untrusted input into explicit data envelope if passed as TaintedValue
+    const inputPayload = formatModelInputWithTaintEnvelopes(request.modelRequest.input);
+    const rawPrompt = JSON.stringify(inputPayload);
 
     // 1. Guardrail: Max prompt length check
     if (rawPrompt.length > this.maxPromptLength) {
@@ -145,4 +148,39 @@ export class GovernedModelRouter implements ModelRouter {
 
     throw lastError || new ModelExecutionError("governed-router", "All model gateways in fallback chain failed");
   }
+}
+
+/**
+ * Transforms any TaintedValue instances in model inputs into explicit tagged envelopes:
+ * `<untrusted_content provenance="..." status="...">...</untrusted_content>`
+ * This informs LLMs that the contained text is strictly data, preventing prompt confusion.
+ */
+export function formatModelInputWithTaintEnvelopes(val: unknown): unknown {
+  if (val === null || typeof val !== "object") {
+    return val;
+  }
+
+  if (val instanceof TaintedValue) {
+    if (val.isTainted) {
+      return {
+        _untrusted_content_envelope: {
+          provenance: val.provenance.originId,
+          sourceKind: val.provenance.sourceKind,
+          trustStatus: val.trustStatus,
+          data: formatModelInputWithTaintEnvelopes(val.value),
+        },
+      };
+    }
+    return formatModelInputWithTaintEnvelopes(val.value);
+  }
+
+  if (Array.isArray(val)) {
+    return val.map((item) => formatModelInputWithTaintEnvelopes(item));
+  }
+
+  const result: Record<string, unknown> = {};
+  for (const [key, item] of Object.entries(val as Record<string, unknown>)) {
+    result[key] = formatModelInputWithTaintEnvelopes(item);
+  }
+  return result;
 }

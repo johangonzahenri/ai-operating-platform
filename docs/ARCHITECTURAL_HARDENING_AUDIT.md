@@ -43,11 +43,11 @@ $$\text{Código Fuente en } src/ > \text{Tests Automatizados} > \text{Historial 
 
 | ID | Área / Dimensión | Aseveración / Propuesta | Realidad en Código | Clasificación | Prioridad |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **GAP-01** | Prompt Injection & Taint Tracking | Los datos externos fluyen a los agentes sin separación estricta de instrucción y datos. | `GovernedModelRouter` tiene filtros regex (`ignore all previous instructions`), pero no existe etiquetado de procedencia (*taint tracking*) para datos ingeridos por herramientas web/scraping que pasan entre agentes. | `CONFIRMED_GAP` | **HIGH** |
+| **GAP-01** | Prompt Injection & Taint Tracking | Los datos externos fluyen a los agentes sin separación estricta de instrucción y datos. | `TaintedValue<T>`, `derive()`, `sanitize()`, `assertNoTaintedControlKeys` y `formatModelInputWithTaintEnvelopes` integrados en dominio, runtime e inferencia LLM. Envoltorio automático para herramientas `openWorldHint` y auditoría de violaciones. | `IMPLEMENTED` | **HIGH** |
 | **GAP-02** | Tool Idempotency & Replay Cache | Las herramientas carecen de protección contra re-ejecución en reintentos y timeouts. | `IdempotencyStore` integrado formalmente en `ToolInvocationRuntime`. Deduplicación previa obligatoria, detección de carreras concurrentes (`IN_PROGRESS`), detección de payload mismatch y caché determinista de replay (`durationMs = 0`, `cachedReplay = true`). | `IMPLEMENTED` | **CRITICAL** |
 | **GAP-03** | Agent Velocity & Blast Radius | Los agentes pueden generar bucles rápidos de llamadas a herramientas externas. | `AgentRateLimiterPort` e `InMemoryAgentRateLimiter` integrados en el pipeline de `ToolInvocationRuntime`. Control de ventana deslizante por agente/tenant/herramienta con cuota independiente para herramientas destructivas. | `IMPLEMENTED` | **HIGH** |
 | **GAP-04** | Tool Semantic & Schema Versioning | Falta política semántica de evolución de esquemas y anotaciones de ejecución en herramientas. | `ToolDefinition` y `ToolRegistry` enriquecidos con `schemaVersion` explícito y anotaciones operacionales (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`) con inferencia automática segura. | `IMPLEMENTED` | **MEDIUM** |
-| **GAP-05** | Saga / Compensación Distribuida | No hay compensación ante fallos en planes multi-paso. | El motor `PlanExecutionEngine` y `WorkflowOrchestratorService` marcan fallos de forma segura (fail-closed), pero no orquestan reversiones compensatorias automáticas para herramientas con efectos colaterales. | `CONFIRMED_GAP` | **HIGH** |
+| **GAP-05** | Saga / Compensación Distribuida | No hay compensación ante fallos en planes multi-paso. | `SagaExecution` máquina de estados (8 estados canónicos), contrato `CompensableTool`, orquestación LIFO en `PlanExecutionEngine`, preservación estricta de ambos errores y eventos de ciclo de vida saga. | `IMPLEMENTED` | **HIGH** |
 | **GAP-06** | Integridad Criptográfica de Evidencia | Los paquetes de evidencia no demuestran continuidad temporal encadenada. | `EvidenceExportManifest` genera un checksum SHA-256 canónico del paquete actual, pero no implementa encadenamiento criptográfico (`previousPackageHash`) para auditar omisión o reordenamiento cronológico de auditorías. | `CONFIRMED_GAP` | **MEDIUM** |
 | **GAP-07** | Protocolo MCP y Fronteras de Plataforma | Se requiere exponer herramientas y prompts vía MCP sin romper los límites de Core. | El repositorio cuenta con cero dependencias de MCP. La especificación oficial es 2026-07-28 y el SDK v2 (`@modelcontextprotocol/server`) debe situarse en la capa de Plataforma/Producto, consumiendo puertos de aplicación sin tocar el dominio. | `CONFIRMED_GAP` | **HIGH** |
 | **GAP-08** | HITL & Segregación de Funciones (SoD) | Se debe evitar que quien produce una acción sea quien la verifique o apruebe. | **Ya implementado en Core**: `SelfVerificationError` y `SelfApprovalError` se evalúan en dominio inmutable. Falta únicamente el puente de suspensión asíncrona hacia protocolos externos (e.g., `input_required` en MCP / eventos SSE). | `ALREADY_IMPLEMENTED` (Core SoD) / `PARTIALLY_COVERED` (Async Bridge) | **MEDIUM** |
@@ -96,20 +96,25 @@ $$\text{Código Fuente en } src/ > \text{Tests Automatizados} > \text{Historial 
     - Lanzamiento de `ToolRateLimitedError` con tiempo de reintento sugerido (`retryAfterMs`).
 
 ### 4.4. Aislamiento de Datos, Taint Tracking e Inyección de Prompts (GAP-01)
-- **Realidad**: `GovernedModelRouter` filtra patrones conocidos de inyección de prompts (`ignore all previous instructions`, etc.) y limita el tamaño del prompt.
-- **Brecha Confirmada**: Los datos devueltos por conectores web (`WebToolGateway`), scraping de repuestos o APIs de terceros entran a la memoria del agente como texto plano. No existe discriminación estructural entre instrucciones de sistema y contenido no confiable (*untrusted external payload*). Un atacante que controle una página web scrapeda puede inyectar texto malicioso que el agente interprete como orden ejecutiva.
-- **Recomendación Enterprise**: Implementar un envoltorio de frontera (*Taint Wrapper*): todo output de herramientas con `openWorldHint = true` debe encapsularse en bloques delimitados con metadatos de procedencia (`<untrusted_external_content provenance="web_tool" sha256="...">...</untrusted_external_content>`) y etiquetarse con nivel de confianza `UNTRUSTED_EXTERNAL`, impidiendo su paso directo al contexto del sistema del planificador.
+- **Realidad Previa**: `GovernedModelRouter` filtraba patrones conocidos de inyección de prompts (`ignore all previous instructions`, etc.) y limitaba el tamaño del prompt, pero sin rastreo de procedencia formal ni delimitación semántica de datos externos.
+- **Implementación Validada (Track 2)**:
+  - Primitiva de dominio `TaintedValue<T>` (`src/domain/security/taint-tracking.ts`) con estados de confianza `TRUSTED`, `UNTRUSTED_EXTERNAL`, `UNTRUSTED_USER`, y `DERIVED_UNTRUSTED`.
+  - Operaciones conservadoras de derivación funcional `derive()` y sanitización auditable `sanitize()` con preservación estricta de procedencia histórica.
+  - Aislamiento de plano de control fail-closed (`assertNoTaintedControlKeys`, `assertUntrustedNotControlPlane`) impidiendo que datos manchados secuestren `tenantId`, `principalId` o `approvalToken`.
+  - Envoltorio automático de salida en `ToolInvocationRuntime` para herramientas marcadas con `openWorldHint: true`.
+  - Transformación estructurada para aislamiento de inyección en modelos LLM (`formatModelInputWithTaintEnvelopes`) encapsulando datos no confiables en bloques `<untrusted_content>`.
+  - Emisión de eventos de auditoría de dominio `taint.boundary_violation` y `taint.sanitized`.
 
 ### 4.5. Arquitectura de Compensación / Saga para Operaciones Multi-Paso (GAP-05)
-- **Realidad**: `PlanExecutionEngine` y `WorkflowOrchestratorService` ejecutan pasos secuenciales o en DAG. Ante un error en el paso $K$, la ejecución se detiene y se registra el estado `FAILED`.
-- **Brecha Confirmada**: Si los pasos $1$ a $K-1$ ejecutaron mutaciones (e.g., reservar repuesto en almacén, bloquear fondos, enviar correo), el sistema queda en un estado inconsistente. No existe registro de acciones de compensación (*compensating actions*) ni orquestador de Saga.
-- **Recomendación Enterprise**: Formalizar el contrato `CompensableTool`:
-  ```typescript
-  export interface CompensableTool<TInput, TOutput, TCompensationInput> extends Tool<TInput, TOutput> {
-    compensate(context: ToolExecutionContext, input: TCompensationInput): Promise<ToolInvocationResult>;
-  }
-  ```
-  El planificador debe registrar un log transaccional de compensación (Saga Log inmutable en SQLite). Ante un fallo, el orquestador invoca la reversión en orden inverso ($K-1 \dots 1$).
+- **Realidad Previa**: `PlanExecutionEngine` y `WorkflowOrchestratorService` ejecutaban pasos secuenciales o en DAG. Ante un error en el paso $K$, la ejecución se detenía en `FAILED` sin revertir pasos completados previamente.
+- **Implementación Validada (Track 2)**:
+  - Primitiva y máquina de estados formal `SagaExecution` (`src/domain/autonomy/saga-execution.ts`) con 8 estados canónicos (`NOT_STARTED`, `RUNNING`, `FORWARD_FAILED`, `COMPENSATING`, `COMPENSATED`, `COMPENSATION_FAILED`, `IN_DOUBT`, `COMPLETED`).
+  - Contrato de dominio `CompensableTool` y función de guardia de tipos `isCompensableTool(tool)`.
+  - Orquestador de compensación determinista en reversa estricta (LIFO) dentro de `PlanExecutionEngine`.
+  - Exclusión automática de pasos de solo lectura (`READ_ONLY` o `readOnlyHint`).
+  - Preservación simultánea de ambos errores (`forwardError` y `compensationError`) sin sobrescrituras en el reporte final del plan y snapshot de la saga.
+  - Clasificación determinista de fallos por timeout o red hacia estado residual `IN_DOUBT`.
+  - Emisión de ciclo de vida completo de eventos Saga: `saga.started`, `saga.step.completed`, `saga.forward.failed`, `saga.compensation.started`, `saga.compensation.failed`, `saga.completed`, `saga.in_doubt`.
 
 ### 4.6. Integridad Criptográfica y Encadenamiento de Evidencia (GAP-06)
 - **Realidad**: `EvidenceExportService` calcula el hash SHA-256 de cada paquete exportado (`EvidenceExportManifest.checksumSha256`).

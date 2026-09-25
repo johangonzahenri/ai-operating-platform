@@ -45,9 +45,10 @@ Este documento responde de forma inequívoca en todo momento:
 >   - Deduplicación previa e integración de IdempotencyPort en ToolInvocationRuntime.
 >   - Evolución semántica de esquemas y anotaciones operacionales (readOnlyHint, destructiveHint, idempotentHint, openWorldHint).
 >   - Limitador de velocidad por agente (sliding window burst rate limit) para llamadas a herramientas de terceros.
-> - [ ] Track 2 — Aislamiento de Datos, Taint Tracking & Compensación Saga (GAP-01, GAP-05):
->   - Envoltorio de frontera (TaintWrapper) para neutralizar inyecciones de datos no confiables provenientes de herramientas externas.
->   - Contrato CompensableTool y orquestador de compensación en reversa ante fallos en planes multi-paso.
+> - [x] Track 2 — Aislamiento de Datos, Taint Tracking & Compensación Saga (GAP-01, GAP-05):
+>   - Envoltorio de frontera (TaintedValue, derive, sanitize, formatModelInputWithTaintEnvelopes) para neutralizar inyecciones de datos no confiables provenientes de herramientas externas.
+>   - Aislamiento de plano de control fail-closed frente a inyecciones de control (assertNoTaintedControlKeys).
+>   - Contrato CompensableTool, máquina de estados SagaExecution (8 estados) y orquestador de compensación en reversa LIFO ante fallos en planes multi-paso.
 > - [ ] Track 3 — Criptografía de Evidencia, W3C Tracing & HITL Bridge (GAP-06, GAP-08, GAP-09):
 >   - Encadenamiento criptográfico continuo de bloques de evidencia (previousPackageHashSha256) en exportaciones de cumplimiento.
 >   - Puente de suspensión y reanudación asíncrona para herramientas con aprobación requerida respetando SoD de dominio.

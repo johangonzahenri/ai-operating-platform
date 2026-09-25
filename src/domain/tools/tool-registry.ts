@@ -84,6 +84,7 @@ export interface ToolExecutionResult {
   readonly sanitized: boolean;
   readonly bytesTruncated: boolean;
   readonly durationMs: number;
+  readonly taintedOutput?: unknown | undefined;
 }
 
 // Limits
@@ -229,6 +230,29 @@ export interface Tool {
   ): Promise<ToolResult>;
 }
 
+export interface CompensableTool<
+  TInput = Readonly<Record<string, unknown>>,
+  TOutput = Readonly<Record<string, unknown>>,
+  TCompensationInput = Readonly<Record<string, unknown>>
+> extends Tool {
+  compensate(
+    compensationInput: TCompensationInput,
+    context: ExecutionContext | ToolExecutionContext,
+    forwardOutput?: TOutput
+  ): Promise<ToolResult>;
+}
+
+export function isCompensableTool(tool: unknown): tool is CompensableTool {
+  return (
+    typeof tool === "object" &&
+    tool !== null &&
+    "execute" in tool &&
+    typeof (tool as any).execute === "function" &&
+    "compensate" in tool &&
+    typeof (tool as any).compensate === "function"
+  );
+}
+
 export interface ToolDiscoveryOptions {
   readonly securityContext?: SecurityContext | undefined;
   readonly agentId?: string | undefined;
@@ -255,4 +279,6 @@ export interface ToolGateway {
     version?: string
   ): Promise<ToolResult>;
   definition?(toolId: string, version?: string): ToolDefinition | undefined;
+  findTool?(toolId: string, version?: string): Tool | undefined;
 }
+

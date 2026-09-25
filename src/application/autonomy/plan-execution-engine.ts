@@ -1,9 +1,24 @@
 import { Plan, PlanStep } from "../../domain/autonomy/plan.js";
-import { ToolGateway, ToolResult } from "../../domain/tools/tool-registry.js";
+import {
+  ToolGateway,
+  ToolResult,
+  CompensableTool,
+  isCompensableTool,
+} from "../../domain/tools/tool-registry.js";
 import { ExecutionContext } from "../../domain/execution/execution-context.js";
 import { SecurityContext } from "../../domain/security/security.js";
 import { EventPublisher, event } from "../../domain/events/events.js";
 import { ToolInvocationRuntime, CancellationToken } from "../tools/tool-invocation-runtime.js";
+import {
+  SagaExecution,
+  SagaSnapshot,
+  StepCompensationRecord,
+} from "../../domain/autonomy/saga-execution.js";
+import {
+  TaintedValue,
+  assertNoTaintedControlKeys,
+  UntrustedControlDataError,
+} from "../../domain/security/taint-tracking.js";
 
 export type StepExecutionStatus =
   | "PENDING"
@@ -23,6 +38,7 @@ export interface StepExecutionRecord {
   readonly startedAt?: Date | undefined;
   readonly completedAt?: Date | undefined;
   readonly durationMs?: number | undefined;
+  readonly isTainted?: boolean | undefined;
 }
 
 export interface PlanExecutionOptions {
@@ -34,6 +50,7 @@ export interface PlanExecutionOptions {
   readonly events?: EventPublisher | undefined;
   readonly cancellationToken?: CancellationToken | undefined;
   readonly allowPartialBranchFailure?: boolean | undefined;
+  readonly enableSagaCompensation?: boolean | undefined;
   readonly now?: (() => Date) | undefined;
 }
 
@@ -49,6 +66,7 @@ export interface PlanExecutionReport {
   readonly skippedSteps: number;
   readonly durationMs: number;
   readonly error?: { readonly code: string; readonly message: string } | undefined;
+  readonly saga?: SagaSnapshot | undefined;
 }
 
 /**
@@ -60,6 +78,9 @@ export interface PlanExecutionReport {
  * 3. Independent branches can continue if allowPartialBranchFailure is enabled.
  * 4. Step outputs are bound and propagated to dependent step inputs.
  * 5. Cancellation tokens immediately stop subsequent steps and mark pending ones as CANCELLED.
+ * 6. GAP-01: Validates that inputs do not inject tainted data into control-plane boundaries.
+ * 7. GAP-05: When enableSagaCompensation is true and a forward step fails, coordinates
+ *    reverse LIFO compensation of all completed compensable steps, preserving forward & backward errors.
  */
 export class PlanExecutionEngine {
   private readonly now: () => Date;
@@ -78,11 +99,26 @@ export class PlanExecutionEngine {
       events,
       cancellationToken,
       allowPartialBranchFailure = false,
+      enableSagaCompensation = false,
     } = options;
 
     const startTime = this.now();
     const stepRecords = new Map<string, StepExecutionRecord>();
     const stepOutputs = new Map<string, Readonly<Record<string, unknown>>>();
+    const stepTainted = new Map<string, boolean>();
+
+    let saga: SagaExecution | undefined;
+    if (enableSagaCompensation) {
+      saga = new SagaExecution(`saga_${plan.id}`, plan.id, plan.operationId, startTime);
+      saga.start();
+      events?.publish(
+        event("saga.started", context.traceId, saga.sagaId, {
+          sagaId: saga.sagaId,
+          planId: plan.id,
+          operationId: plan.operationId,
+        }, undefined, startTime, { taskId: context.taskId, executionId: context.executionId })
+      );
+    }
 
     // Initialize all steps as PENDING
     for (const step of plan.steps) {
@@ -148,11 +184,51 @@ export class PlanExecutionEngine {
 
       // 3. Prepare bound input (merge prior dependency outputs if available)
       const boundInput: Record<string, unknown> = { ...step.input };
+      let stepInputTainted = false;
+
       for (const depId of step.dependencies) {
         const depOutput = stepOutputs.get(depId);
         if (depOutput) {
           boundInput[`_dep_${depId}`] = depOutput;
         }
+        if (stepTainted.get(depId)) {
+          stepInputTainted = true;
+        }
+      }
+
+      // GAP-01: Control plane taint check on step inputs
+      try {
+        assertNoTaintedControlKeys(boundInput);
+      } catch (err) {
+        if (err instanceof UntrustedControlDataError) {
+          events?.publish(
+            event("taint.boundary_violation", context.traceId, step.id, {
+              stepId: step.id,
+              action: step.action,
+              field: err.fieldName,
+              message: err.message,
+            }, undefined, this.now())
+          );
+        }
+        const stepEnd = this.now();
+        const durationMs = Math.max(0, stepEnd.getTime() - startTime.getTime());
+        const code = (err as { code?: string })?.code ?? "TAINT_BOUNDARY_VIOLATION";
+        const message = err instanceof Error ? err.message : String(err);
+
+        stepRecords.set(step.id, {
+          stepId: step.id,
+          order: step.order,
+          action: step.action,
+          status: "FAILED",
+          error: { code, message },
+          startedAt: startTime,
+          completedAt: stepEnd,
+          durationMs,
+        });
+
+        planFailed = true;
+        firstError = { code, message };
+        break;
       }
 
       // 4. Execute Step
@@ -166,9 +242,13 @@ export class PlanExecutionEngine {
       });
 
       try {
-        const toolTarget = step.toolId ?? (step.action.startsWith("tool.") ? step.action.replace(/^tool\./, "") : step.action);
-        
+        const toolTarget =
+          step.toolId ??
+          (step.action.startsWith("tool.") ? step.action.replace(/^tool\./, "") : step.action);
+
         let toolResult: ToolResult;
+        let isResultTainted = stepInputTainted;
+
         if (toolGateway instanceof ToolInvocationRuntime) {
           const secureResult = await toolGateway.invokeSecurely({
             request: {
@@ -182,6 +262,9 @@ export class PlanExecutionEngine {
             cancellationToken,
           });
           toolResult = secureResult;
+          if (secureResult.taintedOutput) {
+            isResultTainted = true;
+          }
         } else {
           toolResult = await toolGateway.execute(toolTarget, boundInput, context, step.toolVersion);
         }
@@ -198,8 +281,56 @@ export class PlanExecutionEngine {
           startedAt: stepStart,
           completedAt: stepEnd,
           durationMs,
+          isTainted: isResultTainted,
         });
+
         stepOutputs.set(step.id, toolResult.output);
+        stepTainted.set(step.id, isResultTainted);
+
+        // GAP-05: If Saga is enabled, register completed step
+        if (saga) {
+          const toolInstance =
+            toolGateway.findTool?.(toolTarget, step.toolVersion) ??
+            (toolGateway as any)?.registry?.find?.(toolTarget, step.toolVersion) ??
+            (toolGateway as any)?.toolRegistry?.find?.(toolTarget, step.toolVersion);
+          const toolDef = toolGateway.definition?.(toolTarget, step.toolVersion) ?? toolInstance?.definition;
+          const isCompensableInstance = toolInstance && isCompensableTool(toolInstance);
+
+          const isReadOnly =
+            toolDef?.executionHints?.readOnlyHint === true ||
+            toolDef?.readOnlyHint === true ||
+            (!isCompensableInstance && toolDef?.executionMode === "READ_ONLY");
+
+          const isCompensable =
+            !isReadOnly &&
+            (
+              (step.metadata?.compensable === true) ||
+              Boolean(isCompensableInstance) ||
+              (step.metadata?.compensationAction !== undefined)
+            );
+
+          saga.registerCompletedStep({
+            stepId: step.id,
+            action: step.action,
+            toolId: toolTarget,
+            toolVersion: step.toolVersion,
+            status: isCompensable ? "PENDING" : "NOT_COMPENSABLE",
+            isSideEffecting: !isReadOnly,
+            forwardOutput: toolResult.output,
+            startedAt: stepStart,
+            completedAt: stepEnd,
+            durationMs,
+          });
+
+          events?.publish(
+            event("saga.step.completed", context.traceId, saga.sagaId, {
+              sagaId: saga.sagaId,
+              stepId: step.id,
+              action: step.action,
+              isCompensable,
+            }, undefined, stepEnd, { taskId: context.taskId, executionId: context.executionId })
+          );
+        }
       } catch (err) {
         const stepEnd = this.now();
         const durationMs = Math.max(0, stepEnd.getTime() - stepStart.getTime());
@@ -222,6 +353,18 @@ export class PlanExecutionEngine {
           firstError = { code, message };
         }
 
+        if (saga) {
+          saga.failForward({ code, message });
+          events?.publish(
+            event("saga.forward.failed", context.traceId, saga.sagaId, {
+              sagaId: saga.sagaId,
+              failedStepId: step.id,
+              code,
+              message,
+            }, undefined, stepEnd, { taskId: context.taskId, executionId: context.executionId })
+          );
+        }
+
         if (!allowPartialBranchFailure) {
           // In standard mode, mark subsequent pending steps as SKIPPED due to step failure
           for (const remainingStep of plan.steps) {
@@ -240,6 +383,154 @@ export class PlanExecutionEngine {
       }
     }
 
+    // GAP-05: Compensation Execution in Reverse Order (LIFO) if Plan Failed
+    if (saga && planFailed) {
+      saga.startCompensation();
+      events?.publish(
+        event("saga.compensation.started", context.traceId, saga.sagaId, {
+          sagaId: saga.sagaId,
+          planId: plan.id,
+        }, undefined, this.now(), { taskId: context.taskId, executionId: context.executionId })
+      );
+
+      // Extract stack in reverse order
+      const completedSteps = [...saga.compensationStack].reverse();
+
+      for (const compRecord of completedSteps) {
+        if (compRecord.status === "NOT_COMPENSABLE") {
+          // Non-compensable side-effect: Cannot revert
+          continue;
+        }
+
+        const compStart = this.now();
+        saga.updateCompensationStep(compRecord.stepId, {
+          status: "RUNNING",
+          startedAt: compStart,
+        });
+
+        try {
+          const toolTarget = compRecord.toolId ?? compRecord.action.replace(/^tool\./, "");
+          const toolInstance =
+            toolGateway.findTool?.(toolTarget, compRecord.toolVersion) ??
+            (toolGateway as any)?.registry?.find?.(toolTarget, compRecord.toolVersion) ??
+            (toolGateway as any)?.toolRegistry?.find?.(toolTarget, compRecord.toolVersion);
+
+          let compensationOutput: Record<string, unknown> | undefined;
+
+          if (toolInstance && isCompensableTool(toolInstance)) {
+            // Invokes explicit compensate() handler
+            const compensationInput = {
+              originalInput: boundInputForStep(plan, compRecord.stepId),
+              originalOutput: compRecord.forwardOutput,
+            };
+            const compResult = await toolInstance.compensate(
+              compensationInput,
+              context,
+              compRecord.forwardOutput
+            );
+            compensationOutput = compResult.output as Record<string, unknown>;
+          } else {
+            // Look for explicit compensation tool declared in step metadata
+            const stepDef = plan.getStepById(compRecord.stepId);
+            const compAction = stepDef?.metadata?.compensationAction as string | undefined;
+
+            if (compAction) {
+              const compToolTarget = compAction.startsWith("tool.") ? compAction.replace(/^tool\./, "") : compAction;
+              const compInput = {
+                forwardStepId: compRecord.stepId,
+                forwardOutput: compRecord.forwardOutput,
+              };
+
+              let compResult: ToolResult;
+              if (toolGateway instanceof ToolInvocationRuntime) {
+                compResult = await toolGateway.invokeSecurely({
+                  request: {
+                    toolId: compToolTarget,
+                    input: compInput,
+                    idempotencyKey: `saga:${saga.sagaId}:${compRecord.stepId}:compensate`,
+                  },
+                  context,
+                  securityContext,
+                  agentId,
+                });
+              } else {
+                compResult = await toolGateway.execute(compToolTarget, compInput, context);
+              }
+              compensationOutput = compResult.output as Record<string, unknown>;
+            } else {
+              // No compensation capability found: Mark as IN_DOUBT / FAILED
+              throw new Error(`Step '${compRecord.stepId}' marked compensable but lacks compensation handler`);
+            }
+          }
+
+          const compEnd = this.now();
+          const compDuration = Math.max(0, compEnd.getTime() - compStart.getTime());
+
+          saga.updateCompensationStep(compRecord.stepId, {
+            status: "COMPENSATED",
+            compensationOutput,
+            completedAt: compEnd,
+            durationMs: compDuration,
+          });
+
+          events?.publish(
+            event("saga.step.completed", context.traceId, saga.sagaId, {
+              sagaId: saga.sagaId,
+              stepId: compRecord.stepId,
+              status: "COMPENSATED",
+            }, undefined, compEnd, { taskId: context.taskId, executionId: context.executionId })
+          );
+        } catch (compErr) {
+          const compEnd = this.now();
+          const compDuration = Math.max(0, compEnd.getTime() - compStart.getTime());
+          const compCode = (compErr as { code?: string })?.code ?? "COMPENSATION_ERROR";
+          const compMessage = compErr instanceof Error ? compErr.message : String(compErr);
+
+          const isTimeoutOrNetwork =
+            compCode === "TOOL_TIMEOUT" ||
+            compMessage.toLowerCase().includes("timeout") ||
+            compMessage.toLowerCase().includes("unknown");
+
+          const finalCompStatus = isTimeoutOrNetwork ? "IN_DOUBT" : "FAILED";
+
+          saga.updateCompensationStep(compRecord.stepId, {
+            status: finalCompStatus,
+            error: { code: compCode, message: compMessage },
+            completedAt: compEnd,
+            durationMs: compDuration,
+          });
+
+          events?.publish(
+            event(finalCompStatus === "IN_DOUBT" ? "saga.in_doubt" : "saga.compensation.failed", context.traceId, saga.sagaId, {
+              sagaId: saga.sagaId,
+              stepId: compRecord.stepId,
+              code: compCode,
+              message: compMessage,
+            }, undefined, compEnd, { taskId: context.taskId, executionId: context.executionId })
+          );
+
+          // Stop executing further compensations to prevent cascaded divergence
+          break;
+        }
+      }
+
+      const sagaFinalState = saga.finishCompensation();
+      events?.publish(
+        event(sagaFinalState === "COMPENSATED" ? "saga.completed" : "saga.compensation.failed", context.traceId, saga.sagaId, {
+          sagaId: saga.sagaId,
+          state: sagaFinalState,
+        }, undefined, this.now(), { taskId: context.taskId, executionId: context.executionId })
+      );
+    } else if (saga && !planFailed) {
+      saga.completeForward();
+      events?.publish(
+        event("saga.completed", context.traceId, saga.sagaId, {
+          sagaId: saga.sagaId,
+          state: "COMPLETED",
+        }, undefined, this.now(), { taskId: context.taskId, executionId: context.executionId })
+      );
+    }
+
     const records = Array.from(stepRecords.values());
     const completedCount = records.filter((r) => r.status === "COMPLETED").length;
     const failedCount = records.filter((r) => r.status === "FAILED").length;
@@ -250,7 +541,7 @@ export class PlanExecutionEngine {
       finalStatus = "CANCELLED";
     } else if (failedCount === 0 && skippedCount === 0) {
       finalStatus = "COMPLETED";
-    } else if (completedCount > 0 && failedCount > 0) {
+    } else if (allowPartialBranchFailure && completedCount > 0 && failedCount > 0) {
       finalStatus = "PARTIALLY_FAILED";
     } else {
       finalStatus = "FAILED";
@@ -270,6 +561,12 @@ export class PlanExecutionEngine {
       skippedSteps: skippedCount,
       durationMs,
       error: firstError,
+      ...(saga ? { saga: saga.snapshot() } : {}),
     });
   }
+}
+
+function boundInputForStep(plan: Plan, stepId: string): Record<string, unknown> {
+  const step = plan.getStepById(stepId);
+  return step ? { ...step.input } : {};
 }

@@ -9,11 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Multi-Agent Runtime Hardening: Track 2 — Taint Tracking, Data Isolation & Saga Compensation (`AOP-MULTIAGENT-HARDENING`)**:
+  - **Taint Tracking, Provenance & Trust Boundary Enforcement (GAP-01)**: Created `TaintedValue<T>` primitive with four trust statuses (`TRUSTED`, `UNTRUSTED_EXTERNAL`, `UNTRUSTED_USER`, `DERIVED_UNTRUSTED`). Implemented conservative derivation logic `derive()`, auditable transformation `sanitize()` with full historic provenance retention, fail-closed control-plane validation (`assertNoTaintedControlKeys`, `assertUntrustedNotControlPlane`) preventing malicious injection into `tenantId`, `principalId`, or `approvalToken`, automated `TaintedValue` wrapping for tools with `openWorldHint: true` in `ToolInvocationRuntime`, and prompt injection isolation wrapping (`formatModelInputWithTaintEnvelopes`) in `GovernedModelRouter`.
+  - **Saga / Compensation for Multi-Step Plan Executions (GAP-05)**: Formalized `CompensableTool` contract, `isCompensableTool` type guard, and `SagaExecution` 8-state coordinator (`NOT_STARTED`, `RUNNING`, `FORWARD_FAILED`, `COMPENSATING`, `COMPENSATED`, `COMPENSATION_FAILED`, `IN_DOUBT`, `COMPLETED`). Integrated deterministic reverse LIFO compensation execution in `PlanExecutionEngine`, excluding read-only steps, strictly preserving both forward and compensation errors simultaneously, and handling compensation timeouts/network failures deterministically as `IN_DOUBT`.
+  - Added dedicated unit test suite `tests/unit/taint-tracking-and-saga-compensation.test.ts` (19 tests PASS, 1789 tests passing across all 107 suites with 0 regressions, 0 skipped, 0 todo).
+
 - **Multi-Agent Runtime Hardening: Track 1 — Tool Governance, Idempotency & Rate Limiting (`AOP-MULTIAGENT-HARDENING`)**:
   - **Tool Idempotency & Replay Protection (GAP-02)**: Integrated `IdempotencyStore` into `ToolInvocationRuntime.invokeTool()`. Enforces fail-closed duplicate execution prevention (`ToolConcurrentExecutionConflictError` on `IN_PROGRESS`), payload fingerprint mismatch detection (`ToolIdempotencyConflictError`), and deterministic replay caching (`metadata.cachedReplay = true`, `durationMs = 0`). Key space isolated strictly by `tool:${toolId}:v${toolVersion}:${idempotencyKey}` under `tenantId` and `principalId`.
   - **Agent Velocity & Rate Limiting (GAP-03)**: Created `AgentRateLimiterPort` and `InMemoryAgentRateLimiter` token-bucket sliding-window adapter. Enforces agent-level and tenant-level velocity limits and independent destructive tool quotas prior to execution and idempotency checks, throwing `ToolRateLimitedError` with `retryAfterMs`.
   - **Tool Semantic & Schema Versioning (GAP-04)**: Enriched `ToolDefinition` with `schemaVersion?: string` and `executionHints?: ToolExecutionHints` (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`). Implemented deterministic hint auto-derivation in `InMemoryToolRegistry` based on execution mode and risk level.
-  - Added dedicated unit test suite `tests/unit/tool-governance-idempotency-ratelimit.test.ts` (16 tests PASS, 1770 tests passing across all 105 suites with 0 regressions).
+  - Added dedicated unit test suite `tests/unit/tool-governance-idempotency-ratelimit.test.ts` (16 tests PASS).
 
 ---
 

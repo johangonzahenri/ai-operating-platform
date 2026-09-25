@@ -15,4 +15,7 @@ export class InMemoryEventPublisher implements EventPublisher {
       }
     });
   }
+  getPublishedEvents(): readonly DomainEvent[] {
+    return this.events;
+  }
 }

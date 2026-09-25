@@ -41,6 +41,12 @@ import { TeamResourceBudgetService } from "../organization/team-resource-budget-
 import { OrganizationHierarchyRepository } from "../ports/organization-repository-port.js";
 import { IdempotencyStore } from "../ports/idempotency-port.js";
 import { AgentRateLimiterPort } from "../ports/agent-rate-limiter-port.js";
+import {
+  TaintedValue,
+  assertNoTaintedControlKeys,
+  assertUntrustedNotControlPlane,
+  UntrustedControlDataError,
+} from "../../domain/security/taint-tracking.js";
 
 export interface ToolInvocationRuntimeOptions {
   readonly registry: ToolRegistry;
@@ -103,9 +109,18 @@ export class ToolInvocationRuntime implements ToolGateway {
     this.agentRateLimiter = options.agentRateLimiter;
   }
 
+  get toolRegistry(): ToolRegistry {
+    return this.registry;
+  }
+
+  findTool(toolId: string, version?: string): Tool | undefined {
+    return this.registry.find(toolId, version);
+  }
+
   definition(toolId: string, version?: string): ToolDefinition | undefined {
     return this.registry.find(toolId, version)?.definition;
   }
+
 
   async execute(
     toolId: string,
@@ -135,6 +150,27 @@ export class ToolInvocationRuntime implements ToolGateway {
 
     if (typeof request?.toolId !== "string" || request.toolId.trim() === "") {
       throw new ToolInputValidationError("unknown", "Tool request requires a valid non-empty toolId");
+    }
+
+    // GAP-01: Control-Plane vs Data-Plane boundary enforcement
+    // Untrusted tainted data must never be allowed to dictate control parameters (approval token, etc.)
+    try {
+      assertNoTaintedControlKeys(request.input as Readonly<Record<string, unknown>> | undefined);
+      if (request.approvalToken && typeof request.approvalToken === "object" && request.approvalToken !== null && "isTainted" in request.approvalToken) {
+        throw new UntrustedControlDataError("approvalToken", "Tainted value cannot be used as an approvalToken");
+      }
+    } catch (taintErr) {
+      if (taintErr instanceof UntrustedControlDataError) {
+        this.events.publish(
+          event("taint.boundary_violation", context.traceId, request.toolId, {
+            toolId: request.toolId,
+            code: taintErr.code,
+            field: taintErr.fieldName,
+            message: taintErr.message,
+          }, undefined, startTime)
+        );
+      }
+      throw taintErr;
     }
 
     const toolId = request.toolId.trim();
@@ -547,12 +583,29 @@ export class ToolInvocationRuntime implements ToolGateway {
       }, undefined, this.now(), eventRefs)
     );
 
+    // GAP-01: Taint Marking for Open World / External Tools
+    const isOpenWorld =
+      definition.executionHints?.openWorldHint === true ||
+      definition.openWorldHint === true ||
+      definition.metadata?.openWorld === true;
+
+    let taintedOutput: TaintedValue<Record<string, unknown>> | undefined;
+    if (isOpenWorld) {
+      taintedOutput = TaintedValue.untrustedExternal(
+        deepFrozenOutput,
+        `tool:${toolId}@${toolVersion}`,
+        "WEB_CONNECTOR",
+        `Output from open-world tool '${toolId}'`
+      );
+    }
+
     return Object.freeze({
       output: deepFrozenOutput,
       metadata: rawResult.metadata ? deepFreeze({ ...rawResult.metadata }) : undefined,
       sanitized: true,
       bytesTruncated: sanitizeState.truncated,
       durationMs,
+      ...(taintedOutput ? { taintedOutput } : {}),
     });
   }
 
