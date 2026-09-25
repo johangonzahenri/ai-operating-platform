@@ -41,10 +41,18 @@ export class InMemoryToolRegistry implements ToolRegistry {
     }
 
     // Freeze tool definition to prevent runtime mutation
+    const executionHints = Object.freeze({
+      readOnlyHint: tool.definition.executionHints?.readOnlyHint ?? tool.definition.readOnlyHint ?? (tool.definition.executionMode === "READ_ONLY"),
+      destructiveHint: tool.definition.executionHints?.destructiveHint ?? tool.definition.destructiveHint ?? (tool.definition.executionMode === "DESTRUCTIVE" || tool.definition.riskLevel === "CRITICAL"),
+      idempotentHint: tool.definition.executionHints?.idempotentHint ?? tool.definition.idempotentHint ?? (tool.definition.executionMode === "IDEMPOTENT" || tool.definition.executionMode === "READ_ONLY"),
+      openWorldHint: tool.definition.executionHints?.openWorldHint ?? tool.definition.openWorldHint ?? false,
+    });
+
     const frozenDefinition = Object.freeze({
       ...tool.definition,
       id,
       version,
+      schemaVersion: tool.definition.schemaVersion?.trim(),
       name: tool.definition.name.trim(),
       description: tool.definition.description.trim(),
       permissions: Object.freeze([...(tool.definition.permissions ?? [])]),
@@ -52,6 +60,11 @@ export class InMemoryToolRegistry implements ToolRegistry {
       executionMode: tool.definition.executionMode ?? "READ_ONLY",
       timeoutMs: tool.definition.timeoutMs ?? 30000,
       requiresApproval: Boolean(tool.definition.requiresApproval),
+      executionHints,
+      readOnlyHint: executionHints.readOnlyHint,
+      destructiveHint: executionHints.destructiveHint,
+      idempotentHint: executionHints.idempotentHint,
+      openWorldHint: executionHints.openWorldHint,
       metadata: tool.definition.metadata ? Object.freeze({ ...tool.definition.metadata }) : undefined,
     });
 
@@ -236,6 +249,7 @@ export class InMemoryToolRegistry implements ToolRegistry {
           id: tool.id,
           name: tool.name,
           version: tool.version,
+          schemaVersion: tool.schemaVersion,
           description: tool.description,
           inputSchema: tool.inputSchema,
           outputSchema: tool.outputSchema,
@@ -244,6 +258,11 @@ export class InMemoryToolRegistry implements ToolRegistry {
           executionMode: tool.executionMode,
           timeoutMs: tool.timeoutMs,
           requiresApproval: tool.requiresApproval,
+          executionHints: tool.executionHints,
+          readOnlyHint: tool.readOnlyHint,
+          destructiveHint: tool.destructiveHint,
+          idempotentHint: tool.idempotentHint,
+          openWorldHint: tool.openWorldHint,
           ...(safeMetadata ? { metadata: safeMetadata } : {}),
         })
       );
@@ -277,6 +296,16 @@ export class InMemoryToolRegistry implements ToolRegistry {
     if (definition.executionMode !== undefined) {
       if (!VALID_EXECUTION_MODES.includes(definition.executionMode)) {
         throw new ToolDefinitionError(`Invalid executionMode: ${definition.executionMode}`);
+      }
+    }
+    if (definition.version !== undefined && definition.version !== null) {
+      if (typeof definition.version !== "string" || definition.version.trim() === "") {
+        throw new ToolDefinitionError("version must be a non-empty string when provided");
+      }
+    }
+    if (definition.schemaVersion !== undefined && definition.schemaVersion !== null) {
+      if (typeof definition.schemaVersion !== "string" || definition.schemaVersion.trim() === "") {
+        throw new ToolDefinitionError("schemaVersion must be a non-empty string when provided");
       }
     }
     if (definition.timeoutMs !== undefined) {

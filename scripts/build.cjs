@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const ts = require('C:/Users/Johan/AppData/Local/Programs/Microsoft VS Code/7debcd0e2a/resources/app/extensions/node_modules/typescript/lib/typescript.js');
+const ts = require('typescript');
 
 console.log(`Building AI Operating Platform (ESM) with TypeScript ${ts.version}...`);
 

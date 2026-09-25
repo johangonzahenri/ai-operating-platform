@@ -1,4 +1,4 @@
-﻿import {
+import {
   IdempotencyAcquireResult,
   IdempotencyRecord,
   IdempotencyStore,
@@ -39,6 +39,18 @@ export class InMemoryIdempotencyStore implements IdempotencyStore {
         }
         if (existing.status === "IN_PROGRESS") {
           return { status: "IN_PROGRESS" };
+        }
+        if (existing.status === "FAILED") {
+          // Re-arm as IN_PROGRESS for retry
+          this.records.set(compositeKey, {
+            ...existing,
+            status: "IN_PROGRESS",
+            statusCode: 0,
+            response: undefined,
+            createdAt: now,
+            expiresAt: new Date(now.getTime() + this.ttlMs),
+          });
+          return { status: "NEW" };
         }
         return {
           status: "CACHED",

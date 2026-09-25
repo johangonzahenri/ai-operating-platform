@@ -41,7 +41,7 @@ Este documento responde de forma inequívoca en todo momento:
 > **Evidencia**: `docs/ARCHITECTURAL_HARDENING_AUDIT.md`, `docs/ROADMAP_MASTER.md`, `docs/DOCUMENTATION_REGISTRY.md`.  
 >
 > **Checklist de Tracks de Hardening (4 Fases Técnicas Secuenciales)**:
-> - [ ] Track 1 — Gobernanza de Herramientas, Idempotencia & Rate Limiting (GAP-02, GAP-04, GAP-03):
+> - [x] Track 1 — Gobernanza de Herramientas, Idempotencia & Rate Limiting (GAP-02, GAP-04, GAP-03):
 >   - Deduplicación previa e integración de IdempotencyPort en ToolInvocationRuntime.
 >   - Evolución semántica de esquemas y anotaciones operacionales (readOnlyHint, destructiveHint, idempotentHint, openWorldHint).
 >   - Limitador de velocidad por agente (sliding window burst rate limit) para llamadas a herramientas de terceros.

@@ -44,9 +44,9 @@ $$\text{Código Fuente en } src/ > \text{Tests Automatizados} > \text{Historial 
 | ID | Área / Dimensión | Aseveración / Propuesta | Realidad en Código | Clasificación | Prioridad |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **GAP-01** | Prompt Injection & Taint Tracking | Los datos externos fluyen a los agentes sin separación estricta de instrucción y datos. | `GovernedModelRouter` tiene filtros regex (`ignore all previous instructions`), pero no existe etiquetado de procedencia (*taint tracking*) para datos ingeridos por herramientas web/scraping que pasan entre agentes. | `CONFIRMED_GAP` | **HIGH** |
-| **GAP-02** | Tool Idempotency & Replay Cache | Las herramientas carecen de protección contra re-ejecución en reintentos y timeouts. | `ToolRequest` y `ToolExecutionContext` reciben y propagan `idempotencyKey`, pero `ToolInvocationRuntime` **NO ejecuta deduplicación previa a `tool.execute()`**. Si una llamada se reintenta, el efecto secundario se ejecuta dos veces. | `CONFIRMED_GAP` | **CRITICAL** |
-| **GAP-03** | Agent Velocity & Blast Radius | Los agentes pueden generar bucles rápidos de llamadas a herramientas externas. | `TeamResourceBudget` y `AutonomyBudget` controlan cuotas acumuladas (total tokens, total tool calls), pero carecen de limitador de velocidad (*sliding window burst rate limit*) por agente para llamadas a terceros. | `CONFIRMED_GAP` | **HIGH** |
-| **GAP-04** | Tool Semantic & Schema Versioning | Falta política semántica de evolución de esquemas y anotaciones de ejecución en herramientas. | `ToolRegistry` maneja versiones string (`"1.0.0"`), pero falta `schemaVersion`, validación de breaking changes y anotaciones explícitas de comportamiento (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`). | `PARTIALLY_COVERED` | **MEDIUM** |
+| **GAP-02** | Tool Idempotency & Replay Cache | Las herramientas carecen de protección contra re-ejecución en reintentos y timeouts. | `IdempotencyStore` integrado formalmente en `ToolInvocationRuntime`. Deduplicación previa obligatoria, detección de carreras concurrentes (`IN_PROGRESS`), detección de payload mismatch y caché determinista de replay (`durationMs = 0`, `cachedReplay = true`). | `IMPLEMENTED` | **CRITICAL** |
+| **GAP-03** | Agent Velocity & Blast Radius | Los agentes pueden generar bucles rápidos de llamadas a herramientas externas. | `AgentRateLimiterPort` e `InMemoryAgentRateLimiter` integrados en el pipeline de `ToolInvocationRuntime`. Control de ventana deslizante por agente/tenant/herramienta con cuota independiente para herramientas destructivas. | `IMPLEMENTED` | **HIGH** |
+| **GAP-04** | Tool Semantic & Schema Versioning | Falta política semántica de evolución de esquemas y anotaciones de ejecución en herramientas. | `ToolDefinition` y `ToolRegistry` enriquecidos con `schemaVersion` explícito y anotaciones operacionales (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`) con inferencia automática segura. | `IMPLEMENTED` | **MEDIUM** |
 | **GAP-05** | Saga / Compensación Distribuida | No hay compensación ante fallos en planes multi-paso. | El motor `PlanExecutionEngine` y `WorkflowOrchestratorService` marcan fallos de forma segura (fail-closed), pero no orquestan reversiones compensatorias automáticas para herramientas con efectos colaterales. | `CONFIRMED_GAP` | **HIGH** |
 | **GAP-06** | Integridad Criptográfica de Evidencia | Los paquetes de evidencia no demuestran continuidad temporal encadenada. | `EvidenceExportManifest` genera un checksum SHA-256 canónico del paquete actual, pero no implementa encadenamiento criptográfico (`previousPackageHash`) para auditar omisión o reordenamiento cronológico de auditorías. | `CONFIRMED_GAP` | **MEDIUM** |
 | **GAP-07** | Protocolo MCP y Fronteras de Plataforma | Se requiere exponer herramientas y prompts vía MCP sin romper los límites de Core. | El repositorio cuenta con cero dependencias de MCP. La especificación oficial es 2026-07-28 y el SDK v2 (`@modelcontextprotocol/server`) debe situarse en la capa de Plataforma/Producto, consumiendo puertos de aplicación sin tocar el dominio. | `CONFIRMED_GAP` | **HIGH** |
@@ -58,22 +58,42 @@ $$\text{Código Fuente en } src/ > \text{Tests Automatizados} > \text{Historial 
 ## 4. Auditoría Detallada por Dimensión
 
 ### 4.1. Gobernanza de Herramientas y Evolución de Esquemas (GAP-04)
-- **Realidad**: `src/domain/tools/tool-registry.ts` define `ToolDefinition` con `id`, `name`, `description`, `version?: string`, `inputSchema`, `outputSchema`, `permissions`, `riskLevel` (`LOW`, `MEDIUM`, `HIGH`, `CRITICAL`), `executionMode`, `timeoutMs`, `requiresApproval`, `metadata`. Soporta registro concurrente de versiones y resolución determinista (`findById(id, version)`).
-- **Brecha Confirmada**: La evolución de esquemas JSON Schema no valida compatibilidad hacia atrás. Una herramienta que altere un campo obligatorio en una versión menor puede romper planes almacenados. Se requiere una política semántica estricta (`MAJOR.MINOR.PATCH`) donde `MAJOR` indica ruptura de esquema, y la adición de hints semánticos para modelos de lenguaje:
-  - `readOnlyHint: boolean` (la herramienta solo lee datos, sin mutación externa).
-  - `destructiveHint: boolean` (la herramienta elimina, muta irreversiblemente o transacciona valor monetario).
-  - `idempotentHint: boolean` (la herramienta garantiza el mismo resultado ante el mismo input y clave).
-  - `openWorldHint: boolean` (la herramienta interactúa con la internet pública o entidades de confianza variable).
+- **Realidad Previa**: `src/domain/tools/tool-registry.ts` definía `ToolDefinition` con `id`, `name`, `description`, `version?: string`, `inputSchema`, `outputSchema`, `permissions`, `riskLevel` (`LOW`, `MEDIUM`, `HIGH`, `CRITICAL`), `executionMode`, `timeoutMs`, `requiresApproval`, `metadata`.
+- **Implementación Validada (Track 1)**:
+  - Se extendió el contrato `ToolDefinition` con `schemaVersion?: string` y `executionHints?: ToolExecutionHints`.
+  - Anotaciones de ejecución incorporadas:
+    - `readOnlyHint: boolean`: La herramienta solo consulta o proyecta datos sin mutación externa.
+    - `destructiveHint: boolean`: La herramienta muta irreversiblemente estado o realiza transacciones de valor monetario.
+    - `idempotentHint: boolean`: La herramienta garantiza identidad de resultado ante el mismo input y clave de idempotencia.
+    - `openWorldHint: boolean`: La herramienta interactúa con la internet pública o entidades de confianza variable.
+  - Inferencia automática determinista de hints en `InMemoryToolRegistry` cuando no se proporcionan explícitamente, derivada a partir de `executionMode` y `riskLevel`.
+  - Validación formal en `validateDefinition` impidiendo strings vacíos o esquemas malformados.
+  - Proyección inmutable y sanitizada en `discoverSafeDefinitions` garantizando que los metadatos y hints viajen al cliente sin secretos.
 
 ### 4.2. Idempotencia y Replay Protection en Runtime (GAP-02)
-- **Realidad**: `ToolRequest` y `ToolExecutionContext` contienen `idempotencyKey?: string`. El HTTP Router (`src/platform/api/idempotency-engine.ts`) y `DeviceService` usan almacenes de idempotencia.
-- **Brecha Confirmada**: `ToolInvocationRuntime.invokeTool()` (`src/application/tools/tool-invocation-runtime.ts`) recibe la solicitud pero **no consulta un `IdempotencyStore` antes de ejecutar `tool.execute()`**. Si un agente reintenta una herramienta de red o de base de datos debido a un timeout transitorio de red, la operación se ejecuta nuevamente en destino.
-- **Recomendación Enterprise**: Integrar `IdempotencyPort` en `ToolInvocationRuntime`. Si la clave de idempotencia ya fue procesada exitosamente dentro del TTL, retornar inmediatamente el `ToolInvocationResult` en caché con metadata `cachedReplay: true`. Si está en ejecución activa (`IN_FLIGHT`), denegar invocación concurrente concurrente conflictiva (`409 Conflict / ConcurrencyError`).
+- **Realidad Previa**: `ToolRequest` y `ToolExecutionContext` contenían `idempotencyKey?: string`, pero `ToolInvocationRuntime.invokeTool()` no consultaba un `IdempotencyStore` antes de llamar a `tool.execute()`.
+- **Implementación Validada (Track 1)**:
+  - Integración formal del puerto `IdempotencyStore` en `ToolInvocationRuntime`.
+  - Construcción de claves con aislamiento estricto por espacio de nombres: `tool:{toolId}:v{toolVersion}:{idempotencyKey}` acotado por `tenantId` y `principalId`.
+  - Algoritmo de adquisición y deduplicación previa:
+    1. Si el registro existe y su payload coincide: retorna inmediatamente el resultado sanitizado en caché con `metadata.cachedReplay = true` y `durationMs = 0`.
+    2. Si el registro existe pero los argumentos difieren: arroja `ToolIdempotencyConflictError` (`IDEMPOTENCY_CONFLICT`) fail-closed.
+    3. Si el registro está en progreso concurrente (`IN_PROGRESS`): arroja `ToolConcurrentExecutionConflictError` (`CONCURRENT_IDEMPOTENT_INVOCATION`).
+    4. Si la ejecución falla: se marca el registro como `FAILED` en el store, permitiendo reintentos limpios posteriores.
+    5. Al culminar con éxito: se registra el estado `COMPLETED` con el output sanitizado e inmutable.
 
 ### 4.3. Blast Radius y Rate Limiting por Agente (GAP-03)
-- **Realidad**: `TeamResourceBudget` (`src/application/organization/team-resource-budget-service.ts`) rastrea presupuestos agregados acumulativos (`maxTokens`, `maxCostUSD`, `maxToolInvocations`). El HTTP Router cuenta con `RateLimiter` para peticiones HTTP entrantes.
-- **Brecha Confirmada**: No existe un limitador de velocidad de ventana deslizante (*sliding window token bucket*) asignado a cada agente individual para sus llamadas de salida. Un bucle infinito en un agente autónomo puede agotar 10,000 llamadas a una API externa en 30 segundos antes de que el presupuesto global diario detenga la operación, provocando bloqueos de IP o cargos elevados por ráfaga.
-- **Recomendación Enterprise**: Implementar `AgentVelocityLimiter` con algoritmo leaky/token bucket por instancia de agente (e.g., máximo 10 llamadas a herramientas por minuto y máximo 2 llamadas destructivas por minuto).
+- **Realidad Previa**: Existían presupuestos agregados acumulativos (`TeamResourceBudget`, `AutonomyBudget`), pero no limitación de velocidad de ventana deslizante por agente individual.
+- **Implementación Validada (Track 1)**:
+  - Creación del puerto de aplicación `AgentRateLimiterPort` (`src/application/ports/agent-rate-limiter-port.ts`).
+  - Implementación de `InMemoryAgentRateLimiter` (`src/infrastructure/security/agent-rate-limiter.ts`) utilizando el algoritmo Token-Bucket con ventana deslizante de timestamps en memoria.
+  - Soporte de políticas granulares por agente, tenant y herramienta con configuración de ráfaga (*burst capacity*):
+    - `maxRequestsPerWindow` y `windowMs` configurables (por defecto 60 req / 60,000 ms).
+    - `maxDestructiveRequests` independiente para herramientas destructivas (por defecto 10 req / 60,000 ms).
+  - Integración en `ToolInvocationRuntime` previa a la invocación de herramientas:
+    - Evaluación antes del check de idempotencia para proteger el store y los recursos contra saturación por fuerza bruta.
+    - Emisión de evento de auditoría `tool.rejected` ante denegación por tasa excedida.
+    - Lanzamiento de `ToolRateLimitedError` con tiempo de reintento sugerido (`retryAfterMs`).
 
 ### 4.4. Aislamiento de Datos, Taint Tracking e Inyección de Prompts (GAP-01)
 - **Realidad**: `GovernedModelRouter` filtra patrones conocidos de inyección de prompts (`ignore all previous instructions`, etc.) y limita el tamaño del prompt.

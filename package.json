@@ -5,7 +5,7 @@
   "description": "Operational infrastructure foundation for AI systems.",
   "type": "module",
   "scripts": {
-    "build": "tsc",
+    "build": "node scripts/build.cjs",
     "test": "node scripts/test.js",
     "docs:check": "node scripts/docs-check.mjs",
     "api:check": "node scripts/validate-openapi.mjs",

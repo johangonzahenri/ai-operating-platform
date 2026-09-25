@@ -20,11 +20,19 @@ export interface ToolOutputSchema {
   readonly schema?: Readonly<Record<string, unknown>> | undefined;
 }
 
+export interface ToolExecutionHints {
+  readonly readOnlyHint?: boolean | undefined;
+  readonly destructiveHint?: boolean | undefined;
+  readonly idempotentHint?: boolean | undefined;
+  readonly openWorldHint?: boolean | undefined;
+}
+
 export interface ToolDefinition {
   readonly id: string;
   readonly name: string;
   readonly description: string;
   readonly version?: string | undefined;
+  readonly schemaVersion?: string | undefined;
   readonly inputSchema: ToolInputSchema;
   readonly outputSchema?: ToolOutputSchema | Readonly<Record<string, unknown>> | undefined;
   readonly permissions?: readonly string[] | undefined;
@@ -32,12 +40,18 @@ export interface ToolDefinition {
   readonly executionMode?: ToolExecutionMode | undefined;
   readonly timeoutMs?: number | undefined;
   readonly requiresApproval?: boolean | undefined;
+  readonly executionHints?: ToolExecutionHints | undefined;
+  readonly readOnlyHint?: boolean | undefined;
+  readonly destructiveHint?: boolean | undefined;
+  readonly idempotentHint?: boolean | undefined;
+  readonly openWorldHint?: boolean | undefined;
   readonly metadata?: Readonly<Record<string, unknown>> | undefined;
 }
 
 export interface ToolRequest {
   readonly toolId: string;
   readonly version?: string | undefined;
+  readonly schemaVersion?: string | undefined;
   readonly input: Readonly<Record<string, unknown>>;
   readonly idempotencyKey?: string | undefined;
   readonly approvalToken?: string | undefined;
@@ -153,9 +167,33 @@ export class ToolCancelledError extends ToolExecutionError {
 
 export class ToolRateLimitedError extends ToolExecutionError {
   override readonly code: string = "TOOL_RATE_LIMITED";
-  constructor(toolId: string, message = "Tool rate limit exceeded") {
+  constructor(toolId: string, message = "Tool rate limit exceeded", readonly retryAfterMs?: number | undefined) {
     super(toolId, message);
     this.name = "ToolRateLimitedError";
+  }
+}
+
+export class ToolIdempotencyConflictError extends ToolExecutionError {
+  override readonly code: string = "IDEMPOTENCY_CONFLICT";
+  constructor(
+    toolId: string,
+    readonly idempotencyKey: string,
+    message = `Idempotency conflict for tool '${toolId}' with key '${idempotencyKey}': incoming payload does not match stored request fingerprint`
+  ) {
+    super(toolId, message);
+    this.name = "ToolIdempotencyConflictError";
+  }
+}
+
+export class ToolConcurrentExecutionConflictError extends ToolExecutionError {
+  override readonly code: string = "CONCURRENT_IDEMPOTENT_INVOCATION";
+  constructor(
+    toolId: string,
+    readonly idempotencyKey: string,
+    message = `Tool '${toolId}' with idempotency key '${idempotencyKey}' is already actively executing (IN_FLIGHT)`
+  ) {
+    super(toolId, message);
+    this.name = "ToolConcurrentExecutionConflictError";
   }
 }
 

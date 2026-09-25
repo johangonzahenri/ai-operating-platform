@@ -29,6 +29,9 @@ import {
   ToolAuthorizationError,
   ToolApprovalRequiredError,
   ToolPolicyRejectedError,
+  ToolRateLimitedError,
+  ToolIdempotencyConflictError,
+  ToolConcurrentExecutionConflictError,
   MAX_TOOL_INPUT_SIZE,
   MAX_TOOL_OUTPUT_SIZE,
   DEFAULT_TOOL_TIMEOUT_MS,
@@ -36,6 +39,8 @@ import {
 } from "../../domain/tools/tool-registry.js";
 import { TeamResourceBudgetService } from "../organization/team-resource-budget-service.js";
 import { OrganizationHierarchyRepository } from "../ports/organization-repository-port.js";
+import { IdempotencyStore } from "../ports/idempotency-port.js";
+import { AgentRateLimiterPort } from "../ports/agent-rate-limiter-port.js";
 
 export interface ToolInvocationRuntimeOptions {
   readonly registry: ToolRegistry;
@@ -47,6 +52,8 @@ export interface ToolInvocationRuntimeOptions {
   readonly now?: (() => Date) | undefined;
   readonly budgetService?: TeamResourceBudgetService | undefined;
   readonly organizationRepository?: OrganizationHierarchyRepository | undefined;
+  readonly idempotencyStore?: IdempotencyStore | undefined;
+  readonly agentRateLimiter?: AgentRateLimiterPort | undefined;
 }
 
 export interface CancellationToken {
@@ -67,7 +74,7 @@ export interface SecureToolInvocationOptions {
  * timeout, and output sanitization pipeline for tool execution.
  *
  * Pipeline:
- * Resolve -> Authorize -> Approval Check -> Input Validation -> Execute -> Output Validation -> Output Sanitization -> Event Audit
+ * Resolve -> Authorize -> Rate Limit -> Approval Check -> Budget Check -> Input Validation -> Idempotency Check -> Execute -> Output Validation -> Output Sanitization -> Idempotency Complete -> Event Audit
  */
 export class ToolInvocationRuntime implements ToolGateway {
   private readonly registry: ToolRegistry;
@@ -79,6 +86,8 @@ export class ToolInvocationRuntime implements ToolGateway {
   private readonly now: () => Date;
   private readonly budgetService?: TeamResourceBudgetService | undefined;
   private readonly organizationRepository?: OrganizationHierarchyRepository | undefined;
+  private readonly idempotencyStore?: IdempotencyStore | undefined;
+  private readonly agentRateLimiter?: AgentRateLimiterPort | undefined;
 
   constructor(options: ToolInvocationRuntimeOptions) {
     this.registry = options.registry;
@@ -90,6 +99,8 @@ export class ToolInvocationRuntime implements ToolGateway {
     this.now = options.now ?? (() => new Date());
     this.budgetService = options.budgetService;
     this.organizationRepository = options.organizationRepository;
+    this.idempotencyStore = options.idempotencyStore;
+    this.agentRateLimiter = options.agentRateLimiter;
   }
 
   definition(toolId: string, version?: string): ToolDefinition | undefined {
@@ -186,9 +197,10 @@ export class ToolInvocationRuntime implements ToolGateway {
         }
       } else {
         // Fallback RBAC permission check against principal
-        const permissions = securityContext.principal.permissions ?? [];
+        const permissions = securityContext.principal?.permissions ?? [];
         if (!this.registry.authorize?.(toolId, permissions)) {
-          const reason = `Principal '${securityContext.principal.id}' lacks required permissions for tool '${toolId}'`;
+          const principalId = securityContext.principal?.id ?? "anonymous";
+          const reason = `Principal '${principalId}' lacks required permissions for tool '${toolId}'`;
           this.events.publish(
             event("tool.rejected", context.traceId, toolId, {
               toolId,
@@ -250,6 +262,36 @@ export class ToolInvocationRuntime implements ToolGateway {
       }
     }
 
+    // 4.1 Agent Velocity & Burst Rate Limiting Check
+    if (this.agentRateLimiter && agentId) {
+      const isDestructive =
+        definition.executionMode === "DESTRUCTIVE" ||
+        definition.executionHints?.destructiveHint === true ||
+        definition.destructiveHint === true;
+
+      const rateLimitEval = await this.agentRateLimiter.evaluateAndConsume({
+        agentId,
+        tenantId: securityContext?.tenantId,
+        principalId: securityContext?.principal?.id,
+        toolId,
+        isDestructive,
+      }, this.now());
+
+      if (!rateLimitEval.allowed) {
+        const reason = rateLimitEval.reason ?? `Agent '${agentId}' rate limit exceeded for tool '${toolId}'`;
+        this.events.publish(
+          event("tool.rejected", context.traceId, toolId, {
+            toolId,
+            version: toolVersion,
+            reason,
+            policyId: rateLimitEval.policyId ?? "agent-rate-limited",
+            retryAfterMs: rateLimitEval.retryAfterMs,
+          }, undefined, this.now(), eventRefs)
+        );
+        throw new ToolRateLimitedError(toolId, reason, rateLimitEval.retryAfterMs);
+      }
+    }
+
     this.events.publish(
       event("tool.authorized", context.traceId, toolId, {
         toolId,
@@ -258,7 +300,7 @@ export class ToolInvocationRuntime implements ToolGateway {
       }, undefined, this.now(), eventRefs)
     );
 
-    // 4.1 Team Resource Budget Check (Fail-Closed)
+    // 4.2 Team Resource Budget Check (Fail-Closed)
     const isSystemPrincipal =
       securityContext?.principal?.type === "SYSTEM" ||
       agentId === "foundation-agent" ||
@@ -305,6 +347,63 @@ export class ToolInvocationRuntime implements ToolGateway {
     // 5. Input Validation & Security Boundary Checks
     this.validateInput(toolId, request.input, definition);
 
+    // 5.1 Idempotency Preflight Check & Replay Caching (GAP-02)
+    const idempotencyKey = request.idempotencyKey?.trim();
+    let scopedIdempotencyKey: string | undefined;
+    const effectiveTenantId = securityContext?.tenantId?.trim() || "global";
+    const effectivePrincipalId = securityContext?.principal?.id?.trim() || "anonymous";
+
+    if (idempotencyKey && this.idempotencyStore) {
+      scopedIdempotencyKey = `tool:${toolId}:v${toolVersion}:${idempotencyKey}`;
+      const acquireResult = await this.idempotencyStore.acquire(
+        scopedIdempotencyKey,
+        request.input,
+        effectiveTenantId,
+        effectivePrincipalId
+      );
+
+      if (acquireResult.status === "MISMATCH") {
+        throw new ToolIdempotencyConflictError(toolId, idempotencyKey);
+      }
+
+      if (acquireResult.status === "IN_PROGRESS") {
+        throw new ToolConcurrentExecutionConflictError(toolId, idempotencyKey);
+      }
+
+      if (acquireResult.status === "CACHED") {
+        // Deterministic Replay from Store
+        const cachedPayload = acquireResult.response as {
+          output: Record<string, unknown>;
+          metadata?: Record<string, unknown>;
+        };
+
+        const replayedOutput = deepFreeze(cachedPayload.output ?? {});
+        const replayedMetadata = deepFreeze({
+          ...(cachedPayload.metadata ?? {}),
+          cachedReplay: true,
+          idempotencyKey,
+        });
+
+        this.events.publish(
+          event("tool.execution.completed", context.traceId, toolId, {
+            toolId,
+            version: toolVersion,
+            durationMs: 0,
+            cachedReplay: true,
+            idempotencyKey,
+          }, undefined, this.now(), eventRefs)
+        );
+
+        return Object.freeze({
+          output: replayedOutput,
+          metadata: replayedMetadata,
+          sanitized: true,
+          bytesTruncated: false,
+          durationMs: 0,
+        });
+      }
+    }
+
     // Build trusted, immutable ToolExecutionContext
     const toolExecContext: ToolExecutionContext = Object.freeze({
       traceId: context.traceId,
@@ -350,6 +449,21 @@ export class ToolInvocationRuntime implements ToolGateway {
       ]);
     } catch (cause) {
       if (timer) clearTimeout(timer);
+
+      // Release or mark failure in idempotency store so it does not stay permanently stuck in IN_PROGRESS
+      if (scopedIdempotencyKey && this.idempotencyStore) {
+        try {
+          await this.idempotencyStore.fail(
+            scopedIdempotencyKey,
+            500,
+            { message: cause instanceof Error ? cause.message : "Execution failed" },
+            effectiveTenantId,
+            effectivePrincipalId
+          );
+        } catch {
+          // Suppress secondary store failure
+        }
+      }
       
       if (cause instanceof ToolTimeoutError) {
         this.events.publish(
@@ -405,6 +519,24 @@ export class ToolInvocationRuntime implements ToolGateway {
     const sanitizeState = { truncated: false };
     const sanitizedOutput = sanitizeBoundedValue(rawResult.output, this.limits, 0, sanitizeState) as Record<string, unknown>;
     const deepFrozenOutput = deepFreeze(sanitizedOutput);
+
+    // 8.1 Complete Idempotency Store
+    if (scopedIdempotencyKey && this.idempotencyStore) {
+      try {
+        await this.idempotencyStore.complete(
+          scopedIdempotencyKey,
+          200,
+          {
+            output: sanitizedOutput,
+            metadata: rawResult.metadata,
+          },
+          effectiveTenantId,
+          effectivePrincipalId
+        );
+      } catch {
+        // Non-blocking store complete failure
+      }
+    }
 
     this.events.publish(
       event("tool.execution.completed", context.traceId, toolId, {
