@@ -2,16 +2,25 @@
  * AI Operating Platform - Enterprise MCP Server Adapter
  * 
  * Driving Adapter exposing governed platform capabilities (Tools, Prompts, Resources)
- * via Model Context Protocol (MCP) standard specification (2026-07-28 revision).
+ * via the Official Model Context Protocol (MCP) TypeScript SDK v2 (@modelcontextprotocol/server).
  * 
  * Invariants:
  * 1. Boundary: Driving adapter only. Calls ToolInvocationRuntime, ToolRegistry, HITLBridgePort, etc.
- * 2. Zero leak of internal domain aggregate internals, SQLite connections, or raw secrets.
- * 3. Security: Authenticates caller via API key / token, derives verified SecurityContext.
- * 4. Governance: Enforces Rate Limiting, Idempotency, Schema Governance, Taint, SoD, and W3C Trace Context.
- * 5. Fail-Closed: Cross-tenant access, unauthorized tools, or invalid schemas are rejected fail-closed.
+ * 2. Strict Hexagonal Architecture: Zero third-party runtime dependencies in Core/Domain.
+ *    The official SDK (@modelcontextprotocol/server) is isolated exclusively to Platform.
+ * 3. Security: Authenticates caller via API key / token / context, derives verified SecurityContext.
+ * 4. Multi-Era Support: Supports modern revision 2026-07-28 (server/discover) and legacy 2024-11-05 (initialize).
+ * 5. Governance: Enforces Rate Limiting, Idempotency, Schema Governance, Taint, SoD, and W3C Trace Context.
+ * 6. Fail-Closed: Cross-tenant access, unauthorized tools, or invalid schemas are rejected fail-closed.
  */
 
+import {
+  McpServer,
+  createMcpHandler,
+  LATEST_PROTOCOL_VERSION,
+  type Extra,
+} from "@modelcontextprotocol/server";
+import { z } from "zod";
 import {
   MCP_PROTOCOL_VERSION,
   MCP_SUPPORTED_PROTOCOL_VERSIONS,
@@ -29,6 +38,8 @@ import {
   McpReadResourceParams,
   McpReadResourceResult,
   McpListPromptsResult,
+  McpPromptDefinitionDto,
+  McpResourceDefinitionDto,
 } from "./mcp-dto.js";
 import { mapToMcpError } from "./mcp-error-mapper.js";
 import { ToolRegistry, ToolDefinition, ToolRequest } from "../../domain/tools/tool-registry.js";
@@ -66,6 +77,8 @@ export interface McpRequestContext {
   readonly bearerToken?: string | undefined;
   readonly tenantId?: string | undefined;
   readonly traceContext?: W3CTraceContext | undefined;
+  readonly traceparent?: string | undefined;
+  readonly tracestate?: string | undefined;
   readonly idempotencyKey?: string | undefined;
 }
 
@@ -80,6 +93,11 @@ export class PlatformMcpServer {
   private readonly defaultTenantId: string;
   private readonly supportedProtocolVersions: readonly string[];
   private negotiatedProtocolVersion: string = MCP_PROTOCOL_VERSION;
+
+  /**
+   * Lazily-initialized official MCP Handler from @modelcontextprotocol/server.
+   */
+  private mcpHandler: ReturnType<typeof createMcpHandler> | null = null;
 
   constructor(deps: McpServerDependencies) {
     if (!deps.toolRegistry) throw new Error("toolRegistry is required for PlatformMcpServer");
@@ -96,14 +114,126 @@ export class PlatformMcpServer {
     this.supportedProtocolVersions = deps.config?.supportedProtocolVersions ?? MCP_SUPPORTED_PROTOCOL_VERSIONS;
   }
 
+  public getServerName(): string {
+    return this.serverName;
+  }
+
+  public getServerVersion(): string {
+    return this.serverVersion;
+  }
+
+  public getDefaultTenantId(): string {
+    return this.defaultTenantId;
+  }
+
+  /**
+   * Builds and configures an official McpServer instance from @modelcontextprotocol/server,
+   * projecting platform tools, resources, and prompts with governance bindings.
+   */
+  public buildOfficialMcpServer(reqCtx: McpRequestContext = {}): McpServer {
+    const server = new McpServer({
+      name: this.serverName,
+      version: this.serverVersion,
+    });
+
+    // 1. Register Tools from ToolRegistry
+    const secCtx = reqCtx.securityContext;
+    const safeDefs = this.toolRegistry.discoverSafeDefinitions(secCtx);
+
+    for (const def of safeDefs) {
+      const toolInputZodSchema = this.convertInputSchemaToZodShape(def.inputSchema);
+
+      server.registerTool(
+        def.id,
+        {
+          description: def.description,
+          inputSchema: toolInputZodSchema,
+        },
+        async (args: Record<string, unknown>, extra: Extra) => {
+          const traceCtx = this.resolveTraceContext(reqCtx);
+          const traceId = traceCtx?.traceId ?? randomUUID().replace(/-/g, "");
+
+          const resolvedSecCtx = await this.resolveSecurityContext(reqCtx, true);
+          const callResult = await this.executeToolInvocation(
+            def.id,
+            args,
+            resolvedSecCtx,
+            traceId,
+            reqCtx
+          );
+
+          return {
+            content: callResult.content.map((c) => ({
+              type: "text" as const,
+              text: c.text,
+            })),
+          };
+        }
+      );
+    }
+
+    // 2. Register Platform Prompts
+    this.registerPromptsOnMcpServer(server);
+
+    // 3. Register Platform Resources
+    this.registerResourcesOnMcpServer(server, secCtx);
+
+    return server;
+  }
+
+  /**
+   * Returns or constructs the official Fetch / Streamable HTTP Handler
+   * created via createMcpHandler() from @modelcontextprotocol/server.
+   */
+  public getOfficialHandler(): ReturnType<typeof createMcpHandler> {
+    if (!this.mcpHandler) {
+      this.mcpHandler = createMcpHandler(
+        (context: { era: "modern" | "legacy"; authInfo?: unknown; requestInfo?: Request }) => {
+          const reqHeaders: Record<string, string> = {};
+          if (context.requestInfo?.headers) {
+            for (const [k, v] of context.requestInfo.headers.entries()) {
+              reqHeaders[k.toLowerCase()] = v;
+            }
+          }
+
+          const reqCtx: McpRequestContext = {
+            headers: reqHeaders,
+            securityContext: (context.authInfo as any)?.securityContext,
+            tenantId: (context.authInfo as any)?.tenantId ?? reqHeaders["x-tenant-id"],
+            apiKey: (context.authInfo as any)?.apiKey ?? reqHeaders["x-api-key"],
+          };
+
+          return this.buildOfficialMcpServer(reqCtx);
+        },
+        {
+          supportedProtocolVersions: this.supportedProtocolVersions as any,
+        }
+      );
+    }
+    return this.mcpHandler;
+  }
+
+  /**
+   * Dispatches an incoming Web Standard Request through the official MCP handler.
+   */
+  public async handleWebRequest(
+    request: Request,
+    options?: { authInfo?: unknown }
+  ): Promise<Response> {
+    const handler = this.getOfficialHandler();
+    return handler.fetch(request, options);
+  }
+
   /**
    * Handles an incoming JSON-RPC 2.0 MCP request in-process.
+   * Maintains full backward compatibility with in-memory test harnesses and direct JSON-RPC callers,
+   * enforcing the identical governance and security pipeline.
    */
   async handleRequest(
     request: McpJsonRpcRequest,
     reqCtx: McpRequestContext = {}
   ): Promise<McpJsonRpcResponse> {
-    const id = request.id ?? null;
+    const id = request?.id !== undefined ? request.id : null;
 
     // 1. Basic JSON-RPC protocol validation
     if (!request || typeof request !== "object" || request.jsonrpc !== JSONRPC_VERSION) {
@@ -139,14 +269,21 @@ export class PlatformMcpServer {
 
     try {
       // 3. Resolve Security Context (Authentication & Tenant Binding)
-      // "initialize" and "ping" can be pre-authenticated or authenticated
-      const isPublicMethod = request.method === "initialize" || request.method === "ping";
+      // "initialize", "server/discover", and "ping" can be pre-authenticated or authenticated
+      const isPublicMethod =
+        request.method === "initialize" ||
+        request.method === "server/discover" ||
+        request.method === "ping";
       const secCtx = await this.resolveSecurityContext(reqCtx, !isPublicMethod);
 
       let result: unknown;
       switch (request.method) {
         case "initialize":
           result = await this.handleInitialize(request.params as McpInitializeParams | undefined);
+          break;
+
+        case "server/discover":
+          result = await this.handleDiscover(request.params as Record<string, unknown> | undefined);
           break;
 
         case "ping":
@@ -212,7 +349,6 @@ export class PlatformMcpServer {
   private async handleInitialize(params?: McpInitializeParams): Promise<McpInitializeResult> {
     if (params?.protocolVersion) {
       if (!this.supportedProtocolVersions.includes(params.protocolVersion)) {
-        // Fall back to latest supported or negotiated version per W3C/MCP negotiation
         this.negotiatedProtocolVersion = this.supportedProtocolVersions[0] ?? MCP_PROTOCOL_VERSION;
       } else {
         this.negotiatedProtocolVersion = params.protocolVersion;
@@ -242,16 +378,31 @@ export class PlatformMcpServer {
     };
   }
 
+  private async handleDiscover(_params?: Record<string, unknown>): Promise<Record<string, unknown>> {
+    return {
+      protocolVersion: MCP_PROTOCOL_VERSION,
+      supportedVersions: this.supportedProtocolVersions,
+      serverInfo: {
+        name: this.serverName,
+        version: this.serverVersion,
+        title: "AI Operating Platform Enterprise MCP Server",
+      },
+      capabilities: {
+        tools: { listChanged: false },
+        resources: { subscribe: false, listChanged: false },
+        prompts: { listChanged: false },
+      },
+    };
+  }
+
   private async handleListTools(secCtx?: SecurityContext): Promise<McpListToolsResult> {
-    // Query Safe Definitions from governed ToolRegistry
     const safeDefs = this.toolRegistry.discoverSafeDefinitions(secCtx);
 
     const mcpTools: McpToolDefinitionDto[] = safeDefs.map((def: ToolDefinition) => {
-      // Adapt Input Schema to JSON Schema standard
       const inputProperties: Record<string, unknown> = {};
-      const requiredFields: string[] = [...(def.inputSchema.required ?? [])];
+      const requiredFields: string[] = [...(def.inputSchema?.required ?? [])];
 
-      for (const [propName, propType] of Object.entries(def.inputSchema.properties ?? {})) {
+      for (const [propName, propType] of Object.entries(def.inputSchema?.properties ?? {})) {
         if (typeof propType === "string") {
           inputProperties[propName] = { type: propType };
         } else if (typeof propType === "object" && propType !== null) {
@@ -263,7 +414,7 @@ export class PlatformMcpServer {
         type: "object",
         properties: inputProperties,
         required: requiredFields,
-        additionalProperties: def.inputSchema.additionalProperties ?? false,
+        additionalProperties: def.inputSchema?.additionalProperties ?? false,
       };
 
       const hints = {
@@ -306,11 +457,21 @@ export class PlatformMcpServer {
 
     const toolName = params.name.trim();
     const args = params.arguments ?? {};
+    return this.executeToolInvocation(toolName, args, secCtx, traceId, reqCtx, params);
+  }
+
+  private async executeToolInvocation(
+    toolName: string,
+    args: Record<string, unknown>,
+    secCtx: SecurityContext | undefined,
+    traceId: string,
+    reqCtx?: McpRequestContext,
+    params?: McpCallToolParams
+  ): Promise<McpCallToolResult> {
     const tenantId = secCtx?.tenantId ?? this.defaultTenantId;
     const principalId = secCtx?.principal?.id ?? "anonymous";
-    const idempotencyKey = params.idempotencyKey ?? reqCtx?.idempotencyKey;
+    const idempotencyKey = params?.idempotencyKey ?? reqCtx?.idempotencyKey;
 
-    // 1. Construct standard ExecutionContext
     const executionContext: ExecutionContext = {
       traceId,
       executionId: `mcp-exec-${randomUUID().slice(0, 8)}`,
@@ -319,25 +480,22 @@ export class PlatformMcpServer {
       principalId,
     };
 
-    // 2. Construct governed ToolRequest
     const toolRequest: ToolRequest = {
       toolId: toolName,
-      version: params.toolVersion,
+      version: params?.toolVersion,
       input: args,
       idempotencyKey,
-      approvalToken: params.approvalToken,
+      approvalToken: params?.approvalToken,
     };
 
     this.emitEvent("mcp.tool.invoked", traceId, toolName, {
       toolId: toolName,
       tenantId,
       principalId,
-      idempotencyKey: params.idempotencyKey,
+      idempotencyKey: params?.idempotencyKey,
     });
 
     try {
-      // 3. Delegate to ToolInvocationRuntime enforcing the full pipeline:
-      // Resolve -> Authorize -> Rate Limit -> Approval Check -> Budget Check -> Input Validation -> Idempotency Check -> Execute -> Output Validation -> Output Sanitization -> Taint
       const result = await this.toolRuntime.invokeTool({
         request: toolRequest,
         context: executionContext,
@@ -352,7 +510,6 @@ export class PlatformMcpServer {
         cachedReplay: result.metadata?.cachedReplay,
       });
 
-      // 4. Format MCP Content
       const jsonText = JSON.stringify(result.output, null, 2);
       return {
         content: [
@@ -366,13 +523,13 @@ export class PlatformMcpServer {
         isError: false,
       };
     } catch (toolErr) {
-      // Check if tool invocation requires human approval (HITL)
       const errObj = (toolErr && typeof toolErr === "object") ? (toolErr as Record<string, unknown>) : {};
       if (
-        (errObj.name === "ToolApprovalRequiredError" || errObj.code === "TOOL_APPROVAL_REQUIRED" || (toolErr as Error).message?.includes("requires human approval")) &&
+        (errObj.name === "ToolApprovalRequiredError" ||
+          errObj.code === "TOOL_APPROVAL_REQUIRED" ||
+          (toolErr as Error).message?.includes("requires human approval")) &&
         this.hitlBridge
       ) {
-        // Suspend via HITL Bridge
         const suspension = await this.hitlBridge.suspend({
           tenantId,
           applicationId: "mcp-server",
@@ -428,8 +585,7 @@ export class PlatformMcpServer {
   }
 
   private async handleListResources(secCtx?: SecurityContext): Promise<McpListResourcesResult> {
-    // Only expose enterprise safe, governed documentation/catalog resources
-    const resources = [
+    const resources: McpResourceDefinitionDto[] = [
       {
         uri: "platform://diagnostics/health",
         name: "Platform Diagnostics & Health",
@@ -526,9 +682,8 @@ export class PlatformMcpServer {
     throw new Error(`Resource '${uri}' not found or access denied`);
   }
 
-  private async handleListPrompts(secCtx?: SecurityContext): Promise<McpListPromptsResult> {
-    // Expose only safe enterprise prompts (zero leak of internal system instructions or CoT)
-    const prompts = [
+  private async handleListPrompts(_secCtx?: SecurityContext): Promise<McpListPromptsResult> {
+    const prompts: McpPromptDefinitionDto[] = [
       {
         name: "enterprise_audit_analysis",
         description: "Template to query governed compliance evidence without data leakage",
@@ -567,6 +722,146 @@ export class PlatformMcpServer {
     return {
       prompts: Object.freeze(prompts),
     };
+  }
+
+  // =========================================================================
+  // Official SDK McpServer Registrations
+  // =========================================================================
+
+  private registerPromptsOnMcpServer(server: McpServer): void {
+    server.registerPrompt(
+      "enterprise_audit_analysis",
+      {
+        description: "Template to query governed compliance evidence without data leakage",
+        argsSchema: {
+          scope: z.string().describe("Evidence scope (e.g. TENANT, AUDIT_TRAIL, WORKFLOW)"),
+        },
+      },
+      async (args) => {
+        return {
+          messages: [
+            {
+              role: "user" as const,
+              content: {
+                type: "text" as const,
+                text: `Please perform a governed compliance audit analysis for scope: ${args.scope}. Ensure fail-closed rules and zero secret leakage.`,
+              },
+            },
+          ],
+        };
+      }
+    );
+
+    server.registerPrompt(
+      "tool_safety_review",
+      {
+        description: "Template for structured tool safety and blast radius assessment",
+        argsSchema: {
+          toolId: z.string().describe("Unique tool identifier"),
+        },
+      },
+      async (args) => {
+        return {
+          messages: [
+            {
+              role: "user" as const,
+              content: {
+                type: "text" as const,
+                text: `Assess tool safety and governance blast radius for tool: ${args.toolId}.`,
+              },
+            },
+          ],
+        };
+      }
+    );
+  }
+
+  private registerResourcesOnMcpServer(server: McpServer, secCtx?: SecurityContext): void {
+    server.registerResource(
+      "platform_diagnostics_health",
+      "platform://diagnostics/health",
+      {
+        description: "Public health status and capabilities of the AI Operating Platform",
+        mimeType: "application/json",
+      },
+      async (uri) => {
+        const res = await this.handleReadResource({ uri: uri.href }, secCtx);
+        return {
+          contents: res.contents.map((c) => ({
+            uri: c.uri,
+            mimeType: c.mimeType,
+            text: c.text,
+          })),
+        };
+      }
+    );
+
+    server.registerResource(
+      "platform_tools_catalog",
+      "platform://tools/catalog",
+      {
+        description: "Public metadata catalog of all registered, authorized tools on the platform",
+        mimeType: "application/json",
+      },
+      async (uri) => {
+        const res = await this.handleReadResource({ uri: uri.href }, secCtx);
+        return {
+          contents: res.contents.map((c) => ({
+            uri: c.uri,
+            mimeType: c.mimeType,
+            text: c.text,
+          })),
+        };
+      }
+    );
+  }
+
+  /**
+   * Translates a Tool's JSON Schema definition into a Zod raw shape
+   * accepted by McpServer.registerTool().
+   */
+  private convertInputSchemaToZodShape(inputSchema: Record<string, unknown> | undefined): Record<string, z.ZodTypeAny> {
+    if (!inputSchema || typeof inputSchema !== "object") {
+      return {};
+    }
+
+    const properties = (inputSchema.properties ?? {}) as Record<string, unknown>;
+    const requiredList = new Set<string>(
+      Array.isArray(inputSchema.required) ? (inputSchema.required as string[]) : []
+    );
+    const shape: Record<string, z.ZodTypeAny> = {};
+
+    for (const [key, propDef] of Object.entries(properties)) {
+      const isRequired = requiredList.has(key);
+      let zodType: z.ZodTypeAny = z.unknown();
+
+      if (typeof propDef === "object" && propDef !== null) {
+        const type = (propDef as any).type;
+        if (type === "string") {
+          zodType = z.string();
+        } else if (type === "number" || type === "integer") {
+          zodType = z.number();
+        } else if (type === "boolean") {
+          zodType = z.boolean();
+        } else if (type === "array") {
+          zodType = z.array(z.unknown());
+        } else if (type === "object") {
+          zodType = z.record(z.string(), z.unknown());
+        }
+      } else if (typeof propDef === "string") {
+        if (propDef === "string") zodType = z.string();
+        else if (propDef === "number") zodType = z.number();
+        else if (propDef === "boolean") zodType = z.boolean();
+      }
+
+      if (!isRequired) {
+        zodType = zodType.optional();
+      }
+
+      shape[key] = zodType;
+    }
+
+    return shape;
   }
 
   // =========================================================================
@@ -622,6 +917,12 @@ export class PlatformMcpServer {
 
   private resolveTraceContext(reqCtx: McpRequestContext): W3CTraceContext | undefined {
     if (reqCtx.traceContext) return reqCtx.traceContext;
+    if (reqCtx.traceparent) {
+      return W3CTraceContext.tryParseHeaders({
+        traceparent: reqCtx.traceparent,
+        tracestate: reqCtx.tracestate,
+      });
+    }
     if (reqCtx.headers) {
       return W3CTraceContext.tryParseHeaders(reqCtx.headers as Record<string, string | string[] | undefined>);
     }
@@ -667,4 +968,3 @@ export class PlatformMcpServer {
 export function createPlatformMcpServer(deps: McpServerDependencies): PlatformMcpServer {
   return new PlatformMcpServer(deps);
 }
-

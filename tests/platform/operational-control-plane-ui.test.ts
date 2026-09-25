@@ -14,9 +14,12 @@ describe("Phase 80: Operational Control Plane UI & Invariant Tests", () => {
   const esLocalePath = path.join(rootDir, "src/platform/web/i18n/locale-es-419.js");
   const enLocalePath = path.join(rootDir, "src/platform/web/i18n/locale-en.js");
 
-  it("1. package.json enforces zero external runtime npm dependencies", () => {
+  it("1. package.json enforces zero external runtime npm dependencies in Core/Backend and allows only approved platform adapter dependencies", () => {
     const pkg = JSON.parse(fs.readFileSync(pkgJsonPath, "utf8"));
-    assert.ok(!pkg.dependencies || Object.keys(pkg.dependencies).length === 0, "Runtime dependencies must remain strictly empty");
+    const allowedPlatformDeps = new Set(["@modelcontextprotocol/server"]);
+    const deps = Object.keys(pkg.dependencies || {});
+    const unauthorized = deps.filter((d) => !allowedPlatformDeps.has(d));
+    assert.equal(unauthorized.length, 0, `Unauthorized runtime dependencies detected: ${unauthorized.join(", ")}`);
   });
 
   it("2. web source files enforce strict DOM purity (0 innerHTML, 0 outerHTML, 0 eval, 0 document.write)", () => {

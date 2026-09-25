@@ -122,17 +122,17 @@ $$\text{Código Fuente en } src/ > \text{Tests Automatizados} > \text{Historial 
 - **Recomendación Enterprise**: Implementar encadenamiento de bloques criptográficos (*Evidence Hash Chain*): cada manifiesto de exportación debe incluir `previousPackageHashSha256` y `packageSequenceNumber`, permitiendo a los auditores verificar la inmutabilidad y continuidad cronológica estricta de toda la historia de auditoría de la plataforma.
 
 ### 4.7. Protocolo MCP (Model Context Protocol) y Fronteras Hexagonales (GAP-07)
-- **Estado**: `IMPLEMENTED` (Validado en Track 4, Prompt 154)
-- **Especificación Oficial**: Revisión `2026-07-28` (con fallback de negociación hacia `2024-11-05`).
+- **Estado**: `IMPLEMENTED` (Validado en Track 4, Prompt 156-R1)
+- **Especificación Oficial**: Revisión `2026-07-28` (`server/discover`, request-scoped `_meta`) y `2024-11-05` (`initialize`).
 - **Implementación Validada**:
-  - Ubicación perimetral estricta en `src/platform/mcp/` como Driving Adapter hexagonal.
-  - Cero dependencias externas en Core Engine y Domain (`@modelcontextprotocol/server` preservado con tipado DTO canónico nativo en TypeScript).
-  - Transportes estándar implementados: `serveMcpStdio` (Stdio sobre JSON-RPC delimitado por línea) y `handleMcpHttpRequest` (`POST /mcp` sobre HTTP router).
-  - Métodos gobernados: `initialize`, `ping`, `tools/list`, `tools/call`, `resources/list`, `resources/read`, `prompts/list`.
-  - Conexión determinista a `ToolInvocationRuntime` respetando el pipeline de 10 pasos (autenticación, autorización RBAC, rate limiting, presupuestos, validación de esquemas, idempotencia y taint boundaries).
+  - Adopción e integración del SDK oficial de TypeScript `@modelcontextprotocol/server` (v2.1.0) en la capa perimetral `src/platform/mcp/` como Driving Adapter hexagonal.
+  - Cero dependencias externas en Core Engine y Domain: la dependencia pertenece exclusivamente al adaptador de plataforma (`package.json` gobernado por ADR 0051 y Principio 2 del Libro Oficial).
+  - Transportes estándar implementados: `serveMcpStdio` (Stdio sobre JSON-RPC) y `handleMcpHttpRequest` (puente entre `node:http` y `createMcpHandler().fetch()` Web Standard).
+  - Métodos gobernados: `initialize`, `server/discover`, `ping`, `tools/list`, `tools/call`, `resources/list`, `resources/read`, `prompts/list`.
+  - Conexión determinista a `ToolInvocationRuntime` respetando el pipeline de 10 compuertas (autenticación, autorización RBAC, rate limiting, presupuestos, validación de esquemas, idempotencia y taint boundaries).
   - Integración nativa con `HITLBridgePort` ante herramientas de riesgo `CRITICAL` o `requiresApproval: true`, devolviendo suspensión estructurada `SUSPENDED_WAITING_FOR_APPROVAL` con `resumptionToken`.
   - Mapeo de errores canónico (`McpErrorCodes`) con ofuscación de trazas internas y cero fuga de secretos.
-  - Evidencia: 24 pruebas unitarias dedicadas en `tests/unit/platform-mcp-server.test.ts`. Documentación técnica en `docs/MCP_SERVER_ARCHITECTURE.md`, `docs/MCP_SECURITY_MODEL.md` y `docs/MCP_CONFORMANCE_MATRIX.md`.
+  - Evidencia: 28 pruebas unitarias dedicadas en `tests/unit/platform-mcp-server.test.ts`. Documentación técnica en `docs/MCP_SERVER_ARCHITECTURE.md`, `docs/MCP_SECURITY_MODEL.md`, `docs/MCP_CONFORMANCE_MATRIX.md` y `docs/decisions/0051-official-enterprise-mcp-server-adapter.md`.
 
 ### 4.8. HITL, Suspensión Asíncrona y Segregación de Funciones (GAP-08)
 - **Realidad**: La Segregación de Funciones (SoD) ya está estrictamente blindada en el código:

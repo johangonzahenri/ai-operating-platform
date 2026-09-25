@@ -809,4 +809,154 @@ describe("Track 4 — GAP-07 Official Enterprise MCP Server Suite", () => {
       assert.ok(parsedRes.result.tools);
     });
   });
+
+  // =========================================================================
+  // 8. OFFICIAL MCP SDK V2 INTEGRATION & DUAL-ERA VERIFICATION
+  // =========================================================================
+  describe("8. Official MCP SDK v2 Integration (@modelcontextprotocol/server)", () => {
+    it("8.1 builds official McpServer instance projecting registered platform tools and resources", async () => {
+      const secCtx = createTestSecurityContext();
+      const officialServer = mcpServer.buildOfficialMcpServer({ securityContext: secCtx });
+      assert.ok(officialServer);
+      assert.equal((officialServer as any).server?.name ?? (officialServer as any)._registeredTools !== undefined, true);
+    });
+
+    it("8.2 executes modern 2026-07-28 'server/discover' via official createMcpHandler.fetch()", async () => {
+      const discoverReq = new Request("http://localhost/mcp", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "accept": "application/json, text/event-stream",
+          "mcp-protocol-version": "2026-07-28",
+          "mcp-method": "server/discover",
+          "x-tenant-id": "tenant-acme",
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: "req-discover-sdk",
+          method: "server/discover",
+          params: {
+            _meta: {
+              "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+              "io.modelcontextprotocol/clientCapabilities": {},
+            },
+            clientInfo: { name: "test-modern-client", version: "2.0.0" },
+          },
+        }),
+      });
+
+      const res = await mcpServer.handleWebRequest(discoverReq, {
+        authInfo: {
+          securityContext: createTestSecurityContext(),
+          tenantId: "tenant-acme",
+        },
+      });
+
+      assert.equal(res.status, 200);
+      const json = await res.json();
+      assert.equal(json.jsonrpc, "2.0");
+      assert.equal(json.id, "req-discover-sdk");
+      assert.ok(json.result);
+      assert.ok(Array.isArray(json.result.supportedVersions));
+      assert.ok(json.result.supportedVersions.includes("2026-07-28"));
+    });
+
+    it("8.3 executes modern 2026-07-28 'tools/list' and 'tools/call' through official MCP SDK handler", async () => {
+      const secCtx = createTestSecurityContext();
+
+      // 1. tools/list via Web Request
+      const listReq = new Request("http://localhost/mcp", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "accept": "application/json, text/event-stream",
+          "mcp-protocol-version": "2026-07-28",
+          "mcp-method": "tools/list",
+          "x-tenant-id": "tenant-acme",
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: "req-sdk-list",
+          method: "tools/list",
+          params: {
+            _meta: {
+              "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+              "io.modelcontextprotocol/clientCapabilities": {},
+            },
+          },
+        }),
+      });
+
+      const listRes = await mcpServer.handleWebRequest(listReq, {
+        authInfo: { securityContext: secCtx, tenantId: "tenant-acme" },
+      });
+      assert.equal(listRes.status, 200);
+      const listJson = await listRes.json();
+      assert.ok(listJson.result?.tools);
+      const toolNames = listJson.result.tools.map((t: any) => t.name);
+      assert.ok(toolNames.includes("echo.tool"));
+      assert.ok(toolNames.includes("math.add"));
+
+      // 2. tools/call via Web Request
+      const callReq = new Request("http://localhost/mcp", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "accept": "application/json, text/event-stream",
+          "mcp-protocol-version": "2026-07-28",
+          "mcp-method": "tools/call",
+          "mcp-name": "math.add",
+          "x-tenant-id": "tenant-acme",
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: "req-sdk-call",
+          method: "tools/call",
+          params: {
+            _meta: {
+              "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+              "io.modelcontextprotocol/clientCapabilities": {},
+            },
+            name: "math.add",
+            arguments: { a: 15, b: 25 },
+          },
+        }),
+      });
+
+      const callRes = await mcpServer.handleWebRequest(callReq, {
+        authInfo: { securityContext: secCtx, tenantId: "tenant-acme" },
+      });
+      assert.equal(callRes.status, 200);
+      const callJson = await callRes.json();
+      assert.ok(callJson.result?.content);
+      const parsedText = JSON.parse(callJson.result.content[0].text);
+      assert.equal(parsedText.sum, 40);
+    });
+
+    it("8.4 executes legacy 2024-11-05 'initialize' via createMcpHandler fallback", async () => {
+      const initReq = new Request("http://localhost/mcp", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "accept": "application/json, text/event-stream",
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: "legacy-init-1",
+          method: "initialize",
+          params: {
+            protocolVersion: "2024-11-05",
+            capabilities: {},
+            clientInfo: { name: "legacy-agent", version: "1.0.0" },
+          },
+        }),
+      });
+
+      const res = await mcpServer.handleWebRequest(initReq);
+      assert.equal(res.status, 200);
+      const bodyText = await res.text();
+      assert.ok(bodyText.includes("2024-11-05"));
+      assert.ok(bodyText.includes("ai-operating-platform-mcp"));
+    });
+  });
 });

@@ -9,7 +9,7 @@
 
 ## 1. Propósito y Frontera Hexagonal
 
-El **Official Enterprise MCP Server** expone las capacidades operativas, el catálogo de herramientas y recursos gobernados de la **AI Operating Platform** a clientes compatibles con el estándar **Model Context Protocol (MCP)** (tales como IDEs de desarrollo: Antigravity, VS Code, Cursor; y agentes de inteligencia artificial autónomos externos).
+El **Official Enterprise MCP Server** expone las capacidades operativas, el catálogo de herramientas y recursos gobernados de la **AI Operating Platform** a clientes compatibles con el estándar **Model Context Protocol (MCP)** (tales como IDEs de desarrollo: Antigravity, VS Code, Cursor; y agentes de inteligencia artificial autónomos externos), utilizando el **SDK oficial de TypeScript `@modelcontextprotocol/server` (v2.1.0)**.
 
 Para garantizar la integridad y estabilidad a largo plazo del sistema, el servidor se implementa como un **Driving Adapter** perimetral en la capa de Plataforma (`src/platform/mcp/`), respetando la regla sagrada de desacoplamiento:
 
@@ -19,10 +19,11 @@ Para garantizar la integridad y estabilidad a largo plazo del sistema, el servid
        ┌─────────────┴─────────────┐
        ▼                           ▼
 [ Stdio Transport ]     [ HTTP Transport (POST /mcp) ]
+(serveStdio SDK)        (createMcpHandler SDK fetch)
        │                           │
        └─────────────┬─────────────┘
                      ▼
-       [ PlatformMcpServer (Driving Adapter) ]
+       [ Official McpServer / PlatformMcpServer ]
                      │
        ┌─────────────┴────────────────────────┐
        ▼                                      ▼
@@ -33,7 +34,7 @@ Para garantizar la integridad y estabilidad a largo plazo del sistema, el servid
 ```
 
 ### Invariantes Arquitectónicas No Negociables:
-1. **Cero Dependencias en Core/Domain**: Ni el motor de inferencia ni el dominio de negocio importan código del servidor MCP.
+1. **Cero Dependencias en Core/Domain**: Ni el motor de inferencia ni el dominio de negocio importan código del servidor MCP ni del SDK oficial. El SDK `@modelcontextprotocol/server` reside exclusivamente en la capa de Plataforma (`src/platform/mcp/`).
 2. **Sin Acceso Directo a Base de Datos**: El adaptador MCP jamás ejecuta consultas SQLite directas, manipula tablas ni altera agregados saltándose los casos de uso.
 3. **Fail-Closed Default**: Toda invocación sin contexto de seguridad autenticado, con tenant mismatch o permisos insuficientes es rechazada de inmediato.
 4. **Cero Fuga de Secretos o Trazas**: Todo error interno es interceptado y sanitizado por `McpErrorMapper`, omitiendo stack traces y exponiendo únicamente códigos estándar MCP y correlation IDs (`traceId`).
@@ -44,19 +45,21 @@ Para garantizar la integridad y estabilidad a largo plazo del sistema, el servid
 
 El adaptador modular reside íntegramente en `src/platform/mcp/`:
 
-1. **`mcp-dto.ts`**:
+1. **`platform-mcp-server.ts`**:
+   - Integración nativa con `McpServer` y `createMcpHandler` de `@modelcontextprotocol/server`.
+   - Clase central `PlatformMcpServer` y fábrica `createPlatformMcpServer`.
+   - Soporte dual: Modern `2026-07-28` (`server/discover`, envelope de `_meta`) y Legacy `2024-11-05` (`initialize`).
+   - Métodos gobernados: `initialize`, `server/discover`, `ping`, `tools/list`, `tools/call`, `resources/list`, `resources/read`, `prompts/list`.
+   - Enlace directo con `ToolInvocationRuntime` y `HITLBridgePort`.
+2. **`mcp-transports.ts`**:
+   - `serveMcpStdio`: Manejador de comunicación por entrada/salida estándar para subprocesos locales (IDEs).
+   - `handleMcpHttpRequest`: Manejador de transporte HTTP Streamable integrando `node:http` con `createMcpHandler().fetch()` y respuesta por streaming.
+3. **`mcp-dto.ts`**:
    - DTOs canónicos tipados de JSON-RPC 2.0 y la especificación MCP 2026-07-28.
    - Declaración de constantes de versión (`MCP_PROTOCOL_VERSION = "2026-07-28"`).
    - Catálogo de errores estándar (`McpErrorCodes`).
-2. **`mcp-error-mapper.ts`**:
+4. **`mcp-error-mapper.ts`**:
    - Mapeador de excepciones de dominio y runtime a códigos JSON-RPC / MCP (`-32600`, `-32601`, `-32602`, `-32001`, `-32002`, `-32003`, `-32004`, `-32603`).
-3. **`platform-mcp-server.ts`**:
-   - Clase central `PlatformMcpServer` y factory `createPlatformMcpServer`.
-   - Dispatcher de métodos: `initialize`, `ping`, `tools/list`, `tools/call`, `resources/list`, `resources/read`, `prompts/list`.
-   - Enlace directo con `ToolInvocationRuntime` y `HITLBridgePort`.
-4. **`mcp-transports.ts`**:
-   - `serveMcpStdio`: Manejador de comunicación por entrada/salida estándar para subprocesos locales (IDEs).
-   - `handleMcpHttpRequest`: Manejador para llamadas HTTP stateless vía `POST /mcp` integrado en `http-router.ts`.
 5. **`index.ts`**:
    - Exportaciones públicas del módulo de plataforma.
 

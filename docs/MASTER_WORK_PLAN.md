@@ -32,13 +32,13 @@ Este documento responde de forma inequívoca en todo momento:
 ### Tarea Inesperada 1.1.2 — Auditoría y Hardening del Runtime Multi-Agente / MCP / HITL
 > **Identificador Canónico**: `1.1.2` (Cross-Cutting Architectural Hardening / Unexpected Governance Task)  
 > **Fecha**: 2026-09-25  
-> **Estado Técnico**: `PLANNED` | **Estado Operativo**: `READY`  
+> **Estado Técnico**: `DONE` | **Estado Operativo**: `DONE`  
 > **Prioridad**: `HIGH`  
 > **Iniciativas Vinculadas**: `AOP-MULTIAGENT-HARDENING` (`docs/ROADMAP_MASTER.md`)  
 > **Detectado durante**: Prompt 150 — Auditoría Arquitectónica Transversal Multi-Agente, MCP, HITL, Tool Governance, Evidence & Security.  
 > **Origen**: Revisión transversal de propuestas externas contra el código real de `src/`, confirmando 9 brechas arquitectónicas objetivas (GAP-01 a GAP-09) y descartando propuestas incompatibles con la arquitectura hexagonal y la política zero third-party en Core.  
-> **Decisión**: Formalizar la auditoría en `docs/ARCHITECTURAL_HARDENING_AUDIT.md`, registrar la iniciativa en el Roadmap Maestro y definir la secuencia técnica de ejecución sin alterar el código operativo en esta fase preliminar.  
-> **Evidencia**: `docs/ARCHITECTURAL_HARDENING_AUDIT.md`, `docs/ROADMAP_MASTER.md`, `docs/DOCUMENTATION_REGISTRY.md`.  
+> **Decisión**: Formalizar la auditoría en `docs/ARCHITECTURAL_HARDENING_AUDIT.md`, registrar la iniciativa en el Roadmap Maestro y ejecutar la secuencia técnica completa de 4 tracks de hardening con 100% tests pasando.  
+> **Evidencia**: `src/platform/mcp/`, `docs/ARCHITECTURAL_HARDENING_AUDIT.md`, `docs/MCP_SERVER_ARCHITECTURE.md`, `docs/decisions/0051-official-enterprise-mcp-server-adapter.md`, `tests/unit/platform-mcp-server.test.ts` (28 tests PASS).  
 >
 > **Checklist de Tracks de Hardening (4 Fases Técnicas Secuenciales)**:
 > - [x] Track 1 — Gobernanza de Herramientas, Idempotencia & Rate Limiting (GAP-02, GAP-04, GAP-03):
@@ -53,9 +53,10 @@ Este documento responde de forma inequívoca en todo momento:
 >   - Encadenamiento criptográfico continuo de bloques de evidencia (sequenceNumber, previousPackageHashSha256, packageHashSha256) y EvidenceHashChainVerifier en exportaciones de cumplimiento.
 >   - Puente de suspensión y reanudación asíncrona (HITLSuspensionRecord, HITLBridgePort, InMemoryHITLBridge) con preservación estricta de SoD (Producer/Requester ≠ Approver), protección de replay y eventos de ciclo de vida.
 >   - Parseo, serialización y propagación canónica de cabeceras W3C Trace Context (traceparent, tracestate, spans hijos) en RequestContext, PlatformClient y adaptadores HTTP.
-> - [ ] Track 4 — Servidor MCP Enterprise Oficial (GAP-07):
->   - Implementación del servidor oficial MCP SDK v2 en la capa perimetral (src/platform/mcp/) con transportes Stdio y Streamable HTTP.
+> - [x] Track 4 — Servidor MCP Enterprise Oficial (GAP-07):
+>   - Implementación del servidor oficial MCP TypeScript SDK v2 (`@modelcontextprotocol/server@2.1.0`) en la capa perimetral (`src/platform/mcp/`) con transportes Stdio y Streamable HTTP.
 >   - Exposición gobernada del catálogo de herramientas y prompts sin violar fronteras hexagonales de dominio ni persistencia.
+>   - Soporte nativo dual de eras: Modern `2026-07-28` (`server/discover`, request-scoped `_meta`) y Legacy `2024-11-05` (`initialize`).
 
 ---
 

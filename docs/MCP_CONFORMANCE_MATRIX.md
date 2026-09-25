@@ -11,13 +11,14 @@
 
 | Método MCP | Soportado | Implementación | Notas de Conformidad |
 | :--- | :---: | :--- | :--- |
-| `initialize` | SÍ | `handleInitialize` en `platform-mcp-server.ts` | Retorna capabilities (`tools`, `resources`, `prompts`) y negocia versión de protocolo. |
-| `ping` | SÍ | `handlePing` en `platform-mcp-server.ts` | Verificación de latencia liveness, retorna `{}`. |
-| `tools/list` | SÍ | `handleListTools` en `platform-mcp-server.ts` | Proyecta herramientas registradas con `inputSchema`, `outputSchema`, hints de ejecución (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`) y `schemaVersion`. |
-| `tools/call` | SÍ | `handleCallTool` en `platform-mcp-server.ts` | Ejecuta herramienta gobernada con pipeline completo (RBAC, Rate Limiting, Idempotency, Budget, HITL). |
-| `resources/list` | SÍ | `handleListResources` en `platform-mcp-server.ts` | Expone recursos canónicos de plataforma (`docs://architecture`, `docs://security`, `health://status`). |
-| `resources/read` | SÍ | `handleReadResource` en `platform-mcp-server.ts` | Retorna texto/JSON del recurso solicitado, validando acceso y existencia. |
-| `prompts/list` | SÍ | `handleListPrompts` en `platform-mcp-server.ts` | Provee catálogo de templates seguros de prompt corporativos. |
+| `initialize` | SÍ | `handleInitialize` / `createMcpHandler` SDK | Handshake legado (revisión `2024-11-05`), retorna capabilities y negocia versión. |
+| `server/discover` | SÍ | `handleDiscover` / `createMcpHandler` SDK | Descubrimiento moderno de servidor y capabilities (revisión `2026-07-28`) con envelope `_meta`. |
+| `ping` | SÍ | `McpServer` / `handleRequest` | Verificación de latencia liveness, retorna `{}`. |
+| `tools/list` | SÍ | `McpServer.registerTool` / `handleListTools` | Proyecta herramientas registradas con `inputSchema`, `outputSchema`, hints de ejecución (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`) y `schemaVersion`. |
+| `tools/call` | SÍ | `McpServer.registerTool` / `ToolInvocationRuntime` | Ejecuta herramienta gobernada con pipeline completo (RBAC, Rate Limiting, Idempotency, Budget, HITL). |
+| `resources/list` | SÍ | `McpServer.registerResource` / `handleListResources` | Expone recursos canónicos de plataforma (`platform://diagnostics/health`, `platform://tools/catalog`, `platform://governance/policies`). |
+| `resources/read` | SÍ | `McpServer.registerResource` / `handleReadResource` | Retorna texto/JSON del recurso solicitado, validando acceso y existencia. |
+| `prompts/list` | SÍ | `McpServer.registerPrompt` / `handleListPrompts` | Provee catálogo de templates seguros de prompt corporativos (`enterprise_audit_analysis`, `tool_safety_review`). |
 
 ---
 
