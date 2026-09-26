@@ -314,7 +314,7 @@ export class PlanExecutionEngine {
             action: step.action,
             toolId: toolTarget,
             toolVersion: step.toolVersion,
-            status: isCompensable ? "PENDING" : "NOT_COMPENSABLE",
+            status: isCompensable ? "PENDING" : (isReadOnly ? "READ_ONLY" : "NOT_COMPENSABLE"),
             isSideEffecting: !isReadOnly,
             forwardOutput: toolResult.output,
             startedAt: stepStart,
@@ -397,8 +397,8 @@ export class PlanExecutionEngine {
       const completedSteps = [...saga.compensationStack].reverse();
 
       for (const compRecord of completedSteps) {
-        if (compRecord.status === "NOT_COMPENSABLE") {
-          // Non-compensable side-effect: Cannot revert
+        if (compRecord.status === "NOT_COMPENSABLE" || compRecord.status === "READ_ONLY") {
+          // Non-compensable or read-only step: Nothing to revert
           continue;
         }
 

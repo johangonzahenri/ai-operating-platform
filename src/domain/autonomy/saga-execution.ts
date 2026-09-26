@@ -34,6 +34,7 @@ export type SagaState =
 
 export type StepCompensationStatus =
   | "NOT_COMPENSABLE"
+  | "READ_ONLY"
   | "PENDING"
   | "RUNNING"
   | "COMPENSATED"
@@ -207,14 +208,15 @@ export class SagaExecution {
     this._completedAt = new Date();
 
     const compensableSteps = this._compensationStack.filter(
-      (s) => s.status !== "NOT_COMPENSABLE"
+      (s) => s.status !== "NOT_COMPENSABLE" && s.status !== "READ_ONLY"
     );
 
     // If there were no compensable steps at all
     if (compensableSteps.length === 0) {
       // If there was a step that had side-effects but wasn't compensable
+      // (NOT_COMPENSABLE = unknown side effects; READ_ONLY = no side effects)
       const uncompensableSideEffects = this._compensationStack.some(
-        (s) => s.status === "NOT_COMPENSABLE" && s.isSideEffecting !== false
+        (s) => s.status === "NOT_COMPENSABLE"
       );
       if (uncompensableSideEffects) {
         this._state = "IN_DOUBT";
@@ -246,7 +248,7 @@ export class SagaExecution {
   }
 
   snapshot(): SagaSnapshot {
-    const compensable = this._compensationStack.filter((s) => s.status !== "NOT_COMPENSABLE");
+    const compensable = this._compensationStack.filter((s) => s.status !== "NOT_COMPENSABLE" && s.status !== "READ_ONLY");
     const compensated = compensable.filter((s) => s.status === "COMPENSATED").length;
     const failed = compensable.filter((s) => s.status === "FAILED").length;
     const inDoubt = compensable.filter((s) => s.status === "IN_DOUBT").length;
