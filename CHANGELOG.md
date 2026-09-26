@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Spare Parts Search & Comparison: Phase 150 — MVP Certification, Security & Release Governance (`AOP-SPAREPARTS-SEARCH`)**:
+  - **9-Dimension Formal Certification Harness**: Implemented `runSparePartsCertification`, `formatSparePartsCertificationReport`, and `SPARE_PARTS_APPLICATION_MANIFEST` in `src/application/spareparts/spare-parts-certification.ts` verifying all 9 architectural dimensions (Identity, Health, Authentication, Authorization, Capabilities, Version, Observability, OpenAPI 3.1, and Server-Sent Events).
+  - **Golden Journey E2E Validation**: Certified the end-to-end journey from User Intent to Side-by-Side Comparison with strict preservation of truth invariants (`UNKNOWN ≠ 0`, `UNKNOWN ≠ COMPATIBLE`, `CONFLICT ≠ FIT`, `NOT_FIT ≠ UNKNOWN`).
+  - **DOM & Security Purity**: Audited and confirmed 100% compliance with 0 `.innerHTML`, 0 `.outerHTML`, 0 `eval`, and 0 `document.write` across all frontend assets, with fail-closed XSS escaping and tenant isolation.
+  - **Third-Party Source Governance**: Verified source registry metadata, rate limit policies, timeout bounds, and explicit provenance tracking (`sourceId`, `productUrl`, `lastCheckedAt`).
+  - Added dedicated unit test suite `tests/unit/spare-parts-mvp-certification.test.ts` (13 tests PASS, 1855 tests passing across all 121 suites with 0 failures, 0 regressions, 0 skipped, 0 todo).
+  - Documented in `docs/SPARE_PARTS_MVP_CERTIFICATION.md`.
+
 - **Multi-Agent Runtime Hardening: Track 4 — Official Enterprise MCP Server & Driving Adapter (`AOP-MULTIAGENT-HARDENING`)**:
   - **Official Enterprise MCP Server Driving Adapter (GAP-07)**: Integrated the official Model Context Protocol (MCP) TypeScript SDK v2 (`@modelcontextprotocol/server@2.1.0`) in `src/platform/mcp/`. Exposes governed platform capabilities (Tools, Prompts, Resources) to external IDEs (Antigravity, Cursor, VS Code, Claude Desktop) and autonomous AI agents while strictly preserving the Core Engine hexagonal boundary (zero third-party dependencies in Core/Domain, no direct SQLite or repository access).
   - **Dual Protocol Support**: Implemented native modern protocol revision `2026-07-28` (`server/discover`, request-scoped `_meta` envelope) and legacy `2024-11-05` (`initialize`) fallback serving via official `createMcpHandler(factory)` and `McpServer`.

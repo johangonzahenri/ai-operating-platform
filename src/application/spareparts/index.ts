@@ -16,3 +16,4 @@ export * from "./seller-reputation-service.js";
 export * from "./price-intelligence-engine.js";
 export * from "./spare-parts-facade.js";
 export * from "./spare-parts-platform-adapter.js";
+export * from "./spare-parts-certification.js";
