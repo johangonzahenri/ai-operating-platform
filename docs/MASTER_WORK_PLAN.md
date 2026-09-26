@@ -1049,7 +1049,60 @@ Establecer los contratos de dominio, la máquina de estados determinista, la abs
 
 ---
 
-## 23. Checklist Global Obligatorio de Cierre de Fase
+## 23. FASE 154 — PROJ-01 TENTACIONES AI COMMERCE: On-Device Computer Vision Preprocessing & Pose/Garment Alignment Pipeline
+
+### Objetivo
+Implementar el motor determinista de visión computacional y geometría espacial para normalización de coordenadas (`PIXEL_SPACE` a `NORMALIZED_3D`), validación estricta de landmarks con política `UNKNOWN ≠ 0`, suavizado cinemático adaptativo de baja latencia mediante Filtro One-Euro, cálculo de ratios antropométricos relativos y anclaje con transformación afín 2D de prendas de vestir para **PROJ-01 Tentaciones AI Commerce**, sin introducir dependencias externas en el Core Engine.
+
+### Metadatos
+- **Estado Técnico**: `DONE`
+- **Estado Operativo**: `DONE`
+- **Prioridad**: `HIGH`
+- **Dependencias**: Fase 153 (Virtual Try-On Domain Modeling & AI Computer Vision Foundation Pipeline)
+- **Iniciativas Vinculadas**: `AOP-TENTACIONES-AR-3D-AI`
+- **Evidencia**: 1892 tests PASS (140 suites), 15 tests dedicados en `tests/unit/vto-pose-alignment.test.ts`.
+
+### Tareas
+
+#### 154.1 — Coordinate Normalization & Landmark Validation Engine
+- **Estado**: `DONE`
+- **Objetivo**: Formalizar topología canónica de 33 landmarks (`CanonicalLandmarkIndex`), conversión determinista a espacios unitarios $[0..1]$ e invariante `UNKNOWN ≠ 0` para landmarks con baja confianza u ocluidos.
+- **Evidencia**: `src/domain/vto/pose-types.ts`, `tests/unit/vto-pose-alignment.test.ts`.
+- **Archivos Afectados**: `src/domain/vto/pose-types.ts`, `src/domain/vto/index.ts`.
+
+#### 154.2 — One-Euro Adaptive Temporal Low-Pass Filter
+- **Estado**: `DONE`
+- **Objetivo**: Implementar algoritmo puramente matemático One-Euro (`LowPassFilter`, `OneEuroFilter`, `Point3DSmoother`) para eliminar jitter en reposo ($f_{c,\min}$) y minimizar retardo en movimiento rápido ($\beta$), tolerando timestamps desordenados y gaps.
+- **Evidencia**: `src/domain/vto/one-euro-filter.ts`, `tests/unit/vto-pose-alignment.test.ts`.
+- **Archivos Afectados**: `src/domain/vto/one-euro-filter.ts`, `src/domain/vto/index.ts`.
+
+#### 154.3 — Anthropometric Ratio Calculation Engine
+- **Estado**: `DONE`
+- **Objetivo**: Desarrollar cálculo de proporciones anatómicas relativas (`shoulderToHipRatio`, `torsoToLegRatio`, `armSpanRatio`, `bodyInclineAngleDeg`) con preservación de procedencia y trazabilidad de confiabilidad (`isReliable`).
+- **Evidencia**: `src/domain/vto/anthropometrics.ts`, `tests/unit/vto-pose-alignment.test.ts`.
+- **Archivos Afectados**: `src/domain/vto/anthropometrics.ts`, `src/domain/vto/index.ts`.
+
+#### 154.4 — Garment Anchoring & 2D Affine Transformation Engine
+- **Estado**: `DONE`
+- **Objetivo**: Mapear anclas primarias y secundarias por categoría de prenda (`UPPER_BODY`, `LOWER_BODY`, etc.), generar matriz afín 2D de rotación/escala/traslación y evaluar puntuación de calidad de alineación.
+- **Evidencia**: `src/domain/vto/garment-alignment.ts`, `tests/unit/vto-pose-alignment.test.ts`.
+- **Archivos Afectados**: `src/domain/vto/garment-alignment.ts`, `src/domain/vto/index.ts`.
+
+#### 154.5 — Preprocessing Pipeline Assembly & Golden Journey E2E Tests
+- **Estado**: `DONE`
+- **Objetivo**: Implementar `PosePreprocessingPipeline` ensamblando `PreparedVirtualTryOnInput` y verificar el pipeline E2E completo desde pose cruda hasta inferencia con el proveedor VTO.
+- **Evidencia**: `src/domain/vto/pose-preprocessing-pipeline.ts`, `tests/unit/vto-pose-alignment.test.ts`.
+- **Archivos Afectados**: `src/domain/vto/pose-preprocessing-pipeline.ts`, `src/domain/vto/index.ts`.
+
+#### 154.6 — Canonical Documentation & Governance Alignment
+- **Estado**: `DONE`
+- **Objetivo**: Publicar documentación de diseño técnico `docs/VTO_POSE_ALIGNMENT_PHASE_154.md`, sincronizar `MASTER_WORK_PLAN.md`, `ROADMAP_MASTER.md` y `CHANGELOG.md`.
+- **Evidencia**: `docs/VTO_POSE_ALIGNMENT_PHASE_154.md`, `docs/MASTER_WORK_PLAN.md`, `docs/ROADMAP_MASTER.md`, `CHANGELOG.md`.
+- **Archivos Afectados**: `docs/VTO_POSE_ALIGNMENT_PHASE_154.md`, `docs/MASTER_WORK_PLAN.md`, `docs/ROADMAP_MASTER.md`, `CHANGELOG.md`.
+
+---
+
+## 24. Checklist Global Obligatorio de Cierre de Fase
 
 Toda fase futura debe satisfacer el siguiente checklist integral antes de ser declarada `DONE`:
 
@@ -1074,9 +1127,9 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 24. Plantillas Oficiales de Registro
+## 25. Plantillas Oficiales de Registro
 
-### 24.1. Plantilla de Fase Futura
+### 25.1. Plantilla de Fase Futura
 
 ```markdown
 ## FASE X — [Título de la Fase]
@@ -1111,7 +1164,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 - X.1.1 — [Título del cambio si surge]
 ```
 
-### 24.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
+### 25.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
 
 ```markdown
 ### X.Y.Z — [Nombre del Cambio Imprevisto]
@@ -1130,7 +1183,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 25. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
+## 26. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
 
 Las siguientes líneas de trabajo constituyen el backlog estratégico aprobado. Se mantienen en estado `PLANNED`, `BACKLOG` o `EXPLORATORY` y no deben marcarse como `DONE` hasta contar con código y pruebas completas:
 
