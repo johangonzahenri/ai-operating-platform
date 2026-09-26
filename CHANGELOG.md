@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Spare Parts Search & Comparison: Phase 152 — Independent Certification Evidence Exit Gate & Portfolio Transition (`AOP-SPAREPARTS-SEARCH`)**:
+  - **Independent Evidence Classification**: Generated formal manifest `docs/integration-evidence/PHASE_152_CERTIFICATION_EVIDENCE.json` categorizing all release claims into reproducible software evidence (`LIVE_HTTP`, `INTEGRATION`, `UNIT`, `STATIC`) and declared external environmental dependencies (`ENVIRONMENT_PENDING`).
+  - **Architectural & Security Audit**: Verified fail-closed scope enforcement on `/spareparts/search` with no generic bypasses, 0 `.innerHTML`/`eval` in `src/platform/web/`, and absolute isolation between Core Engine, Platform adapters, and satellite applications.
+  - **Portfolio Transition Gate**: Formally closed evidence review for PROJ-02 (`MVP_CERTIFIED_WITH_OPEN_ENVIRONMENTAL_GAPS`) and aligned roadmap for next canonical initiative (`AOP-TENTACIONES-AR-3D-AI` / `PROJ-01`).
+
 - **Spare Parts Search & Comparison: Phase 151 — Post-Release Certification Evidence Hardening & Governance Reconciliation (`AOP-SPAREPARTS-SEARCH`)**:
   - **Live Gateway Authentication Hardening (H-01)**: Executed direct HTTP 401 negative authentication certification tests with missing and invalid API keys on live platform instance (`enforceSecurity: true`) and validated HTTP 200 with sanitized responses on valid credentials.
   - **Scoped Authorization & Tenant Isolation (H-02)**: Enforced `spareparts.search` scope check in HTTP router (`POST /spareparts/search`), rejecting tokens with insufficient scopes (e.g. `tasks.read`) with HTTP 403, and rejecting tenant/application mismatches.

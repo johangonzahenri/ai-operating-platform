@@ -961,10 +961,43 @@ Fortalecer y blindar la evidencia de certificación del producto satélite *Spar
 - **Evidencia**: `docs/SPARE_PARTS_MVP_CERTIFICATION.md`, `docs/MASTER_WORK_PLAN.md`, `npm run check`.
 - **Archivos Afectados**: `src/application/spareparts/spare-parts-certification.ts`, `docs/SPARE_PARTS_MVP_CERTIFICATION.md`, `docs/MASTER_WORK_PLAN.md`.
 
+---
+
+## 21. FASE 152 — Independent Certification Evidence Exit Gate & Portfolio Transition (PROJ-02-SPAREPARTS)
+
+### Objetivo
+Realizar la auditoría independiente de evidencia para **PROJ-02 — Spare Parts Search & Comparison**, categorizando objetivamente qué afirmaciones están probadas por ejecución reproducible (`LIVE_HTTP`, `INTEGRATION`, `UNIT`, `STATIC`) frente a dependencias externas pendientes (`ENVIRONMENT_PENDING`), generar el manifiesto formal `docs/integration-evidence/PHASE_152_CERTIFICATION_EVIDENCE.json`, cerrar el ciclo de evidencia y formalizar la compuerta de transición del portafolio.
+
+### Metadatos
+- **Estado Técnico**: `DONE`
+- **Estado Operativo**: `DONE`
+- **Prioridad**: `CRITICAL`
+- **Dependencias**: Fase 151 (Post-Release Certification Evidence Hardening)
+- **Iniciativas Vinculadas**: `AOP-SPAREPARTS-SEARCH`
+
+### Tareas
+
+#### 152.1 — Independent Claims Audit & Evidence Classification
+- **Estado**: `DONE`
+- **Objetivo**: Auditar independientemente las 7 afirmaciones de release (H-01 a H-07) distinguiendo evidencia reproducible en software de dependencias ambientales.
+- **Evidencia**: `docs/integration-evidence/PHASE_152_CERTIFICATION_EVIDENCE.json`, `docs/SPARE_PARTS_MVP_CERTIFICATION.md`.
+- **Archivos Afectados**: `docs/integration-evidence/PHASE_152_CERTIFICATION_EVIDENCE.json`, `docs/SPARE_PARTS_MVP_CERTIFICATION.md`.
+
+#### 152.2 — Security & Architectural Integrity Verification
+- **Estado**: `DONE`
+- **Objetivo**: Confirmar que no existen bypasses en el router HTTP (aislamiento de `spareparts.search` vs `tool.invoke`), preservar aislamiento multitenant y verificar 0 `.innerHTML`/`eval` en el código fuente.
+- **Evidencia**: Auditoría de código en `src/platform/api/http-router.ts`, `tests/unit/spare-parts-mvp-certification.test.ts`.
+- **Archivos Afectados**: `src/platform/api/http-router.ts`.
+
+#### 152.3 — Portfolio Transition Gate & Canonical Roadmap Alignment
+- **Estado**: `DONE`
+- **Objetivo**: Formalizar el cierre de evidencia del producto satélite PROJ-02 y evaluar la siguiente iniciativa canónica del Roadmap Maestro (`AOP-TENTACIONES-AR-3D-AI` / `PROJ-01` o `Línea C`).
+- **Evidencia**: `docs/MASTER_WORK_PLAN.md`, `docs/ROADMAP_MASTER.md`.
+- **Archivos Afectados**: `docs/MASTER_WORK_PLAN.md`, `docs/ROADMAP_MASTER.md`.
 
 ---
 
-## 21. Checklist Global Obligatorio de Cierre de Fase
+## 22. Checklist Global Obligatorio de Cierre de Fase
 
 Toda fase futura debe satisfacer el siguiente checklist integral antes de ser declarada `DONE`:
 
@@ -989,9 +1022,9 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 22. Plantillas Oficiales de Registro
+## 23. Plantillas Oficiales de Registro
 
-### 22.1. Plantilla de Fase Futura
+### 23.1. Plantilla de Fase Futura
 
 ```markdown
 ## FASE X — [Título de la Fase]
@@ -1026,7 +1059,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 - X.1.1 — [Título del cambio si surge]
 ```
 
-### 22.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
+### 23.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
 
 ```markdown
 ### X.Y.Z — [Nombre del Cambio Imprevisto]
@@ -1045,7 +1078,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 23. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
+## 24. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
 
 Las siguientes líneas de trabajo constituyen el backlog estratégico aprobado. Se mantienen en estado `PLANNED`, `BACKLOG` o `EXPLORATORY` y no deben marcarse como `DONE` hasta contar con código y pruebas completas:
 

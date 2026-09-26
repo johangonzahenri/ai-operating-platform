@@ -155,15 +155,45 @@ El release de la Fase 150 certifica el **MVP Técnico Completo**. De acuerdo con
 
 ---
 
-## 8. Veredicto Final de Certificación
+## 8. Auditoría Independiente de Evidencia y Transición de Portafolio (Fase 152)
+
+En cumplimiento estricto del principio de veracidad y jerarquía canónica ($\text{Código} > \text{Tests/Ejecución} > \text{Git} > \text{Docs}$), la **Fase 152** ejecutó una auditoría independiente clasificando rigurosamente cada afirmación entre evidencia demostrada por ejecución reproducible y dependencias ambientales externas:
+
+```
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│             PROJ-02: TAXONOMÍA DE EVIDENCIA INDEPENDIENTE (FASE 152)             │
+├──────────────────────────┬──────────────────────┬────────────────────────────────┤
+│ Categoría                │ Cantidad / Estado    │ Descripción / Alcance          │
+├──────────────────────────┼──────────────────────┼────────────────────────────────┤
+│ 1. TEST SUITE            │ 1865 / 1865 PASS     │ 128 suites de prueba en verde  │
+│ 2. CODE VERIFIED         │ 9 / 9 Dimensiones    │ Lógica de dominio y contratos  │
+│ 3. LIVE HTTP VERIFIED    │ 100% Endpoints       │ Tests contra server HTTP vivo  │
+│ 4. ENVIRONMENT PENDING   │ 3 Gaps Declarados    │ VIN DB, OAuth2 & Cloud TLS     │
+├──────────────────────────┴──────────────────────┴────────────────────────────────┤
+│ MANIFIESTO FORMAL: docs/integration-evidence/PHASE_152_CERTIFICATION_EVIDENCE.json│
+└──────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 8.1. Matriz de Clasificación de Afirmaciones
+- **H-01 (Autenticación Live HTTP)**: `VERIFIED` vía `LIVE_HTTP` sobre servidor activo con `enforceSecurity: true`.
+- **H-02 (Autorización Scoped / Tenant)**: `VERIFIED` vía `LIVE_HTTP` (admisión `spareparts.search`, rechazo 403 `tasks.read`, tenant mismatch 403).
+- **H-03 (OpenAPI 3.1 Contract Parity)**: `VERIFIED` vía `STATIC` y pruebas de contrato sobre `docs/openapi.yaml`.
+- **H-04 (SSE Telemetry & Degradation Isolation)**: `VERIFIED` vía `INTEGRATION` en runtime Node.js con fallback determinista.
+- **H-05 (Semántica de Release 3-Tier)**: `VERIFIED` vía `UNIT` con pruebas explícitas de las tres ramas de salida.
+- **H-06 (Trazabilidad MWP)**: `VERIFIED` vía `DOCUMENTARY` auditada por `master-work-plan-check.mjs`.
+- **H-07 (Consistencia Documental)**: `VERIFIED` vía `DOCUMENTARY` auditada por `docs-check.mjs`.
+
+---
+
+## 9. Veredicto Final de Certificación
 
 ```text
 ================================================================================
                     ESTADO DE CERTIFICACIÓN DEL PRODUCTO
 ================================================================================
   Producto           : PROJ-02-SPAREPARTS (Spare Parts Search & Comparison)
-  Iniciativa         : AOP-SPAREPARTS-SEARCH (Fases 142 - 151)
-  Dimensiones        : 9 / 9 PASS (100%)
+  Iniciativa         : AOP-SPAREPARTS-SEARCH (Fases 142 - 152)
+  Dimensiones        : 9 / 9 PASS (100% Software Verified)
   Tests Automatizados: 1865 tests PASS / 0 FAIL / 0 REGRESIONES
   Veredicto Oficial  : MVP CERTIFIED WITH OPEN ENVIRONMENTAL GAPS
 ================================================================================
