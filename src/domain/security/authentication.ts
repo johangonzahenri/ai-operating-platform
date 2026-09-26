@@ -143,7 +143,7 @@ export class ApiKeyRecord {
       roles: this.roles,
       permissions: [], // Authentication establishes identity only; authorization is evaluated by policy/RBAC
       tenantId: this.tenantId,
-      metadata: { keyId: this.id },
+      metadata: { keyId: this.id, ...(this.metadata ?? {}) },
     });
   }
 }

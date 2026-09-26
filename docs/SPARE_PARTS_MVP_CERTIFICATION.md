@@ -2,16 +2,16 @@
 
 > **Documento Oficial de Certificación:** `docs/SPARE_PARTS_MVP_CERTIFICATION.md`  
 > **Identificador de Proyecto:** `PROJ-02-SPAREPARTS`  
-> **Iniciativa Vinculada:** `AOP-SPAREPARTS-SEARCH` (Fase 150)  
+> **Iniciativa Vinculada:** `AOP-SPAREPARTS-SEARCH` (Fases 150 y 151)  
 > **Línea Base del Sistema:** v1.4.0 Baseline  
-> **Estado de Certificación:** `MVP CERTIFIED` (9/9 Dimensiones PASS, 100% Pruebas E2E & Seguridad)  
+> **Estado de Certificación:** `MVP CERTIFIED WITH OPEN ENVIRONMENTAL GAPS` (9/9 Dimensiones PASS, 100% Pruebas E2E & Seguridad)  
 > **Fecha de Evaluación:** 2026-09-26  
 
 ---
 
 ## 1. Resumen Ejecutivo de la Certificación
 
-La aplicación satélite **Spare Parts Search & Comparison** (`PROJ-02-SPAREPARTS`) ha sido sometida al arnés formal de certificación determinista de 9 dimensiones para aplicaciones satélite sobre la **AI Operating Platform**, de acuerdo con las directivas establecidas en la [Guía de Integración de Aplicaciones](./APPLICATION_INTEGRATION_GUIDE.md) y la [Carta Constitutiva del Producto](./PROJ_02_SPARE_PARTS_PRODUCT_CHARTER.md).
+La aplicación satélite **Spare Parts Search & Comparison** (`PROJ-02-SPAREPARTS`) ha sido sometida al arnés formal de certificación determinista de 9 dimensiones para aplicaciones satélite sobre la **AI Operating Platform**, de acuerdo con las directivas establecidas en la [Guía de Integración de Aplicaciones](./APPLICATION_INTEGRATION_GUIDE.md), la [Carta Constitutiva del Producto](./PROJ_02_SPARE_PARTS_PRODUCT_CHARTER.md) y el endurecimiento post-release de la **Fase 151** (resolución integral de hallazgos H-01 a H-07).
 
 El producto ha superado satisfactoriamente el **100% de las compuertas de calidad, seguridad y contratos de integración**, demostrando que opera como una aplicación satélite desacoplada sin dependencias prohibidas en el Core Engine (`src/core/`, `src/domain/`) ni accesos directos a persistencia interna.
 
@@ -23,15 +23,15 @@ El producto ha superado satisfactoriamente el **100% de las compuertas de calida
 ├───────────────────┼─────────┼───────────────────────────────────────────────┤
 │ 1. Identity       │  PASS   │ Identidad explícita 'spare-parts-store'       │
 │ 2. Health         │  PASS   │ Liveness, readiness y detección de degradación│
-│ 3. Authentication │  PASS   │ API Key / Bearer con error sanitization       │
-│ 4. Authorization  │  PASS   │ Tenant isolation y default-deny fail-closed   │
+│ 3. Authentication │  PASS   │ API Key / Bearer con error sanitization & live│
+│ 4. Authorization  │  PASS   │ Tenant isolation, default-deny y scope search │
 │ 5. Capabilities   │  PASS   │ spareparts.search en catálogo oficial         │
 │ 6. Version        │  PASS   │ Compatibilidad >= 1.4.0 (OpenAPI 3.1)         │
 │ 7. Observability  │  PASS   │ Trazabilidad traceId / requestId / tenantId   │
-│ 8. OpenAPI        │  PASS   │ Paridad 1:1 con contratos REST y SSE          │
+│ 8. OpenAPI        │  PASS   │ Paridad 1:1 con contratos REST y SSE (3.1.0)  │
 │ 9. SSE Telemetry  │  PASS   │ Monotonic Last-Event-ID y reconexión backoff  │
 ├───────────────────┴─────────┴───────────────────────────────────────────────┤
-│ RESULTADO GLOBAL: MVP CERTIFIED (9 / 9 DIMENSIONES APROBADAS)               │
+│ RESULTADO GLOBAL: MVP CERTIFIED WITH OPEN ENVIRONMENTAL GAPS (9/9 APROBADAS)│
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -141,16 +141,30 @@ El release de la Fase 150 certifica el **MVP Técnico Completo**. De acuerdo con
 
 ---
 
-## 7. Veredicto Final de Certificación
+## 7. Reconciliación de Evidencia Post-Release (Fase 151 — Hallazgos H-01 a H-07)
+
+| Hallazgo | Título | Resolución Técnica | Estado |
+| :--- | :--- | :--- | :---: |
+| **H-01** | Autenticación Live Gateway | Pruebas directas de HTTP 401 para key inválida / faltante y 200 con key válida sobre `enforceSecurity: true`. | **RESOLVED** |
+| **H-02** | Autorización Scoped | Enforzamiento estricto de scope `spareparts.search` en router HTTP; rechazo 403 para tokens insuficientes (`tasks.read`). | **RESOLVED** |
+| **H-03** | OpenAPI Contract Parity | Integración canónica de `POST /spareparts/search` y schemas asociados en `docs/openapi.yaml` (3.1.0). | **RESOLVED** |
+| **H-04** | SSE Telemetry Isolation | Verificación de streaming con `Last-Event-ID`, deduplicación determinista e inmunidad del flujo principal ante cortes SSE. | **RESOLVED** |
+| **H-05** | Semántica de Release 3-Tier | Tipado formal y evaluación canónica de los 3 estados: `MVP_CERTIFIED`, `MVP_CERTIFIED_WITH_OPEN_ENVIRONMENTAL_GAPS` y `MVP_NOT_CERTIFIED`. | **RESOLVED** |
+| **H-06** | Trazabilidad MWP | Reconciliación canónica en `docs/MASTER_WORK_PLAN.md` de la Fase 150 y apertura / completación de la Fase 151 (Tareas 151.1 - 151.5). | **RESOLVED** |
+| **H-07** | Alineación Documental | Sincronización libre de drift en `PROJ_02_SPARE_PARTS_PRODUCT_CHARTER.md`, `ROADMAP_MASTER.md` y `CHANGELOG.md`. | **RESOLVED** |
+
+---
+
+## 8. Veredicto Final de Certificación
 
 ```text
 ================================================================================
                     ESTADO DE CERTIFICACIÓN DEL PRODUCTO
 ================================================================================
   Producto           : PROJ-02-SPAREPARTS (Spare Parts Search & Comparison)
-  Iniciativa         : AOP-SPAREPARTS-SEARCH (Fases 142 - 150)
+  Iniciativa         : AOP-SPAREPARTS-SEARCH (Fases 142 - 151)
   Dimensiones        : 9 / 9 PASS (100%)
-  Tests Automatizados: 1855 tests PASS / 0 FAIL / 0 REGRESIONES
+  Tests Automatizados: 1865 tests PASS / 0 FAIL / 0 REGRESIONES
   Veredicto Oficial  : MVP CERTIFIED WITH OPEN ENVIRONMENTAL GAPS
 ================================================================================
 ```

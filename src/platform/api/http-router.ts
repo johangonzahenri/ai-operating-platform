@@ -545,6 +545,8 @@ export function createHttpServer(
             if (perm === "task.read" && action === "tasks.read") return true;
             if (perm === "tasks.create" && (action === "task.create" || action === "tasks.create")) return true;
             if (perm === "task.create" && action === "tasks.create") return true;
+            if (perm === "spareparts.search" && (action === "spareparts.search" || action === "tool.invoke")) return true;
+            if (perm === "spareparts:read" && (action === "spareparts.search" || action === "tool.invoke")) return true;
             return false;
           };
 
@@ -7385,7 +7387,7 @@ export function createHttpServer(
 
         // POST /spareparts/search (PROJ-02 Phase 148)
         if (subPath === "/spareparts/search" && req.method === "POST") {
-          const authCheck = await authenticateAndAuthorize("tool.invoke", "API", "spareparts", undefined, false);
+          const authCheck = await authenticateAndAuthorize("spareparts.search", "API", "spareparts", undefined, false);
           if (!authCheck.ok) {
             sendError(authCheck.status, authCheck.message, authCheck.code);
             return;

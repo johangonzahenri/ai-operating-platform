@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Spare Parts Search & Comparison: Phase 151 — Post-Release Certification Evidence Hardening & Governance Reconciliation (`AOP-SPAREPARTS-SEARCH`)**:
+  - **Live Gateway Authentication Hardening (H-01)**: Executed direct HTTP 401 negative authentication certification tests with missing and invalid API keys on live platform instance (`enforceSecurity: true`) and validated HTTP 200 with sanitized responses on valid credentials.
+  - **Scoped Authorization & Tenant Isolation (H-02)**: Enforced `spareparts.search` scope check in HTTP router (`POST /spareparts/search`), rejecting tokens with insufficient scopes (e.g. `tasks.read`) with HTTP 403, and rejecting tenant/application mismatches.
+  - **OpenAPI 3.1 Contract Parity (H-03)**: Added `/spareparts/search` operation and associated schemas (`SparePartsSearchRequest`, `SparePartsSearchResponse`, `VehicleSearchInput`, `SparePartsSearchCluster`, `TransparentPriceComparison`, `PriceComparisonOfferItem`, `SourceExecutionReport`, `FitmentVerificationResult`) to canonical `docs/openapi.yaml`. Updated certification harness to validate OpenAPI 3.1 file structure, schemas, and endpoints.
+  - **SSE Telemetry Protocol Semantics (H-04)**: Verified real streaming protocol semantics (`text/event-stream`), monotonic `Last-Event-ID`, deterministic deduplication, and isolation ensuring SSE transport degradation never blocks core search operations.
+  - **Three-Tier Release Status Semantics (H-05)**: Formalized certification status type `SparePartsReleaseStatus` (`MVP_CERTIFIED`, `MVP_CERTIFIED_WITH_OPEN_ENVIRONMENTAL_GAPS`, `MVP_NOT_CERTIFIED`) with automated assessment logic.
+  - **Master Work Plan & Documentation Reconciliation (H-06, H-07)**: Reconciled Phase 150 headers, opened and completed Phase 151 (Tasks 151.1–151.5) in `docs/MASTER_WORK_PLAN.md`, and updated `PROJ_02_SPARE_PARTS_PRODUCT_CHARTER.md`, `SPARE_PARTS_MVP_CERTIFICATION.md`, and `ROADMAP_MASTER.md`.
+  - Expanded `tests/unit/spare-parts-mvp-certification.test.ts` to 23 comprehensive tests (1865 tests PASS across all 121 suites with 0 failures, 0 regressions).
+
 - **Spare Parts Search & Comparison: Phase 150 — MVP Certification, Security & Release Governance (`AOP-SPAREPARTS-SEARCH`)**:
   - **9-Dimension Formal Certification Harness**: Implemented `runSparePartsCertification`, `formatSparePartsCertificationReport`, and `SPARE_PARTS_APPLICATION_MANIFEST` in `src/application/spareparts/spare-parts-certification.ts` verifying all 9 architectural dimensions (Identity, Health, Authentication, Authorization, Capabilities, Version, Observability, OpenAPI 3.1, and Server-Sent Events).
   - **Golden Journey E2E Validation**: Certified the end-to-end journey from User Intent to Side-by-Side Comparison with strict preservation of truth invariants (`UNKNOWN ≠ 0`, `UNKNOWN ≠ COMPATIBLE`, `CONFLICT ≠ FIT`, `NOT_FIT ≠ UNKNOWN`).

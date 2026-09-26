@@ -847,9 +847,17 @@ Conectar el producto satélite `PROJ-02-SPAREPARTS` a la **AI Operating Platform
 
 ---
 
-## 19. Roadmap Preliminar del Producto PROJ-02 (Fase 150)
+## 19. FASE 150 — Certificación de Aplicación, Seguridad y Release MVP (PROJ-02-SPAREPARTS)
 
-Las siguientes fases representan el plan de construcción del producto satélite *Spare Parts Search & Comparison* (`PROJ-02-SPAREPARTS`). Se declaran oficialmente en estado **`PLANNED / NOT_STARTED`** y no deben ejecutarse automáticamente sin un prompt de inicio específico:
+### Objetivo
+Certificar formalmente el release MVP del producto satélite *Spare Parts Search & Comparison* (`PROJ-02-SPAREPARTS` / `AOP-SPAREPARTS-SEARCH`) mediante un arnés determinista de 9 dimensiones, verificación E2E de invariantes de compatibilidad automotriz, auditoría de seguridad DOM (0 `innerHTML`) y empaquetado de release.
+
+### Metadatos
+- **Estado Técnico**: `DONE`
+- **Estado Operativo**: `DONE`
+- **Prioridad**: `CRITICAL`
+- **Dependencias**: Fases 142 a 149
+- **Iniciativas Vinculadas**: `AOP-SPAREPARTS-SEARCH`
 
 ```mermaid
 flowchart LR
@@ -860,6 +868,7 @@ flowchart LR
     F147 --> F148["Fase 148: UX & Comparador SPA (DONE)"]
     F148 --> F149["Fase 149: Integración AOP & SSE (DONE)"]
     F149 --> F150["Fase 150: Certificación MVP (DONE)"]
+    F150 --> F151["Fase 151: Evidence Hardening (DONE)"]
 ```
 
 | Fase | Título de la Fase | Estado Técnico | Estado Operativo | Entregable Clave |
@@ -872,8 +881,9 @@ flowchart LR
 | **148** | UX Web: Búsqueda, Filtros y Comparador Lado a Lado | `DONE` | `DONE` | Single-Page Application (0 `innerHTML`) con tabla comparativa y `SparePartsFacade`. |
 | **149** | Integración Profunda con AI Operating Platform | `DONE` | `DONE` | Adaptador satélite `@ai-platform/client` y telemetría SSE reactiva. |
 | **150** | Certificación de Aplicación, Seguridad y Release MVP | `DONE` | `DONE` | Arnés de certificación de 9 puntos (`runSparePartsCertification`), E2E y release packaging. |
+| **151** | Post-Release Certification Evidence Hardening | `DONE` | `DONE` | Gateway security live enforcement, OpenAPI contract, SSE deduplication & governance. |
 
-### Detalle de Tareas — FASE 150: Certificación de Aplicación, Seguridad y Release MVP
+### Tareas
 
 #### 150.1 — Certification Contract & Audit
 - **Estado**: `DONE`
@@ -905,10 +915,56 @@ flowchart LR
 - **Evidencia**: 1855 tests passing across all 121 test suites con 0 errores, 0 fallos, 0 regresiones.
 - **Archivos Afectados**: `docs/MASTER_WORK_PLAN.md`.
 
+---
+
+## 20. FASE 151 — Post-Release Certification Evidence Hardening & Governance Reconciliation (PROJ-02-SPAREPARTS)
+
+### Objetivo
+Fortalecer y blindar la evidencia de certificación del producto satélite *Spare Parts Search & Comparison* (`PROJ-02-SPAREPARTS`), demostrando de forma empírica y reproducible el enforcement en el gateway de seguridad real (`enforceSecurity: true`), verificación de scopes y capacidades, alineación contractual directa con la especificación OpenAPI 3.1 (`docs/openapi.yaml`), transporte y deduplicación de Server-Sent Events (SSE), y formalización de la semántica de tres estados de release (`MVP_CERTIFIED`, `MVP_CERTIFIED_WITH_OPEN_ENVIRONMENTAL_GAPS`, `MVP_NOT_CERTIFIED`).
+
+### Metadatos
+- **Estado Técnico**: `DONE`
+- **Estado Operativo**: `DONE`
+- **Prioridad**: `CRITICAL`
+- **Dependencias**: Fase 150 (`PROJ-02-SPAREPARTS` MVP Certification)
+- **Iniciativas Vinculadas**: `AOP-SPAREPARTS-SEARCH`
+
+### Tareas
+
+#### 151.1 — Hardened Gateway Authentication & Live SecurityContext Verification
+- **Estado**: `DONE`
+- **Objetivo**: Demostrar empíricamente contra el gateway HTTP con seguridad activa (`enforceSecurity: true`) el rechazo `401 UNAUTHORIZED` ante API key faltante o inválida, rechazo `403 TENANT_MISMATCH` ante manipulación de `X-Tenant-Id`, rechazo `403 APPLICATION_MISMATCH` ante identidad no autorizada, y autorización limpia `200 OK` con credencial válida.
+- **Evidencia**: `tests/unit/spare-parts-mvp-certification.test.ts` (Sección 2: Hardened Gateway Authentication Proofs).
+- **Archivos Afectados**: `src/platform/api/http-router.ts`, `src/application/spareparts/spare-parts-certification.ts`, `tests/unit/spare-parts-mvp-certification.test.ts`.
+
+#### 151.2 — Hardened Scoped Authorization & Capability Enforcement
+- **Estado**: `DONE`
+- **Objetivo**: Validar el control de acceso granular por scopes y permisos (`spareparts.search`, `spareparts.*`), demostrando denegación `403 INSUFFICIENT_SCOPE` ante API keys con permisos restringidos y admisión con scope adecuado.
+- **Evidencia**: `tests/unit/spare-parts-mvp-certification.test.ts` (Sección 3: Hardened Authorization & Scope Proofs).
+- **Archivos Afectados**: `src/platform/api/http-router.ts`, `tests/unit/spare-parts-mvp-certification.test.ts`.
+
+#### 151.3 — Canonical OpenAPI 3.1 Specification Contract Alignment
+- **Estado**: `DONE`
+- **Objetivo**: Integrar y validar formalmente la ruta `POST /spareparts/search` y sus esquemas (`SparePartsSearchRequest`, `SparePartsSearchResponse`, etc.) en la especificación canónica `docs/openapi.yaml`, verificando integridad referencial con `scripts/validate-openapi.mjs`.
+- **Evidencia**: `docs/openapi.yaml`, `tests/contract/openapi-contract.test.ts`, validación estructural automatizada en `runSparePartsCertification`.
+- **Archivos Afectados**: `docs/openapi.yaml`, `tests/contract/openapi-contract.test.ts`, `src/application/spareparts/spare-parts-certification.ts`.
+
+#### 151.4 — Server-Sent Events (SSE) Protocol & Resilience Verification
+- **Estado**: `DONE`
+- **Objetivo**: Validar el ciclo de vida del flujo SSE (`spareparts.search.started`, `spareparts.source.completed`, `spareparts.search.completed`), deduplicación estricta de eventos idénticos, propagación de trazas/tenants, y degradación elegante (`SSE down ≠ search failure`).
+- **Evidencia**: `tests/unit/spare-parts-mvp-certification.test.ts` (Sección 4: Hardened Server-Sent Events Protocol & Resilience).
+- **Archivos Afectados**: `src/application/spareparts/spare-parts-telemetry-manager.ts`, `tests/unit/spare-parts-mvp-certification.test.ts`.
+
+#### 151.5 — Release Status Semantics & Final Quality Gate Verification
+- **Estado**: `DONE`
+- **Objetivo**: Formalizar y testear los tres estados de release (`MVP_CERTIFIED`, `MVP_CERTIFIED_WITH_OPEN_ENVIRONMENTAL_GAPS`, `MVP_NOT_CERTIFIED`), actualizar la documentación de gobernanza y ejecutar el Quality Gate completo (100% tests PASS, 0 fallos, 0 regresiones).
+- **Evidencia**: `docs/SPARE_PARTS_MVP_CERTIFICATION.md`, `docs/MASTER_WORK_PLAN.md`, `npm run check`.
+- **Archivos Afectados**: `src/application/spareparts/spare-parts-certification.ts`, `docs/SPARE_PARTS_MVP_CERTIFICATION.md`, `docs/MASTER_WORK_PLAN.md`.
+
 
 ---
 
-## 17. Checklist Global Obligatorio de Cierre de Fase
+## 21. Checklist Global Obligatorio de Cierre de Fase
 
 Toda fase futura debe satisfacer el siguiente checklist integral antes de ser declarada `DONE`:
 
@@ -933,9 +989,9 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 18. Plantillas Oficiales de Registro
+## 22. Plantillas Oficiales de Registro
 
-### 18.1. Plantilla de Fase Futura
+### 22.1. Plantilla de Fase Futura
 
 ```markdown
 ## FASE X — [Título de la Fase]
@@ -970,7 +1026,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 - X.1.1 — [Título del cambio si surge]
 ```
 
-### 18.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
+### 22.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
 
 ```markdown
 ### X.Y.Z — [Nombre del Cambio Imprevisto]
@@ -989,7 +1045,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 19. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
+## 23. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
 
 Las siguientes líneas de trabajo constituyen el backlog estratégico aprobado. Se mantienen en estado `PLANNED`, `BACKLOG` o `EXPLORATORY` y no deben marcarse como `DONE` hasta contar con código y pruebas completas:
 

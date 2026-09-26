@@ -46,6 +46,8 @@ tags:
     description: Satellite application registry, manifest validation and scaffolding factory
   - name: Devices & Hardware
     description: Peripheral business devices, printing spooler and hardware probes
+  - name: Spare Parts & Automotive
+    description: Automotive parts discovery, deterministic fitment verification and multi-source price comparison
 
 paths:
   /status:
@@ -1689,6 +1691,34 @@ paths:
                 items:
                   $ref: '#/components/schemas/BusinessDevice'
 
+  /spareparts/search:
+    post:
+      tags: [Spare Parts & Automotive]
+      summary: Multi-source automotive spare parts search, deterministic fitment and transparent price comparison
+      operationId: searchSpareParts
+      security:
+        - apiKeyAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SparePartsSearchRequest'
+      responses:
+        '200':
+          description: Search and comparison results clustered by canonical part identity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SparePartsSearchResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
   /devices/{id}/print-jobs:
     get:
       tags: [Devices & Hardware]
@@ -1733,6 +1763,151 @@ paths:
 
 components:
   schemas:
+    SparePartsSearchRequest:
+      type: object
+      required: [query]
+      properties:
+        query:
+          type: string
+          description: Natural language or structured query for automotive spare parts
+        vehicle:
+          $ref: '#/components/schemas/VehicleSearchInput'
+        options:
+          type: object
+          properties:
+            comparisonCurrency: { type: string }
+            requestedQuantity: { type: integer }
+            targetDestinationCountry: { type: string }
+            targetDestinationRegion: { type: string }
+            maxBudgetMs: { type: integer }
+            allowedSources:
+              type: array
+              items: { type: string }
+
+    VehicleSearchInput:
+      type: object
+      required: [make, model, year]
+      properties:
+        make: { type: string }
+        model: { type: string }
+        year: { type: integer }
+        generation: { type: string }
+        engine: { type: string }
+        market: { type: string }
+
+    SparePartsSearchResponse:
+      type: object
+      required: [searchId, queryText, status, executionTimeMs, totalOffersFound, clustersCount, clusters]
+      properties:
+        searchId: { type: string }
+        queryText: { type: string }
+        targetVehicle: { type: object }
+        status:
+          type: string
+          enum: [SUCCESS, PARTIAL_SUCCESS, NO_RESULTS, FAILED]
+        executionTimeMs: { type: number }
+        sourceReports:
+          type: array
+          items:
+            $ref: '#/components/schemas/SourceExecutionReport'
+        totalOffersFound: { type: integer }
+        clustersCount: { type: integer }
+        clusters:
+          type: array
+          items:
+            $ref: '#/components/schemas/SparePartsSearchCluster'
+        warnings:
+          type: array
+          items: { type: string }
+
+    SourceExecutionReport:
+      type: object
+      required: [sourceId, sourceName, status, latencyMs, offersFound]
+      properties:
+        sourceId: { type: string }
+        sourceName: { type: string }
+        status:
+          type: string
+          enum: [SUCCESS, DEGRADED, TIMEOUT, ERROR]
+        latencyMs: { type: number }
+        offersFound: { type: integer }
+        error: { type: string }
+
+    SparePartsSearchCluster:
+      type: object
+      required: [clusterId, canonicalPartNumber, canonicalBrand, description, offerCount, comparison]
+      properties:
+        clusterId: { type: string }
+        canonicalPartNumber: { type: string }
+        canonicalBrand: { type: string }
+        description: { type: string }
+        offerCount: { type: integer }
+        comparison:
+          $ref: '#/components/schemas/TransparentPriceComparison'
+        fitmentResult:
+          $ref: '#/components/schemas/FitmentVerificationResult'
+
+    TransparentPriceComparison:
+      type: object
+      required: [currency, items]
+      properties:
+        currency: { type: string }
+        bestBasePrice: { type: object }
+        bestTotalCost: { type: object }
+        highestTrustSeller: { type: object }
+        recommendedOffer: { type: object }
+        priceSpread: { type: object }
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PriceComparisonOfferItem'
+
+    PriceComparisonOfferItem:
+      type: object
+      required: [sourceId, sellerName, sellerTrust, basePrice, totalCost]
+      properties:
+        sourceId: { type: string }
+        sellerName: { type: string }
+        sellerTrust:
+          type: object
+          properties:
+            score: { type: number }
+            ratingCount: { type: integer }
+            verified: { type: boolean }
+        basePrice:
+          type: object
+          properties:
+            amount: { type: number }
+            currency: { type: string }
+        shippingCost:
+          type: object
+          properties:
+            amount: { type: number }
+            currency: { type: string }
+        totalCost:
+          type: object
+          properties:
+            amount: { type: number }
+            currency: { type: string }
+        availability: { type: string }
+        deliveryDaysEstimated: { type: integer }
+        productUrl: { type: string }
+
+    FitmentVerificationResult:
+      type: object
+      required: [verdict, confidence]
+      properties:
+        verdict:
+          type: string
+          enum: [FIT, NOT_FIT, UNKNOWN, CONFLICT]
+        confidence: { type: number }
+        reasons:
+          type: array
+          items: { type: string }
+        verifiedOemNumbers:
+          type: array
+          items: { type: string }
+
     PlatformStatus:
       type: object
       required: [status, uptime, version, coreEngine, storage]

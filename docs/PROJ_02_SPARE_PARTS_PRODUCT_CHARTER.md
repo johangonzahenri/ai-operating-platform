@@ -191,7 +191,11 @@ flowchart TD
 
 ## 7. Roadmap del Producto — Fases Preliminares Candidatas
 
-Las siguientes fases se registran en el **Master Work Plan** en estado `PLANNED / NOT_STARTED`:
+> [!NOTE]
+> **Nota Canónica de Gobernanza y Mapeo de Fases:**  
+> En la planificación preliminar del charter se esbozó la secuencia tentativa 141-149. Conforme a la decisión canónica formalizada en [`docs/MASTER_WORK_PLAN.md`](./MASTER_WORK_PLAN.md) (Decisión 141.1.1) y la jerarquía de verdad de [`docs/SOURCE_OF_TRUTH.md`](./SOURCE_OF_TRUTH.md), la ejecución oficial fue estructurada en las **Fases 142 a 150**, culminando en la **Fase 150 (Certificación de Aplicación, Seguridad y Release MVP)** y la **Fase 151 (Post-Release Certification Evidence Hardening)**.
+
+Las fases preliminares de referencia histórica registradas en el diseño inicial fueron:
 
 | Fase | Título de la Fase | Entregable Principal |
 | :--- | :--- | :--- |

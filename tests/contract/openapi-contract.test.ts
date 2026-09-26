@@ -94,6 +94,7 @@ test("OpenAPI 3.1 Specification Contract: Core Domain Paths Coverage", () => {
     "/factory/validate",
     "/devices",
     "/devices/{id}/print-jobs",
+    "/spareparts/search",
   ];
 
   for (const reqPath of requiredPaths) {
