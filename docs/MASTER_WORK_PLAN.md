@@ -997,7 +997,59 @@ Realizar la auditoría independiente de evidencia para **PROJ-02 — Spare Parts
 
 ---
 
-## 22. Checklist Global Obligatorio de Cierre de Fase
+## 22. FASE 153 — PROJ-01 TENTACIONES AI COMMERCE: Virtual Try-On Domain Modeling & AI Computer Vision Foundation Pipeline
+
+### Objetivo
+Establecer los contratos de dominio, la máquina de estados determinista, la abstracción hexagonal de proveedores (`VirtualTryOnProviderPort`), la implementación de simulación determinista (`DeterministicFakeVtoProvider`), el servicio de aplicación orquestador (`VirtualTryOnService`), las políticas de privacidad y el adaptador satélite `TentacionesVtoAdapter` para habilitar las capacidades de Virtual Try-On y Spatial Commerce de **PROJ-01 Tentaciones AI Commerce** sin introducir dependencias directas ni vendor lock-in en el Core Engine.
+
+### Metadatos
+- **Estado Técnico**: `DONE`
+- **Estado Operativo**: `DONE`
+- **Prioridad**: `HIGH`
+- **Dependencias**: Fase 152 (Independent Certification Evidence Exit Gate)
+- **Iniciativas Vinculadas**: `AOP-TENTACIONES-AR-3D-AI`
+
+### Tareas
+
+#### 153.1 — VTO Domain Aggregate Root & Invariants
+- **Estado**: `DONE`
+- **Objetivo**: Modelar agregados tipados `VirtualTryOnJob`, referencias de prendas (`GarmentReference`), perfiles anatómicos (`BodyProfileReference`), referencias de imagen (`ImageAssetReference`), metadatos de inferencia y políticas de privacidad por diseño.
+- **Evidencia**: `src/domain/vto/virtual-tryon.ts`, `tests/unit/vto-domain-foundation.test.ts`.
+- **Archivos Afectados**: `src/domain/vto/virtual-tryon.ts`, `src/domain/vto/index.ts`.
+
+#### 153.2 — Deterministic State Machine & Lifecycle Transitions
+- **Estado**: `DONE`
+- **Objetivo**: Implementar máquina de estados determinista (`CREATED -> VALIDATING -> QUEUED -> RUNNING -> COMPLETED | FAILED | CANCELLED | EXPIRED`), transiciones protegidas contra estados terminales y reintentos acotados.
+- **Evidencia**: `src/domain/vto/virtual-tryon.ts`, `tests/unit/vto-domain-foundation.test.ts`.
+- **Archivos Afectados**: `src/domain/vto/virtual-tryon.ts`.
+
+#### 153.3 — Hexagonal Provider Port & Deterministic Fake Provider
+- **Estado**: `DONE`
+- **Objetivo**: Diseñar el puerto de proveedor `VirtualTryOnProviderPort` e implementar `DeterministicFakeVtoProvider` con simulación de latencia, fallos controlados, evaluación antropométrica de calce (`FitAssessment`) y generación de artefactos virtuales.
+- **Evidencia**: `src/domain/vto/virtual-tryon-provider.ts`, `tests/unit/vto-domain-foundation.test.ts`.
+- **Archivos Afectados**: `src/domain/vto/virtual-tryon-provider.ts`.
+
+#### 153.4 — Application Service, Privacy Contracts & Idempotency
+- **Estado**: `DONE`
+- **Objetivo**: Implementar `VirtualTryOnService` coordinando validación de privacidad (TTL acotado para `EPHEMERAL_SESSION`), almacenamiento idempotente en memoria y resolución de proveedores.
+- **Evidencia**: `src/application/vto/virtual-tryon-service.ts`, `tests/unit/vto-domain-foundation.test.ts`.
+- **Archivos Afectados**: `src/application/vto/virtual-tryon-service.ts`, `src/application/vto/index.ts`.
+
+#### 153.5 — Satellite Adapter & Golden Journey E2E Tests
+- **Estado**: `DONE`
+- **Objetivo**: Implementar `TentacionesVtoAdapter` y validar el Golden Journey completo de extremo a extremo sin dependencias de infraestructura real externa.
+- **Evidencia**: `src/application/vto/tentaciones-vto-adapter.ts`, `tests/unit/vto-domain-foundation.test.ts` (12 tests PASS).
+- **Archivos Afectados**: `src/application/vto/tentaciones-vto-adapter.ts`, `tests/unit/vto-domain-foundation.test.ts`.
+
+#### 153.6 — Architectural Documentation & Governance Alignment
+- **Estado**: `DONE`
+- **Objetivo**: Sincronizar la documentación técnica canónica, registrar el estado en el Master Work Plan y actualizar el Roadmap Maestro.
+- **Evidencia**: `docs/MASTER_WORK_PLAN.md`, `docs/ROADMAP_MASTER.md`, `CHANGELOG.md`.
+- **Archivos Afectados**: `docs/MASTER_WORK_PLAN.md`, `docs/ROADMAP_MASTER.md`, `CHANGELOG.md`.
+
+---
+
+## 23. Checklist Global Obligatorio de Cierre de Fase
 
 Toda fase futura debe satisfacer el siguiente checklist integral antes de ser declarada `DONE`:
 
@@ -1022,9 +1074,9 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 23. Plantillas Oficiales de Registro
+## 24. Plantillas Oficiales de Registro
 
-### 23.1. Plantilla de Fase Futura
+### 24.1. Plantilla de Fase Futura
 
 ```markdown
 ## FASE X — [Título de la Fase]
@@ -1059,7 +1111,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 - X.1.1 — [Título del cambio si surge]
 ```
 
-### 23.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
+### 24.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
 
 ```markdown
 ### X.Y.Z — [Nombre del Cambio Imprevisto]
@@ -1078,7 +1130,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 24. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
+## 25. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
 
 Las siguientes líneas de trabajo constituyen el backlog estratégico aprobado. Se mantienen en estado `PLANNED`, `BACKLOG` o `EXPLORATORY` y no deben marcarse como `DONE` hasta contar con código y pruebas completas:
 

@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Tentaciones AI Commerce: Phase 153 — Virtual Try-On Domain Modeling & AI Computer Vision Foundation Pipeline (`AOP-TENTACIONES-AR-3D-AI`, `PROJ-01`)**:
+  - **VTO Domain Model & Aggregate Roots**: Implemented `VirtualTryOnJob`, `GarmentReference`, `BodyProfileReference`, `ImageAssetReference`, `PoseReference`, and `VirtualTryOnPrivacyPolicy` in `src/domain/vto/virtual-tryon.ts` with zero external dependencies and strict hexagonal boundary.
+  - **Deterministic State Machine**: Modeled explicit lifecycle transitions (`CREATED -> VALIDATING -> QUEUED -> RUNNING -> COMPLETED | FAILED | CANCELLED | EXPIRED`), terminal state protections, and bounded retry semantics.
+  - **Hexagonal Provider Port & Deterministic Simulation**: Defined `VirtualTryOnProviderPort` and implemented `DeterministicFakeVtoProvider` in `src/domain/vto/virtual-tryon-provider.ts` supporting realistic anthropometric fit scoring (`FitAssessment`), artifact generation (`FINAL_COMPOSITE_IMAGE`, `DEPTH_MAP`), latency simulation, and failure injection.
+  - **Application Service & Privacy by Design**: Created `VirtualTryOnService` in `src/application/vto/virtual-tryon-service.ts` enforcing TTL bounds for `EPHEMERAL_SESSION` mode, zero-retention defaults, and memory-backed idempotency.
+  - **Satellite Application Adapter**: Implemented `TentacionesVtoAdapter` in `src/application/vto/tentaciones-vto-adapter.ts` with correlated traceId/requestId propagation and timeout resilience.
+  - Added comprehensive test suite `tests/unit/vto-domain-foundation.test.ts` (12 tests PASS, 1877 tests passing across all 134 suites with 0 failures, 0 regressions).
+
 - **Spare Parts Search & Comparison: Phase 152 — Independent Certification Evidence Exit Gate & Portfolio Transition (`AOP-SPAREPARTS-SEARCH`)**:
   - **Independent Evidence Classification**: Generated formal manifest `docs/integration-evidence/PHASE_152_CERTIFICATION_EVIDENCE.json` categorizing all release claims into reproducible software evidence (`LIVE_HTTP`, `INTEGRATION`, `UNIT`, `STATIC`) and declared external environmental dependencies (`ENVIRONMENT_PENDING`).
   - **Architectural & Security Audit**: Verified fail-closed scope enforcement on `/spareparts/search` with no generic bypasses, 0 `.innerHTML`/`eval` in `src/platform/web/`, and absolute isolation between Core Engine, Platform adapters, and satellite applications.
