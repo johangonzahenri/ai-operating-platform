@@ -1155,7 +1155,60 @@ Construir la infraestructura determinista de segmentación corporal y de prendas
 
 ---
 
-## 25. Checklist Global Obligatorio de Cierre de Fase
+## 25. FASE 156 — PROJ-01 TENTACIONES AI COMMERCE: Dynamic Depth Occlusion & Material Appearance Pipeline
+
+### Objetivo
+Construir el modelo determinista de profundidad relativa monocular, resolución de oclusiones dinámicas complejas entre cuerpo y prendas mediante histéresis temporal, modelado físico y de procedencia de materiales de prendas (`GarmentMaterialProfile`, `MaterialAppearanceHints`) y composición multicapa guiada por profundidad (`DepthAwareCompositor`, `DepthMaterialPipeline`) para **PROJ-01 Tentaciones AI Commerce**, preservando los invariantes `UNKNOWN_DEPTH ≠ ZERO`, `UNKNOWN_OCCLUSION ≠ VISIBLE` y `UNKNOWN_MATERIAL ≠ DEFAULT` sin acoplar frameworks gráficos pesados al Core Engine.
+
+### Metadatos
+- **Estado Técnico**: `DONE`
+- **Estado Operativo**: `DONE`
+- **Prioridad**: `HIGH`
+- **Dependencias**: Fase 155 (Neural Garment Warping & Multi-Layer Cloth Segmentation Pipeline)
+- **Iniciativas Vinculadas**: `AOP-TENTACIONES-AR-3D-AI`
+- **Evidencia**: 1927 tests PASS (154 suites), 17 tests dedicados en `tests/unit/vto-depth-material.test.ts`.
+
+### Tareas
+
+#### 156.1 — Relative Depth Domain Model & Fail-Closed Validation Engine
+- **Estado**: `DONE`
+- **Objetivo**: Modelar contratos `DepthMap`, formatos (`FLOAT32`, `UINT16_MM`, `UINT8_NORMALIZED`), tipos de profundidad (`RELATIVE_DEPTH`, `METRIC_DEPTH`, `DISPARITY_MAP`, `NORMALIZED_DEPTH`, `UNKNOWN_DEPTH`) y validador fail-closed con invariante `UNKNOWN_DEPTH ≠ ZERO` y `UNKNOWN_DEPTH ≠ FAR`.
+- **Evidencia**: `src/domain/vto/depth-types.ts`, `tests/unit/vto-depth-material.test.ts`.
+- **Archivos Afectados**: `src/domain/vto/depth-types.ts`, `src/domain/vto/index.ts`.
+
+#### 156.2 — Hexagonal Depth Estimation Provider Port & Deterministic Fake Provider
+- **Estado**: `DONE`
+- **Objetivo**: Diseñar puerto `DepthProviderPort` con comprobación de salud y capacidades explícitas (`RELATIVE_DEPTH_ESTIMATION`, `METRIC_DEPTH_ESTIMATION`, `CONFIDENCE_MAP`, `DEPTH_OCCLUSION`), e implementar `DeterministicFakeDepthProvider` con generación sintética de escenas (`BODY_CENTERED`, `GARMENT_FOREGROUND`, `CROSSING_OCCLUSION`, `LINEAR_GRADIENT`, `FLAT`), latencia simulada y degradación fail-closed.
+- **Evidencia**: `src/domain/vto/depth-provider.ts`, `tests/unit/vto-depth-material.test.ts`.
+- **Archivos Afectados**: `src/domain/vto/depth-provider.ts`, `src/domain/vto/index.ts`.
+
+#### 156.3 — Dynamic Depth-Aware Occlusion Resolver with Temporal Hysteresis
+- **Estado**: `DONE`
+- **Objetivo**: Implementar `DynamicOcclusionResolver` evaluando $\Delta z = z_{garment} - z_{body}$ con umbral $\epsilon$, clasificación geométrica (`GARMENT_IN_FRONT`, `GARMENT_BEHIND`, `SAME_DEPTH`, `UNKNOWN`) e histéresis temporal de doble umbral (`enterOcclusionThreshold` / `exitOcclusionThreshold`) para eliminar artefactos de parpadeo en bordes anatómicos.
+- **Evidencia**: `src/domain/vto/dynamic-occlusion.ts`, `tests/unit/vto-depth-material.test.ts`.
+- **Archivos Afectados**: `src/domain/vto/dynamic-occlusion.ts`, `src/domain/vto/index.ts`.
+
+#### 156.4 — Garment Material Profile & Optical Appearance Hints
+- **Estado**: `DONE`
+- **Objetivo**: Modelar `GarmentMaterialProfile` con categorías de superficie taxonómicas, procedencia explícita (`CATALOG_PROVIDED`, `USER_PROVIDED`, `INFERRED`, `DEFAULT`, `UNKNOWN`), parámetros físicos acotados (rugosidad, metallicidad, nivel especular, opacidad) y derivación neutral a la iluminación de `MaterialAppearanceHints`.
+- **Evidencia**: `src/domain/vto/material-types.ts`, `tests/unit/vto-depth-material.test.ts`.
+- **Archivos Afectados**: `src/domain/vto/material-types.ts`, `src/domain/vto/index.ts`.
+
+#### 156.5 — Depth-Aware Multi-Layer Composition & Fallback Coordinator
+- **Estado**: `DONE`
+- **Objetivo**: Desarrollar `DepthAwareCompositor` extendiendo la composición multicapa de Fase 155 para reordenar dinámicamente capas ocluidas por la geometría corporal, con fallback automático y seguro a orden Z estático ante profundidad degradada.
+- **Evidencia**: `src/domain/vto/depth-aware-compositor.ts`, `tests/unit/vto-depth-material.test.ts`.
+- **Archivos Afectados**: `src/domain/vto/depth-aware-compositor.ts`, `src/domain/vto/index.ts`.
+
+#### 156.6 — Pipeline Assembly, E2E Golden Journey & Technical Documentation
+- **Estado**: `DONE`
+- **Objetivo**: Implementar `DepthMaterialPipeline` coordinando la cadena completa desde `PreparedVirtualTryOnInput` hasta `DepthMaterialRenderInput` con artefactos canónicos (`DEPTH_MAP`, `DYNAMIC_OCCLUSION_MAP`, `MATERIAL_PROFILE`, `DEPTH_AWARE_COMPOSITION`), validar Golden Journey E2E completo y emitir `docs/VTO_DEPTH_MATERIAL_PHASE_156.md`.
+- **Evidencia**: `src/domain/vto/depth-material-pipeline.ts`, `docs/VTO_DEPTH_MATERIAL_PHASE_156.md`, `tests/unit/vto-depth-material.test.ts`.
+- **Archivos Afectados**: `src/domain/vto/depth-material-pipeline.ts`, `docs/VTO_DEPTH_MATERIAL_PHASE_156.md`, `docs/MASTER_WORK_PLAN.md`, `docs/ROADMAP_MASTER.md`, `CHANGELOG.md`.
+
+---
+
+## 26. Checklist Global Obligatorio de Cierre de Fase
 
 Toda fase futura debe satisfacer el siguiente checklist integral antes de ser declarada `DONE`:
 

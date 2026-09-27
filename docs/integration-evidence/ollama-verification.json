@@ -1,8 +1,8 @@
 {
-  "traceId": "trace-verify-ollama-6153174f",
+  "traceId": "trace-verify-ollama-46bf0d77",
   "provider": "ollama",
   "environment": "local",
-  "verifiedAt": "2026-09-26T18:35:39.251Z",
+  "verifiedAt": "2026-09-27T13:52:53.609Z",
   "status": "OPERATIONAL",
   "latencyMs": 5,
   "metadata": {
