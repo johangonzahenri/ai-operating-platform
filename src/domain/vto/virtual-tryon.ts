@@ -149,8 +149,14 @@ export type ArtifactKind =
   | "PREVIEW_THUMBNAIL"
   | "DEPTH_MAP"
   | "SEGMENTATION_MASK"
-  | "POSE_LANDMARKS_JSON"
+  | "GARMENT_MASK"
+  | "BODY_MASK"
+  | "OCCLUSION_MAP"
+  | "WARP_FIELD"
+  | "WARPED_GARMENT"
   | "WARPED_GARMENT_TEXTURE"
+  | "COMPOSITE_PREVIEW"
+  | "POSE_LANDMARKS_JSON"
   | "FIT_ANALYSIS_REPORT";
 
 export interface VirtualTryOnArtifact {

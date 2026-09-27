@@ -1102,7 +1102,60 @@ Implementar el motor determinista de visión computacional y geometría espacial
 
 ---
 
-## 24. Checklist Global Obligatorio de Cierre de Fase
+## 24. FASE 155 — PROJ-01 TENTACIONES AI COMMERCE: Neural Garment Warping & Multi-Layer Cloth Segmentation Pipeline
+
+### Objetivo
+Construir la infraestructura determinista de segmentación corporal y de prendas, mapeo de oclusiones anatómicas, campo continuo de deformación 2D (`WarpField2D`) con interpolación bilineal, motor de deformación de prendas con degradación controlada y compositor estructural multicapa para **PROJ-01 Tentaciones AI Commerce**, estableciendo puertos desacoplados para futuros proveedores neurales externos sin introducir frameworks gráficos ni modelos pesados en el Core Engine.
+
+### Metadatos
+- **Estado Técnico**: `DONE`
+- **Estado Operativo**: `DONE`
+- **Prioridad**: `HIGH`
+- **Dependencias**: Fase 154 (On-Device Computer Vision Preprocessing & Pose/Garment Alignment Pipeline)
+- **Iniciativas Vinculadas**: `AOP-TENTACIONES-AR-3D-AI`
+- **Evidencia**: 1910 tests PASS (147 suites), 18 tests dedicados en `tests/unit/vto-garment-warping.test.ts`.
+
+### Tareas
+
+#### 155.1 — Segmentation Domain Contracts & Mask Validation Engine
+- **Estado**: `DONE`
+- **Objetivo**: Modelar contratos `SegmentationMask`, formatos (`SOFT_PROBABILITY_MAP`, `BINARY_MAP`, `INDEXED_LABELS`), clases taxonómicas (`PERSON`, `GARMENT`, `OCCLUSION`), mapa de oclusión (`OcclusionMap`) y validador fail-closed con invariante `UNKNOWN ≠ ZERO`.
+- **Evidencia**: `src/domain/vto/segmentation-types.ts`, `tests/unit/vto-garment-warping.test.ts`.
+- **Archivos Afectados**: `src/domain/vto/segmentation-types.ts`, `src/domain/vto/index.ts`.
+
+#### 155.2 — Hexagonal Segmentation Provider Port & Deterministic Fake Provider
+- **Estado**: `DONE`
+- **Objetivo**: Diseñar puerto `SegmentationProviderPort` con descubrimiento explícito de capacidades (`SEGMENTATION`, `SOFT_MASK`, `OCCLUSION`) e implementar `DeterministicFakeSegmentationProvider` con generación de máscaras sintéticas, simulación de latencia y fallos controlados.
+- **Evidencia**: `src/domain/vto/segmentation-provider.ts`, `tests/unit/vto-garment-warping.test.ts`.
+- **Archivos Afectados**: `src/domain/vto/segmentation-provider.ts`, `src/domain/vto/index.ts`.
+
+#### 155.3 — 2D Warp Field Model & Bilinear Interpolation Sampling
+- **Estado**: `DONE`
+- **Objetivo**: Implementar estructura `WarpField2D` representando desplazamientos continuos $(\Delta x, \Delta y)$ sobre una cuadrícula regular, conversión desde `AffineTransform2D` de Fase 154 y muestreo bilineal continuo con verificación fail-closed de límites.
+- **Evidencia**: `src/domain/vto/warp-field.ts`, `tests/unit/vto-garment-warping.test.ts`.
+- **Archivos Afectados**: `src/domain/vto/warp-field.ts`, `src/domain/vto/index.ts`.
+
+#### 155.4 — Garment Warping Engine & Degradation Fallback Coordinator
+- **Estado**: `DONE`
+- **Objetivo**: Construir `GarmentWarpEngine` consumiendo `GarmentAlignmentResult`, coordinando la generación del campo de deformación y ejecutando degradación controlada (`WARP_DEGRADED`) sin falsos positivos de éxito cuando la alineación es imperfecta.
+- **Evidencia**: `src/domain/vto/garment-warping.ts`, `tests/unit/vto-garment-warping.test.ts`.
+- **Archivos Afectados**: `src/domain/vto/garment-warping.ts`, `src/domain/vto/index.ts`.
+
+#### 155.5 — Multi-Layer Compositor & Occlusion Resolution
+- **Estado**: `DONE`
+- **Objetivo**: Desarrollar `MultiLayerCompositor` aplicando jerarquía determinista de profundidad (BACKGROUND 0 -> BODY 10 -> GARMENT 20 -> OVERLAY 30 -> ACCESSORY 40 -> OCCLUSION 50), resolución de visibilidad por oclusión y pureza libre de frameworks gráficos de renderizado.
+- **Evidencia**: `src/domain/vto/layer-composition.ts`, `tests/unit/vto-garment-warping.test.ts`.
+- **Archivos Afectados**: `src/domain/vto/layer-composition.ts`, `src/domain/vto/index.ts`.
+
+#### 155.6 — Pipeline Assembly, E2E Golden Journey & Documentation
+- **Estado**: `DONE`
+- **Objetivo**: Implementar `ClothSegmentationWarpingPipeline` ensamblando `PreparedVtoRenderInput` con artefactos canónicos (`BODY_MASK`, `GARMENT_MASK`, `OCCLUSION_MAP`, `WARP_FIELD`), validar Golden Journey E2E completo y publicar documentación técnica `docs/VTO_GARMENT_WARPING_PHASE_155.md`.
+- **Evidencia**: `src/domain/vto/cloth-warping-pipeline.ts`, `docs/VTO_GARMENT_WARPING_PHASE_155.md`, `tests/unit/vto-garment-warping.test.ts`.
+- **Archivos Afectados**: `src/domain/vto/cloth-warping-pipeline.ts`, `docs/VTO_GARMENT_WARPING_PHASE_155.md`, `docs/MASTER_WORK_PLAN.md`, `docs/ROADMAP_MASTER.md`, `CHANGELOG.md`.
+
+---
+
+## 25. Checklist Global Obligatorio de Cierre de Fase
 
 Toda fase futura debe satisfacer el siguiente checklist integral antes de ser declarada `DONE`:
 
@@ -1127,9 +1180,9 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 25. Plantillas Oficiales de Registro
+## 26. Plantillas Oficiales de Registro
 
-### 25.1. Plantilla de Fase Futura
+### 26.1. Plantilla de Fase Futura
 
 ```markdown
 ## FASE X — [Título de la Fase]
@@ -1164,7 +1217,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 - X.1.1 — [Título del cambio si surge]
 ```
 
-### 25.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
+### 26.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
 
 ```markdown
 ### X.Y.Z — [Nombre del Cambio Imprevisto]
@@ -1183,7 +1236,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 26. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
+## 27. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
 
 Las siguientes líneas de trabajo constituyen el backlog estratégico aprobado. Se mantienen en estado `PLANNED`, `BACKLOG` o `EXPLORATORY` y no deben marcarse como `DONE` hasta contar con código y pruebas completas:
 
