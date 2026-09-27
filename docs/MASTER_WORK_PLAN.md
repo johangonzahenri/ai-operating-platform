@@ -58,6 +58,17 @@ Este documento responde de forma inequívoca en todo momento:
 >   - Exposición gobernada del catálogo de herramientas y prompts sin violar fronteras hexagonales de dominio ni persistencia.
 >   - Soporte nativo dual de eras: Modern `2026-07-28` (`server/discover`, request-scoped `_meta`) y Legacy `2024-11-05` (`initialize`).
 
+### Tarea Inesperada 1.1.3 — Gobernanza de Calidad, Auditorías Transversales y Auditoría Integral del Sistema #001
+> **Identificador Canónico**: `1.1.3` (Cross-Cutting Quality Governance & System Audit / Unexpected Governance Task)  
+> **Fecha**: 2026-09-27  
+> **Estado Técnico**: `DONE` | **Estado Operativo**: `DONE`  
+> **Prioridad**: `CRITICAL`  
+> **Iniciativas Vinculadas**: `AOP-QUALITY-GOVERNANCE` (`docs/ROADMAP_MASTER.md`)  
+> **Detectado durante**: Auditoría Integral del Sistema #001 posterior a las Fases 153–156 del dominio VTO.  
+> **Origen**: Necesidad de establecer formalmente un marco de auditorías transversales sin crear fases artificiales en la secuencia funcional (`AUD-FASE-*`, `AUD-SISTEMA-*`, `AUD-LIBERACION-*`), registrar auditorías en un libro canónico y verificar mediante suite E2E de 10 dimensiones el funcionamiento íntegro de la plataforma completa.  
+> **Decisión**: Formalizar el marco en `docs/GOBERNANZA_DE_CALIDAD_Y_AUDITORIAS.md`, el registro central en `docs/REGISTRO_DE_AUDITORIAS.md`, emitir el informe oficial `docs/AUDITORIA_SISTEMA_001.md`, implementar la suite `tests/e2e/aud-sistema-001.test.ts` (17 tests PASS) y emitir el veredicto oficial `AUDITORÍA DEL SISTEMA APROBADA`.  
+> **Evidencia**: `docs/GOBERNANZA_DE_CALIDAD_Y_AUDITORIAS.md`, `docs/REGISTRO_DE_AUDITORIAS.md`, `docs/AUDITORIA_SISTEMA_001.md`, `tests/e2e/aud-sistema-001.test.ts` (17/17 tests PASS, 1944 tests totales del sistema PASS).
+
 ---
 
 ## 2. Separación Conceptual de Documentos
@@ -1208,7 +1219,59 @@ Construir el modelo determinista de profundidad relativa monocular, resolución 
 
 ---
 
-## 26. Checklist Global Obligatorio de Cierre de Fase
+## 26. FASE 157 — PROJ-01 TENTACIONES AI COMMERCE: WebGPU On-Device Neural Inference & Micro-Model Execution Pipeline
+
+### Objetivo
+Diseñar e implementar el adaptador de ejecución neuronal acelerada por hardware en el navegador/cliente mediante WebGPU y micro-modelos cuantizados (ONNX / WGSL Shaders) para procesamiento de pose, segmentación de prendas y deformación 2D/3D en tiempo real con latencia sub-30ms, fail-safe fallback a CPU WASM / Canvas 2D determinista y cero dependencias de terceros en Core Domain.
+
+### Metadatos
+- **Estado Técnico**: `PLANNED`
+- **Estado Operativo**: `READY`
+- **Prioridad**: `HIGH`
+- **Dependencias**: Fase 156 (Dynamic Depth Occlusion & Material Appearance Pipeline), AUD-SISTEMA-001 (Auditoría Integral Aprobada)
+- **Iniciativas Vinculadas**: `AOP-TENTACIONES-AR-3D-AI`
+
+### Tareas
+
+#### 157.1 — WebGPU Device Adapter & Shader Compilation Pipeline
+- **Estado**: `NOT_STARTED`
+- **Objetivo**: Diseñar puerto `WebGpuPipelinePort` y adaptador hexagonal con detección de soporte de hardware, compilación determinista de shaders WGSL y fallback automático a CPU WASM.
+- **Evidencia Esperada**: `src/domain/vto/webgpu-pipeline.ts`, `tests/unit/vto-webgpu.test.ts`.
+- **Archivos Afectados**: `src/domain/vto/webgpu-pipeline.ts`, `src/domain/vto/index.ts`.
+
+#### 157.2 — Quantized Tensor & Buffer Memory Management
+- **Estado**: `NOT_STARTED`
+- **Objetivo**: Implementar asignación y transferencia acotada de buffers GPU (`GPUBuffer`, `Float32Array`) con alineación de memoria y reciclaje determinista para evitar fugas VRAM.
+- **Evidencia Esperada**: `src/domain/vto/gpu-buffer-pool.ts`, `tests/unit/vto-webgpu.test.ts`.
+- **Archivos Afectados**: `src/domain/vto/gpu-buffer-pool.ts`, `src/domain/vto/index.ts`.
+
+#### 157.3 — On-Device Cloth Deformation WGSL Compute Shader
+- **Estado**: `NOT_STARTED`
+- **Objetivo**: Implementar shader de cómputo en WGSL para interpolación bilineal paralelizada del campo de deformación (`WarpField2D`) sobre cuadrícula de vértices de la prenda.
+- **Evidencia Esperada**: `src/domain/vto/cloth-warp-shader.ts`, `tests/unit/vto-webgpu.test.ts`.
+- **Archivos Afectados**: `src/domain/vto/cloth-warp-shader.ts`, `src/domain/vto/index.ts`.
+
+#### 157.4 — Micro-Model Runtime & ONNX Runtime Web Adapter
+- **Estado**: `NOT_STARTED`
+- **Objetivo**: Construir puerto desacoplado para ejecución de micro-modelos on-device con proveedores de ejecución `webgpu`, `wasm` y `cpu` con política fail-closed.
+- **Evidencia Esperada**: `src/domain/vto/micro-model-runtime.ts`, `tests/unit/vto-webgpu.test.ts`.
+- **Archivos Afectados**: `src/domain/vto/micro-model-runtime.ts`, `src/domain/vto/index.ts`.
+
+#### 157.5 — End-to-End Real-Time Streaming Performance & Fallback Engine
+- **Estado**: `NOT_STARTED`
+- **Objetivo**: Validar presupuesto de latencia (<33ms a 30 FPS) y conmutación transparente a renderizado estático determinista ante sobrecarga de GPU.
+- **Evidencia Esperada**: `src/domain/vto/webgpu-execution-pipeline.ts`, `tests/unit/vto-webgpu.test.ts`.
+- **Archivos Afectados**: `src/domain/vto/webgpu-execution-pipeline.ts`, `src/domain/vto/index.ts`.
+
+#### 157.6 — Pipeline Assembly, Golden Journey & Canonical Documentation
+- **Estado**: `NOT_STARTED`
+- **Objetivo**: Integrar pipeline completo en `WebGpuVtoPipeline`, validar Golden Journey y emitir `docs/VTO_WEBGPU_INFERENCE_PHASE_157.md`.
+- **Evidencia Esperada**: `docs/VTO_WEBGPU_INFERENCE_PHASE_157.md`, `tests/unit/vto-webgpu.test.ts`.
+- **Archivos Afectados**: `docs/VTO_WEBGPU_INFERENCE_PHASE_157.md`, `docs/MASTER_WORK_PLAN.md`, `docs/ROADMAP_MASTER.md`.
+
+---
+
+## 27. Checklist Global Obligatorio de Cierre de Fase
 
 Toda fase futura debe satisfacer el siguiente checklist integral antes de ser declarada `DONE`:
 
@@ -1233,9 +1296,9 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 26. Plantillas Oficiales de Registro
+## 28. Plantillas Oficiales de Registro
 
-### 26.1. Plantilla de Fase Futura
+### 28.1. Plantilla de Fase Futura
 
 ```markdown
 ## FASE X — [Título de la Fase]
@@ -1270,7 +1333,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 - X.1.1 — [Título del cambio si surge]
 ```
 
-### 26.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
+### 28.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
 
 ```markdown
 ### X.Y.Z — [Nombre del Cambio Imprevisto]
@@ -1289,7 +1352,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 27. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
+## 29. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
 
 Las siguientes líneas de trabajo constituyen el backlog estratégico aprobado. Se mantienen en estado `PLANNED`, `BACKLOG` o `EXPLORATORY` y no deben marcarse como `DONE` hasta contar con código y pruebas completas:
 
