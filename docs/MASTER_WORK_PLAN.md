@@ -58,16 +58,16 @@ Este documento responde de forma inequívoca en todo momento:
 >   - Exposición gobernada del catálogo de herramientas y prompts sin violar fronteras hexagonales de dominio ni persistencia.
 >   - Soporte nativo dual de eras: Modern `2026-07-28` (`server/discover`, request-scoped `_meta`) y Legacy `2024-11-05` (`initialize`).
 
-### Tarea Inesperada 1.1.3 — Gobernanza de Calidad, Auditorías Transversales y Auditoría Integral del Sistema #001
-> **Identificador Canónico**: `1.1.3` (Cross-Cutting Quality Governance & System Audit / Unexpected Governance Task)  
-> **Fecha**: 2026-09-27  
+### Tarea Inesperada 1.1.3 — Gobernanza de Calidad, Auditorías Transversales y Endurecimiento del Marco de Auditoría #001
+> **Identificador Canónico**: `1.1.3` (Cross-Cutting Quality Governance & System Audit Hardening / Unexpected Governance Task)  
+> **Fecha**: 2026-09-30  
 > **Estado Técnico**: `DONE` | **Estado Operativo**: `DONE`  
 > **Prioridad**: `CRITICAL`  
 > **Iniciativas Vinculadas**: `AOP-QUALITY-GOVERNANCE` (`docs/ROADMAP_MASTER.md`)  
-> **Detectado durante**: Auditoría Integral del Sistema #001 posterior a las Fases 153–156 del dominio VTO.  
-> **Origen**: Necesidad de establecer formalmente un marco de auditorías transversales sin crear fases artificiales en la secuencia funcional (`AUD-FASE-*`, `AUD-SISTEMA-*`, `AUD-LIBERACION-*`), registrar auditorías en un libro canónico y verificar mediante suite E2E de 10 dimensiones el funcionamiento íntegro de la plataforma completa.  
-> **Decisión**: Formalizar el marco en `docs/GOBERNANZA_DE_CALIDAD_Y_AUDITORIAS.md`, el registro central en `docs/REGISTRO_DE_AUDITORIAS.md`, emitir el informe oficial `docs/AUDITORIA_SISTEMA_001.md`, implementar la suite `tests/e2e/aud-sistema-001.test.ts` (17 tests PASS) y emitir el veredicto oficial `AUDITORÍA DEL SISTEMA APROBADA`.  
-> **Evidencia**: `docs/GOBERNANZA_DE_CALIDAD_Y_AUDITORIAS.md`, `docs/REGISTRO_DE_AUDITORIAS.md`, `docs/AUDITORIA_SISTEMA_001.md`, `tests/e2e/aud-sistema-001.test.ts` (17/17 tests PASS, 1944 tests totales del sistema PASS).
+> **Detectado durante**: Auditoría Integral del Sistema #001 y Endurecimiento del Marco Transversal (Prompt 157) posterior a las Fases 153–156 del dominio VTO.  
+> **Origen**: Necesidad de establecer formalmente un marco de auditorías transversales sin crear fases artificiales en la secuencia funcional (`AUD-FASE-*`, `AUD-SISTEMA-*`, `AUD-LIBERACION-*`), registrar auditorías en un libro canónico, formalizar la jerarquía de evidencia ($E_0 \dots E_7$), aislar controles estáticos de runtime, blindar Server-Sent Events (SSE) y verificar mediante suite E2E endurecida de 11 dimensiones y 23 tests el funcionamiento íntegro de la plataforma completa.  
+> **Decisión**: Formalizar el marco en `docs/GOBERNANZA_DE_CALIDAD_Y_AUDITORIAS.md`, modelos de dominio en `src/domain/governance/audit-models.ts`, registro central en `docs/REGISTRO_DE_AUDITORIAS.md`, informe oficial en `docs/AUDITORIA_SISTEMA_001.md`, manifiesto JSON en `docs/integration-evidence/aud-sistema-001-manifest.json`, implementar la suite `tests/e2e/aud-sistema-001.test.ts` (23 tests PASS) y emitir el veredicto oficial `AUDITORÍA DEL SISTEMA APROBADA` (`MARCO DE AUDITORÍA ENDURECIDO`).  
+> **Evidencia**: `src/domain/governance/audit-models.ts`, `tests/unit/quality-governance-audit.test.ts` (4/4 tests PASS), `docs/GOBERNANZA_DE_CALIDAD_Y_AUDITORIAS.md`, `docs/REGISTRO_DE_AUDITORIAS.md`, `docs/AUDITORIA_SISTEMA_001.md`, `docs/integration-evidence/aud-sistema-001-manifest.json`, `tests/e2e/aud-sistema-001.test.ts` (23/23 tests PASS, 1952 tests totales del sistema PASS en 166 suites).
 
 ---
 

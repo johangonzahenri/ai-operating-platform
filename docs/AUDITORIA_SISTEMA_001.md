@@ -84,22 +84,33 @@ Se formalizó institucionalmente el marco metodológico de calidad mediante:
 
 ---
 
-## 6. Matriz de Ejecución E2E Maestro (`AUD-SISTEMA-001`)
+## 6. Matriz de Ejecución E2E Maestro Endurecido (`AUD-SISTEMA-001`)
 
-Se ejecutó la suite formal `tests/e2e/aud-sistema-001.test.ts` evaluando 10 dimensiones críticas sobre sockets HTTP reales:
+Se ejecutó la suite formal `tests/e2e/aud-sistema-001.test.ts` evaluando 11 dimensiones críticas sobre sockets HTTP reales con clasificación estricta de niveles de evidencia ($E_0 \dots E_7$):
 
-| Dimensión de Auditoría | Prueba Ejecutada | Tipo | Resultado | Evidencia |
-| :--- | :--- | :--- | :--- | :--- |
-| **E2E-01: Health & Discovery** | Health check, version, capabilities catalog | LIVE HTTP | `PASS` | `GET /api/v1/health` (200), `GET /api/v1/capabilities` (200) |
-| **E2E-02: Authentication** | Missing / Invalid credentials rejection | LIVE HTTP | `PASS` | HTTP 401 fail-closed on unauthenticated requests |
-| **E2E-03: Scoped Authorization** | Insufficient scope rejection / Valid scope allowed | LIVE HTTP | `PASS` | HTTP 403 on scope mismatch, HTTP 200 on authorized scope |
-| **E2E-04: Tenant Isolation** | Cross-tenant masquerading rejection | LIVE HTTP | `PASS` | HTTP 403 `TENANT_MISMATCH` and `APPLICATION_MISMATCH` |
-| **E2E-05: Governed Workflows** | DAG resolution & deterministic verifier | DOMAIN/APP | `PASS` | `DeterministicVerifier` evaluations with monotonic verdicts |
-| **E2E-06: SSE Event Stream** | Live event streaming & Last-Event-ID replay | LIVE HTTP | `PASS` | `GET /api/v1/events/stream` establishes `text/event-stream` |
-| **E2E-07: PROJ-02 Regression** | Spare parts search, fitment, landed cost | REGRESSION | `PASS` | Full multi-source clustering, fitment and pricing journey |
-| **E2E-08: PROJ-01 VTO Pipeline** | Pose -> Warp -> Depth -> Occlusion -> Material | REGRESSION | `PASS` | End-to-end VTO pipeline with 7 canonical artifacts |
-| **E2E-09: MCP Protocol Server** | Tools listing & discover over HTTP | INTEGRATION | `PASS` | Official Model Context Protocol v2 schema handling |
-| **E2E-10: Security Purity** | 0 innerHTML, 0 eval, clean hexagonal boundary | STATIC/AUDIT | `PASS` | 0 innerHTML/eval in web assets, 0 vendor leaks in domain |
+| Dimensión de Auditoría | Prueba Ejecutada | Nivel de Evidencia | Capa del Sistema | Resultado | Alcance Demostrado | Limitación Explícita |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **E2E-01.1: Health Check** | Health endpoint verification | `E5 (LIVE_HTTP)` | Platform Gateway | `PASS` | HTTP 200 OK y estado operativo activo | No verifica terminación TLS pública ni balanceador de carga externo |
+| **E2E-01.2: Discovery** | Capabilities catalog query | `E5 (LIVE_HTTP)` | Platform Gateway | `PASS` | Manifiesto de capacidades expone metadatos y schemas | No evalúa recarga dinámica en caliente de plugins remotos |
+| **E2E-02.1: Auth Missing** | Requests sin credenciales | `E5 (LIVE_HTTP)` | Security Gateway | `PASS` | HTTP 401 fail-closed ante ausencia de autenticación | Ejecución loopback local; no cubre WAF perimetral externo |
+| **E2E-02.2: Auth Invalid** | Token malformado o adulterado | `E5 (LIVE_HTTP)` | Security Gateway | `PASS` | HTTP 401 fail-closed sin fuga de stack traces | No valida caída de red contra IdP corporativo externo |
+| **E2E-03.1: Scope Deny** | Operación con scope insuficiente | `E5 (LIVE_HTTP)` | Security Gateway | `PASS` | HTTP 403 `INSUFFICIENT_SCOPE` ante mutación no autorizada | No evalúa motores externos de políticas ABAC/XACML |
+| **E2E-03.2: Scope Allow** | Operación con scope concedido | `E5 (LIVE_HTTP)` | Security Gateway | `PASS` | HTTP 200 OK cuando la credencial posee el scope requerido | Acotado al almacén local de credenciales SQLite |
+| **E2E-04.1: Tenant Isolation** | Suplantación de tenant en header | `E5 (LIVE_HTTP)` | Multi-Tenant Gateway | `PASS` | HTTP 403 `TENANT_MISMATCH` fail-closed | Base SQLite WAL local en proceso, no sharding multi-región |
+| **E2E-04.2: App Boundary** | Suplantación de aplicación | `E5 (LIVE_HTTP)` | Multi-App Gateway | `PASS` | HTTP 403 `APPLICATION_MISMATCH` entre credencial y header | No audita permisos del sistema de archivos a nivel de OS |
+| **E2E-05.1: Governed Workflows** | Resolución de grafo DAG y verifier | `E3 (INTEGRATION)` | Application / Domain | `PASS` | Ejecución determinista de DAG con veredictos monotónicos | Ejecución en memoria; no valida clúster Celery/RabbitMQ |
+| **E2E-05.2: Live Workflow HTTP** | Descubrimiento y catálogo HTTP | `E5 (LIVE_HTTP)` | Workflow HTTP API | `PASS` | Endpoint `/api/v1/workflows` autenticado y paginado | No ejecuta workflows asíncronos distribuidos de larga duración |
+| **E2E-06.1: SSE Connect** | Apertura de canal reactivo | `E5 (LIVE_HTTP)` | Observability SSE | `PASS` | Cabeceras `text/event-stream` y frame `connection:open` | No simula desconexión en redes móviles con cambio de celda |
+| **E2E-06.2: SSE Broadcast** | Difusión y redacción de secretos | `E5 (LIVE_HTTP)` | Observability SSE | `PASS` | Evento recibido por HTTP en vivo con claves redactadas | Evaluado en proceso de nodo único |
+| **E2E-06.3: SSE Replay** | Reanudación con `Last-Event-ID` | `E5 (LIVE_HTTP)` | Observability SSE | `PASS` | Replay secuencial cronológico desde `eventStore` | Almacén en SQLite local con ventana finita de retención |
+| **E2E-06.4: SSE Isolation** | Filtrado multi-tenant en streams | `E5 (LIVE_HTTP)` | Observability SSE | `PASS` | Tenant A no recibe eventos de Tenant B | Conexiones concurrentes servidas por un único proceso |
+| **E2E-07.1: PROJ-02 Regression** | Golden Journey A (Spare Parts) | `E3 (INTEGRATION)` | Application Engine | `PASS` | Tokenización, compatibilidad fitment y landed cost | Scrapers externos simulados mediante mocks deterministas |
+| **E2E-08.1: PROJ-01 Regression** | Golden Journey B (Tentaciones VTO) | `E3 (INTEGRATION)` | Application Engine | `PASS` | Pipeline completo VTO (Fases 153-156) con 8 artefactos | Implementación matemática CPU; pipeline WebGPU previsto Fase 157 |
+| **E2E-09.1: MCP Protocol** | Descubrimiento MCP HTTP v2 | `E5 (LIVE_HTTP)` | Platform MCP Gateway | `PASS` | Discovery MCP JSON-RPC conforme a revisión oficial | Transporte HTTP loopback en proceso; stdio en unit tests |
+| **E2E-10.1: DOM Purity** | Ausencia de XSS en frontend | `E1 (STATIC_AST)` | Platform Web UI | `PASS` | 0 `.innerHTML`, 0 `.outerHTML`, 0 `eval()`, 0 `document.write()` | Análisis estático de código; no audita extensiones del navegador |
+| **E2E-10.2: Boundary Purity** | Pureza hexagonal de `src/domain/` | `E1 (STATIC_AST)` | Domain Architecture | `PASS` | Cero importaciones de infraestructura/HTTP en entidades | Análisis estático de dependencias ESM |
+| **E2E-11.1: Secret Redaction** | Redacción en respuestas de API | `E5 (LIVE_HTTP)` | Platform Security | `PASS` | Filtrado activo de hashes y secretos en JSON responses | No cubre inspección forense de memoria volátil (`core dumps`) |
+| **E2E-11.2: Host Defense** | Mitigación Host Header Poisoning | `E5 (LIVE_HTTP)` | Security Gateway | `PASS` | Rechazo inmediato HTTP 400 ante cabecera `Host` falsificada | No verifica reescritura de cabeceras en proxies reversos de nube |
 
 ---
 
@@ -215,9 +226,11 @@ La deuda técnica identificada permanece delimitada y controlada en [`docs/TECHN
                     DICTAMEN FINAL DE AUDITORÍA #001
 ================================================================================
 Estado Oficial: AUDITORÍA DEL SISTEMA APROBADA
-Criterio:       Cero hallazgos críticos/altos, E2E 100% PASS (17/17 tests),
-                1944 tests totales del sistema pasando (165 suites),
-                documentación y contratos OpenAPI 100% consistentes.
+Criterio:       Cero hallazgos críticos/altos, E2E Endurecido 100% PASS (23/23 tests),
+                1952 tests totales del sistema pasando (166 suites),
+                jerarquía de evidencia E0..E7 formalizada, cobertura de auditoría 89.47%,
+                documentación, manifiesto JSON y contratos OpenAPI 100% consistentes.
+Evidencia:      docs/integration-evidence/aud-sistema-001-manifest.json
 ================================================================================
 ```
 

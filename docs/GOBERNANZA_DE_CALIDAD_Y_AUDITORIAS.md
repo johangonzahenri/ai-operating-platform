@@ -85,48 +85,127 @@ $$\text{CODE} > \text{TESTS / EXECUTION EVIDENCE} > \text{GIT} > \text{OFFICIAL 
 
 ---
 
-## 5. Taxonomía Oficial de Estados de Auditoría
+---
 
-Toda auditoría ejecutada debe culminar en uno de los siguientes cinco estados formales:
+## 5. Taxonomía Oficial de Niveles de Evidencia (Evidence Levels)
+
+Para eliminar cualquier ambigüedad entre afirmaciones documentales, pruebas unitarias y entornos reales, se establece la jerarquía canónica de 8 niveles de evidencia:
 
 ```text
-+-----------------------------------------------------------------------------------+
-|                        TAXONOMÍA DE ESTADOS DE AUDITORÍA                          |
-+-----------------------------------------------------------------------------------+
-| 1. EN CURSO                        | Evaluación y pruebas en ejecución activa.     |
-| 2. APROBADA                        | Cero hallazgos críticos/altos, E2E 100% PASS. |
-| 3. APROBADA CON DEUDA TÉCNICA      | Sin bloqueos críticos; deuda documentada.     |
-| 4. BLOQUEADA                       | Hallazgo crítico no resuelto o fallo de E2E.  |
-| 5. NO EJECUTABLE                   | Bloqueo ambiental o dependencias ausentes.   |
-+-----------------------------------------------------------------------------------+
++----------------------------------------------------------------------------------------------------+
+|                               JERARQUÍA FORMAL DE NIVELES DE EVIDENCIA                             |
++----------------------------------------------------------------------------------------------------+
+| Nivel | Nombre               | Descripción y Límites del Alcance                                   |
+| :---  | :---                 | :---                                                                |
+| E0    | DOCUMENTAL           | Especificaciones, esquemas OpenAPI, README, ADRs y manuales.        |
+| E1    | ANÁLISIS ESTÁTICO    | Análisis de AST, linters, 0 innerHTML/eval, pureza de importación.  |
+| E2    | TEST UNITARIO        | Pruebas de agregados y lógica pura en memoria sin I/O externo.      |
+| E3    | TEST DE INTEGRACIÓN  | Pruebas de múltiples componentes coordinados con fakes o SQLite WAL |
+| E4    | E2E SIMULADO         | Flujo de extremo a extremo simulado con adaptadores in-memory.      |
+| E5    | E2E LIVE HTTP        | Sockets HTTP reales sobre loopback local (127.0.0.1) con requests.   |
+| E6    | ENTORNO DE STAGING   | Despliegue en infraestructura pre-productiva con red externa.       |
+| E7    | PRODUCCIÓN CERTIF.   | Tráfico productivo real, certificados TLS públicos y corporativos.  |
++----------------------------------------------------------------------------------------------------+
+```
+
+### Reglas de Frontera de Reclamo de Evidencia (Evidence Claim Boundaries):
+1. **Invariante E2 $\neq$ E5**: Ninguna prueba unitaria o de integración en memoria puede presentarse como "Live HTTP E2E".
+2. **Invariante E5 $\neq$ E7**: Ninguna prueba sobre socket local `127.0.0.1` puede presentarse como "Producción Certificada".
+3. **Invariante E0 $\neq$ Runtime**: La validación sintáctica de OpenAPI 3.1 (`scripts/validate-openapi.mjs`) certifica el contrato documental (E0), no la paridad de ejecución en runtime si la ruta no es invocada sobre socket HTTP (E5).
+4. **Distinción entre Software y Entorno**: Si una capacidad está implementada en código (`src/`) y verificada con fakes (E3), pero requiere infraestructura externa para operar (e.g. IdP OIDC en nube pública o CA TLS), su estado debe reportarse como `VERIFICADO EN CÓDIGO (E3) / PENDIENTE DE ENTORNO (E6/E7)`.
+
+---
+
+## 6. Cobertura de Auditoría (Audit Coverage) e Inventario de Capacidades
+
+Se establece formalmente que:
+
+$$\text{100% Tests Passing} \neq \text{100% System Audited}$$
+
+El resultado de las suites de prueba (`npm test`) mide la no-regresión del código existente; la **Cobertura de Auditoría** mide la proporción de capacidades del catálogo del sistema que han sido sometidas a verificación en el control activo:
+
+$$\text{Audit Coverage (\%)} = \frac{\text{Capacidades Auditadas} + 0.5 \times \text{Capacidades Parcialmente Auditadas}}{\text{Total de Capacidades Declaradas}} \times 100$$
+
+Cada capacidad del inventario real del sistema debe clasificarse inequívocamente en uno de los siguientes estados:
+- **`AUDITADO`**: Cuenta con prueba formal asociada y evidencia del nivel requerido (E1, E3 o E5).
+- **`PARCIALMENTE_AUDITADO`**: Probado en capa de integración o dominio, con aspectos de runtime o streaming pendientes.
+- **`NO_AUDITADO`**: Implementado en código pero omitido en el arnés de la auditoría activa.
+- **`NO_APLICA`**: Capacidad planificada o de backlog que no corresponde a la línea base actual.
+- **`PENDIENTE_DE_ENTORNO`**: Implementado en software, pero bloqueado para prueba completa por falta de host o proveedor externo.
+
+---
+
+## 7. Golden Journeys Canónicos y Regresión entre Aplicaciones
+
+La auditoría transversal somete a prueba recorridos críticos (*Golden Journeys*) multi-capa:
+
+### Golden Journey A — Plataforma Central & Gateway HTTP (Level E5)
+$$\text{Client / SDK} \xrightarrow{\text{HTTP}} \text{Gateway} \xrightarrow{\text{Auth 401/403}} \text{Rate Limiter} \xrightarrow{\text{Tenant Isolation}} \text{Task / Workflow} \xrightarrow{\text{Result}} \text{Audit Log}$$
+
+### Golden Journey B — Satélite PROJ-02: Spare Parts Search & Fitment (Level E4/E5)
+$$\text{HTTP Request} \xrightarrow{\text{Auth}} \text{Query Decomposition} \xrightarrow{\text{Multi-Source Search}} \text{Clustering} \xrightarrow{\text{Fitment Verification}} \text{Landed Cost}$$
+
+### Golden Journey C — Satélite PROJ-01: Tentaciones Virtual Try-On Pipeline (Level E3/E4)
+$$\text{Pose Input} \xrightarrow{\text{Landmarks}} \text{One-Euro Smoothing} \xrightarrow{\text{Anthropometrics}} \text{Garment Alignment} \xrightarrow{\text{Warp Field}} \text{Depth} \xrightarrow{\text{Occlusion}} \text{Render Input}$$
+
+### Golden Journey D — Protocolo MCP Oficial (Level E3/E5)
+$$\text{JSON-RPC Request} \xrightarrow{\text{Transport (Stdio/HTTP)}} \text{MCP Server} \xrightarrow{\text{Initialize}} \text{Tool Discovery} \xrightarrow{\text{Tool Runtime}} \text{Safe Execution}$$
+
+### Regla para Futuras Aplicaciones Satélite (`PROJ-03`, `PROJ-04`, `PROJ-05`...):
+Toda nueva aplicación o producto vertical que se incorpore al portafolio de la plataforma **DEBE** registrar su propio *Application Golden Journey* y perfil de auditoría independiente (`docs/audit-profiles/` o arnés dedicado). Los Golden Journeys centrales de plataforma jamás se modifican ni se acoplan a la lógica de negocio de satélites individuales.
+
+---
+
+## 8. Taxonomía Oficial de Estados de Auditoría
+
+Toda auditoría ejecutada debe culminar en uno de los siguientes cuatro estados formales:
+
+```text
++----------------------------------------------------------------------------------------------------+
+|                               TAXONOMÍA DE ESTADOS DE AUDITORÍA                                    |
++----------------------------------------------------------------------------------------------------+
+| 1. EN CURSO                        | Evaluación y pruebas en ejecución activa.                     |
+| 2. APROBADA                        | Cero hallazgos críticos/altos, E2E 100% PASS, 0 deuda técnica.|
+| 3. APROBADA CON DEUDA TÉCNICA      | Sin bloqueos críticos; deuda documentada y aceptada.          |
+| 4. BLOQUEADA                       | Hallazgo crítico/alto no resuelto o fallo en Golden Journey.  |
+| 5. NO EJECUTABLE                   | Bloqueo ambiental o dependencias ausentes.                   |
++----------------------------------------------------------------------------------------------------+
 ```
 
 > **Prohibición de Calificativos Ambiguos**: Queda estrictamente prohibido emitir veredictos como *"100% perfecto"*, *"100% terminado"* o *"sin riesgo"*.
 
 ---
 
-## 6. Clasificación y Ciclo de Vida de Hallazgos
+## 9. Clasificación y Ciclo de Vida de Hallazgos
 
 Todo hallazgo detectado durante un control de auditoría se documenta bajo la siguiente estructura unificada:
 
 ```text
 - ID:           HAL-[TIPO]-[NÚMERO] (e.g. HAL-SISTEMA-001)
 - Severidad:    CRÍTICO | ALTO | MEDIO | BAJO
+- Categoría:    DEFECT_BUG | TECHNICAL_DEBT | ARCHITECTURAL_RISK | EVIDENCE_OVERCLAIM | ENVIRONMENT_GAP
 - Descripción:  Explicación técnica detallada del problema o brecha
 - Componente:   Ruta de archivo o subsistema afectado (e.g. src/platform/api/http-router.ts)
+- Nivel Evid.:  E0..E7
 - Evidencia:    Comando, test o traza reproducible que demuestra el fallo
 - Impacto:      Consecuencia arquitectónica, de seguridad o de estabilidad
 - Acción:       Resolución requerida (corrección inmediata o registro en deuda técnica)
-- Estado:       ABIERTO | CORREGIDO | MITIGADO | ACEPTADO | PENDIENTE DE ENTORNO
+- Estado:       ABIERTO | CORREGIDO | MITIGADO | ACEPTADO_DEUDA | PENDIENTE DE ENTORNO
 ```
 
+### Criterio de Bloqueo Automático:
+Un hallazgo bloquea la auditoría (`AUDITORIA_BLOQUEADA`) si cumple simultáneamente:
+1. Severidad es `CRÍTICO` o `ALTO`.
+2. Su estado es `ABIERTO`.
+3. Compromete el aislamiento multi-tenant, la seguridad perimetral, la integridad ACID de datos, los límites de la Arquitectura Hexagonal o la ejecución de un Golden Journey canónico.
+
 ### Regla de Corrección durante la Auditoría:
-- **Permitido**: Corregir regresiones, bugs, vulnerabilidades de seguridad, *drift* contractual, fallos de integración y desajustes de consistencia documental.
-- **Estrictamente Prohibido**: Introducir nuevas funcionalidades, nuevas capacidades (*capabilities*), nuevos productos o dependencias de terceros no autorizadas. La auditoría tiene como misión **ESTABILIZAR**, no **CRECER**.
+- **Permitido**: Corregir regresiones, bugs, vulnerabilidades de seguridad, *drift* contractual, fallos de integración, sobre-reclamos de evidencia (*evidence overclaims*) y desajustes de consistencia documental.
+- **Estrictamente Prohibido**: Introducir nuevas funcionalidades de negocio, nuevas capacidades (*capabilities*), nuevos productos o dependencias de terceros no autorizadas. La auditoría tiene como misión **ESTABILIZAR**, no **CRECER**.
 
 ---
 
-## 7. Regla de No Contaminación del Plan Maestro
+## 10. Regla de No Contaminación del Plan Maestro
 
 1. **Invarianza de la Numeración Funcional**: El Master Work Plan mantiene su secuencia numérica funcional inmutable ($153 \to 154 \to 155 \to 156 \to 157 \dots$).
 2. **Prohibición de Fases de Auditoría**: Está estrictamente prohibido crear una fase funcional para auditorías (e.g., `FASE 157 — Auditoría`).
@@ -134,13 +213,14 @@ Todo hallazgo detectado durante un control de auditoría se documenta bajo la si
 
 ---
 
-## 8. Criterios de Cierre de Auditoría
+## 11. Criterios de Cierre de Auditoría
 
-Una auditoría se considerará formalmente concluida cuando se satisfagan los siguientes requisitos:
-1. Matriz de pruebas E2E ejecutada con resultado documentado paso a paso.
-2. 100% de la suite de pruebas de la plataforma pasando (`npm test`).
-3. 100% de consistencia documental y contractual (`scripts/docs-check.mjs`, `scripts/validate-openapi.mjs`, `scripts/master-work-plan-check.mjs`).
-4. Hallazgos completamente clasificados y registrados con estados terminales o mitigaciones aprobadas.
-5. Emisión del informe técnico formal `docs/AUDITORIA_[TIPO]_[NUMERO].md`.
-6. Registro actualizado en `docs/REGISTRO_DE_AUDITORIAS.md` y `docs/MASTER_WORK_PLAN.md`.
-7. Árbol de trabajo de Git limpio (`HEAD == origin/main`).
+Una auditoría se considerará formalmente concluida cuando se satisfagan simultáneamente los siguientes 7 requisitos:
+1. Matriz de pruebas y controles ejecutada con evidencia reproducible y niveles E0..E7 documentados.
+2. Declaración explícita de cobertura de auditoría sobre el inventario de capacidades.
+3. 100% de la suite de pruebas automatizadas del repositorio pasando (`npm test`).
+4. 100% de consistencia documental y contractual (`scripts/docs-check.mjs`, `scripts/validate-openapi.mjs`, `scripts/master-work-plan-check.mjs`).
+5. Hallazgos completamente clasificados y registrados con estados terminales o mitigaciones aprobadas.
+6. Emisión del informe técnico formal `docs/AUDITORIA_[TIPO]_[NUMERO].md` y actualización de `docs/REGISTRO_DE_AUDITORIAS.md`.
+7. Árbol de trabajo de Git limpio y sincronizado (`HEAD == origin/main`).
+

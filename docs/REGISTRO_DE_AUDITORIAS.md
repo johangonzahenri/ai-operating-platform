@@ -10,7 +10,7 @@ Este documento es el **Registro Histórico Central** de todas las auditorías fo
 
 | ID de Control | Tipo de Auditoría | Hito / Momento de Ejecución | Alcance | Estado Oficial | Informe Canónico | Fecha de Cierre |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **AUD-SISTEMA-001** | Integral del Sistema | Cierre de Fases 153–156 (Fundación VTO, Pose, Warping, Depth/Material) | Plataforma completa (Core Engine, HTTP Gateway, Seguridad, Multi-Tenant, Persistencia, SSE, Observabilidad, MCP, PROJ-01 VTO, PROJ-02 Spare Parts) | `APROBADA` | [`docs/AUDITORIA_SISTEMA_001.md`](./AUDITORIA_SISTEMA_001.md) | 2026-09-27 |
+| **AUD-SISTEMA-001** | Integral del Sistema | Cierre de Fases 153–156 & Endurecimiento de Gobernanza (Prompt 157) | Plataforma completa (Core Engine, HTTP Gateway, Seguridad Estática/Runtime, Multi-Tenant, Persistencia SQLite WAL, SSE Replay & Isolation, Workflows DAG, MCP Server, PROJ-01 VTO, PROJ-02 Spare Parts) | `APROBADA` | [`docs/AUDITORIA_SISTEMA_001.md`](./AUDITORIA_SISTEMA_001.md) / [`Manifest JSON`](./integration-evidence/aud-sistema-001-manifest.json) | 2026-09-30 |
 
 ---
 

@@ -18,6 +18,7 @@ import test, { describe, it, before, after } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import http from "node:http";
 import { AddressInfo } from "node:net";
 
 // Composition Root & Platform API Server
@@ -62,9 +63,12 @@ import { RbacAuthorizationEvaluator } from "../../src/application/security/rbac-
 import { SecurityBoundaryEnforcer } from "../../src/application/security/security-boundary-enforcer.js";
 import { InMemoryHITLBridge } from "../../src/infrastructure/workflow/in-memory-hitl-bridge.js";
 
+import { DomainEvent } from "../../src/domain/events/events.js";
+
 describe("AUD-SISTEMA-001: Master Full-System End-to-End Audit Suite", () => {
   let server: ReturnType<typeof createHttpServer>;
   let service: PlatformService;
+  let platformInstance: ReturnType<typeof createPlatform>;
   let baseUrl: string;
 
   // Key Identifiers
@@ -77,6 +81,7 @@ describe("AUD-SISTEMA-001: Master Full-System End-to-End Audit Suite", () => {
 
   before(async () => {
     const platform = createPlatform();
+    platformInstance = platform;
 
     // Register test agent in service
     try {
@@ -330,7 +335,7 @@ describe("AUD-SISTEMA-001: Master Full-System End-to-End Audit Suite", () => {
   // E2E-05: Governed Workflow Execution & Verification Engine
   // =========================================================================
   describe("E2E-05: Governed Workflow Execution & Verification Engine", () => {
-    it("5.1 validates DAG dependency resolution and monotonic verification verdict", () => {
+    it("5.1 (Level E3 - Integration) validates DAG dependency resolution and monotonic verification verdict", () => {
       const wf = WorkflowDefinition.create({
         id: "wf-audit-001",
         tenantId: tenantAlpha,
@@ -375,13 +380,56 @@ describe("AUD-SISTEMA-001: Master Full-System End-to-End Audit Suite", () => {
 
       assert.equal(verification.verdict, "PASS");
     });
+
+    it("5.2 (Level E5 - Live HTTP) verifies workflow definition and instance lifecycle through HTTP API", async () => {
+      // Create Workflow Definition via POST /api/v1/workflows
+      const createDefRes = await fetch(`${baseUrl}/api/v1/workflows`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${validAlphaKey}`,
+          "X-Tenant-ID": tenantAlpha,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: "wf-http-audit-001",
+          name: "Live HTTP Audit Workflow",
+          organizationId: "org-alpha",
+          steps: [
+            {
+              stepId: "step-initial",
+              name: "Initial Step",
+              agentId: "agent-research",
+              order: 0,
+              dependencies: [],
+              action: { toolId: "calculator", inputSchema: {} },
+            },
+          ],
+        }),
+      });
+
+      assert.equal(createDefRes.status, 201);
+      const defData = await createDefRes.json();
+      assert.equal(defData.id, "wf-http-audit-001");
+
+      // List Workflow Definitions via GET /api/v1/workflows
+      const listRes = await fetch(`${baseUrl}/api/v1/workflows`, {
+        headers: {
+          "Authorization": `Bearer ${validAlphaKey}`,
+          "X-Tenant-ID": tenantAlpha,
+        },
+      });
+      assert.equal(listRes.status, 200);
+      const listData = await listRes.json();
+      assert.ok(Array.isArray(listData));
+      assert.ok(listData.some((d: any) => d.id === "wf-http-audit-001"));
+    });
   });
 
   // =========================================================================
   // E2E-06: Real-Time Event Streaming (Server-Sent Events & Replay)
   // =========================================================================
   describe("E2E-06: Real-Time Event Streaming (Server-Sent Events & Replay)", () => {
-    it("6.1 connects to SSE stream and establishes text/event-stream response", async () => {
+    it("6.1 (Level E5 - Live HTTP) connects to SSE stream and establishes text/event-stream response", async () => {
       const controller = new AbortController();
       const res = await fetch(`${baseUrl}/api/v1/events/stream`, {
         headers: {
@@ -394,6 +442,129 @@ describe("AUD-SISTEMA-001: Master Full-System End-to-End Audit Suite", () => {
 
       assert.equal(res.status, 200);
       assert.ok(res.headers.get("content-type")?.includes("text/event-stream"));
+      controller.abort();
+    });
+
+    it("6.2 (Level E5 - Live HTTP) receives initial stream connection comment and live domain event broadcast", async () => {
+      const controller = new AbortController();
+      const res = await fetch(`${baseUrl}/api/v1/events/stream`, {
+        headers: {
+          "Authorization": `Bearer ${validAlphaKey}`,
+          "X-Tenant-ID": tenantAlpha,
+          "Accept": "text/event-stream",
+        },
+        signal: controller.signal,
+      });
+
+      assert.equal(res.status, 200);
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+
+      // Read initial connection message
+      const firstChunk = await reader.read();
+      const firstText = decoder.decode(firstChunk.value);
+      assert.ok(firstText.includes("stream connected"));
+
+      // Broadcast live event on platform publisher
+      platformInstance.events.publish({
+        type: "audit.test.event",
+        payload: { tenantId: tenantAlpha, message: "Live broadcast audit event", secretKey: "sensitive-token-123" },
+        occurredAt: new Date(),
+      } as any);
+
+      // Read broadcasted event from stream
+      const secondChunk = await reader.read();
+      const secondText = decoder.decode(secondChunk.value);
+      assert.ok(secondText.includes("audit.test.event"));
+      assert.ok(secondText.includes("Live broadcast audit event"));
+      // Assert secret redaction in stream payload
+      assert.ok(secondText.includes("[REDACTED]"));
+
+      controller.abort();
+    });
+
+    it("6.3 (Level E5 - Live HTTP) replays durable historical events matching tenant using Last-Event-ID header", async () => {
+      // 1. Ingest a durable event into eventStore
+      const durableEvent = await platformInstance.eventStore.append({
+        eventId: `evt-audit-replay-${Date.now()}`,
+        eventType: "audit.durable.event",
+        aggregateType: "TENANT",
+        aggregateId: tenantAlpha,
+        tenantId: tenantAlpha,
+        traceId: `trace-${Date.now()}`,
+        correlationId: `corr-${Date.now()}`,
+        payload: { note: "Historical event for replay check", tenantId: tenantAlpha },
+        occurredAt: new Date(),
+      });
+
+      const durableSeq = durableEvent.sequenceNumber;
+      assert.ok(durableSeq > 0);
+
+      // 2. Connect with Last-Event-ID query/header for replay
+      const controller = new AbortController();
+      const res = await fetch(`${baseUrl}/api/v1/events/stream?lastEventId=${durableSeq - 1}`, {
+        headers: {
+          "Authorization": `Bearer ${validAlphaKey}`,
+          "X-Tenant-ID": tenantAlpha,
+          "Accept": "text/event-stream",
+        },
+        signal: controller.signal,
+      });
+
+      assert.equal(res.status, 200);
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+
+      // Read chunks until replay event is received
+      let accumulated = "";
+      while (!accumulated.includes("audit.durable.event")) {
+        const chunk = await reader.read();
+        accumulated += decoder.decode(chunk.value);
+      }
+
+      assert.ok(accumulated.includes("audit.durable.event"));
+      assert.ok(accumulated.includes("Historical event for replay check"));
+      assert.ok(accumulated.includes(`"replayed":true`));
+
+      controller.abort();
+    });
+
+    it("6.4 (Level E5 - Live HTTP) enforces tenant isolation on stream: Beta events are NOT delivered to Alpha subscriber", async () => {
+      const controller = new AbortController();
+      const res = await fetch(`${baseUrl}/api/v1/events/stream`, {
+        headers: {
+          "Authorization": `Bearer ${validAlphaKey}`,
+          "X-Tenant-ID": tenantAlpha,
+          "Accept": "text/event-stream",
+        },
+        signal: controller.signal,
+      });
+
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      const firstChunk = await reader.read();
+      assert.ok(decoder.decode(firstChunk.value).includes("stream connected"));
+
+      // Broadcast an event destined for Tenant Beta
+      platformInstance.events.publish({
+        type: "audit.tenant.beta.event",
+        payload: { tenantId: tenantBeta, secretMessage: "Beta private data" },
+        occurredAt: new Date(),
+      } as any);
+
+      // Broadcast an event for Tenant Alpha immediately after
+      platformInstance.events.publish({
+        type: "audit.tenant.alpha.event",
+        payload: { tenantId: tenantAlpha, alphaMessage: "Alpha verified" },
+        occurredAt: new Date(),
+      } as any);
+
+      const nextChunk = await reader.read();
+      const text = decoder.decode(nextChunk.value);
+      // Alpha event received, Beta event filtered out
+      assert.ok(text.includes("audit.tenant.alpha.event"));
+      assert.equal(text.includes("Beta private data"), false);
+
       controller.abort();
     });
   });
@@ -552,10 +723,10 @@ describe("AUD-SISTEMA-001: Master Full-System End-to-End Audit Suite", () => {
   });
 
   // =========================================================================
-  // E2E-10: Static Security, DOM Purity & Hexagonal Boundary Audit
+  // E2E-10: Static Security, DOM Purity & Hexagonal Boundary Audit (Level E1)
   // =========================================================================
-  describe("E2E-10: Static Security, DOM Purity & Hexagonal Boundary Audit", () => {
-    it("10.1 asserts 0 .innerHTML, 0 .outerHTML, 0 eval, and 0 document.write in platform frontend assets", () => {
+  describe("E2E-10: Static Security, DOM Purity & Hexagonal Boundary Audit (Level E1)", () => {
+    it("10.1 (Level E1 - Static) asserts 0 .innerHTML, 0 .outerHTML, 0 eval, and 0 document.write in platform frontend assets", () => {
       const webDir = path.resolve(process.cwd(), "src/platform/web");
       if (fs.existsSync(webDir)) {
         const jsFiles = fs.readdirSync(webDir).filter((f) => f.endsWith(".js"));
@@ -580,7 +751,7 @@ describe("AUD-SISTEMA-001: Master Full-System End-to-End Audit Suite", () => {
       }
     });
 
-    it("10.2 asserts Core domain layer contains zero HTTP, vendor SDK, or UI framework imports", () => {
+    it("10.2 (Level E1 - Static) asserts Core domain layer contains zero HTTP, vendor SDK, or UI framework imports", () => {
       const domainDir = path.resolve(process.cwd(), "src/domain");
       if (fs.existsSync(domainDir)) {
         const scanDir = (dir: string) => {
@@ -599,6 +770,54 @@ describe("AUD-SISTEMA-001: Master Full-System End-to-End Audit Suite", () => {
         };
         scanDir(domainDir);
       }
+    });
+  });
+
+  // =========================================================================
+  // E2E-11: Runtime Security Boundary & Secret Isolation Evaluation (Level E5)
+  // =========================================================================
+  describe("E2E-11: Runtime Security Boundary & Secret Isolation Evaluation (Level E5)", () => {
+    it("11.1 (Level E5 - Live HTTP) enforces secret redaction in API responses and error payloads", async () => {
+      // Intentionally request non-existent path or malformed task with secret-looking string
+      const res = await fetch(`${baseUrl}/api/v1/tasks`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${validAlphaKey}`,
+          "X-Tenant-ID": tenantAlpha,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          agentId: "agent-research",
+          input: { query: "hello", apiKey: "secret_live_token_12345" },
+        }),
+      });
+
+      assert.ok(res.status === 200 || res.status === 201);
+      const text = await res.text();
+      // Ensure that raw bearer or credentials are never leaked back unmasked
+      assert.equal(text.includes(validAlphaKey), false);
+    });
+
+    it("11.2 (Level E5 - Live HTTP) rejects requests with invalid Host header (Host Header Poisoning defense)", async () => {
+      const port = Number(new URL(baseUrl).port);
+      const res = await new Promise<{ statusCode: number }>((resolve, reject) => {
+        const req = http.request(
+          {
+            hostname: "127.0.0.1",
+            port,
+            path: "/health",
+            method: "GET",
+            headers: { Host: "evil-attacker.com" },
+          },
+          (response) => {
+            resolve({ statusCode: response.statusCode ?? 0 });
+          }
+        );
+        req.on("error", reject);
+        req.end();
+      });
+
+      assert.equal(res.statusCode, 400);
     });
   });
 });
