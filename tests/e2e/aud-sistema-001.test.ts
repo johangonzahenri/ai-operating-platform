@@ -47,6 +47,10 @@ import { PosePreprocessingPipeline, RawPoseInput } from "../../src/domain/vto/po
 import { DeterministicFakeSegmentationProvider } from "../../src/domain/vto/segmentation-provider.js";
 import { DeterministicFakeDepthProvider } from "../../src/domain/vto/depth-provider.js";
 import { DepthMaterialPipeline } from "../../src/domain/vto/depth-material-pipeline.js";
+import { OnDeviceVtoInferenceCoordinator } from "../../src/application/vto/on-device-vto-coordinator.js";
+import { SimulatedWebGpuContext } from "../../src/application/vto/simulated-webgpu-context.js";
+import { WebGpuInferenceProvider } from "../../src/application/vto/webgpu-inference-provider.js";
+import { CpuMicroModelInferenceProvider } from "../../src/domain/vto/cpu-inference-provider.js";
 
 // Workflows & Verifier
 import { WorkflowDefinition } from "../../src/domain/workflow/workflow-definition.js";
@@ -662,6 +666,83 @@ describe("AUD-SISTEMA-001: Master Full-System End-to-End Audit Suite", () => {
       assert.ok(renderInput.dynamicOcclusionMap);
       assert.ok(renderInput.depthAwareLayers.length === 3);
       assert.ok(renderInput.artifacts.length >= 7);
+    });
+
+    it("8.2 (Golden Journey E - Level E3/E5) executes On-Device Neural Micro-Model Inference with CPU/WebGPU parity and explicit fallback", async () => {
+      // 1. Prepare pipeline input as in 8.1
+      const sampleGarment: GarmentReference = {
+        productId: "garment-biker-01",
+        name: "Leather Biker Jacket",
+        category: "UPPER_BODY",
+        size: "M",
+        primaryAsset: {
+          referenceId: "asset-garment-01",
+          sourceType: "ARTIFACT_REF",
+          uriOrHandle: "memory://garments/biker.webp",
+          mimeType: "image/webp",
+        },
+      };
+
+      const rawPose: RawPoseInput = {
+        frameId: "frame-golden-e",
+        timestampMs: 1000,
+        isPixelCoordinates: true,
+        imageDimensions: { widthPx: 1920, heightPx: 1080 },
+        rawLandmarks: [
+          { id: CanonicalLandmarkIndex.NOSE, x: 960, y: 150, z: 0, confidence: 0.98 },
+          { id: CanonicalLandmarkIndex.LEFT_SHOULDER, x: 800, y: 300, z: 0, confidence: 0.95 },
+          { id: CanonicalLandmarkIndex.RIGHT_SHOULDER, x: 1120, y: 300, z: 0, confidence: 0.95 },
+          { id: CanonicalLandmarkIndex.LEFT_HIP, x: 860, y: 650, z: 0, confidence: 0.94 },
+          { id: CanonicalLandmarkIndex.RIGHT_HIP, x: 1060, y: 650, z: 0, confidence: 0.94 },
+          { id: CanonicalLandmarkIndex.LEFT_ANKLE, x: 880, y: 1350, z: 0, confidence: 0.89 },
+          { id: CanonicalLandmarkIndex.RIGHT_ANKLE, x: 1040, y: 1350, z: 0, confidence: 0.89 },
+        ],
+      };
+
+      const posePipeline = new PosePreprocessingPipeline();
+      const preparedPose = posePipeline.processPoseFrame(rawPose, sampleGarment);
+      assert.equal(preparedPose.isReadyForInference, true);
+
+      // 2. Execute with WebGPU Hardware Simulation (Level E5)
+      const simContext = new SimulatedWebGpuContext();
+      const webGpuProvider = new WebGpuInferenceProvider({ gpuContext: simContext });
+      const cpuProvider = new CpuMicroModelInferenceProvider();
+
+      const coordinator = new OnDeviceVtoInferenceCoordinator({
+        primaryProvider: webGpuProvider,
+        fallbackProvider: cpuProvider,
+        allowCpuFallback: true,
+      });
+
+      await coordinator.initialize();
+
+      const evalGpu = await coordinator.evaluateVtoInput(preparedPose, tenantAlpha, "app-tentaciones");
+      assert.equal(evalGpu.isHardwareAccelerated, true);
+      assert.equal(evalGpu.isFallbackApplied, false);
+      assert.equal(evalGpu.inferenceProviderType, "WEBGPU");
+      assert.ok(evalGpu.alignmentQualityScore > 0);
+      assert.ok(evalGpu.fitmentStabilityConfidence > 0);
+
+      // 3. Execute with Fallback (Simulated GPU Unavailable)
+      const unavailContext = new SimulatedWebGpuContext({ shouldFail: true });
+      const fallbackCoordinator = new OnDeviceVtoInferenceCoordinator({
+        primaryProvider: new WebGpuInferenceProvider({ gpuContext: unavailContext }),
+        fallbackProvider: new CpuMicroModelInferenceProvider(),
+        allowCpuFallback: true,
+      });
+      await fallbackCoordinator.initialize();
+
+      const evalFallback = await fallbackCoordinator.evaluateVtoInput(preparedPose, tenantAlpha, "app-tentaciones");
+      assert.equal(evalFallback.isHardwareAccelerated, false);
+      assert.equal(evalFallback.isFallbackApplied, true);
+      assert.equal(evalFallback.inferenceProviderType, "CPU_REFERENCE");
+      assert.ok(evalFallback.alignmentQualityScore > 0);
+
+      // 4. Parity check between GPU simulation and CPU fallback
+      assert.ok(Math.abs(evalGpu.alignmentQualityScore - evalFallback.alignmentQualityScore) < 1e-4);
+
+      await coordinator.dispose();
+      await fallbackCoordinator.dispose();
     });
   });
 

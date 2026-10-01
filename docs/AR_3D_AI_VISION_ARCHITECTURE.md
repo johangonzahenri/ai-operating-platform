@@ -9,7 +9,7 @@ Iniciativa:     AOP-TENTACIONES-AR-3D-AI
 Área:           01 Tentaciones AI Commerce
 Clasificación:  Strategic / Cross-Portfolio Capability
 Prioridad:      HIGH
-Estado:         IN_PROGRESS / DOMAIN FOUNDATION, PREPROCESSING, WARPING & DEPTH/MATERIAL BASELINE READY (FASES 153-156)
+Estado:         IN_PROGRESS / DOMAIN FOUNDATION, PREPROCESSING, WARPING, DEPTH/MATERIAL & WEBGPU INFERENCE FOUNDATION READY (FASES 153-157)
 Alineación:     Application Integration Guide (docs/APPLICATION_INTEGRATION_GUIDE.md)
                 Agent Operating Protocol (docs/AGENT_OPERATING_PROTOCOL.md)
 ================================================================================

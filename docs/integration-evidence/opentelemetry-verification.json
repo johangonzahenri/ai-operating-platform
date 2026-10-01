@@ -1,8 +1,8 @@
 {
-  "traceId": "trace-verify-otel-22b6d66c",
+  "traceId": "trace-verify-otel-19fefd47",
   "provider": "opentelemetry",
   "environment": "production",
-  "verifiedAt": "2026-09-30T12:19:18.382Z",
+  "verifiedAt": "2026-10-01T21:00:32.266Z",
   "status": "OPERATIONAL",
   "latencyMs": 8,
   "metadata": {

@@ -5,3 +5,7 @@
  */
 
 export * from "./virtual-tryon-service.js";
+export * from "./wgsl-shaders.js";
+export * from "./webgpu-inference-provider.js";
+export * from "./simulated-webgpu-context.js";
+export * from "./on-device-vto-coordinator.js";

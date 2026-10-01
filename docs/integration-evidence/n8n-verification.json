@@ -1,8 +1,8 @@
 {
-  "traceId": "trace-verify-n8n-9d7fa4be",
+  "traceId": "trace-verify-n8n-32ab7d68",
   "provider": "n8n",
   "environment": "production",
-  "verifiedAt": "2026-09-30T12:19:18.383Z",
+  "verifiedAt": "2026-10-01T21:00:32.266Z",
   "status": "OPERATIONAL",
   "latencyMs": 10,
   "metadata": {

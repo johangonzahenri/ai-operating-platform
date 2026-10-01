@@ -23,3 +23,8 @@ export * from "./dynamic-occlusion.js";
 export * from "./material-types.js";
 export * from "./depth-aware-compositor.js";
 export * from "./depth-material-pipeline.js";
+export * from "./neural-tensor.js";
+export * from "./neural-model.js";
+export * from "./canonical-micro-model.js";
+export * from "./inference-provider-port.js";
+export * from "./cpu-inference-provider.js";

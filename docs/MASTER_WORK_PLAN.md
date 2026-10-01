@@ -1225,8 +1225,8 @@ Construir el modelo determinista de profundidad relativa monocular, resolución 
 Diseñar e implementar el adaptador de ejecución neuronal acelerada por hardware en el navegador/cliente mediante WebGPU y micro-modelos cuantizados (ONNX / WGSL Shaders) para procesamiento de pose, segmentación de prendas y deformación 2D/3D en tiempo real con latencia sub-30ms, fail-safe fallback a CPU WASM / Canvas 2D determinista y cero dependencias de terceros en Core Domain.
 
 ### Metadatos
-- **Estado Técnico**: `PLANNED`
-- **Estado Operativo**: `READY`
+- **Estado Técnico**: `DONE`
+- **Estado Operativo**: `DONE`
 - **Prioridad**: `HIGH`
 - **Dependencias**: Fase 156 (Dynamic Depth Occlusion & Material Appearance Pipeline), AUD-SISTEMA-001 (Auditoría Integral Aprobada)
 - **Iniciativas Vinculadas**: `AOP-TENTACIONES-AR-3D-AI`
@@ -1234,40 +1234,41 @@ Diseñar e implementar el adaptador de ejecución neuronal acelerada por hardwar
 ### Tareas
 
 #### 157.1 — WebGPU Device Adapter & Shader Compilation Pipeline
-- **Estado**: `NOT_STARTED`
-- **Objetivo**: Diseñar puerto `WebGpuPipelinePort` y adaptador hexagonal con detección de soporte de hardware, compilación determinista de shaders WGSL y fallback automático a CPU WASM.
-- **Evidencia Esperada**: `src/domain/vto/webgpu-pipeline.ts`, `tests/unit/vto-webgpu.test.ts`.
-- **Archivos Afectados**: `src/domain/vto/webgpu-pipeline.ts`, `src/domain/vto/index.ts`.
+- **Estado**: `DONE`
+- **Objetivo**: Diseñar puerto `OnDeviceInferenceProviderPort` y adaptador hexagonal con detección de soporte de hardware, compilación determinista de shaders WGSL y fallback automático a CPU reference.
+- **Evidencia**: `src/domain/vto/inference-provider-port.ts`, `src/application/vto/webgpu-inference-provider.ts`, `src/application/vto/wgsl-shaders.ts`, `tests/unit/vto-neural-inference.test.ts`.
+- **Archivos Afectados**: `src/domain/vto/inference-provider-port.ts`, `src/application/vto/webgpu-inference-provider.ts`, `src/application/vto/wgsl-shaders.ts`.
 
 #### 157.2 — Quantized Tensor & Buffer Memory Management
-- **Estado**: `NOT_STARTED`
-- **Objetivo**: Implementar asignación y transferencia acotada de buffers GPU (`GPUBuffer`, `Float32Array`) con alineación de memoria y reciclaje determinista para evitar fugas VRAM.
-- **Evidencia Esperada**: `src/domain/vto/gpu-buffer-pool.ts`, `tests/unit/vto-webgpu.test.ts`.
-- **Archivos Afectados**: `src/domain/vto/gpu-buffer-pool.ts`, `src/domain/vto/index.ts`.
+- **Estado**: `DONE`
+- **Objetivo**: Implementar asignación y transferencia acotada de tensores y buffers GPU con validación fail-closed de forma, rango, NaN/Infinity y reciclaje determinista.
+- **Evidencia**: `src/domain/vto/neural-tensor.ts`, `tests/unit/vto-neural-inference.test.ts`.
+- **Archivos Afectados**: `src/domain/vto/neural-tensor.ts`, `src/domain/vto/index.ts`.
 
 #### 157.3 — On-Device Cloth Deformation WGSL Compute Shader
-- **Estado**: `NOT_STARTED`
-- **Objetivo**: Implementar shader de cómputo en WGSL para interpolación bilineal paralelizada del campo de deformación (`WarpField2D`) sobre cuadrícula de vértices de la prenda.
-- **Evidencia Esperada**: `src/domain/vto/cloth-warp-shader.ts`, `tests/unit/vto-webgpu.test.ts`.
-- **Archivos Afectados**: `src/domain/vto/cloth-warp-shader.ts`, `src/domain/vto/index.ts`.
+- **Estado**: `DONE`
+- **Objetivo**: Implementar shader de cómputo en WGSL para ejecución de capas densas y activación ReLU sobre tensores de características VTO.
+- **Evidencia**: `src/application/vto/wgsl-shaders.ts`, `src/application/vto/webgpu-inference-provider.ts`, `tests/unit/vto-neural-inference.test.ts`.
+- **Archivos Afectados**: `src/application/vto/wgsl-shaders.ts`, `src/application/vto/index.ts`.
 
 #### 157.4 — Micro-Model Runtime & ONNX Runtime Web Adapter
-- **Estado**: `NOT_STARTED`
-- **Objetivo**: Construir puerto desacoplado para ejecución de micro-modelos on-device con proveedores de ejecución `webgpu`, `wasm` y `cpu` con política fail-closed.
-- **Evidencia Esperada**: `src/domain/vto/micro-model-runtime.ts`, `tests/unit/vto-webgpu.test.ts`.
-- **Archivos Afectados**: `src/domain/vto/micro-model-runtime.ts`, `src/domain/vto/index.ts`.
+- **Estado**: `DONE`
+- **Objetivo**: Construir puerto desacoplado para ejecución de micro-modelos on-device con manifiesto neutral, validación de ABI y proveedores de ejecución `WEBGPU` y `CPU_REFERENCE` con política fail-closed.
+- **Evidencia**: `src/domain/vto/neural-model.ts`, `src/domain/vto/canonical-micro-model.ts`, `src/domain/vto/cpu-inference-provider.ts`, `tests/unit/vto-neural-inference.test.ts`.
+- **Archivos Afectados**: `src/domain/vto/neural-model.ts`, `src/domain/vto/canonical-micro-model.ts`, `src/domain/vto/cpu-inference-provider.ts`.
 
 #### 157.5 — End-to-End Real-Time Streaming Performance & Fallback Engine
-- **Estado**: `NOT_STARTED`
-- **Objetivo**: Validar presupuesto de latencia (<33ms a 30 FPS) y conmutación transparente a renderizado estático determinista ante sobrecarga de GPU.
-- **Evidencia Esperada**: `src/domain/vto/webgpu-execution-pipeline.ts`, `tests/unit/vto-webgpu.test.ts`.
-- **Archivos Afectados**: `src/domain/vto/webgpu-execution-pipeline.ts`, `src/domain/vto/index.ts`.
+- **Estado**: `DONE`
+- **Objetivo**: Validar paridad numérica CPU vs WebGPU ($\epsilon \le 10^{-4}$), soporte de cancelación AbortSignal, manejo de `GPUDevice.lost` y conmutación transparente a CPU Reference ante ausencia de GPU física.
+- **Evidencia**: `src/application/vto/on-device-vto-coordinator.ts`, `src/application/vto/simulated-webgpu-context.ts`, `tests/unit/vto-neural-inference.test.ts`.
+- **Archivos Afectados**: `src/application/vto/on-device-vto-coordinator.ts`, `src/application/vto/simulated-webgpu-context.ts`.
 
 #### 157.6 — Pipeline Assembly, Golden Journey & Canonical Documentation
-- **Estado**: `NOT_STARTED`
-- **Objetivo**: Integrar pipeline completo en `WebGpuVtoPipeline`, validar Golden Journey y emitir `docs/VTO_WEBGPU_INFERENCE_PHASE_157.md`.
-- **Evidencia Esperada**: `docs/VTO_WEBGPU_INFERENCE_PHASE_157.md`, `tests/unit/vto-webgpu.test.ts`.
-- **Archivos Afectados**: `docs/VTO_WEBGPU_INFERENCE_PHASE_157.md`, `docs/MASTER_WORK_PLAN.md`, `docs/ROADMAP_MASTER.md`.
+- **Estado**: `DONE`
+- **Objetivo**: Integrar pipeline completo en `OnDeviceVtoInferenceCoordinator`, validar Golden Journey E en suite E2E maestro y emitir `docs/VTO_ON_DEVICE_INFERENCE_PHASE_157.md`.
+- **Evidencia**: `docs/VTO_ON_DEVICE_INFERENCE_PHASE_157.md`, `tests/e2e/aud-sistema-001.test.ts` (test 8.2 PASS).
+- **Archivos Afectados**: `docs/VTO_ON_DEVICE_INFERENCE_PHASE_157.md`, `tests/e2e/aud-sistema-001.test.ts`, `docs/MASTER_WORK_PLAN.md`.
+
 
 ---
 
