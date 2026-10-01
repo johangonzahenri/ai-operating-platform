@@ -668,7 +668,7 @@ describe("AUD-SISTEMA-001: Master Full-System End-to-End Audit Suite", () => {
       assert.ok(renderInput.artifacts.length >= 7);
     });
 
-    it("8.2 (Golden Journey E - Level E3/E5) executes On-Device Neural Micro-Model Inference with CPU/WebGPU parity and explicit fallback", async () => {
+    it("8.2 (Golden Journey E - Level E4 Simulado) executes On-Device Neural Micro-Model Inference with CPU/WebGPU parity and explicit fallback", async () => {
       // 1. Prepare pipeline input as in 8.1
       const sampleGarment: GarmentReference = {
         productId: "garment-biker-01",
@@ -703,7 +703,7 @@ describe("AUD-SISTEMA-001: Master Full-System End-to-End Audit Suite", () => {
       const preparedPose = posePipeline.processPoseFrame(rawPose, sampleGarment);
       assert.equal(preparedPose.isReadyForInference, true);
 
-      // 2. Execute with WebGPU Hardware Simulation (Level E5)
+      // 2. Execute with WebGPU Hardware Simulation (Level E4 Simulado)
       const simContext = new SimulatedWebGpuContext();
       const webGpuProvider = new WebGpuInferenceProvider({ gpuContext: simContext });
       const cpuProvider = new CpuMicroModelInferenceProvider();

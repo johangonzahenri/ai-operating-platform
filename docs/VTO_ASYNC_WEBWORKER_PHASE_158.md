@@ -28,7 +28,7 @@ La **AI Operating Platform** evoluciona como infraestructura técnica de alta fi
 Bajo el principio rector:
 $$\text{CRECER SIN DEGRADAR}$$
 
-La **Fase 158** construye la infraestructura de ejecución asíncrona fuera del hilo principal (*off-main-thread*) mediante `WebWorker`, permitiendo descargar las operaciones intensivas de visión computacional, filtrado cinemático, cálculo de deformación elástica de prendas e inferencia de micro-modelos neuronales del hilo UI del navegador, garantizando una tasa de refresco fluida ($60\text{ fps}$) sin comprometer la arquitectura hexagonal ni introducir acoplamientos con APIs propietarias de navegador en el núcleo de dominio.
+La **Fase 158** construye la infraestructura de ejecución asíncrona fuera del hilo principal (*off-main-thread*) mediante `WebWorker`, permitiendo descargar las operaciones intensivas de visión computacional, filtrado cinemático, cálculo de deformación elástica de prendas e inferencia de micro-modelos neuronales del hilo UI del navegador, orientada al objetivo de diseño de 60 fps (**DESIGN TARGET**: $< 16.6\text{ ms}$ por frame; **VERIFICADO MEDIANTE SIMULACIÓN ASÍNCRONA EN NODE.JS/CI**; **BROWSER RUNTIME**: `ENVIRONMENT PENDING`) sin comprometer la arquitectura hexagonal ni introducir acoplamientos con APIs propietarias de navegador en el núcleo de dominio.
 
 ---
 
@@ -181,7 +181,7 @@ En el lado receptor (hilo del Worker o Worker Simulado), el despachador `VtoWork
 - **Registro Cerrado de Handlers**: Mapea explícitamente operaciones permitidas a pipelines canónicos probados en Fases 153–157:
   - `POSE_PREPROCESS`: Ejecuta `PosePreprocessingPipeline` o normalización cinemática de keypoints.
   - `GARMENT_WARP`: Ejecuta `GarmentWarpEngine` computando vectores de desplazamiento `(dx, dy)`.
-  - `NEURAL_INFERENCE`: Ejecuta el micro-modelo canónico (`vto-warp-flow-canonical-v1`) mediante `CpuMicroModelInferenceProvider` encapsulado dentro del worker.
+  - `NEURAL_INFERENCE`: Ejecuta el micro-modelo canónico `vto-alignment-quality-v1` (`CANONICAL_VTO_MICRO_MODEL_ID`) mediante `CpuMicroModelInferenceProvider` encapsulado dentro del worker.
 - **Aislamiento de Excepciones**: Todo error interno del pipeline es capturado y empaquetado en un sobre estructurado con métricas de duración (`workerExecutionMs`, `roundTripLatencyMs`, `serializedPayloadBytes`), evitando el colapso del proceso worker.
 
 ---
@@ -190,14 +190,15 @@ En el lado receptor (hilo del Worker o Worker Simulado), el despachador `VtoWork
 
 Para garantizar la reproducibilidad absoluta en entornos de integración continua (CI) y Node.js donde no existe la API global `Worker` de navegador:
 
-- Se implementó `SimulatedWebWorker` (`src/application/vto/simulated-web-worker.ts`), un doble estructural que implementa fielmente `postMessage`, `addEventListener("message")`, `addEventListener("error")` y `terminate()`.
-- Ejecuta las tareas de manera asíncrona mediante `setTimeout(..., executionDelayMs)`, simulando fielmente la transferencia de contexto entre hilos, demoras de red interna, desorden de respuestas y simulación de fallos catastróficos (`simulateError`).
+- Se implementó `SimulatedWebWorker` (`src/application/vto/simulated-web-worker.ts`), un doble estructural en memoria (*test double*) que implementa fielmente `postMessage`, `addEventListener("message")`, `addEventListener("error")` y `terminate()`.
+- **Distinción Canónica**: `SimulatedWebWorker` **NO** es un sustituto de `DedicatedWorkerGlobalScope` en navegadores, sino un arnés determinista de prueba para validar el intercambio asíncrono de mensajes, desorden de respuestas, contrapresión y fallos simulados (`simulateError`) en Node.js y pipelines de CI.
+- Ejecuta las tareas de manera asíncrona mediante `setTimeout(..., executionDelayMs)`, simulando fielmente la transferencia de contexto entre hilos, demoras de red interna y desorden de respuestas.
 
 ---
 
 ## 8. Verificación y Evidencia de Pruebas Automatizadas
 
-La suite unitaria dedicada `tests/unit/vto-async-worker.test.ts` implementa 22 pruebas automatizadas exhaustivas organizadas en 8 bloques temáticos:
+La suite unitaria dedicada `tests/unit/vto-async-worker.test.ts` implementa 22 pruebas automatizadas exhaustivas distribuidas en 7 bloques temáticos principales (reportadas formalmente como 8 suites por el test runner nativo de Node.js al computar la suite raíz contenedora):
 
 ```text
 ▶ Phase 158: WebWorker Asynchronous Off-Main-Thread Computer Vision Pipeline
@@ -281,6 +282,8 @@ ESTADO TÉCNICO:
 
 ## 11. Conclusión y Próximos Pasos
 
-La **Fase 158** queda formalmente declarada como **DONE**.
+La **Fase 158** queda formalmente declarada como:
 
-La infraestructura de ejecución asíncrona fuera del hilo principal para visión computacional e inferencia neuronal on-device se encuentra completamente operativa, blindada bajo arquitectura hexagonal, verificada mediante pruebas automáticas deterministas y lista para soportar la futura fase funcional de integración visual y streaming de vídeo en tiempo real.
+$$\mathbf{DONE} \quad \Big( \text{WebWorker Execution Foundation Ready: IMPLEMENTED + SIMULATED VERIFIED} \Big)$$
+
+La infraestructura base para desacoplar el procesamiento pesado de visión computacional y ejecución neuronal fuera del hilo principal se encuentra plenamente implementada en código, verificada mediante pruebas unitarias y de simulación asíncrona determinista, y protegida por compuertas de calidad. La ejecución en instancias físicas de navegador (`DedicatedWorkerGlobalScope`) permanece como `ENVIRONMENT PENDING` para la futura fase de integración visual en la aplicación satélite Tentaciones.

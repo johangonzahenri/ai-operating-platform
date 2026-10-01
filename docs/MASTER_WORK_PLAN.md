@@ -1251,9 +1251,9 @@ Diseñar e implementar el adaptador de ejecución neuronal acelerada por hardwar
 - **Evidencia**: `src/application/vto/wgsl-shaders.ts`, `src/application/vto/webgpu-inference-provider.ts`, `tests/unit/vto-neural-inference.test.ts`.
 - **Archivos Afectados**: `src/application/vto/wgsl-shaders.ts`, `src/application/vto/index.ts`.
 
-#### 157.4 — Micro-Model Runtime & ONNX Runtime Web Adapter
+#### 157.4 — Micro-Model Runtime & Native Inference Adapters
 - **Estado**: `DONE`
-- **Objetivo**: Construir puerto desacoplado para ejecución de micro-modelos on-device con manifiesto neutral, validación de ABI y proveedores de ejecución `WEBGPU` y `CPU_REFERENCE` con política fail-closed.
+- **Objetivo**: Construir puerto desacoplado para ejecución de micro-modelos on-device con manifiesto neutral, validación de ABI y adaptadores nativos `WEBGPU` (WGSL Compute Shader) y `CPU_REFERENCE` (TypeScript/WASM determinista) bajo política fail-closed, preservando la política zero-third-party (sin dependencias externas como onnxruntime-web).
 - **Evidencia**: `src/domain/vto/neural-model.ts`, `src/domain/vto/canonical-micro-model.ts`, `src/domain/vto/cpu-inference-provider.ts`, `tests/unit/vto-neural-inference.test.ts`.
 - **Archivos Afectados**: `src/domain/vto/neural-model.ts`, `src/domain/vto/canonical-micro-model.ts`, `src/domain/vto/cpu-inference-provider.ts`.
 
@@ -1275,11 +1275,12 @@ Diseñar e implementar el adaptador de ejecución neuronal acelerada por hardwar
 ## 27. FASE 158 — PROJ-01 TENTACIONES AI COMMERCE: WebWorker Asynchronous Off-Main-Thread Computer Vision & Pipeline Decoupling
 
 ### Objetivo
-Diseñar e implementar la infraestructura de ejecución asíncrona fuera del hilo principal (*off-main-thread*) mediante `WebWorker` para procesamiento de visión computacional, normalización y filtrado cinemático de pose, deformación elástica de prendas e inferencia de micro-modelos neuronales, garantizando una tasa de refresco fluida de 60 fps en UI, resiliencia con cancelación cooperativa `AbortSignal`, contrapresión gobernada y preservación estricta de la pureza del núcleo de dominio bajo arquitectura hexagonal.
+Diseñar e implementar la infraestructura de ejecución asíncrona fuera del hilo principal (*off-main-thread*) mediante `WebWorker` para procesamiento de visión computacional, normalización y filtrado cinemático de pose, deformación elástica de prendas e inferencia de micro-modelos neuronales, con objetivo de diseño orientado a una tasa de refresco fluida de 60 fps en UI (DESIGN TARGET: $< 16.6\text{ ms}$ por frame; VERIFICADO MEDIANTE SIMULACIÓN ASÍNCRONA EN NODE.JS/CI; BROWSER RUNTIME: ENVIRONMENT PENDING), resiliencia con cancelación cooperativa `AbortSignal`, contrapresión gobernada y preservación estricta de la pureza del núcleo de dominio bajo arquitectura hexagonal.
 
 ### Metadatos
 - **Estado Técnico**: `DONE`
 - **Estado Operativo**: `DONE`
+- **Declaración Canónica**: `WebWorker execution foundation IMPLEMENTED + SIMULATED VERIFIED` / `Browser runtime execution ENVIRONMENT PENDING`
 - **Prioridad**: `HIGH`
 - **Dependencias**: Fase 157 (WebGPU On-Device Neural Inference & Micro-Model Execution Pipeline), Fases 153–156
 - **Iniciativas Vinculadas**: `AOP-TENTACIONES-AR-3D-AI`

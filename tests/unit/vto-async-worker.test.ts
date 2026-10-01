@@ -44,6 +44,7 @@ import {
 } from "../../src/domain/vto/pose-preprocessing-pipeline.js";
 import { ClothWarpingPipeline } from "../../src/domain/vto/cloth-warping-pipeline.js";
 import { CpuMicroModelInferenceProvider } from "../../src/domain/vto/cpu-inference-provider.js";
+import { CANONICAL_VTO_MICRO_MODEL_ID } from "../../src/domain/vto/canonical-micro-model.js";
 import { Tensor } from "../../src/domain/vto/neural-tensor.js";
 
 // Helper to create synthetic 17-keypoint COCO pose
@@ -348,7 +349,7 @@ describe("Phase 158: WebWorker Asynchronous Off-Main-Thread Computer Vision Pipe
         requestId: "infer-op-1",
         operation: "NEURAL_INFERENCE",
         payload: {
-          modelId: "vto-warp-flow-canonical-v1",
+          modelId: CANONICAL_VTO_MICRO_MODEL_ID,
           modelVersion: "1.0.0",
           inputTensor: {
             shape: [1, 32],
