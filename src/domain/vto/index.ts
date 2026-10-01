@@ -28,3 +28,5 @@ export * from "./neural-model.js";
 export * from "./canonical-micro-model.js";
 export * from "./inference-provider-port.js";
 export * from "./cpu-inference-provider.js";
+export * from "./worker-protocol.js";
+export * from "./async-worker-port.js";

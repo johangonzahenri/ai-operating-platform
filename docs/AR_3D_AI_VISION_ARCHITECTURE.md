@@ -9,7 +9,7 @@ Iniciativa:     AOP-TENTACIONES-AR-3D-AI
 Área:           01 Tentaciones AI Commerce
 Clasificación:  Strategic / Cross-Portfolio Capability
 Prioridad:      HIGH
-Estado:         IN_PROGRESS / DOMAIN FOUNDATION, PREPROCESSING, WARPING, DEPTH/MATERIAL & WEBGPU INFERENCE FOUNDATION READY (FASES 153-157)
+Estado:         IN_PROGRESS / DOMAIN FOUNDATION, PREPROCESSING, WARPING, DEPTH/MATERIAL, WEBGPU INFERENCE & ASYNC WEBWORKER FOUNDATION READY (FASES 153-158)
 Alineación:     Application Integration Guide (docs/APPLICATION_INTEGRATION_GUIDE.md)
                 Agent Operating Protocol (docs/AGENT_OPERATING_PROTOCOL.md)
 ================================================================================
@@ -246,6 +246,15 @@ Para no penalizar el bucle de renderizado en tiempo real ($60\text{ Hz} \equiv 1
    - Corrige parámetros de anclaje de forma suave e imperceptible para el usuario.
 5. **`3D_ASSET_AGENT`**:
    - Gestiona la precarga inteligente de niveles de detalle (LOD 0, LOD 1, LOD 2) y texturas KTX2/Basis Universal según el ancho de banda y la resolución de pantalla.
+
+### 7.4 Desacoplamiento Asíncrono Fuera del Hilo Principal (WebWorker Execution Pipeline — Fase 158)
+Para garantizar una experiencia a 60 fps sin micro-bloqueos en la interfaz de usuario, las operaciones computacionalmente intensivas (preprocesamiento de pose, deformación elástica de telas, inferencia de micro-modelos neuronales) se descargan del hilo principal mediante el adaptador perimetral `WebWorkerVtoExecutionAdapter` (`src/application/vto/web-worker-vto-adapter.ts`), el cual implementa el puerto hexagonal abstracto `AsyncOffMainThreadExecutionPort` (`src/domain/vto/async-worker-port.ts`).
+
+- **Pureza de Dominio & Arquitectura Hexagonal**: El núcleo de dominio (`src/domain/vto/`) permanece completamente puro y libre de referencias a `Worker`, `postMessage`, `window`, `navigator` o el DOM.
+- **Protocolo Neutral Versionado**: La comunicación se realiza mediante sobres de mensaje tipados versión `1.0.0` (`VtoWorkerRequest`, `VtoWorkerResponse`) con validación fail-closed y catálogo cerrado de operaciones (`POSE_PREPROCESS`, `GARMENT_WARP`, `NEURAL_INFERENCE`).
+- **Despachador en Worker Aislado**: `VtoWorkerRuntimeDispatcher` (`src/application/vto/worker-runtime-dispatcher.ts`) ejecuta las tareas dentro del worker sin emplear código dinámico (`eval` o `new Function` prohibidos), reportando métricas detalladas de ejecución.
+- **Resiliencia & Concurrencia**: Emparejamiento biunívoco por `requestId`, soporte de respuestas fuera de orden (*out-of-order execution*), cancelación cooperativa con `AbortSignal`, timeouts deterministas y gobierno de contrapresión con colas acotadas (`maxQueueSize`).
+- **Referencia Canónica**: Ver especificación completa y evidencia en [`docs/VTO_ASYNC_WEBWORKER_PHASE_158.md`](./VTO_ASYNC_WEBWORKER_PHASE_158.md).
 
 ---
 

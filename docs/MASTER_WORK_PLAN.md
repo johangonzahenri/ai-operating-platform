@@ -1272,7 +1272,59 @@ Diseñar e implementar el adaptador de ejecución neuronal acelerada por hardwar
 
 ---
 
-## 27. Checklist Global Obligatorio de Cierre de Fase
+## 27. FASE 158 — PROJ-01 TENTACIONES AI COMMERCE: WebWorker Asynchronous Off-Main-Thread Computer Vision & Pipeline Decoupling
+
+### Objetivo
+Diseñar e implementar la infraestructura de ejecución asíncrona fuera del hilo principal (*off-main-thread*) mediante `WebWorker` para procesamiento de visión computacional, normalización y filtrado cinemático de pose, deformación elástica de prendas e inferencia de micro-modelos neuronales, garantizando una tasa de refresco fluida de 60 fps en UI, resiliencia con cancelación cooperativa `AbortSignal`, contrapresión gobernada y preservación estricta de la pureza del núcleo de dominio bajo arquitectura hexagonal.
+
+### Metadatos
+- **Estado Técnico**: `DONE`
+- **Estado Operativo**: `DONE`
+- **Prioridad**: `HIGH`
+- **Dependencias**: Fase 157 (WebGPU On-Device Neural Inference & Micro-Model Execution Pipeline), Fases 153–156
+- **Iniciativas Vinculadas**: `AOP-TENTACIONES-AR-3D-AI`
+
+### Tareas
+
+#### 158.1 — Neutral Worker Protocol & Envelopes
+- **Estado**: `DONE`
+- **Objetivo**: Diseñar contratos de datos neutrales (`VtoWorkerRequest`, `VtoWorkerResponse`, `VtoWorkerOperation`, `VtoWorkerError`) en `src/domain/vto/worker-protocol.ts` bajo versión fija `1.0.0`, validación fail-closed y catálogo cerrado de operaciones sin dependencias de browser o DOM en dominio.
+- **Evidencia**: `src/domain/vto/worker-protocol.ts`, `src/domain/vto/index.ts`, `tests/unit/vto-async-worker.test.ts`.
+- **Archivos Afectados**: `src/domain/vto/worker-protocol.ts`, `src/domain/vto/index.ts`.
+
+#### 158.2 — Abstract Execution Port & Worker Lifecycle Machine
+- **Estado**: `DONE`
+- **Objetivo**: Formalizar el puerto abstracto `AsyncOffMainThreadExecutionPort` con máquina de estados finita no reversible (`UNINITIALIZED` -> `STARTING` -> `READY` -> `RUNNING` -> `DRAINING` -> `TERMINATED` / `FAILED`), métricas de runtime y configuración de pool acotado.
+- **Evidencia**: `src/domain/vto/async-worker-port.ts`, `src/domain/vto/index.ts`, `tests/unit/vto-async-worker.test.ts`.
+- **Archivos Afectados**: `src/domain/vto/async-worker-port.ts`, `src/domain/vto/index.ts`.
+
+#### 158.3 — Peripheral WebWorker Adapter with Backpressure & Correlation
+- **Estado**: `DONE`
+- **Objetivo**: Implementar el adaptador perimetral `WebWorkerVtoExecutionAdapter` en `src/application/vto/web-worker-vto-adapter.ts` con correlación biunívoca por `requestId`, resolución desordenada (*out-of-order*), gobierno de contrapresión con cola acotada (`maxQueueSize`), cancelación con `AbortSignal` y timeouts deterministas.
+- **Evidencia**: `src/application/vto/web-worker-vto-adapter.ts`, `src/application/vto/index.ts`, `tests/unit/vto-async-worker.test.ts`.
+- **Archivos Afectados**: `src/application/vto/web-worker-vto-adapter.ts`, `src/application/vto/index.ts`.
+
+#### 158.4 — Isolated In-Worker Dispatcher & Security Sandbox
+- **Estado**: `DONE`
+- **Objetivo**: Implementar el despachador `VtoWorkerRuntimeDispatcher` en `src/application/vto/worker-runtime-dispatcher.ts` para ejecución segura de tareas en el hilo worker sin código dinámico (`eval` o `new Function` prohibidos), manejadores estructurados de errores y métricas de serialización.
+- **Evidencia**: `src/application/vto/worker-runtime-dispatcher.ts`, `src/application/vto/index.ts`, `tests/unit/vto-async-worker.test.ts`.
+- **Archivos Afectados**: `src/application/vto/worker-runtime-dispatcher.ts`, `src/application/vto/index.ts`.
+
+#### 158.5 — Deterministic Simulated Worker & CI Test Double
+- **Estado**: `DONE`
+- **Objetivo**: Construir `SimulatedWebWorker` en `src/application/vto/simulated-web-worker.ts` como doble de prueba determinista en memoria para paso de mensajes, simulación de demoras asíncronas y fallos de proceso en Node.js y CI sin dependencias externas.
+- **Evidencia**: `src/application/vto/simulated-web-worker.ts`, `src/application/vto/index.ts`, `tests/unit/vto-async-worker.test.ts`.
+- **Archivos Afectados**: `src/application/vto/simulated-web-worker.ts`, `src/application/vto/index.ts`.
+
+#### 158.6 — Verification Suite & Canonical Documentation
+- **Estado**: `DONE`
+- **Objetivo**: Implementar la suite exhaustiva de pruebas unitarias `tests/unit/vto-async-worker.test.ts` (22 tests PASS), verificar pureza hexagonal estática de dominio, actualizar `docs/AR_3D_AI_VISION_ARCHITECTURE.md` y emitir el informe técnico oficial `docs/VTO_ASYNC_WEBWORKER_PHASE_158.md`.
+- **Evidencia**: `tests/unit/vto-async-worker.test.ts` (22/22 PASS), `docs/VTO_ASYNC_WEBWORKER_PHASE_158.md`, `docs/AR_3D_AI_VISION_ARCHITECTURE.md`, `docs/MASTER_WORK_PLAN.md`.
+- **Archivos Afectados**: `tests/unit/vto-async-worker.test.ts`, `docs/VTO_ASYNC_WEBWORKER_PHASE_158.md`, `docs/AR_3D_AI_VISION_ARCHITECTURE.md`, `docs/MASTER_WORK_PLAN.md`.
+
+---
+
+## 28. Checklist Global Obligatorio de Cierre de Fase
 
 Toda fase futura debe satisfacer el siguiente checklist integral antes de ser declarada `DONE`:
 
@@ -1297,9 +1349,9 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 28. Plantillas Oficiales de Registro
+## 29. Plantillas Oficiales de Registro
 
-### 28.1. Plantilla de Fase Futura
+### 29.1. Plantilla de Fase Futura
 
 ```markdown
 ## FASE X — [Título de la Fase]
@@ -1334,7 +1386,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 - X.1.1 — [Título del cambio si surge]
 ```
 
-### 28.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
+### 29.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
 
 ```markdown
 ### X.Y.Z — [Nombre del Cambio Imprevisto]
@@ -1353,7 +1405,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 29. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
+## 30. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
 
 Las siguientes líneas de trabajo constituyen el backlog estratégico aprobado. Se mantienen en estado `PLANNED`, `BACKLOG` o `EXPLORATORY` y no deben marcarse como `DONE` hasta contar con código y pruebas completas:
 
