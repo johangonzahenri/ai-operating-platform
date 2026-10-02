@@ -1442,7 +1442,60 @@ Diseñar e implementar el bucle continuo de procesamiento en tiempo real de visi
 
 ---
 
-## 30. Checklist Global Obligatorio de Cierre de Fase
+## 30. FASE 161 — PROJ-01 TENTACIONES AI COMMERCE: Browser Render Boundary, Canvas Adapter & Interactive 3D Try-On Scene
+
+### Objetivo
+Diseñar e implementar la frontera de renderizado browser (*Browser Render Boundary*), el adaptador de canvas perimétrico desacoplado y el modelo de escena 3D interactivo para el sistema de prueba virtual (*Virtual Try-On - VTO*), convirtiendo los compuestos espaciales neutrales de la Fase 160 (`SpatialWarpingComposite`) en descriptores de escena 3D consumibles de forma agnóstica (`RenderSceneDescriptor`), con transformaciones deterministas a través de 5 espacios de coordenadas, generación de mallas triangulares a partir de `WarpField2D` (no TPS), control interactivo de viewport en $O(1)$ sin re-ejecución del pipeline CV, máquina de estados finita de ciclo de vida con liberación determinista de recursos (`DisposalReceipt`), protección contra sobrescritura por resultados obsoletos a nivel del puerto de render, y preservando estrictamente la política de cero dependencias 3D de runtime en el Core Engine (Three.js aislado en la aplicación satélite `tentaciones-ai-commerce`).
+
+### Metadatos
+- **Estado Técnico**: `DONE`
+- **Estado Operativo**: `DONE`
+- **Declaración Canónica**: `Browser render boundary, canvas adapter & interactive 3D scene IMPLEMENTED + SIMULATED VERIFIED` / `Browser WebGL canvas runtime ENVIRONMENT PENDING`
+- **Prioridad**: `HIGH`
+- **Dependencias**: Fase 160 (Real-Time CV Continuous Processing Loop & Spatial Warping Compositor), Fases 153–159
+- **Iniciativas Vinculadas**: `AOP-TENTACIONES-AR-3D-AI`, `AOP-QUALITY-GOVERNANCE`
+
+### Tareas
+
+#### 161.1 — Neutral Render Contracts & Coordinate Spaces
+- **Estado**: `DONE`
+- **Objetivo**: Definir los contratos de renderizado puro fuertemente tipados (`RenderSceneDescriptor`, `RenderLayerDescriptor`, `RenderViewportModel`, `CameraDescriptor`, `LightingHintsDescriptor`) y el transformador matemático determinista `SpatialCoordinateTransformer` en `src/domain/vto/render-contract.ts`, modelando los 5 espacios espaciales canónicos (`IMAGE_SPACE` -> `NORMALIZED_SPACE` -> `VTO_SPATIAL_SPACE` -> `SCENE_3D_SPACE` -> `VIEWPORT_SCREEN_SPACE`), con inversión vertical del eje Y para WebGL ($y_{3D} = 1.0 - 2v$), soporte de espejado para cámara selfie y proyección/desproyección bidireccional con cero dependencias del DOM en el dominio.
+- **Evidencia**: `src/domain/vto/render-contract.ts`, `src/domain/vto/index.ts`, `tests/unit/vto-browser-render-boundary.test.ts` (4 tests PASS).
+- **Archivos Afectados**: `src/domain/vto/render-contract.ts`, `src/domain/vto/index.ts`.
+
+#### 161.2 — Scene Lifecycle State Machine & Resource Ownership
+- **Estado**: `DONE`
+- **Objetivo**: Implementar la máquina de estados finita del ciclo de vida de escena (`SceneLifecycleState`, `isValidSceneStateTransition`) y el gestor de recursos de render `SceneLifecycleManager` en `src/domain/vto/scene-lifecycle.ts`, formalizando transiciones deterministas (`UNINITIALIZED` -> `INITIALIZING` -> `READY` <-> `RENDERING` <-> `PAUSED` -> `DISPOSING` -> `DISPOSED`), registro tipado de recursos (`GEOMETRY`, `TEXTURE`, `MATERIAL`, `BUFFER`, `RENDER_TARGET`, `VIEWPORT`) y liberación determinista sin fugas con emisión de recibo auditado `DisposalReceipt`.
+- **Evidencia**: `src/domain/vto/scene-lifecycle.ts`, `src/domain/vto/index.ts`, `tests/unit/vto-browser-render-boundary.test.ts` (3 tests PASS), `tests/e2e/vto-render-boundary-golden-journey.test.ts` (test GJ-4 PASS).
+- **Archivos Afectados**: `src/domain/vto/scene-lifecycle.ts`, `src/domain/vto/index.ts`.
+
+#### 161.3 — Spatial-to-Render Mapper & Warp Geometry Generation
+- **Estado**: `DONE`
+- **Objetivo**: Desarrollar el mapeador de aplicación `SpatialToRenderMapper` en `src/application/vto/spatial-to-render-mapper.ts`, transformando `SpatialWarpingComposite` en `RenderSceneDescriptor`, generando mallas triangulares 3D continuas `DEFORMED_MESH_GRID` a partir de `WarpField2D` con índices y UVs de WebGL (no TPS), quads para fondos, preservando la jerarquía Z canónica (`BASE` 0 -> `BODY` 10 -> `GARMENT` 20 -> `OCCLUSION` 30 -> `MATERIAL` 40 -> `FINAL_COMPOSITE` 50), pistas de materiales PBR y detección temprana de tramas obsoletas.
+- **Evidencia**: `src/application/vto/spatial-to-render-mapper.ts`, `src/application/vto/index.ts`, `tests/unit/vto-browser-render-boundary.test.ts` (2 tests PASS).
+- **Archivos Afectados**: `src/application/vto/spatial-to-render-mapper.ts`, `src/application/vto/index.ts`.
+
+#### 161.4 — Interactive Viewport & Camera Controller
+- **Estado**: `DONE`
+- **Objetivo**: Construir el controlador de interacción reactiva `InteractiveViewportController` en `src/application/vto/interactive-viewport-controller.ts`, aislando las modificaciones de cámara (zoom acotado $[0.25..4.0]$, traslación/paneo, rotación modular, inclinación de órbita $[-45^\circ..+45^\circ]$, guiñada $[-90^\circ..+90^\circ]$ y reset al estado inicial) del bucle de inferencia neuronal y deformación espacial, resolviendo proyecciones y desproyecciones en tiempo $O(1)$.
+- **Evidencia**: `src/application/vto/interactive-viewport-controller.ts`, `src/application/vto/index.ts`, `tests/unit/vto-browser-render-boundary.test.ts` (5 tests PASS), `tests/e2e/vto-render-boundary-golden-journey.test.ts` (test GJ-3 PASS).
+- **Archivos Afectados**: `src/application/vto/interactive-viewport-controller.ts`, `src/application/vto/index.ts`.
+
+#### 161.5 — Browser Render Port & Peripheral Canvas Adapter
+- **Estado**: `DONE`
+- **Objetivo**: Formalizar el puerto perimétrico `BrowserRenderPort` y el adaptador concreto `BrowserCanvasRenderer` en `src/application/vto/browser-render-adapter.ts`, soportando WebGL, Canvas 2D y OffscreenCanvas con detección de capacidades (reportando `ENVIRONMENT_PENDING` en Node.js/headless), protegiendo contra sobrescritura de tramas fuera de orden mediante seguimiento monotónico de `latestRenderedSequenceNumber` y rechazo explícito con motivo `STALE_FRAME_REJECTED`.
+- **Evidencia**: `src/application/vto/browser-render-adapter.ts`, `src/application/vto/index.ts`, `tests/unit/vto-browser-render-boundary.test.ts` (2 tests PASS).
+- **Archivos Afectados**: `src/application/vto/browser-render-adapter.ts`, `src/application/vto/index.ts`.
+
+#### 161.6 — End-to-End Verification Suite, Test Double & Canonical Documentation
+- **Estado**: `DONE`
+- **Objetivo**: Desarrollar el adaptador simulado determinista `SimulatedBrowserRenderAdapter` en `src/application/vto/simulated-browser-render-adapter.ts`, construir la suite de pruebas unitarias `tests/unit/vto-browser-render-boundary.test.ts` (17/17 tests PASS), la suite E2E Golden Journey `tests/e2e/vto-render-boundary-golden-journey.test.ts` (4/4 tests PASS), actualizar `docs/ROADMAP_MASTER.md` y publicar el informe técnico oficial `docs/VTO_BROWSER_RENDER_PHASE_161.md`.
+- **Evidencia**: `src/application/vto/simulated-browser-render-adapter.ts`, `tests/unit/vto-browser-render-boundary.test.ts` (17/17 PASS), `tests/e2e/vto-render-boundary-golden-journey.test.ts` (4/4 PASS), `docs/VTO_BROWSER_RENDER_PHASE_161.md`, `docs/MASTER_WORK_PLAN.md`, `docs/ROADMAP_MASTER.md`.
+- **Archivos Afectados**: `src/application/vto/simulated-browser-render-adapter.ts`, `src/application/vto/index.ts`, `tests/unit/vto-browser-render-boundary.test.ts`, `tests/e2e/vto-render-boundary-golden-journey.test.ts`, `docs/VTO_BROWSER_RENDER_PHASE_161.md`, `docs/MASTER_WORK_PLAN.md`, `docs/ROADMAP_MASTER.md`.
+
+---
+
+## 31. Checklist Global Obligatorio de Cierre de Fase
 
 Toda fase futura debe satisfacer el siguiente checklist integral antes de ser declarada `DONE`:
 
@@ -1467,9 +1520,9 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 31. Plantillas Oficiales de Registro
+## 32. Plantillas Oficiales de Registro
 
-### 31.1. Plantilla de Fase Futura
+### 32.1. Plantilla de Fase Futura
 
 ```markdown
 ## FASE X — [Título de la Fase]
@@ -1504,7 +1557,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 - X.1.1 — [Título del cambio si surge]
 ```
 
-### 31.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
+### 32.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
 
 ```markdown
 ### X.Y.Z — [Nombre del Cambio Imprevisto]
@@ -1523,7 +1576,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 32. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
+## 33. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
 
 Las siguientes líneas de trabajo constituyen el backlog estratégico aprobado. Se mantienen en estado `PLANNED`, `BACKLOG` o `EXPLORATORY` y no deben marcarse como `DONE` hasta contar con código y pruebas completas:
 

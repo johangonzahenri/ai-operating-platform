@@ -35,3 +35,5 @@ export * from "./frame-source-port.js";
 export * from "./continuous-processing-loop.js";
 export * from "./temporal-synchronizer.js";
 export * from "./spatial-warping-compositor.js";
+export * from "./render-contract.js";
+export * from "./scene-lifecycle.js";

@@ -18,3 +18,7 @@ export * from "./browser-camera-adapter.js";
 export * from "./offscreen-canvas-processor.js";
 export * from "./continuous-processing-coordinator.js";
 export * from "./simulated-continuous-pipeline.js";
+export * from "./spatial-to-render-mapper.js";
+export * from "./interactive-viewport-controller.js";
+export * from "./browser-render-adapter.js";
+export * from "./simulated-browser-render-adapter.js";
