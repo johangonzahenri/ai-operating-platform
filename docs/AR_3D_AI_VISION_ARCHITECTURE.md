@@ -256,6 +256,16 @@ Para apuntar al objetivo de diseño de 60 fps (**DESIGN TARGET**: $< 16.6\text{ 
 - **Resiliencia & Concurrencia**: Emparejamiento biunívoco por `requestId`, soporte de respuestas fuera de orden (*out-of-order execution*), cancelación cooperativa con `AbortSignal`, timeouts deterministas y gobierno de contrapresión con colas acotadas (`maxQueueSize`).
 - **Referencia Canónica**: Ver especificación completa y evidencia en [`docs/VTO_ASYNC_WEBWORKER_PHASE_158.md`](./VTO_ASYNC_WEBWORKER_PHASE_158.md).
 
+### 7.5 Adquisición de Secuencias de Frames de Cámara y Pipeline Perimetral OffscreenCanvas (Fase 159)
+Para completar el canal de **entrada de datos visuales** de la arquitectura VTO sin acoplar el núcleo de dominio a APIs de navegador:
+- **Contratos Neutrales de Frames (`src/domain/vto/frame-protocol.ts`)**: Tipos puros inmutables (`VideoFrameInput`, `FrameMetadata`, `FrameDimensions`, `PixelFormat`, `ColorSpace`, `FrameTimestamp`) con validación fail-closed (`validateVideoFrameInput`) que restringen dimensiones a un máximo de $4096\times 4096$ y memoria a $64\text{ MB}$, con cero referencias a APIs de navegador en `src/domain/vto/`.
+- **Puerto Hexagonal Secundario (`src/domain/vto/frame-source-port.ts`)**: Define `FrameSourcePort` con máquina de estados estricta (`UNINITIALIZED` -> `INITIALIZING` -> `STOPPED` -> `ACTIVE` <-> `PAUSED` -> `RELEASED` / `ERROR`) y políticas de contrapresión configurables (`DROP_OLDEST`, `DROP_NEWEST`, `BACKPRESSURE_REJECT`).
+- **Adaptador Perimétrico de Cámara (`src/application/vto/browser-camera-adapter.ts`)**: Consume `navigator.mediaDevices.getUserMedia` aislando fallos de permisos (`PERMISSION_DENIED`), desconexión de hardware (`DEVICE_ERROR`) y garantizando la detención física de tracks de video (`MediaStreamTrack.stop()`) al pausar, detener o liberar la sesión.
+- **Pipeline de Preprocesamiento (`src/application/vto/frame-preprocessing-pipeline.ts`)**: Operaciones puras en memoria sobre arreglos tipados para reorientación espacial ($0^\circ, 90^\circ, 180^\circ, 270^\circ$), espejado horizontal (*selfie mode*), reescalado bilineal acotado, conversión de formatos de color (`RGBA8`, `RGB8`, `GRAYSCALE8`, `BGRA8`) y ordenamiento temporal monotónico compatible con los filtros cinemáticos One-Euro.
+- **OffscreenCanvas & Aceleración Gráfica Perimetral (`src/application/vto/offscreen-canvas-processor.ts`)**: Explora `OffscreenCanvas` perimetral con fallback transparente hacia ejecución CPU en entornos headless o no soportados (`ENVIRONMENT_PENDING` en Node.js/CI).
+- **Control de Contrapresión & Política Drop-Oldest**: Descarte determinista del frame más antiguo ante congestión del hilo de inferencia, garantizando latencia mínima y cero acumulación de memoria.
+- **Referencia Canónica**: Ver especificación completa y evidencia en [`docs/VTO_CAMERA_FRAME_PIPELINE_PHASE_159.md`](./VTO_CAMERA_FRAME_PIPELINE_PHASE_159.md).
+
 ---
 
 ## 8. Pipeline de Assets 3D y Mejoras de Renderizado Fotorrealista

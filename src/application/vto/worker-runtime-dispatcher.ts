@@ -28,6 +28,7 @@ import { GarmentAlignmentResult } from "../../domain/vto/garment-alignment.js";
 import { CpuMicroModelInferenceProvider } from "../../domain/vto/cpu-inference-provider.js";
 import { CANONICAL_VTO_MICRO_MODEL_MANIFEST } from "../../domain/vto/canonical-micro-model.js";
 import { Tensor } from "../../domain/vto/neural-tensor.js";
+import { FramePreprocessingPipeline } from "./frame-preprocessing-pipeline.js";
 
 export type VtoTaskHandler<TPayload = any, TResult = any> = (
   payload: TPayload,
@@ -239,6 +240,31 @@ export class VtoWorkerRuntimeDispatcher {
         };
       }
       throw new Error("Missing inputTensor or featureVector in payload");
+    });
+
+    // 4. DEPTH_OCCLUSION Handler
+    this.registerHandler("DEPTH_OCCLUSION", async (payload: any) => {
+      if (!payload || typeof payload !== "object") {
+        throw new Error("Invalid payload: expected object");
+      }
+      return {
+        occlusionMask: payload.mask ?? [1.0, 1.0],
+        depthMapId: payload.depthMapId ?? "depth-default",
+      };
+    });
+
+    // 5. FRAME_PREPROCESS Handler
+    this.registerHandler("FRAME_PREPROCESS", async (payload: any) => {
+      if (!payload || typeof payload !== "object") {
+        throw new Error("Invalid payload: expected object");
+      }
+      const pipeline = new FramePreprocessingPipeline(payload.config);
+      const frameInput = payload.frame ?? payload;
+      const res = pipeline.process(frameInput);
+      if (!res.success) {
+        throw new Error(res.error ?? "Frame preprocessing failed");
+      }
+      return res;
     });
   }
 }

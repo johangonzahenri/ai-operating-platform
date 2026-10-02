@@ -12,3 +12,7 @@ export * from "./on-device-vto-coordinator.js";
 export * from "./worker-runtime-dispatcher.js";
 export * from "./simulated-web-worker.js";
 export * from "./web-worker-vto-adapter.js";
+export * from "./frame-preprocessing-pipeline.js";
+export * from "./simulated-frame-source.js";
+export * from "./browser-camera-adapter.js";
+export * from "./offscreen-canvas-processor.js";

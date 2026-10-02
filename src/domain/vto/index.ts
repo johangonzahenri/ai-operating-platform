@@ -30,3 +30,5 @@ export * from "./inference-provider-port.js";
 export * from "./cpu-inference-provider.js";
 export * from "./worker-protocol.js";
 export * from "./async-worker-port.js";
+export * from "./frame-protocol.js";
+export * from "./frame-source-port.js";

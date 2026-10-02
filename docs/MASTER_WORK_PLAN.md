@@ -1325,7 +1325,60 @@ Diseñar e implementar la infraestructura de ejecución asíncrona fuera del hil
 
 ---
 
-## 28. Checklist Global Obligatorio de Cierre de Fase
+## 28. FASE 159 — PROJ-01 TENTACIONES AI COMMERCE: Camera Stream Frame Acquisition, Video Preprocessing & OffscreenCanvas Pipeline
+
+### Objetivo
+Diseñar e implementar la infraestructura perimetral y contratos de dominio para la adquisición de secuencias de frames desde cámaras/fuentes de video (`MediaStream`, `OffscreenCanvas`), su normalización y preprocesamiento determinista (orientación espacial, escala bilinear acotada, normalización de formatos y secuencias temporales monotónicas) y su transferencia gobernada hacia el entorno de ejecución asíncrono `WebWorker` / pipeline VTO de Tentaciones AI Commerce, con estricta preservación de la privacidad (cero persistencia o registro de imágenes y datos biométricos), control de contrapresión con política de descarte determinista (*drop oldest*), límites estrictos de memoria y pureza hexagonal sin dependencias de browser en el dominio.
+
+### Metadatos
+- **Estado Técnico**: `DONE`
+- **Estado Operativo**: `DONE`
+- **Declaración Canónica**: `Camera acquisition & frame preprocessing pipeline IMPLEMENTED + SIMULATED VERIFIED` / `Browser runtime execution ENVIRONMENT PENDING`
+- **Prioridad**: `HIGH`
+- **Dependencias**: Fase 158 (WebWorker Asynchronous Off-Main-Thread Decoupling), Fases 153–157
+- **Iniciativas Vinculadas**: `AOP-TENTACIONES-AR-3D-AI`
+
+### Tareas
+
+#### 159.1 — Neutral Frame Domain Contracts
+- **Estado**: `DONE`
+- **Objetivo**: Definir contratos fuertemente tipados e independientes de plataforma (`FrameId`, `FrameDimensions`, `PixelFormat`, `ColorSpace`, `FrameTimestamp`, `FrameMetadata`, `VideoFrameInput`) en `src/domain/vto/frame-protocol.ts` con validación fail-closed (`validateVideoFrameInput`), límites estrictos de dimensiones ($4096\times 4096$) y memoria ($64\text{ MB}$) con cero dependencias de APIs de navegador en el núcleo de dominio.
+- **Evidencia**: `src/domain/vto/frame-protocol.ts`, `src/domain/vto/index.ts`, `tests/unit/vto-camera-frame-pipeline.test.ts` (9 tests PASS).
+- **Archivos Afectados**: `src/domain/vto/frame-protocol.ts`, `src/domain/vto/index.ts`.
+
+#### 159.2 — Frame Source Port
+- **Estado**: `DONE`
+- **Objetivo**: Formalizar el puerto secundario hexagonal `FrameSourcePort` en `src/domain/vto/frame-source-port.ts` con máquina de estados finita (`UNINITIALIZED` -> `INITIALIZING` -> `STOPPED` -> `ACTIVE` <-> `PAUSED` -> `RELEASED` / `ERROR`), políticas configurables de contrapresión (`DROP_OLDEST`, `DROP_NEWEST`, `BACKPRESSURE_REJECT`) y métricas técnicas agregadas sin retención visual.
+- **Evidencia**: `src/domain/vto/frame-source-port.ts`, `src/domain/vto/index.ts`, `tests/unit/vto-camera-frame-pipeline.test.ts` (4 tests PASS).
+- **Archivos Afectados**: `src/domain/vto/frame-source-port.ts`, `src/domain/vto/index.ts`.
+
+#### 159.3 — Browser Camera / Video Adapter
+- **Estado**: `DONE`
+- **Objetivo**: Implementar el adaptador perimetral `BrowserCameraAdapter` en `src/application/vto/browser-camera-adapter.ts` con detección de capacidades (`isSupported()`, señalando `ENVIRONMENT_PENDING` en Node.js/headless), mapeo de errores de permisos y dispositivos (`PERMISSION_DENIED`, `DEVICE_ERROR`), parada determinista de `MediaStreamTrack` para evitar fugas de hardware y extracción a contrato neutral.
+- **Evidencia**: `src/application/vto/browser-camera-adapter.ts`, `src/application/vto/index.ts`, `tests/unit/vto-camera-frame-pipeline.test.ts` (4 tests PASS).
+- **Archivos Afectados**: `src/application/vto/browser-camera-adapter.ts`, `src/application/vto/index.ts`.
+
+#### 159.4 — Frame Preprocessing Pipeline
+- **Estado**: `DONE`
+- **Objetivo**: Construir el componente neutral de normalización `FramePreprocessingPipeline` en `src/application/vto/frame-preprocessing-pipeline.ts` con reorientación espacial (0, 90, 180, 270 grados), espejado horizontal para modo selfie, reescalado bilineal acotado (`maxDimensions`), conversión de formatos de color (`RGBA8`, `RGB8`, `GRAYSCALE8`, `BGRA8`), ordenamiento temporal monotónico y rechazo de frames corruptos.
+- **Evidencia**: `src/application/vto/frame-preprocessing-pipeline.ts`, `src/application/vto/index.ts`, `tests/unit/vto-camera-frame-pipeline.test.ts` (6 tests PASS).
+- **Archivos Afectados**: `src/application/vto/frame-preprocessing-pipeline.ts`, `src/application/vto/index.ts`.
+
+#### 159.5 — OffscreenCanvas & Transfer Pipeline
+- **Estado**: `DONE`
+- **Objetivo**: Implementar el procesador perimetral `OffscreenCanvasProcessor` en `src/application/vto/offscreen-canvas-processor.ts` y el doble de pruebas determinista `SimulatedFrameSource` en `src/application/vto/simulated-frame-source.ts` con detección de capacidades, fallback automático y transparente a CPU, ciclo de vida de renderizado y verificación de transferencia de propiedad de buffers (`ArrayBuffer`).
+- **Evidencia**: `src/application/vto/offscreen-canvas-processor.ts`, `src/application/vto/simulated-frame-source.ts`, `src/application/vto/index.ts`, `tests/unit/vto-camera-frame-pipeline.test.ts` (5 tests PASS).
+- **Archivos Afectados**: `src/application/vto/offscreen-canvas-processor.ts`, `src/application/vto/simulated-frame-source.ts`, `src/application/vto/index.ts`.
+
+#### 159.6 — WebWorker Integration, Verification Suite & Canonical Documentation
+- **Estado**: `DONE`
+- **Objetivo**: Integrar la operación `FRAME_PREPROCESS` dentro del protocolo y despachador de WebWorker (`VtoWorkerRuntimeDispatcher`), construir la suite integral de pruebas unitarias `tests/unit/vto-camera-frame-pipeline.test.ts` (33/33 PASS), validar pureza arquitectónica hexagonal estática, actualizar `docs/AR_3D_AI_VISION_ARCHITECTURE.md`, `docs/MASTER_WORK_PLAN.md`, `docs/ROADMAP_MASTER.md` y publicar el informe técnico `docs/VTO_CAMERA_FRAME_PIPELINE_PHASE_159.md`.
+- **Evidencia**: `tests/unit/vto-camera-frame-pipeline.test.ts` (33/33 PASS), `docs/VTO_CAMERA_FRAME_PIPELINE_PHASE_159.md`, `docs/AR_3D_AI_VISION_ARCHITECTURE.md`, `docs/MASTER_WORK_PLAN.md`, `docs/ROADMAP_MASTER.md`.
+- **Archivos Afectados**: `src/domain/vto/worker-protocol.ts`, `src/application/vto/worker-runtime-dispatcher.ts`, `tests/unit/vto-camera-frame-pipeline.test.ts`, `docs/VTO_CAMERA_FRAME_PIPELINE_PHASE_159.md`, `docs/AR_3D_AI_VISION_ARCHITECTURE.md`, `docs/MASTER_WORK_PLAN.md`, `docs/ROADMAP_MASTER.md`.
+
+---
+
+## 29. Checklist Global Obligatorio de Cierre de Fase
 
 Toda fase futura debe satisfacer el siguiente checklist integral antes de ser declarada `DONE`:
 
@@ -1350,9 +1403,9 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 29. Plantillas Oficiales de Registro
+## 30. Plantillas Oficiales de Registro
 
-### 29.1. Plantilla de Fase Futura
+### 30.1. Plantilla de Fase Futura
 
 ```markdown
 ## FASE X — [Título de la Fase]
@@ -1387,7 +1440,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 - X.1.1 — [Título del cambio si surge]
 ```
 
-### 29.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
+### 30.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
 
 ```markdown
 ### X.Y.Z — [Nombre del Cambio Imprevisto]
@@ -1406,7 +1459,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 30. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
+## 31. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
 
 Las siguientes líneas de trabajo constituyen el backlog estratégico aprobado. Se mantienen en estado `PLANNED`, `BACKLOG` o `EXPLORATORY` y no deben marcarse como `DONE` hasta contar con código y pruebas completas:
 

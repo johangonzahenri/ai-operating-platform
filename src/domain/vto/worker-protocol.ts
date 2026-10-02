@@ -17,7 +17,8 @@ export type VtoWorkerOperation =
   | "POSE_PREPROCESS"
   | "GARMENT_WARP"
   | "DEPTH_OCCLUSION"
-  | "NEURAL_INFERENCE";
+  | "NEURAL_INFERENCE"
+  | "FRAME_PREPROCESS";
 
 export type VtoWorkerTaskStatus =
   | "ACCEPTED"
@@ -139,6 +140,7 @@ export function validateVtoWorkerRequest(req: unknown): VtoWorkerValidationResul
     "GARMENT_WARP",
     "DEPTH_OCCLUSION",
     "NEURAL_INFERENCE",
+    "FRAME_PREPROCESS",
   ];
 
   if (!validOperations.includes(r.operation as VtoWorkerOperation)) {
