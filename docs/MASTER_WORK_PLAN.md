@@ -69,6 +69,17 @@ Este documento responde de forma inequívoca en todo momento:
 > **Decisión**: Formalizar el marco en `docs/GOBERNANZA_DE_CALIDAD_Y_AUDITORIAS.md`, modelos de dominio en `src/domain/governance/audit-models.ts`, registro central en `docs/REGISTRO_DE_AUDITORIAS.md`, informe oficial en `docs/AUDITORIA_SISTEMA_001.md`, manifiesto JSON en `docs/integration-evidence/aud-sistema-001-manifest.json`, implementar la suite `tests/e2e/aud-sistema-001.test.ts` (23 tests PASS) y emitir el veredicto oficial `AUDITORÍA DEL SISTEMA APROBADA` (`MARCO DE AUDITORÍA ENDURECIDO`).  
 > **Evidencia**: `src/domain/governance/audit-models.ts`, `tests/unit/quality-governance-audit.test.ts` (4/4 tests PASS), `docs/GOBERNANZA_DE_CALIDAD_Y_AUDITORIAS.md`, `docs/REGISTRO_DE_AUDITORIAS.md`, `docs/AUDITORIA_SISTEMA_001.md`, `docs/integration-evidence/aud-sistema-001-manifest.json`, `tests/e2e/aud-sistema-001.test.ts` (23/23 tests PASS, 1952 tests totales del sistema PASS en 166 suites).
 
+### Tarea Inesperada 1.1.4 — Auditoría Transversal de Estabilización AUD-FASE-001 (Fases 157–159)
+> **Identificador Canónico**: `1.1.4` (Cross-Cutting Phase Stabilization Audit AUD-FASE-001 / Unexpected Governance Task)  
+> **Fecha**: 2026-10-01  
+> **Estado Técnico**: `DONE` | **Estado Operativo**: `DONE`  
+> **Prioridad**: `HIGH`  
+> **Iniciativas Vinculadas**: `AOP-QUALITY-GOVERNANCE` (`docs/ROADMAP_MASTER.md`), `AOP-TENTACIONES-AR-3D-AI`  
+> **Detectado durante**: Reconciliación técnica y estabilización transversal posterior a la Fase 159 (Video Pipeline) y Fases 157–158 (Inferencia On-Device y WebWorker).  
+> **Origen**: Necesidad de evaluar holísticamente la estabilidad, contratos neutrales, seguridad, concurrencia y pureza hexagonal entre Fases 157, 158 y 159; verificar matemáticamente que el módulo de warping en Fase 155 es `WarpField2D` y no Thin-Plate Splines (TPS); reconciliar afirmaciones de rendimiento (latencia observacional vs objetivos de diseño); y auditar el pipeline sin consumir una fase funcional espuria en la secuencia canónica.  
+> **Decisión**: Formalizar el dictamen `AUDITORÍA DE FASE APROBADA CON DEUDA TÉCNICA` en `docs/AUDITORIA_FASE_001.md`, registrar en `docs/REGISTRO_DE_AUDITORIAS.md`, generar manifiesto `docs/integration-evidence/aud-fase-001-manifest.json`, implementar la suite E2E de auditoría `tests/e2e/aud-fase-001.test.ts` (8/8 tests PASS, 2034 tests totales PASS en 196 suites), registrar los hallazgos HAL-003, HAL-004, HAL-005, HAL-006, y certificar que la Fase 160 es `FORMALIZABLE`.  
+> **Evidencia**: `tests/e2e/aud-fase-001.test.ts` (8/8 tests PASS), `docs/AUDITORIA_FASE_001.md`, `docs/integration-evidence/aud-fase-001-manifest.json`, `docs/REGISTRO_DE_AUDITORIAS.md`, 2034 tests totales del sistema PASS en 196 suites.
+
 ---
 
 ## 2. Separación Conceptual de Documentos
