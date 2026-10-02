@@ -1,14 +1,14 @@
-# ADR 0047: Trazabilidad de Autorización y RBAC Persistente
+# ADR 0047: Traza de Autorización y RBAC Persistente
 
 ## Estado
-Aceptado
+ACEPTADA
 
 ## Contexto
 El modelo actual de control de acceso basado en roles (RBAC) dependía de un repositorio en memoria (`InMemoryRoleRepository`). A medida que la plataforma (AI Operating Platform) evoluciona hacia una arquitectura multi-tenant y se introducen operaciones de mayor riesgo, mantener roles en memoria limita la flexibilidad, escalabilidad y persistencia a largo plazo.
 
 Además, en el ecosistema actual, no existía una traza unificada que capturara el contexto completo de una decisión de seguridad (Quién, En qué tenant, Sobre qué recurso, Con qué políticas y presupuesto). Esto dificulta las auditorías, la depuración y la observabilidad.
 
-## Decisiones
+## Decisión
 1. **Implementar `SqliteRoleRepository`**: Reemplazar la gestión en memoria de roles por un almacenamiento persistente basado en SQLite. El repositorio gestiona tablas separadas para `roles` y `role_assignments`, aplicando aislamiento mediante `tenant_id`.
 2. **Definir `AuthorizationTrace`**: Introducir una interfaz que represente el registro auditable de cada decisión de seguridad. Este registro debe ser exhaustivo y responder las preguntas clave (Who, What, Why, Budget, Agent context).
 

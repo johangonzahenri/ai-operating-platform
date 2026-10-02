@@ -1,35 +1,35 @@
-# Scalability & Resilience Architecture — AI Operating Platform
+# Arquitectura de Escalabilidad y Resiliencia — AI Operating Platform
 
-## 1. Scalability Dimensions
-The AI Operating Platform is designed to scale across multiple dimensions without premature microservice fragmentation:
-* **Compute / Agent Execution**: Stateless worker execution over durable task queues.
-* **API / Ingress**: Asynchronous request handling with bounded backpressure.
-* **Persistence**: Append-only SQLite event journaling with migration path to distributed SQL.
-* **Model Gateways**: Decoupled provider routing with failover and circuit breaker isolation.
-* **Tool Invocation**: Isolated runtime with timeouts and memory bounding.
-
----
-
-## 2. Bottleneck Analysis & Concurrency
-* **Concurrency Model**: Optimistic Concurrency Control (OCC) protects task state transitions.
-* **SQLite WAL Concurrency**: Allows concurrent readers alongside a serialized writer, avoiding thread starvation under typical enterprise workloads.
-* **Backpressure**: `BackpressureController` limits concurrent active executions (default 50) and returns HTTP 429 / 503 with `Retry-After` when capacity is exceeded.
+## 1. Dimensiones de Escalabilidad
+La AI Operating Platform está diseñada para escalar a través de múltiples dimensiones sin fragmentación prematura de microservicios:
+* **Cómputo / Ejecución de Agentes**: Ejecución de workers sin estado sobre colas de tareas duraderas.
+* **API / Ingreso**: Manejo de solicitudes asíncronas con contrapresión (backpressure) limitada.
+* **Persistencia**: Journaling de eventos SQLite de solo adición con ruta de migración a SQL distribuido.
+* **Gateways de Modelos**: Enrutamiento de proveedores desacoplado con conmutación por error (failover) y aislamiento de circuit breaker.
+* **Invocación de Herramientas**: Runtime aislado con tiempos de espera y limitación de memoria.
 
 ---
 
-## 3. Worker Queue & Distributed Execution Model
-* **Port**: `WorkerQueuePort` (`src/application/ports/worker-queue-port.ts`).
-* **Implementation**: `InMemoryWorkerQueue` with lease renewal heartbeats, exponential retries, and dead-letter queue (DLQ) containment.
-* **Lease Protocol**: Workers acquire an exclusive lease for $T$ seconds. Heartbeats extend the lease. If a worker crashes, expired leases are automatically reclaimed by healthy workers.
+## 2. Análisis de Cuellos de Botella y Concurrencia
+* **Modelo de Concurrencia**: El Control de Concurrencia Optimista (OCC) protege las transiciones de estado de las tareas.
+* **Concurrencia de SQLite WAL**: Permite lectores concurrentes junto con un escritor serializado, evitando la inanición de hilos bajo cargas de trabajo empresariales típicas.
+* **Contrapresión (Backpressure)**: `BackpressureController` limita las ejecuciones activas concurrentes (por defecto 50) y devuelve HTTP 429 / 503 con `Retry-After` cuando se excede la capacidad.
 
 ---
 
-## 4. Resilience Patterns
-1. **Retry Policy (`src/application/resilience/retry-policy.ts`)**:
-   - `RETRYABLE`: Network timeouts, rate limits, SQLite locks.
-   - `NON_RETRYABLE`: Validation errors, authorization rejections, schema mismatches.
-   - Exponential backoff with full jitter to avoid thundering herd.
+## 3. Worker Queue y Modelo de Ejecución Distribuida
+* **Puerto**: `WorkerQueuePort` (`src/application/ports/worker-queue-port.ts`).
+* **Implementación**: `InMemoryWorkerQueue` con latidos (heartbeats) de renovación de arrendamiento (lease), reintentos exponenciales y contención de cola de mensajes muertos (DLQ).
+* **Protocolo de Arrendamiento (Lease)**: Los workers adquieren un arrendamiento exclusivo por $T$ segundos. Los latidos extienden el arrendamiento. Si un worker falla, los arrendamientos caducados son reclamados automáticamente por workers saludables.
+
+---
+
+## 4. Patrones de Resiliencia
+1. **Política de Reintentos (`src/application/resilience/retry-policy.ts`)**:
+   - `RETRYABLE`: Tiempos de espera de red, límites de tasa, bloqueos de SQLite.
+   - `NON_RETRYABLE`: Errores de validación, rechazos de autorización, desajustes de esquema.
+   - Retroceso exponencial (exponential backoff) con full jitter para evitar el problema de la manada en estampida (thundering herd).
 2. **Circuit Breaker (`src/application/resilience/circuit-breaker.ts`)**:
-   - States: `CLOSED` $\to$ `OPEN` (after 5 consecutive failures) $\to$ `HALF_OPEN` (after 10s cooldown).
-3. **Rate Limiting (`src/application/resilience/rate-limiter.ts`)**:
-   - Sliding window limiter enforcing quotas per client / tenant / application.
+   - Estados: `CLOSED` $\to$ `OPEN` (después de 5 fallas consecutivas) $\to$ `HALF_OPEN` (después de 10s de enfriamiento).
+3. **Limitación de Tasa (Rate Limiting) (`src/application/resilience/rate-limiter.ts`)**:
+   - Limitador de ventana deslizante (sliding window) que hace cumplir cuotas por cliente / inquilino (tenant) / aplicación.

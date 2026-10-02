@@ -1,18 +1,18 @@
 # AI Operating Platform (AOP) - Narrativa de Plataforma
 
-## Executive Snapshot
+## Instantánea Ejecutiva
 ```text
-Version:           1.4.0
-Status:            Production Hardened
-Tests:             1400+ PASS, 0 FAIL
-Runtime deps:      0 (only Node.js built-ins)
-Providers:         OpenAI, Anthropic, Gemini, Ollama, Stub
-Agents:            First-class with tool whitelist and memory isolation
-Budget:            Multi-dimensional team quotas with atomic enforcement
-Multi-tenancy:     Strict tenant isolation (Organization > Area > Team)
-API:               100+ REST endpoints under /api/v1
-Known limitations: No live TLS, no live OIDC IdP
-Production exit:   CERTIFIED WITH OPEN GAPS
+Versión:           1.4.0
+Estado:            Production Hardened
+Pruebas:           1400+ PASS, 0 FAIL
+Dependencias de ejecución: 0 (solo nativas de Node.js)
+Proveedores:       OpenAI, Anthropic, Gemini, Ollama, Stub
+Agentes:           De primera clase con lista blanca de herramientas y aislamiento de memoria
+Presupuesto:       Cuotas de equipo multidimensionales con aplicación atómica
+Multi-inquilinato: Aislamiento estricto de inquilinos (Organization > Area > Team)
+API:               100+ endpoints REST bajo /api/v1
+Limitaciones conocidas: No hay TLS en vivo, no hay IdP OIDC en vivo
+Criterios de salida a producción: CERTIFIED WITH OPEN GAPS
 ```
 
 ## 1. La Plataforma en Una Página
@@ -20,11 +20,11 @@ La plataforma es un sistema operativo para la inteligencia artificial empresaria
 
 ```mermaid
 flowchart LR
-    App[External App] --> API[API AOP]
-    API --> Auth[Identity & Policy]
+    App[Aplicación Externa] --> API[API AOP]
+    API --> Auth[Identidad & Políticas]
     Auth --> Runtime[Core Runtime]
-    Runtime --> Model[Model / Provider]
-    Runtime --> Tools[Tools]
+    Runtime --> Model[Modelo / Proveedor]
+    Runtime --> Tools[Herramientas]
     Model --> Runtime
     Tools --> Runtime
     Runtime --> App

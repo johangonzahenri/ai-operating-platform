@@ -4,9 +4,9 @@
 
 ---
 
-**Documento:** AI Operating Platform — Official Architecture Book
-**Versión del Documento:** 3.9 (Enterprise Control Plane — Portfolio, Governance & Evidence UI)
-**Estado del Repositorio:** v1.4.0 Baseline (1591 tests PASS, 0 FAIL — 100% determinismo)
+**Documento:** AI Operating Platform — Libro Oficial de Arquitectura
+**Versión del Documento:** 4.1 (Hardening Arquitectónico, Virtual Try-On y Documentación es-419)
+**Estado del Repositorio:** v1.4.0 Baseline (2073 tests PASS, 0 FAIL — 100% determinismo)
 **Estado Documental:** Oficial / Sincronizado con Fuente de Verdad
 **Fecha de Verificación:** Septiembre de 2026
 **Fuente de Verdad Técnica:** Código fuente (`src/`) + Tests automatizados (`tests/`) + ADRs (`docs/decisions/`)

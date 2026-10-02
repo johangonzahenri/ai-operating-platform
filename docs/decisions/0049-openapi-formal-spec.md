@@ -1,20 +1,20 @@
-# 49. Formalize OpenAPI 3.1 Specification
+# ADR 0049: Especificación Formal OpenAPI 3.1
 
-Date: 2026-09-21
+Fecha: 2026-09-21
 
-## Status
+## Estado
 
-Accepted
+ACEPTADA
 
-## Context
+## Contexto
 
-We need a formal definition of our API contract for the AI Operating Platform.
+Necesitamos una definición formal de nuestro contrato de API para la AI Operating Platform.
 
-## Decision
+## Decisión
 
-We have adopted OpenAPI 3.1.0 as the formal spec.
+Hemos adoptado OpenAPI 3.1.0 como la especificación formal.
 
-## Consequences
+## Consecuencias
 
-- Better documentation
-- Clearer API contract
+- Mejor documentación
+- Contrato de API más claro

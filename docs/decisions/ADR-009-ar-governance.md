@@ -1,17 +1,17 @@
-# ADR-009: AR / 3D Virtual Fitting Room Governance and Sizing Engine
+# ADR-009: Gobernanza de Probador Virtual AR/3D
 
-## Status
-Accepted
+## Estado
+ACEPTADA
 
-## Context
-Virtual fitting room features require governed 3D asset identifiers, avatar body calibrations, and deterministic sizing rules without crashing if 3D assets are missing.
+## Contexto
+Las características del probador virtual requieren identificadores de activos 3D gobernados, calibraciones de cuerpo de avatar y reglas de dimensionamiento deterministas sin fallar si faltan activos 3D.
 
-## Decision
-Govern AR assets with URN format urn:tentaciones:ar:<category>:<productSlug>, strict SemVer (v1.0.0), avatar profiles (Nova, Sora, Mateo), and deterministic size rules. Malformed or missing assets degrade safely to STANDARD_2D_VIEW.
+## Decisión
+Gobernar los activos de AR con el formato URN `urn:tentaciones:ar:<category>:<productSlug>`, SemVer estricto (v1.0.0), perfiles de avatar (Nova, Sora, Mateo) y reglas de tamaño deterministas. Los activos malformados o faltantes se degradan de forma segura a `STANDARD_2D_VIEW`.
 
-## Alternatives Considered
-- Storing raw unvalidated 3D file URLs in LLM prompts: rejected for hallucination and reliability risks.
+## Alternativas Consideradas
+- Almacenar URLs de archivos 3D crudos no validados en los prompts del LLM: rechazado por riesgos de alucinación y confiabilidad.
 
-## Consequences
-- Resilient fitting room experience.
-- Reliable size advice backed by deterministic measurement charts.
+## Consecuencias
+- Experiencia de probador virtual resiliente.
+- Asesoramiento de tamaño confiable respaldado por tablas de medidas deterministas.

@@ -1,60 +1,60 @@
-# Security Controls — AI Operating Platform
+# Controles de Seguridad — AI Operating Platform
 
-## Important Clarification
+## Aclaración Importante
 
-This document lists **concrete security controls** implemented in the platform.
-We do NOT claim "XSS immunity" — we implement **active controls against XSS**.
+Este documento enumera los **controles de seguridad concretos** implementados en la plataforma.
+NO afirmamos "inmunidad XSS" — implementamos **controles activos contra XSS**.
 
-## DOM Security Controls
-| Control | Evidence | Verification |
+## Controles de Seguridad del DOM
+| Control | Evidencia | Verificación |
 |:---|:---|:---|
-| Zero `innerHTML` | `scripts/docs-check.mjs` scans `app.js` | VERIFIED |
-| Zero `outerHTML` | Static analysis | VERIFIED |
-| Zero `eval()` | Code search | VERIFIED |
-| Zero `Function()` constructor | Code search | VERIFIED |
-| Zero `document.write()` | Code search | VERIFIED |
-| Zero inline scripts | No `<script>` tags with inline code | VERIFIED |
-| DOM construction via `document.createElement` + `textContent` | Source review | VERIFIED |
+| Cero `innerHTML` | `scripts/docs-check.mjs` escanea `app.js` | VERIFIED |
+| Cero `outerHTML` | Análisis estático | VERIFIED |
+| Cero `eval()` | Búsqueda de código | VERIFIED |
+| Cero constructor `Function()` | Búsqueda de código | VERIFIED |
+| Cero `document.write()` | Búsqueda de código | VERIFIED |
+| Cero scripts en línea | Sin etiquetas `<script>` con código en línea | VERIFIED |
+| Construcción del DOM vía `document.createElement` + `textContent` | Revisión de código fuente | VERIFIED |
 
-## HTTP Security Headers
-| Header | Value | Purpose |
+## Cabeceras HTTP de Seguridad
+| Cabecera | Valor | Propósito |
 |:---|:---|:---|
-| Content-Security-Policy | `default-src 'self'; script-src 'self'` | Prevent XSS via external scripts |
-| Strict-Transport-Security | `max-age=31536000; includeSubDomains` | Force HTTPS |
-| X-Content-Type-Options | `nosniff` | Prevent MIME sniffing |
-| X-Frame-Options | `DENY` | Prevent clickjacking |
-| Vary | `Origin` | Proper CORS caching |
+| Content-Security-Policy | `default-src 'self'; script-src 'self'` | Prevenir XSS vía scripts externos |
+| Strict-Transport-Security | `max-age=31536000; includeSubDomains` | Forzar HTTPS |
+| X-Content-Type-Options | `nosniff` | Prevenir adivinación de MIME (MIME sniffing) |
+| X-Frame-Options | `DENY` | Prevenir clickjacking |
+| Vary | `Origin` | Caché CORS adecuado |
 
-## Authentication Controls
-| Control | Implementation | Status |
+## Controles de Autenticación
+| Control | Implementación | Estado |
 |:---|:---|:---|
-| API Key hashing | SHA-256 with key prefix | VERIFIED |
-| JWT verification | RS256/ES256 native `node:crypto` | VERIFIED |
-| JWKS key rotation | Dynamic fetch with TTL cache | VERIFIED |
-| Clock tolerance | Configurable for exp/nbf | VERIFIED |
+| Hashing de API Key | SHA-256 con prefijo de clave | VERIFIED |
+| Verificación JWT | RS256/ES256 nativo `node:crypto` | VERIFIED |
+| Rotación de claves JWKS | Obtención dinámica con caché TTL | VERIFIED |
+| Tolerancia de reloj | Configurable para exp/nbf | VERIFIED |
 
-## Authorization Controls  
-| Control | Implementation | Status |
+## Controles de Autorización  
+| Control | Implementación | Estado |
 |:---|:---|:---|
-| Fail-closed default | PolicyGateway DENY on any error | VERIFIED |
-| RBAC evaluation | Role-permission matching | VERIFIED |
-| Tenant isolation | CrossTenantOrganizationError | VERIFIED |
-| Tool whitelist | Agent.tools strict check | VERIFIED |
-| Memory isolation | Agent.memoryScope partitioning | VERIFIED |
+| Por defecto fail-closed | PolicyGateway DENY en cualquier error | VERIFIED |
+| Evaluación RBAC | Coincidencia de rol-permiso | VERIFIED |
+| Aislamiento de inquilinos | CrossTenantOrganizationError | VERIFIED |
+| Lista blanca de herramientas | Verificación estricta de Agent.tools | VERIFIED |
+| Aislamiento de memoria | Partición de Agent.memoryScope | VERIFIED |
 
-## Network Controls
-| Control | Implementation | Status |
+## Controles de Red
+| Control | Implementación | Estado |
 |:---|:---|:---|
-| Loopback binding | `127.0.0.1:3000` | VERIFIED |
-| Host header validation | allowedHosts check | VERIFIED |
-| Payload size limit | 1MB (HTTP 413) | VERIFIED |
-| Media type enforcement | application/json (HTTP 415) | VERIFIED |
-| Path traversal prevention | Static file serving sanitization | VERIFIED |
-| Rate limiting | Sliding window per route | VERIFIED |
+| Enlace loopback | `127.0.0.1:3000` | VERIFIED |
+| Validación de cabecera Host | Verificación de allowedHosts | VERIFIED |
+| Límite de tamaño de carga útil | 1MB (HTTP 413) | VERIFIED |
+| Imposición de tipo de medio | application/json (HTTP 415) | VERIFIED |
+| Prevención de salto de directorio | Saneamiento del servicio de archivos estáticos | VERIFIED |
+| Límite de tasa (Rate limiting) | Ventana deslizante por ruta | VERIFIED |
 
-## Open Gaps
-| Gap | Description | Target |
+## Brechas Abiertas
+| Brecha | Descripción | Objetivo |
 |:---|:---|:---|
-| GAP-SEC-01 | OIDC/JWKS live IdP connection | v1.4 |
-| GAP-INF-01 | TLS termination on live host | v1.4 |
-| Trusted Types | Not yet implemented | v1.5 |
+| GAP-SEC-01 | Conexión IdP en vivo OIDC/JWKS | v1.4 |
+| GAP-INF-01 | Terminación TLS en host en vivo | v1.4 |
+| Trusted Types | Aún no implementado | v1.5 |

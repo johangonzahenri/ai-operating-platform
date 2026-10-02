@@ -1,18 +1,18 @@
-# ADR-006: Unified Platform API v1 & SDK Client
+# ADR-006: API Unificada de Plataforma v1 y SDK Cliente
 
-## Status
-Accepted
+## Estado
+ACEPTADA
 
-## Context
-The Web Console and external applications need a standardized, versioned HTTP surface with SDK client support.
+## Contexto
+La Web Console y las aplicaciones externas necesitan una superficie HTTP estandarizada y versionada con soporte de SDK cliente.
 
-## Decision
-Expose canonical /api/v1/* endpoints (with /api/platform/v1/* compatibility routes) powered by PlatformService and consumed via the typed @ai-platform/client (PlatformClient).
+## Decisión
+Exponer endpoints canónicos `/api/v1/*` (con rutas de compatibilidad `/api/platform/v1/*`) impulsados por `PlatformService` y consumidos a través de `@ai-platform/client` tipado (`PlatformClient`).
 
-## Alternatives Considered
-- Ad-hoc RPC endpoints: rejected for lack of standardization.
-- GraphQL: rejected to maintain lightweight REST contract.
+## Alternativas Consideradas
+- Endpoints RPC ad-hoc: rechazados por falta de estandarización.
+- GraphQL: rechazado para mantener un contrato REST ligero.
 
-## Consequences
-- Clean client-server separation.
-- Uniform error schemas (code, message, status).
+## Consecuencias
+- Separación limpia cliente-servidor.
+- Esquemas de error uniformes (código, mensaje, estado).

@@ -1,7 +1,7 @@
-# ADR 0050: Governance & Compliance Evidence Export
+# ADR 0050: Exportación de Evidencia de Gobernanza y Cumplimiento
 
 ## Estado
-**APROBADA** (Fase 78 / `AOP-COMPLIANCE-EXPORT`)
+ACEPTADA (Fase 78 / `AOP-COMPLIANCE-EXPORT`)
 
 ## Fecha
 Septiembre de 2026

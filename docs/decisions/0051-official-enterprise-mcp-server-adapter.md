@@ -1,31 +1,30 @@
-# 0051. Official Model Context Protocol (MCP) TypeScript SDK v2 Integration
+# ADR 0051: Integración Oficial del SDK TypeScript v2 de MCP
 
-Date: 2026-09-25
-Status: Accepted
+Fecha: 2026-09-25
 
-## Context
+## Estado
+ACEPTADA
 
-Prior to Track 4 (GAP-07), the platform lacked standard Model Context Protocol (MCP) server capabilities. In an initial pass, a custom JSON-RPC transport and server was created. However, architectural standards require adopting the official `@modelcontextprotocol/server` TypeScript SDK (v2.1.0) while preserving:
-1. Strict Hexagonal Architecture (Driving Adapter in `src/platform/mcp/`).
-2. Zero third-party runtime dependencies in Core Engine (`src/domain/` and `src/application/`).
-3. Enterprise multi-tenancy, RBAC, Rate Limiting, Idempotency, Schema Governance, Taint Tracking, and HITL with Segregation of Duties (SoD).
-4. Dual-era protocol support: Modern `2026-07-28` (`server/discover`, request-scoped `_meta`) and Legacy `2024-11-05` (`initialize`).
+## Contexto
+Antes de la Vía 4 (GAP-07), la plataforma carecía de capacidades estándar de servidor Model Context Protocol (MCP). En un paso inicial, se creó un transporte y servidor JSON-RPC personalizado. Sin embargo, los estándares de arquitectura requieren adoptar el SDK oficial de TypeScript `@modelcontextprotocol/server` (v2.1.0) manteniendo:
+1. Arquitectura Hexagonal estricta (Adaptador Conductor en `src/platform/mcp/`).
+2. Cero dependencias de tiempo de ejecución de terceros en Core Engine (`src/domain/` y `src/application/`).
+3. Multi-inquilino empresarial, RBAC, limitación de tasa, idempotencia, gobernanza de esquemas, seguimiento de manchas y HITL con Segregación de Funciones (SoD).
+4. Soporte de protocolo de doble era: Moderno `2026-07-28` (`server/discover`, `_meta` con alcance de solicitud) y Legado `2024-11-05` (`initialize`).
 
-## Decision
+## Decisión
+1. **Adoptar SDK Oficial en el Perímetro de la Plataforma (`src/platform/mcp/`)**:
+   - Agregar `@modelcontextprotocol/server@2.1.0` en `dependencies` para el adaptador conductor de la plataforma.
+   - Las capas Core y Application permanecen 100% libres de dependencias de tiempo de ejecución externas.
+2. **Proyectar Capacidades Gobernadas**:
+   - Las instancias de `McpServer` se construyen a pedido o por solicitud a partir de definiciones seguras de `ToolRegistry`.
+   - La ejecución de herramientas se despacha estrictamente a través de `ToolInvocationRuntime` respetando las 10 puertas de gobernanza.
+   - Las aprobaciones de humanos en el ciclo (HITL) son interceptadas y suspendidas en `HITLBridgePort`, devolviendo metadatos de suspensión estructurados sin fallar.
+3. **Soporte de Transporte Dual**:
+   - `serveMcpStdio` sobre E/S estándar para clientes IDE (Antigravity, Cursor, Claude Desktop).
+   - `handleMcpHttpRequest` conectando `node:http` al Estándar Web `createMcpHandler` del SDK.
 
-1. **Adopt Official SDK in Platform Perimeter (`src/platform/mcp/`)**:
-   - Add `@modelcontextprotocol/server@2.1.0` in `dependencies` for the platform driving adapter.
-   - Core and Application layers remain 100% free of external runtime dependencies.
-2. **Project Governed Capabilities**:
-   - `McpServer` instances are constructed on-demand or per-request from `ToolRegistry` safe definitions.
-   - Tool execution is strictly dispatched through `ToolInvocationRuntime` respecting all 10 governance gates.
-   - Human-in-the-loop approvals are intercepted and suspended into `HITLBridgePort`, returning structured suspension metadata without crashing.
-3. **Dual Transport Support**:
-   - `serveMcpStdio` over standard I/O for IDE clients (Antigravity, Cursor, Claude Desktop).
-   - `handleMcpHttpRequest` bridging `node:http` to Web Standard `createMcpHandler` from the SDK.
-
-## Consequences
-
-- **GAP-07 is permanently closed** with the official TypeScript MCP SDK v2.
-- Full compliance with modern `2026-07-28` and legacy `2024-11-05` clients.
-- Invariant Principle #2 is respected: Core Engine maintains zero third-party dependencies, and platform adapter dependencies are explicitly bounded and governed.
+## Consecuencias
+- **GAP-07 se cierra permanentemente** con el SDK TypeScript oficial de MCP v2.
+- Cumplimiento total con clientes modernos `2026-07-28` y heredados `2024-11-05`.
+- Se respeta el Principio Invariante #2: Core Engine mantiene cero dependencias de terceros, y las dependencias del adaptador de plataforma están explícitamente delimitadas y gobernadas.

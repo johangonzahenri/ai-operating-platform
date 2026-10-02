@@ -1,17 +1,17 @@
-# ADR-003: SecurityContext and Trusted Principal Identification
+# ADR-003: SecurityContext e Identificación de Principal Confiable
 
-## Status
-Accepted
+## Estado
+ACEPTADA
 
-## Context
-Multi-tenant and multi-role operations require trusted principal identification without caller tampering or permission escalation.
+## Contexto
+Las operaciones multi-inquilino y multi-rol requieren la identificación de un principal confiable sin manipulación por parte del invocador ni escalada de permisos.
 
-## Decision
-Implement an immutable SecurityContext containing a verified Principal (USER, SERVICE, SYSTEM, ANONYMOUS), roles, tenant binding, and correlation identifiers. All security boundary checks evaluate against this context fail-closed.
+## Decisión
+Implementar un SecurityContext inmutable que contenga un Principal verificado (USER, SERVICE, SYSTEM, ANONYMOUS), roles, vinculación de inquilino e identificadores de correlación. Todas las comprobaciones de límites de seguridad evalúan contra este contexto fallando cerrado (*fail-closed*).
 
-## Alternatives Considered
-- Passing raw HTTP headers directly to domain handlers: rejected as insecure and unverified.
+## Alternativas Consideradas
+- Pasar encabezados HTTP crudos directamente a los manejadores de dominio: rechazado por ser inseguro y no verificado.
 
-## Consequences
-- Prevents cross-tenant leaks and privilege escalation.
-- Full traceability of caller identities in audit logs.
+## Consecuencias
+- Previene fugas entre inquilinos y escalada de privilegios.
+- Trazabilidad completa de las identidades de los invocadores en los registros de auditoría.

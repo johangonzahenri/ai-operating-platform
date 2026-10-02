@@ -1,17 +1,17 @@
-# ADR-007: External Application Boundary and Identity Model
+# ADR-007: Frontera de Aplicaciones Externas
 
-## Status
-Accepted
+## Estado
+ACEPTADA
 
-## Context
-External consumer applications must be modeled as first-class entities in the platform registry without importing internal domain classes.
+## Contexto
+Las aplicaciones consumidoras externas deben ser modeladas como entidades de primera clase en el registro de la plataforma sin importar clases de dominio internas.
 
-## Decision
-Define ExternalApplication domain entity and ApplicationRegistryPort managing metadata, implementation status, runtime status, authentication mode, and capability scopes.
+## Decisión
+Definir la entidad de dominio `ExternalApplication` y el `ApplicationRegistryPort` para administrar metadatos, estado de implementación, estado de ejecución, modo de autenticación y alcances de capacidades.
 
-## Alternatives Considered
-- Hardcoded application lists in router: rejected for lack of dynamic governance.
+## Alternativas Consideradas
+- Listas de aplicaciones codificadas directamente (*hardcoded*) en el enrutador: rechazadas por falta de gobernanza dinámica.
 
-## Consequences
-- Clean application governance and self-describing platform catalog.
-- Extensible to future consumers (e.g. Vehicle Diagnostics, Support Desk).
+## Consecuencias
+- Gobernanza de aplicaciones limpia y catálogo de plataforma autodescriptivo.
+- Extensible a futuros consumidores (por ejemplo, Diagnósticos de Vehículos, Soporte Técnico).

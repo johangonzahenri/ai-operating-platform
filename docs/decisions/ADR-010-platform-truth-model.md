@@ -1,19 +1,19 @@
-# ADR-010: Platform Truth Model and Source of Truth (SOT) Governance
+# ADR-010: Modelo de Verdad de Plataforma
 
-## Status
-Accepted
+## Estado
+ACEPTADA
 
-## Context
-Web consoles and documentation frequently misrepresent simulated or planned features as live infrastructure, harming technical credibility.
+## Contexto
+Las consolas web y la documentación a menudo tergiversan características simuladas o planificadas como infraestructura activa, perjudicando la credibilidad técnica.
 
-## Decision
-Enforce a strict Truth Model across all console badges, APIs, and docs:
-- Explicit statuses: IMPLEMENTED, PARTIAL, DESIGNED, PLANNED.
-- Explicit runtime states: HEALTHY, OPERATIONAL, AVAILABLE, NOT_CONNECTED, OFFLINE, DEGRADED.
-- Clear Source of Truth badges (Platform API, Core Engine, Architecture Specification, External Integration).
+## Decisión
+Hacer cumplir un Modelo de Verdad estricto en todas las insignias de consola, APIs y documentación:
+- Estados explícitos: IMPLEMENTED, PARTIAL, DESIGNED, PLANNED.
+- Estados de ejecución explícitos: HEALTHY, OPERATIONAL, AVAILABLE, NOT_CONNECTED, OFFLINE, DEGRADED.
+- Insignias de Fuente de Verdad claras (Platform API, Core Engine, Architecture Specification, External Integration).
 
-## Alternatives Considered
-- Binary active/inactive statuses: rejected as misleading.
+## Alternativas Consideradas
+- Estados binarios activo/inactivo: rechazados por ser engañosos.
 
-## Consequences
-- Uncompromised technical credibility and complete audit transparency.
+## Consecuencias
+- Credibilidad técnica no comprometida y total transparencia de auditoría.

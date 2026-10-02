@@ -1,17 +1,17 @@
-# ADR-008: Tentaciones AI Commerce Live Integration Architecture
+# ADR-008: Integración Tentaciones AI Commerce
 
-## Status
-Accepted
+## Estado
+ACEPTADA
 
-## Context
-Tentaciones AI Commerce is the primary reference implementation demonstrating external AI capabilities (catalog discovery, recommendation, comparison, cart assistance).
+## Contexto
+Tentaciones AI Commerce es la implementación de referencia principal que demuestra capacidades externas de IA (descubrimiento de catálogo, recomendación, comparación, asistencia de carrito).
 
-## Decision
-Integrate Tentaciones via TentacionesPlatformAdapter using authenticated API keys and capability-scoped requests. Tentaciones owns its catalog and cart; Platform owns AI orchestration and intent evaluation.
+## Decisión
+Integrar Tentaciones a través de `TentacionesPlatformAdapter` utilizando claves API autenticadas y solicitudes con alcance de capacidad. Tentaciones es dueño de su catálogo y carrito; la Plataforma es dueña de la orquestación de IA y la evaluación de intención.
 
-## Alternatives Considered
-- Embedding e-commerce catalog directly into Core Engine: rejected as fundamental violation of separation.
+## Alternativas Consideradas
+- Integrar el catálogo de comercio electrónico directamente en el Core Engine: rechazado como violación fundamental de la separación.
 
-## Consequences
-- Zero inventory or price hallucination.
-- Graceful degradation to traditional commerce when platform is offline.
+## Consecuencias
+- Cero alucinación de inventario o precio.
+- Degradación elegante a comercio tradicional cuando la plataforma está desconectada.

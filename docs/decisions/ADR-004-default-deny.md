@@ -1,20 +1,20 @@
-# ADR-004: Default-Deny Authorization and Application Capability Scoping
+# ADR-004: Autorización Default-Deny
 
-## Status
-Accepted
+## Estado
+ACEPTADA
 
-## Context
-External applications and callers must only access explicitly permitted capabilities and tools.
+## Contexto
+Las aplicaciones externas y los invocadores solo deben acceder a las capacidades y herramientas permitidas explícitamente.
 
-## Decision
-Enforce default-deny across the platform:
-- Applications must be registered with an explicit list of allowedCapabilities.
-- Unregistered operations or unauthenticated requests fail immediately with 401 Unauthorized or 403 Forbidden.
-- Tool invocations require explicit RBAC permissions and approval gates for critical risk levels.
+## Decisión
+Aplicar *default-deny* (denegación por defecto) en toda la plataforma:
+- Las aplicaciones deben registrarse con una lista explícita de `allowedCapabilities`.
+- Las operaciones no registradas o las solicitudes no autenticadas fallan inmediatamente con 401 No Autorizado o 403 Prohibido.
+- Las invocaciones de herramientas requieren permisos RBAC explícitos y puertas de aprobación para niveles de riesgo críticos.
 
-## Alternatives Considered
-- Permissive default with blacklist: rejected due to security risk of omission.
+## Alternativas Consideradas
+- Predeterminado permisivo con lista negra: rechazado debido al riesgo de seguridad por omisión.
 
-## Consequences
-- Predictable and auditable security perimeter.
-- Fail-closed behavior on all unrecognized actions.
+## Consecuencias
+- Perímetro de seguridad predecible y auditable.
+- Comportamiento *fail-closed* en todas las acciones no reconocidas.

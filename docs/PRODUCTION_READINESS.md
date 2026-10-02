@@ -1,4 +1,5 @@
-# Production Readiness & Deployment Guide (Preparación para Producción)
+# Preparación para Producción y Guía de Despliegue
+
 ## Verificación de Criterios Operacionales, Despliegue en Contenedores y Resiliencia (v1.3.0)
 
 Este documento resume la verificación operacional de la **AI Operating Platform** para su puesta en marcha en entornos de misión crítica.

@@ -1,87 +1,87 @@
-# Operations & Reliability — AI Operating Platform
+# Operaciones y Confiabilidad — AI Operating Platform
 
-## 1. Deploy
-### Local Development
+## 1. Despliegue
+### Desarrollo Local
 ```bash
 npm install
 npm run build
 npm start
 ```
-### Production (Behind Reverse Proxy)
-- Configure `deploy/nginx/nginx.conf` or `deploy/caddy/Caddyfile`
-- Set environment variables: `NODE_ENV=production`, `AOP_DATA_DIR`, `JWT_JWKS_URI`
-- Start with: `node dist/src/platform/server.js`
+### Producción (Detrás de Reverse Proxy)
+- Configurar `deploy/nginx/nginx.conf` o `deploy/caddy/Caddyfile`
+- Establecer variables de entorno: `NODE_ENV=production`, `AOP_DATA_DIR`, `JWT_JWKS_URI`
+- Iniciar con: `node dist/src/platform/server.js`
 
-## 2. Run
-- Default bind: `127.0.0.1:3000`
-- Health check: `GET /api/v1/health/ready`
-- Readiness: returns 200 when all subsystems initialized
+## 2. Ejecución
+- Enlace por defecto: `127.0.0.1:3000`
+- Chequeo de salud: `GET /api/v1/health/ready`
+- Preparación (Readiness): retorna 200 cuando todos los subsistemas están inicializados
 
-## 3. Monitor
-- Prometheus metrics: `GET /api/v1/metrics` (Prometheus exposition format)
-- Event stream: `GET /api/v1/events/stream` (SSE)
-- Diagnostics: `GET /api/v1/diagnostics`
-- Trace reconstruction: `GET /api/v1/diagnostics/traces/:traceId`
+## 3. Monitoreo
+- Métricas Prometheus: `GET /api/v1/metrics` (Formato de exposición Prometheus)
+- Flujo de eventos: `GET /api/v1/events/stream` (SSE)
+- Diagnósticos: `GET /api/v1/diagnostics`
+- Reconstrucción de trazas: `GET /api/v1/diagnostics/traces/:traceId`
 
-## 4. Backup
-- SQLite WAL: copy `.db`, `.db-wal`, `.db-shm` files atomically
-- Recommended: `sqlite3 platform.db '.backup backup.db'`
-- Frequency: every 15 minutes or before deployment
+## 4. Respaldo
+- SQLite WAL: copiar archivos `.db`, `.db-wal`, `.db-shm` atómicamente
+- Recomendado: `sqlite3 platform.db '.backup backup.db'`
+- Frecuencia: cada 15 minutos o antes del despliegue
 
-## 5. Restore
-- Stop the platform
-- Replace `.db` file with backup
-- Delete `.db-wal` and `.db-shm`
-- Start the platform (RestartRecoveryService reconciles automatically)
+## 5. Restauración
+- Detener la plataforma
+- Reemplazar el archivo `.db` con el respaldo
+- Eliminar `.db-wal` y `.db-shm`
+- Iniciar la plataforma (RestartRecoveryService reconcilia automáticamente)
 
-## 6. Scale
-- Current: single-node with SQLite WAL
-- PostgreSQL adapter prepared for future horizontal scaling
-- NOT a distributed system - do not deploy multiple instances against same SQLite
+## 6. Escalabilidad
+- Actual: nodo único con SQLite WAL
+- Adaptador PostgreSQL preparado para futura escalabilidad horizontal
+- NO es un sistema distribuido - no desplegar múltiples instancias contra el mismo SQLite
 
-## 7. Recover
-- On crash: RestartRecoveryService runs at boot
-- Reconciles RUNNING tasks to FAILED
-- Reconciles QUEUED/CREATED tasks to CANCELLED
-- Single SQLite transaction - all or nothing
+## 7. Recuperación
+- En caso de caída: RestartRecoveryService se ejecuta en el arranque
+- Reconcilia las tareas RUNNING a FAILED
+- Reconcilia las tareas QUEUED/CREATED a CANCELLED
+- Transacción SQLite única - todo o nada
 
 ## 8. Rollback
-- Deploy previous version binary
-- Restore database backup if schema changed
-- Verify: `npm run check`
+- Desplegar el binario de la versión anterior
+- Restaurar respaldo de la base de datos si el esquema cambió
+- Verificar: `npm run check`
 
-## 9. Incident Response
+## 9. Respuesta a Incidentes
 
-### Runbook 1: Server Won't Start
-1. Check Node.js version: `node --version` (≥ 18 required)
-2. Check port availability: `lsof -i :3000`
-3. Check SQLite file permissions
-4. Check logs for schema migration errors
-5. If SQLite corrupted: restore from backup
+### Runbook 1: El Servidor No Inicia
+1. Verificar versión de Node.js: `node --version` (≥ 18 requerido)
+2. Verificar disponibilidad del puerto: `lsof -i :3000`
+3. Verificar permisos de archivo SQLite
+4. Verificar registros (logs) por errores de migración de esquema
+5. Si SQLite está corrupto: restaurar desde respaldo
 
-### Runbook 2: SQLite Corruption
-1. Stop platform immediately
-2. Run `sqlite3 platform.db 'PRAGMA integrity_check'`
-3. If corrupt: restore from latest backup
-4. If no backup: use `.db-wal` recovery
-5. After restore: verify with `npm test`
+### Runbook 2: Corrupción de SQLite
+1. Detener la plataforma inmediatamente
+2. Ejecutar `sqlite3 platform.db 'PRAGMA integrity_check'`
+3. Si está corrupto: restaurar desde el último respaldo
+4. Si no hay respaldo: usar recuperación `.db-wal`
+5. Después de restaurar: verificar con `npm test`
 
-### Runbook 3: LLM Provider Down
-1. Platform auto-falls back to StubModelGateway
-2. Check provider status pages
-3. Monitor `/api/v1/metrics` for error rates
-4. Circuit breaker prevents cascade
-5. Resume automatically when provider recovers
+### Runbook 3: Proveedor LLM Caído
+1. La plataforma hace auto-fallback a StubModelGateway
+2. Verificar páginas de estado del proveedor
+3. Monitorear `/api/v1/metrics` para tasas de error
+4. El circuit breaker evita la cascada
+5. Se reanuda automáticamente cuando el proveedor se recupera
 
-### Runbook 4: Budget Exhausted
-1. Check team budget: `GET /api/v1/teams/:id/budget`
-2. If legitimate: increase limits via `PUT /api/v1/teams/:id/budget`
-3. If attack: suspend team budget
-4. Review audit log: `GET /api/v1/audit?teamId=...`
+### Runbook 4: Presupuesto Agotado
+1. Verificar presupuesto del equipo: `GET /api/v1/teams/:id/budget`
+2. Si es legítimo: aumentar límites vía `PUT /api/v1/teams/:id/budget`
+3. Si es ataque: suspender el presupuesto del equipo
+4. Revisar registro de auditoría: `GET /api/v1/audit?teamId=...`
 
-### Runbook 5: Tenant Isolation Breach
-1. CRITICAL: Stop platform immediately
-2. Capture full audit log
-3. Identify affected tenants from traceId
-4. Review PolicyGateway logs
-5. Root cause analysis before restart
+### Runbook 5: Violación de Aislamiento de Inquilinos
+1. CRÍTICO: Detener la plataforma inmediatamente
+2. Capturar el registro de auditoría completo
+3. Identificar inquilinos afectados por traceId
+4. Revisar los registros de PolicyGateway
+5. Análisis de causa raíz antes de reiniciar

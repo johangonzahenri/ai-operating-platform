@@ -1,18 +1,18 @@
-# ADR-005: Durable Append-Only Event Store with SQLite WAL
+# ADR-005: Almacén de Eventos Duradero con SQLite WAL
 
-## Status
-Accepted
+## Estado
+ACEPTADA
 
-## Context
-Agent reasoning, planning decisions, tool executions, and state transitions must be persistently auditable and resilient across process restarts.
+## Contexto
+El razonamiento del agente, las decisiones de planificación, las ejecuciones de herramientas y las transiciones de estado deben ser persistentemente auditables y resilientes a través de los reinicios del proceso.
 
-## Decision
-Implement an append-only SqliteEventStore backed by SQLite WAL mode with monotonic sequence numbers, aggregate correlation, and deterministic trace IDs.
+## Decisión
+Implementar un `SqliteEventStore` de solo adición (*append-only*) respaldado por el modo SQLite WAL con números de secuencia monotónicos, correlación de agregados e identificadores de traza deterministas.
 
-## Alternatives Considered
-- In-memory event bus only: rejected because crash recovery and historical audits are impossible.
-- Distributed event streaming (Kafka/RabbitMQ): rejected for local runtime footprint.
+## Alternativas Consideradas
+- Solo bus de eventos en memoria: rechazado porque la recuperación de caídas y las auditorías históricas son imposibles.
+- Transmisión de eventos distribuida (Kafka/RabbitMQ): rechazada por el tamaño de la huella de ejecución local.
 
-## Consequences
-- Complete, immutable audit log of all system decisions.
-- High performance concurrent writes under SQLite WAL.
+## Consecuencias
+- Registro de auditoría completo e inmutable de todas las decisiones del sistema.
+- Escrituras concurrentes de alto rendimiento bajo SQLite WAL.

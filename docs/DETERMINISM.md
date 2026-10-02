@@ -1,30 +1,30 @@
-# Determinism in AI Operating Platform
+# Determinismo en AI Operating Platform
 
-## Definition
+## Definición
 
-> **"Determinism of rules, states, governance and automated baseline. We do NOT claim determinism of actual LLM inferences."**
+> **"Determinismo de reglas, estados, gobernanza y línea base automatizada. NO afirmamos determinismo de las inferencias reales del LLM."**
 
-## What IS Deterministic
-- State machine transitions (Task, Execution, Operation)
-- Policy evaluation (fail-closed, always DENY or ALLOW)
-- Budget enforcement (atomic counters, OCC)
-- Event emission (append-only, immutable)
-- Recovery reconciliation (idempotent)
-- Tool whitelist enforcement
-- Memory isolation boundaries
-- Tenant isolation boundaries
+## Qué ES Determinista
+- Transiciones de la máquina de estados (Task, Execution, Operation)
+- Evaluación de políticas (fail-closed, siempre DENY o ALLOW)
+- Aplicación de presupuesto (contadores atómicos, OCC)
+- Emisión de eventos (solo adición, inmutable)
+- Reconciliación de recuperación (idempotente)
+- Aplicación de lista blanca de herramientas (whitelist)
+- Límites de aislamiento de memoria
+- Límites de aislamiento de inquilinos (Tenant isolation)
 
-## What is NOT Deterministic
-- LLM inference outputs (vary by provider, model, temperature, context)
-- LLM planner outputs (proposals vary per invocation)
-- External tool responses (network latency, availability)
-- Provider pricing (changes over time)
+## Qué NO es Determinista
+- Salidas de inferencia del LLM (varían por proveedor, modelo, temperatura, contexto)
+- Salidas del planificador del LLM (las propuestas varían por invocación)
+- Respuestas de herramientas externas (latencia de red, disponibilidad)
+- Precios del proveedor (cambian con el tiempo)
 
-## Evidence
-- 1431+ automated tests verify deterministic platform behavior
-- StubModelGateway provides deterministic test doubles
-- All state transitions are tested with exact assertions
+## Evidencia
+- 1431+ pruebas automatizadas verifican el comportamiento determinista de la plataforma
+- StubModelGateway proporciona dobles de prueba deterministas
+- Todas las transiciones de estado se prueban con aserciones exactas
 
-## Implication for Documentation
-When we say "deterministic" in this project, we mean the PLATFORM RULES are deterministic.
-We never claim the AI model outputs are deterministic.
+## Implicación para la Documentación
+Cuando decimos "determinista" en este proyecto, nos referimos a que las REGLAS DE LA PLATAFORMA son deterministas.
+Nunca afirmamos que las salidas del modelo de IA sean deterministas.

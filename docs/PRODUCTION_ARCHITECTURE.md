@@ -1,57 +1,57 @@
-# Production Architecture — AI Operating Platform
+# Arquitectura de Producción — AI Operating Platform
 
-## 1. Executive Summary & Architectural Invariant
-The **AI Operating Platform** is engineered following strict hexagonal architecture boundaries:
+## 1. Resumen Ejecutivo e Invariante Arquitectónico
+La **AI Operating Platform** está diseñada siguiendo estrictos límites de arquitectura hexagonal:
 $$\text{CORE ENGINE} \neq \text{PLATFORM PRODUCT} \neq \text{APPLICATIONS}$$
 
-This document contrasts the **Current Validated Local Runtime** against the **Target Production Architecture**, ensuring zero false marketing claims while outlining a hardened path for enterprise scale.
+Este documento contrasta el **Runtime Local Validado Actual** con la **Arquitectura de Producción Objetivo**, asegurando cero afirmaciones de marketing falsas mientras se delinea un camino fortalecido para la escala empresarial.
 
 ---
 
-## 2. Environment Model & Configuration Boundaries
-Four formal lifecycle environments are recognized:
-* `development`: Local developer environment with deterministic stub models and local SQLite storage.
-* `test`: CI/CD automation runner, in-memory isolation, strict boundary assertions.
-* `staging`: Integrated pre-production environment with real external consumer adapters.
-* `production`: Hardened multi-tenant runtime with fail-closed configuration validation.
+## 2. Modelo de Entorno y Límites de Configuración
+Se reconocen cuatro entornos formales de ciclo de vida:
+* `development`: Entorno de desarrollador local con modelos stub deterministas y almacenamiento SQLite local.
+* `test`: Ejecutor de automatización CI/CD, aislamiento en memoria, aserciones de límites estrictas.
+* `staging`: Entorno de pre-producción integrado con adaptadores de consumidores externos reales.
+* `production`: Runtime multi-inquilino fortalecido con validación de configuración fail-closed.
 
-### Configuration Validation
-Configuration is parsed at startup via `validateEnvironment()` in `src/infrastructure/config/config.ts`. If required variables are missing or values are out of bounds, startup aborts immediately (**fail-closed**). Domain and application layers never access `process.env` directly.
-
----
-
-## 3. Runtime Health Model
-Platform health is categorized into four distinct dimensions:
-1. **Liveness (`/api/health/liveness`)**: Confirms process responsiveness, memory safety, and thread responsiveness.
-2. **Readiness (`/api/health/readiness`)**: Confirms database connectivity, schema migration level (V3), and runtime initialization.
-3. **Dependency Health (`/api/health/dependencies`)**: Granular status of persistence (SQLite WAL), tool registry, and model gateways.
-4. **Application Health (`/api/health/applications`)**: Real-time connectivity and capability grants for registered external consumers.
+### Validación de Configuración
+La configuración se analiza al inicio mediante `validateEnvironment()` en `src/infrastructure/config/config.ts`. Si faltan variables requeridas o los valores están fuera de los límites, el inicio se aborta inmediatamente (**fail-closed**). El dominio y las capas de aplicación nunca acceden a `process.env` directamente.
 
 ---
 
-## 4. Graceful Shutdown Protocol
-Upon receiving `SIGTERM` or `SIGINT`:
-1. **Stop Ingress**: HTTP server stops accepting new connections (`server.close()`).
-2. **Drain In-Flight Work**: In-flight tasks are given a bounded grace period (`SHUTDOWN_TIMEOUT_MS`, default 10s).
-3. **Flush Observability**: Pending structured audit logs and durable events are synced to SQLite.
-4. **Close Persistence**: SQLite database connections are cleanly closed with WAL checkpointing.
-5. **Deterministic Exit**: Exit code 0 on clean shutdown; exit code 1 if grace period expires.
+## 3. Modelo de Salud del Runtime
+La salud de la plataforma se clasifica en cuatro dimensiones distintas:
+1. **Liveness (`/api/health/liveness`)**: Confirma la capacidad de respuesta del proceso, la seguridad de la memoria y la capacidad de respuesta de los hilos.
+2. **Readiness (`/api/health/readiness`)**: Confirma la conectividad de la base de datos, el nivel de migración del esquema (V3) y la inicialización del runtime.
+3. **Salud de Dependencias (`/api/health/dependencies`)**: Estado granular de la persistencia (SQLite WAL), registro de herramientas y gateways de modelos.
+4. **Salud de Aplicaciones (`/api/health/applications`)**: Conectividad en tiempo real y concesiones de capacidades para consumidores externos registrados.
 
 ---
 
-## 5. Structured Logging & Error Sanitization
-* **Zero Secret Leakage**: All log entries run through `sanitizeLogMetadata()`, stripping API keys, Bearer tokens, passwords, and secrets.
-* **Public Error Sanitizer**: External API responses never expose SQL queries, stack traces, or internal file paths. Public errors return sanitized RFC 7807-compatible JSON payloads with `code`, `status`, `error`, and `traceId`.
+## 4. Protocolo de Apagado Elegante (Graceful Shutdown)
+Al recibir `SIGTERM` o `SIGINT`:
+1. **Detener Ingreso**: El servidor HTTP deja de aceptar nuevas conexiones (`server.close()`).
+2. **Drenar Trabajo en Vuelo (In-Flight)**: A las tareas en vuelo se les da un período de gracia limitado (`SHUTDOWN_TIMEOUT_MS`, por defecto 10s).
+3. **Vaciar Observabilidad**: Los registros de auditoría estructurados pendientes y los eventos duraderos se sincronizan con SQLite.
+4. **Cerrar Persistencia**: Las conexiones de la base de datos SQLite se cierran limpiamente con checkpointing de WAL.
+5. **Salida Determinista**: Código de salida 0 en un apagado limpio; código de salida 1 si el período de gracia expira.
 
 ---
 
-## 6. Persistence: Current vs Production Target
-* **Current Runtime**: Embedded SQLite 3 with Write-Ahead Logging (WAL), transaction runner, schema migrations V1 $\to$ V2 $\to$ V3, and durability across process restarts.
-* **Production Target**: Hexagonal persistence port mapped to a distributed relational store (PostgreSQL / Aurora / CockroachDB) with connection pooling and multi-AZ replication.
+## 5. Registro Estructurado y Sanitización de Errores
+* **Cero Fuga de Secretos**: Todas las entradas de registro pasan por `sanitizeLogMetadata()`, eliminando claves de API, tokens Bearer, contraseñas y secretos.
+* **Sanitizador de Errores Público**: Las respuestas de API externas nunca exponen consultas SQL, stack traces o rutas de archivos internos. Los errores públicos devuelven payloads JSON compatibles con RFC 7807 sanitizados con `code`, `status`, `error` y `traceId`.
 
 ---
 
-## 7. Containerization Blueprint
-A multi-stage `Dockerfile` is provided for reproducible OCI-compliant container builds:
-* **Stage 1 (Builder)**: Node 22 Alpine, installs dependencies, runs build and unit tests.
-* **Stage 2 (Runner)**: Minimal unprivileged user (`aiplatform`), read-only root FS compatible, strictly bound ports.
+## 6. Persistencia: Actual vs Objetivo de Producción
+* **Runtime Actual**: SQLite 3 embebido con Write-Ahead Logging (WAL), transaction runner, migraciones de esquema V1 $\to$ V2 $\to$ V3, y durabilidad a través de reinicios de procesos.
+* **Objetivo de Producción**: Puerto de persistencia hexagonal mapeado a un almacenamiento relacional distribuido (PostgreSQL / Aurora / CockroachDB) con pool de conexiones y replicación multi-AZ.
+
+---
+
+## 7. Plan de Contenerización
+Se proporciona un `Dockerfile` multi-stage para compilaciones de contenedores reproducibles compatibles con OCI:
+* **Stage 1 (Builder)**: Node 22 Alpine, instala dependencias, ejecuta compilación y pruebas unitarias.
+* **Stage 2 (Runner)**: Usuario mínimo sin privilegios (`aiplatform`), sistema de archivos raíz de solo lectura compatible, puertos estrictamente limitados.
