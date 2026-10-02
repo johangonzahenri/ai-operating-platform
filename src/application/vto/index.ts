@@ -16,3 +16,5 @@ export * from "./frame-preprocessing-pipeline.js";
 export * from "./simulated-frame-source.js";
 export * from "./browser-camera-adapter.js";
 export * from "./offscreen-canvas-processor.js";
+export * from "./continuous-processing-coordinator.js";
+export * from "./simulated-continuous-pipeline.js";

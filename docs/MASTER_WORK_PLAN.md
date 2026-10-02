@@ -1389,7 +1389,60 @@ Diseñar e implementar la infraestructura perimetral y contratos de dominio para
 
 ---
 
-## 29. Checklist Global Obligatorio de Cierre de Fase
+## 29. FASE 160 — PROJ-01 TENTACIONES AI COMMERCE: Real-Time Computer Vision Continuous Processing Loop, Frame Temporal Synchronization & Spatial Warping Compositor
+
+### Objetivo
+Diseñar e implementar el bucle continuo de procesamiento en tiempo real de visión computacional sobre el dispositivo, sincronización temporal con control de épocas y secuencias monotónicas, descarte determinista de resultados obsoletos producidos fuera de orden, contrapresión gobernada con sustitución de tramas rezagadas (*coalescing* / `DROP_OLDEST`), cancelación cooperativa mediante `AbortSignal`, y composición espacial multicapa basada en rejillas de deformación continua `WarpField2D` con interpolación bilineal (no TPS), resolviendo la deuda técnica canónica HAL-005 con estricta preservación de la privacidad y pureza hexagonal.
+
+### Metadatos
+- **Estado Técnico**: `DONE`
+- **Estado Operativo**: `DONE`
+- **Declaración Canónica**: `Continuous processing loop & spatial warping compositor IMPLEMENTED + SIMULATED VERIFIED` / `Browser runtime execution ENVIRONMENT PENDING`
+- **Prioridad**: `HIGH`
+- **Dependencias**: Fase 159 (Camera Stream Frame Acquisition & Video Preprocessing), Fases 153–158, AUD-FASE-001 (Aprobada con Deuda Técnica)
+- **Iniciativas Vinculadas**: `AOP-TENTACIONES-AR-3D-AI`, `AOP-QUALITY-GOVERNANCE`
+
+### Tareas
+
+#### 160.1 — Continuous Processing Loop Contract & Finite State Machine
+- **Estado**: `DONE`
+- **Objetivo**: Diseñar contratos fuertemente tipados para el ciclo continuo (`ContinuousLoopState`, `ContinuousLoopConfig`, `ContinuousLoopMetrics`, `ContinuousLoopSnapshot`) en `src/domain/vto/continuous-processing-loop.ts`, formalizando la máquina de estados finita (`UNINITIALIZED` -> `STARTING` -> `RUNNING` <-> `PAUSED` -> `STOPPING` -> `STOPPED` -> `DISPOSED`), validación estricta de transiciones (`isValidLoopStateTransition`) y separación conceptual total entre el ciclo temporal y los recursos de cómputo/workers.
+- **Evidencia**: `src/domain/vto/continuous-processing-loop.ts`, `src/domain/vto/index.ts`, `tests/unit/vto-continuous-processing-loop.test.ts` (3 tests PASS).
+- **Archivos Afectados**: `src/domain/vto/continuous-processing-loop.ts`, `src/domain/vto/index.ts`.
+
+#### 160.2 — Frame Temporal Synchronization & Monotonic Generation Control
+- **Estado**: `DONE`
+- **Objetivo**: Implementar el sincronizador temporal `TemporalSynchronizer` en `src/domain/vto/temporal-synchronizer.ts` para asignar números de secuencia monotónicos crecientes y épocas de generación lógica, gestionando una ventana acotada de registros para evitar fugas de memoria y proveyendo clasificación determinista de resultados (`CURRENT`, `STALE`, `SUPERSEDED`, `DUPLICATE`, `UNKNOWN`).
+- **Evidencia**: `src/domain/vto/temporal-synchronizer.ts`, `src/domain/vto/index.ts`, `tests/unit/vto-continuous-processing-loop.test.ts` (2 tests PASS).
+- **Archivos Afectados**: `src/domain/vto/temporal-synchronizer.ts`, `src/domain/vto/index.ts`.
+
+#### 160.3 — Pipeline Scheduling, Backpressure & Cooperative Cancellation
+- **Estado**: `DONE`
+- **Objetivo**: Construir el coordinador de ejecución continua `ContinuousProcessingCoordinator` en `src/application/vto/continuous-processing-coordinator.ts` gobernando la política de contrapresión con sustitución de tramas en cola (*coalescing* / `DROP_OLDEST`), priorizando siempre la trama más reciente y propagando `AbortSignal` con causa `SUPERSEDED` para interrumpir tempranamente el cómputo de tramas obsoletas sin disparar errores falsos de usuario.
+- **Evidencia**: `src/application/vto/continuous-processing-coordinator.ts`, `src/application/vto/index.ts`, `tests/unit/vto-continuous-processing-loop.test.ts` (4 tests PASS).
+- **Archivos Afectados**: `src/application/vto/continuous-processing-coordinator.ts`, `src/application/vto/index.ts`.
+
+#### 160.4 — Stale-Result Protection & Out-of-Order Rejection
+- **Estado**: `DONE`
+- **Objetivo**: Formalizar y verificar la política matemática de rechazo de resultados obsoletos producidos fuera de orden (ej. Frame 12 completado antes que Frames 10 y 11), garantizando que ningún resultado rezagado sobrescriba el estado visual más reciente, actualizando métricas técnicas numéricas de descarte (`resultsStale`, `resultsDiscarded`) sin retención de píxeles ni biometría.
+- **Evidencia**: `src/domain/vto/temporal-synchronizer.ts`, `src/application/vto/continuous-processing-coordinator.ts`, `tests/unit/vto-continuous-processing-loop.test.ts` (2 tests PASS), `tests/e2e/vto-continuous-pipeline-golden-journey.test.ts` (test GJ-2 PASS).
+- **Archivos Afectados**: `src/domain/vto/temporal-synchronizer.ts`, `src/application/vto/continuous-processing-coordinator.ts`.
+
+#### 160.5 — Spatial Warping Compositor & Multi-Layer Consistency
+- **Estado**: `DONE`
+- **Objetivo**: Desarrollar el compositor espacial `SpatialWarpingCompositor` en `src/domain/vto/spatial-warping-compositor.ts`, ensamblando un `SpatialWarpingComposite` agnóstico al renderizador con ordenamiento Z canónico (`BASE` 0 -> `BODY` 10 -> `GARMENT` 20 -> `OCCLUSION` 30 -> `MATERIAL` 40 -> `FINAL_COMPOSITE` 50), utilizando exclusivamente `WarpField2D` con interpolación bilineal (no TPS), y soportando degradación elegante con reutilización temporal de deformaciones previas (`REUSE_PREVIOUS_VALID`).
+- **Evidencia**: `src/domain/vto/spatial-warping-compositor.ts`, `src/domain/vto/index.ts`, `tests/unit/vto-continuous-processing-loop.test.ts` (2 tests PASS).
+- **Archivos Afectados**: `src/domain/vto/spatial-warping-compositor.ts`, `src/domain/vto/index.ts`.
+
+#### 160.6 — End-to-End Verification Suite, Test Double & Canonical Documentation
+- **Estado**: `DONE`
+- **Objetivo**: Construir el simulador determinista `SimulatedContinuousPipeline` en `src/application/vto/simulated-continuous-pipeline.ts`, implementar la suite unitaria `tests/unit/vto-continuous-processing-loop.test.ts` (14/14 tests PASS), la suite E2E Golden Journey `tests/e2e/vto-continuous-pipeline-golden-journey.test.ts` (4/4 tests PASS), actualizar `docs/ROADMAP_MASTER.md`, `docs/TECHNICAL_DEBT.md` (cerrando HAL-005) y publicar el informe técnico `docs/VTO_REALTIME_PROCESSING_PHASE_160.md`.
+- **Evidencia**: `src/application/vto/simulated-continuous-pipeline.ts`, `tests/unit/vto-continuous-processing-loop.test.ts`, `tests/e2e/vto-continuous-pipeline-golden-journey.test.ts`, `docs/VTO_REALTIME_PROCESSING_PHASE_160.md`, `docs/ROADMAP_MASTER.md`, `docs/TECHNICAL_DEBT.md`.
+- **Archivos Afectados**: `src/application/vto/simulated-continuous-pipeline.ts`, `src/application/vto/index.ts`, `tests/unit/vto-continuous-processing-loop.test.ts`, `tests/e2e/vto-continuous-pipeline-golden-journey.test.ts`, `docs/VTO_REALTIME_PROCESSING_PHASE_160.md`, `docs/ROADMAP_MASTER.md`, `docs/TECHNICAL_DEBT.md`, `docs/MASTER_WORK_PLAN.md`.
+
+---
+
+## 30. Checklist Global Obligatorio de Cierre de Fase
 
 Toda fase futura debe satisfacer el siguiente checklist integral antes de ser declarada `DONE`:
 
@@ -1414,9 +1467,9 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 30. Plantillas Oficiales de Registro
+## 31. Plantillas Oficiales de Registro
 
-### 30.1. Plantilla de Fase Futura
+### 31.1. Plantilla de Fase Futura
 
 ```markdown
 ## FASE X — [Título de la Fase]
@@ -1451,7 +1504,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 - X.1.1 — [Título del cambio si surge]
 ```
 
-### 30.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
+### 31.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
 
 ```markdown
 ### X.Y.Z — [Nombre del Cambio Imprevisto]
@@ -1470,7 +1523,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 31. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
+## 32. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
 
 Las siguientes líneas de trabajo constituyen el backlog estratégico aprobado. Se mantienen en estado `PLANNED`, `BACKLOG` o `EXPLORATORY` y no deben marcarse como `DONE` hasta contar con código y pruebas completas:
 

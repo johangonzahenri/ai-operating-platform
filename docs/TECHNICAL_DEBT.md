@@ -72,6 +72,15 @@ Este registro documenta de forma honesta, verificada y explícita las limitacion
   2. **Post-Facto Accounting (Contabilización Fiel con Overshoot):** `durationMs` y `tokens` no pueden predecirse exactamente antes de invocar el modelo/tarea; se registran fielmente tras la ejecución (`allowOvershoot: true`), y al alcanzar/superar el límite transicionan el estado a `EXHAUSTED`, bloqueando cualquier despacho subsiguiente.
   3. **Not Available:** La dimensión `cost` financiero no se atribuye dinámicamente en el runtime actual (no existe tarificador de moneda multi-proveedor integrado).
 * **Impacto:** Claridad absoluta en el comportamiento del runtime sin falsas suposiciones de adivinación de tokens/duración a priori.
+
+---
+
+### GAP-09 / HAL-005: Ausencia de Bucle Continuo de Procesamiento CV en Tiempo Real y Sincronización Temporal
+* **Severidad:** Resuelta (Fase 160 / AUD-FASE-001)
+* **Área:** Computer Vision / Real-Time Processing / VTO
+* **Descripción:** Tras la Fase 159, el pipeline de visión computacional operaba como etapas estáticas discretas sin un bucle continuo que sincronizara automáticamente la llegada de frames con la deformación y composición espacial, dependiendo de avance manual paso a paso y careciendo de descarte determinista de resultados obsoletos fuera de orden.
+* **Resolución Ejecutada:** Implementado `ContinuousProcessingCoordinator` en `src/application/vto/continuous-processing-coordinator.ts`, `TemporalSynchronizer` en `src/domain/vto/temporal-synchronizer.ts`, y `SpatialWarpingCompositor` en `src/domain/vto/spatial-warping-compositor.ts`. Gobernado mediante prioridad de último frame, contrapresión coalescente (`DROP_OLDEST`), cancelación cooperativa vía `AbortSignal` y protección matemática contra resultados obsoletos (`STALE`). 14 tests unitarios y 4 pruebas Golden Journey validadas (18/18 PASS).
+
 ---
 
 ## 2. Brechas Ambientales de Certificación de Release (Environmental Release Gaps)

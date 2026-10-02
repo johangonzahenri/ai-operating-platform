@@ -32,3 +32,6 @@ export * from "./worker-protocol.js";
 export * from "./async-worker-port.js";
 export * from "./frame-protocol.js";
 export * from "./frame-source-port.js";
+export * from "./continuous-processing-loop.js";
+export * from "./temporal-synchronizer.js";
+export * from "./spatial-warping-compositor.js";
