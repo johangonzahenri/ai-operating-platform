@@ -22,3 +22,6 @@ export * from "./spatial-to-render-mapper.js";
 export * from "./interactive-viewport-controller.js";
 export * from "./browser-render-adapter.js";
 export * from "./simulated-browser-render-adapter.js";
+export * from "./satellite-3d-renderer-adapter.js";
+export * from "./tentaciones-vto-scene-bridge.js";
+export * from "./satellite-vto-harness.js";

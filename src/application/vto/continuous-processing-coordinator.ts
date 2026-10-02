@@ -89,6 +89,7 @@ export class ContinuousProcessingCoordinator {
   private readonly _frameSource?: FrameSourcePort | undefined;
   private readonly _processingHandler?: FrameProcessingHandler | undefined;
   private readonly _eventListener?: ContinuousLoopEventListener | undefined;
+  private readonly _listeners: ContinuousLoopEventListener[] = [];
   private readonly _abortOnSupersede: boolean;
 
   private readonly _synchronizer: TemporalSynchronizer;
@@ -127,6 +128,16 @@ export class ContinuousProcessingCoordinator {
 
   public getState(): ContinuousLoopState {
     return this._state;
+  }
+
+  public addEventListener(listener: ContinuousLoopEventListener): () => void {
+    this._listeners.push(listener);
+    return () => {
+      const idx = this._listeners.indexOf(listener);
+      if (idx !== -1) {
+        this._listeners.splice(idx, 1);
+      }
+    };
   }
 
   public async start(): Promise<void> {
@@ -388,6 +399,13 @@ export class ContinuousProcessingCoordinator {
     }
 
     this._eventListener?.onResult?.(composite);
+    for (const listener of this._listeners) {
+      try {
+        listener.onResult?.(composite);
+      } catch {
+        // Listener safety
+      }
+    }
   }
 
   public getSnapshot(): ContinuousLoopSnapshot {

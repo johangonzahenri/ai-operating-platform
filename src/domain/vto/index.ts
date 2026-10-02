@@ -37,3 +37,4 @@ export * from "./temporal-synchronizer.js";
 export * from "./spatial-warping-compositor.js";
 export * from "./render-contract.js";
 export * from "./scene-lifecycle.js";
+export * from "./satellite-render-contract.js";

@@ -1495,7 +1495,60 @@ Diseñar e implementar la frontera de renderizado browser (*Browser Render Bound
 
 ---
 
-## 31. Checklist Global Obligatorio de Cierre de Fase
+## 31. FASE 162 — PROJ-01 TENTACIONES AI COMMERCE: Integración Real de Browser Runtime, Renderer 3D del Satélite y Validación Visual del Pipeline VTO
+
+### Objetivo
+Integrar la frontera de ejecución browser (*Browser Runtime*), el adaptador perimétrico del renderizador 3D satélite y la validación visual end-to-end del pipeline de prueba virtual (*Virtual Try-On - VTO*), cerrando el puente arquitectónico entre la plataforma central y la aplicación satélite `tentaciones-ai-commerce` sin violar el desacoplamiento hexagonal ni introducir librerías 3D en el Core Engine.
+
+### Metadatos
+- **Estado Técnico**: `DONE`
+- **Estado Operativo**: `DONE`
+- **Declaración Canónica**: `Satellite browser runtime integration, 3D renderer adapter & visual VTO pipeline validation IMPLEMENTED + SIMULATED VERIFIED (E2..E4)` / `Physical browser/WebGL2/WebGPU/camera stream runtime ENVIRONMENT PENDING`
+- **Prioridad**: `HIGH`
+- **Dependencias**: Fase 161 (Browser Render Boundary, Canvas Adapter & Interactive 3D Try-On Scene), Fases 153–160
+- **Iniciativas Vinculadas**: `AOP-TENTACIONES-AR-3D-AI`, `AOP-QUALITY-GOVERNANCE`
+
+### Tareas
+
+#### 162.1 — Satellite Browser Integration Contract & Schema Validation
+- **Estado**: `DONE`
+- **Objetivo**: Definir los contratos neutrales fuertemente tipados de escena 3D satélite (`SatelliteVtoSceneSpec`, `SatelliteLayerSpec`, `SatelliteGeometrySpec`, `SatelliteMaterialSpec`) y su validación fail-closed (`validateSatelliteVtoSceneSpec`) en `src/domain/vto/satellite-render-contract.ts`, garantizando la serialización de búferes tipados (`Float32Array` y `Uint16Array`), topología y UVs compatibles con motores WebGL/WebGPU sin referencias a Three.js en el dominio.
+- **Evidencia**: `src/domain/vto/satellite-render-contract.ts`, `src/domain/vto/index.ts`, `tests/unit/vto-satellite-renderer-integration.test.ts` (2 tests PASS).
+- **Archivos Afectados**: `src/domain/vto/satellite-render-contract.ts`, `src/domain/vto/index.ts`.
+
+#### 162.2 — Satellite 3D Renderer Adapter & Three.js Bridge
+- **Estado**: `DONE`
+- **Objetivo**: Implementar el adaptador perimétrico `Satellite3DRendererAdapter` en `src/application/vto/satellite-3d-renderer-adapter.ts` cumpliendo la interfaz `BrowserRenderPort`, acoplando dinámicamente instancias de Three.js (en navegador o shims sintéticos) para instanciar mallas con materiales `MeshPhysicalMaterial`/`MeshBasicMaterial`, luces y cámara de perspectiva, operando en modo `ENVIRONMENT_PENDING` en Node.js headless.
+- **Evidencia**: `src/application/vto/satellite-3d-renderer-adapter.ts`, `src/application/vto/index.ts`, `tests/unit/vto-satellite-renderer-integration.test.ts` (3 tests PASS).
+- **Archivos Afectados**: `src/application/vto/satellite-3d-renderer-adapter.ts`, `src/application/vto/index.ts`.
+
+#### 162.3 — Stale Frame Rejection & Out-of-Order Elimination at Renderer Boundary
+- **Estado**: `DONE`
+- **Objetivo**: Asegurar la política de prioridad temporal `LATEST_VALID_RESULT > STALE_RESULT` a nivel del renderizador satélite, descartando tramas con `sequenceNumber <= latestRenderedSequenceNumber` con motivo `STALE_FRAME_REJECTED` y manteniendo la telemetría auditada de tramas renderizadas y descartadas.
+- **Evidencia**: `src/application/vto/satellite-3d-renderer-adapter.ts`, `tests/unit/vto-satellite-renderer-integration.test.ts` (1 test PASS), `tests/e2e/vto-satellite-runtime-golden-journey.test.ts` (test GJ-2 PASS).
+- **Archivos Afectados**: `src/application/vto/satellite-3d-renderer-adapter.ts`.
+
+#### 162.4 — Tentaciones VTO Scene Bridge & Computational Decoupling
+- **Estado**: `DONE`
+- **Objetivo**: Desarrollar el orquestador de aplicación `TentacionesVtoSceneBridge` en `src/application/vto/tentaciones-vto-scene-bridge.ts`, desacoplando el bucle de renderizado 3D de la inferencia pesada de visión computacional, conectando el coordinador continuo (`ContinuousProcessingCoordinator`), el mapeador espacial y el controlador interactivo en un fast-path reactivo $O(1)$ ante eventos de zoom, paneo y órbita.
+- **Evidencia**: `src/application/vto/tentaciones-vto-scene-bridge.ts`, `src/application/vto/index.ts`, `tests/unit/vto-satellite-renderer-integration.test.ts` (2 tests PASS), `tests/e2e/vto-satellite-runtime-golden-journey.test.ts` (test GJ-3 PASS).
+- **Archivos Afectados**: `src/application/vto/tentaciones-vto-scene-bridge.ts`, `src/application/vto/index.ts`.
+
+#### 162.5 — Browser Capability Inspection & Deterministic Verification Harness
+- **Estado**: `DONE`
+- **Objetivo**: Crear el arnés de verificación perimetral `src/application/vto/satellite-vto-harness.ts` con inspección transparente de capacidades de entorno (`inspectBrowserRuntimeCapabilities`), dobles sintéticos de Three.js (`createSyntheticThreeEnvironment`) y canvas (`createSyntheticCanvas`) para pruebas deterministas en CI sin dependencias de automatización de navegador.
+- **Evidencia**: `src/application/vto/satellite-vto-harness.ts`, `src/application/vto/index.ts`, `tests/unit/vto-satellite-renderer-integration.test.ts` (1 test PASS), `tests/e2e/vto-satellite-runtime-golden-journey.test.ts` (test GJ-5 PASS).
+- **Archivos Afectados**: `src/application/vto/satellite-vto-harness.ts`, `src/application/vto/index.ts`.
+
+#### 162.6 — End-to-End Verification Suite, Golden Journeys & Canonical Documentation
+- **Estado**: `DONE`
+- **Objetivo**: Construir la suite de integración unitaria `tests/unit/vto-satellite-renderer-integration.test.ts` (9/9 tests PASS), la suite E2E Golden Journey `tests/e2e/vto-satellite-runtime-golden-journey.test.ts` (5/5 tests PASS), actualizar `docs/ROADMAP_MASTER.md` y publicar el informe técnico oficial `docs/VTO_BROWSER_RUNTIME_INTEGRATION_PHASE_162.md`.
+- **Evidencia**: `tests/unit/vto-satellite-renderer-integration.test.ts` (9/9 PASS), `tests/e2e/vto-satellite-runtime-golden-journey.test.ts` (5/5 PASS), `docs/VTO_BROWSER_RUNTIME_INTEGRATION_PHASE_162.md`, `docs/MASTER_WORK_PLAN.md`, `docs/ROADMAP_MASTER.md`.
+- **Archivos Afectados**: `tests/unit/vto-satellite-renderer-integration.test.ts`, `tests/e2e/vto-satellite-runtime-golden-journey.test.ts`, `docs/VTO_BROWSER_RUNTIME_INTEGRATION_PHASE_162.md`, `docs/MASTER_WORK_PLAN.md`, `docs/ROADMAP_MASTER.md`.
+
+---
+
+## 32. Checklist Global Obligatorio de Cierre de Fase
 
 Toda fase futura debe satisfacer el siguiente checklist integral antes de ser declarada `DONE`:
 
@@ -1520,9 +1573,9 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 32. Plantillas Oficiales de Registro
+## 33. Plantillas Oficiales de Registro
 
-### 32.1. Plantilla de Fase Futura
+### 33.1. Plantilla de Fase Futura
 
 ```markdown
 ## FASE X — [Título de la Fase]
@@ -1557,7 +1610,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 - X.1.1 — [Título del cambio si surge]
 ```
 
-### 32.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
+### 33.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
 
 ```markdown
 ### X.Y.Z — [Nombre del Cambio Imprevisto]
@@ -1576,7 +1629,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 33. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
+## 34. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
 
 Las siguientes líneas de trabajo constituyen el backlog estratégico aprobado. Se mantienen en estado `PLANNED`, `BACKLOG` o `EXPLORATORY` y no deben marcarse como `DONE` hasta contar con código y pruebas completas:
 
