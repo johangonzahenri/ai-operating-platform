@@ -1,28 +1,30 @@
-# Architecture Specification (v1.4.0)
+# Especificación de Arquitectura (v1.4.0)
 
-## 1. Architectural Principles and Dependency Direction
+## 1. Principios Arquitectónicos y Dirección de Dependencias
 
-The AI Operating Platform follows **Hexagonal Architecture (Ports and Adapters)** and **Clean Architecture** with strict inward dependency rules:
-
-```text
-Interfaces / Platform (HTTP REST API, Web SPA, SDK)
-        ↓
-Application Layer (Use Cases, Orchestrators, Recovery, Services)
-        ↓
-Domain Layer (Aggregates, Policies, Value Objects, Domain Events)
-        ↑
-Infrastructure Layer (SQLite WAL, Model Gateways, Tool Adapters)
-```
-
-The inward arrow toward the domain is strict: Application and Infrastructure depend on Domain interfaces and ports, never the reverse.
-
----
-
-## 2. Structural Layer Boundaries
+La AI Operating Platform sigue la **Hexagonal Architecture (Ports and Adapters)** y la **Clean Architecture** con reglas estrictas de dependencia hacia adentro.
 
 ```mermaid
 flowchart TD
-    subgraph ClientLayer["Superficies Externas & Consumidores"]
+    Interfaces["Interfaces / Plataforma (HTTP REST API, Web SPA, SDK)"]
+    Application["Capa de Aplicación (Use Cases, Orchestrators, Recovery, Services)"]
+    Domain["Capa de Dominio (Aggregates, Policies, Value Objects, Domain Events)"]
+    Infrastructure["Capa de Infraestructura (SQLite WAL, Model Gateways, Tool Adapters)"]
+
+    Interfaces --> Application
+    Application --> Domain
+    Infrastructure --> Domain
+```
+
+La flecha hacia adentro hacia el dominio es estricta. La aplicación y la infraestructura dependen de las interfaces y puertos del dominio, nunca al revés.
+
+---
+
+## 2. Límites Estructurales de Capas
+
+```mermaid
+flowchart TD
+    subgraph ClientLayer["Superficies Externas y Consumidores"]
         WebSPA["Web Control Plane (SPA Vanilla)"]
         SatelliteApps["Aplicaciones Satélites (Tentaciones, etc.)"]
         SDK["PlatformClient SDK (TypeScript)"]
@@ -61,31 +63,31 @@ flowchart TD
 
 ---
 
-## 3. Domain Inventory & Subsystems
+## 3. Inventario de Dominio y Subsistemas
 
-| Subsystem | Responsibility | Architectural Boundary |
+| Subsistema | Responsabilidad | Límite Arquitectónico |
 | :--- | :--- | :--- |
-| **Task & Execution System** | Finite state machines for `Task` and atomic `Execution`. | Domain pure; 0 infrastructure dependencies. |
-| **Agent & Capability Registry** | First-class agent identities, tool whitelists, memory scopes. | Domain ports; SQLite WAL adapter with OCC versioning. |
-| **Model Gateways** | Uniform model invocation contract across OpenAI, Anthropic, Gemini, Ollama, and Stub. | Pure application ports; network adapters in infrastructure. |
-| **Tool Gateway & Runtime** | Validated, sandboxed tool dispatch with schema checks and prototype pollution guards. | Application runtime; local and process adapters in infrastructure. |
-| **Autonomous Operations** | Bounded autonomy engine (`AutonomousOperation`, `AutonomyBudget`, `PlanExecutionEngine`). | Multi-step plan execution with strict step, time, and tool limits. |
-| **Durable Persistence** | Relational SQLite persistence with WAL mode, schema v3, and transactions. | See `docs/PERSISTENCE_ARCHITECTURE.md`. |
-| **Crash Recovery & Reconciliation** | Automated reconciliation of orphan executions/tasks on startup. | `RestartRecoveryService` (see `docs/PERSISTENCE_ARCHITECTURE.md`). |
-| **Virtual Organization & Budgets** | Organizations, Areas, Teams, and multidimensional resource quotas (`TeamResourceBudget`). | Fail-closed quota enforcement and concurrency control. |
-| **Workflow DAG & Verification** | Governed workflow DAG orchestration with Segregation of Duties. | Producer $\neq$ Verifier $\neq$ Approver invariant. |
-| **Platform API & Client SDK** | REST endpoints (`/api/v1/*`) and typed TypeScript SDK (`PlatformClient`). | Decoupled client consumption for satellite apps. |
-| **Web Control Plane** | Browser interface SPA with bilingual support (`es-419` / `en`) and 0 `innerHTML`. | Native DOM sanitization. |
+| **Task & Execution System** | Máquinas de estados finitos para `Task` y `Execution` atómica. | Dominio puro; 0 dependencias de infraestructura. |
+| **Agent & Capability Registry** | Identidades de agentes de primera clase, listas blancas de herramientas, ámbitos de memoria. | Puertos de dominio; adaptador SQLite WAL con versionado OCC. |
+| **Model Gateways** | Contrato uniforme de invocación de modelos a través de OpenAI, Anthropic, Gemini, Ollama y Stub. | Puertos de aplicación puros; adaptadores de red en infraestructura. |
+| **Tool Gateway & Runtime** | Despacho de herramientas validado y en sandbox con verificaciones de esquema y guardias de prototype pollution. | Tiempo de ejecución de aplicación; adaptadores locales y de procesos en infraestructura. |
+| **Autonomous Operations** | Motor de autonomía limitada (`AutonomousOperation`, `AutonomyBudget`, `PlanExecutionEngine`). | Ejecución de plan de múltiples pasos con límites estrictos de pasos, tiempo y herramientas. |
+| **Durable Persistence** | Persistencia relacional SQLite con modo WAL, esquema v3 y transacciones. | Ver `docs/PERSISTENCE_ARCHITECTURE.md`. |
+| **Crash Recovery & Reconciliation** | Conciliación automatizada de ejecuciones/tareas huérfanas al inicio. | `RestartRecoveryService` (ver `docs/PERSISTENCE_ARCHITECTURE.md`). |
+| **Virtual Organization & Budgets** | Organizaciones, Áreas, Equipos y cuotas de recursos multidimensionales (`TeamResourceBudget`). | Aplicación de cuotas de fallo cerrado y control de concurrencia. |
+| **Workflow DAG & Verification** | Orquestación de DAG de flujo de trabajo gobernada con Segregación de Funciones. | Invariante: Productor $\neq$ Verificador $\neq$ Aprobador. |
+| **Platform API & Client SDK** | Endpoints REST (`/api/v1/*`) y SDK de TypeScript tipado (`PlatformClient`). | Consumo de cliente desacoplado para aplicaciones satélites. |
+| **Web Control Plane** | SPA de interfaz de navegador con soporte bilingüe (`es-419` / `en`) y 0 `innerHTML`. | Sanitización de DOM nativa. |
 
 ---
 
-## 4. Execution Lifecycle Flow
+## 4. Flujo del Ciclo de Vida de Ejecución
 
-1. **Submission:** A task or autonomous operation is submitted via Platform API or `PlatformClient`.
-2. **Authorization & Governance:** `PolicyGateway` and `TeamResourceBudget` evaluate permissions and remaining quotas fail-closed.
-3. **Execution & Context:** `CoreRuntime` / `PlanExecutionEngine` creates an immutable `ExecutionContext` correlated by `traceId`, `taskId`, and `executionId`.
-4. **Tool & Model Invocations:** Invocations pass through schema validators, secret redactors, and resource counters.
-5. **Durable Persistence & Events:** Aggregate state updates are persisted with optimistic concurrency checks (`version = version + 1`) and immutable events are appended to `SqliteEventStore`.
-6. **Recovery Safety:** If a crash interrupts processing, `RestartRecoveryService` at next boot transitions non-terminal records to `FAILED` / `CANCELLED` with audit logs.
+1. **Envío:** Una tarea o operación autónoma se envía a través de la Platform API o el `PlatformClient`.
+2. **Autorización y Gobernanza:** `PolicyGateway` y `TeamResourceBudget` evalúan los permisos y las cuotas restantes con fallo cerrado.
+3. **Ejecución y Contexto:** El `CoreRuntime` / `PlanExecutionEngine` crea un `ExecutionContext` inmutable correlacionado por `traceId`, `taskId` y `executionId`.
+4. **Invocaciones de Herramientas y Modelos:** Las invocaciones pasan por validadores de esquema, redactores de secretos y contadores de recursos.
+5. **Persistencia Duradera y Eventos:** Las actualizaciones de estado del agregado se persisten con comprobaciones de concurrencia optimista (`version = version + 1`). Los eventos inmutables se añaden al `SqliteEventStore`.
+6. **Seguridad de Recuperación:** Si un fallo interrumpe el procesamiento, el `RestartRecoveryService` en el próximo arranque transiciona los registros no terminales a `FAILED` / `CANCELLED` con registros de auditoría.
 
-For physical codebase details, consult [`docs/REPOSITORY_MAP.md`](docs/REPOSITORY_MAP.md) and [`docs/PROJECT_NOMENCLATURE.md`](docs/PROJECT_NOMENCLATURE.md).
+Para detalles físicos de la base de código, consulta [`docs/REPOSITORY_MAP.md`](docs/REPOSITORY_MAP.md) y [`docs/PROJECT_NOMENCLATURE.md`](docs/PROJECT_NOMENCLATURE.md).

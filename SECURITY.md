@@ -1,11 +1,11 @@
-# Security Policy — AI Operating Platform
+# Política de Seguridad — AI Operating Platform
 
-## Security Model
-The AI Operating Platform implements a multi-layered defense-in-depth architecture:
-- **Principal & Tenant Isolation:** Every request is authenticated and bound to an immutable `SecurityContext` with verified `Principal` and `tenantId`.
-- **Default-Deny Access Control:** Unregistered capabilities or operations fail-closed with 401 Unauthorized or 403 Forbidden.
-- **Tool Execution Governance:** Tools require explicit permissions, schema validation, prototype pollution protection, and approval tokens for critical operations.
-- **DOM Purity:** Web Console surfaces employ pure DOM manipulation with zero usage of `innerHTML`, `outerHTML`, or `eval()`.
+## Modelo de Seguridad
+La AI Operating Platform implementa una arquitectura de defensa en profundidad de múltiples capas.
+- **Aislamiento de Principal e Inquilino:** Cada solicitud está autenticada y vinculada a un `SecurityContext` inmutable con un `Principal` y un `tenantId` verificados.
+- **Control de Acceso Default-Deny:** Las capacidades u operaciones no registradas fallan cerradas con 401 Unauthorized o 403 Forbidden.
+- **Gobernanza de Ejecución de Herramientas:** Las herramientas requieren permisos explícitos. Tienen validación de esquema, protección contra prototype pollution y tokens de aprobación para operaciones críticas.
+- **Pureza del DOM:** Las interfaces del Web Console emplean manipulación pura del DOM. Tienen cero uso de `innerHTML`, `outerHTML` o `eval()`.
 
-## Reporting Security Vulnerabilities
-If you discover a potential security vulnerability, please report it privately to the maintainers rather than opening a public issue.
+## Reporte de Vulnerabilidades de Seguridad
+Si descubres una vulnerabilidad de seguridad potencial, repórtala en privado a los mantenedores. No abras un issue público.

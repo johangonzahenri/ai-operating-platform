@@ -1,19 +1,19 @@
-# Contributing to AI Operating Platform
+# Contribuir a la AI Operating Platform
 
-Thank you for your interest in contributing to the **AI Operating Platform**.
+Gracias por tu interés en contribuir a la **AI Operating Platform**.
 
-## Code of Conduct & Architectural Invariants
-All contributions must strictly uphold the system's core invariants:
-1. **Separation of Concerns:** `CORE ENGINE != PLATFORM PRODUCT != APPLICATIONS`.
-2. **Hexagonal Purity:** Domain entities and ports must have zero imports from infrastructure, HTTP, express, or external application packages.
-3. **Default-Deny Security:** Any new tool, capability, or endpoint must be secured by default.
-4. **DOM Security:** Web Console frontend code must never use `innerHTML`, `outerHTML`, `eval()`, or `document.write()`.
-5. **Truth First:** No false claims in documentation or console badges.
+## Código de Conducta e Invariantes Arquitectónicas
+Todas las contribuciones deben mantener estrictamente las invariantes centrales del sistema.
+1. **Separación de Preocupaciones:** `CORE ENGINE != PLATFORM PRODUCT != APPLICATIONS`.
+2. **Pureza Hexagonal:** Las entidades de dominio y los puertos deben tener cero importaciones de infraestructura, HTTP, express o paquetes de aplicaciones externas.
+3. **Seguridad Default-Deny:** Cualquier herramienta, capacidad o endpoint nuevo debe estar asegurado por defecto.
+4. **Seguridad del DOM:** El código frontend del Web Console nunca debe usar `innerHTML`, `outerHTML`, `eval()` o `document.write()`.
+5. **La Verdad Primero:** No se permiten afirmaciones falsas en la documentación o insignias de consola.
 
-## Development Workflow
-1. Fork and clone the repository.
-2. Create a feature branch (`git checkout -b feat/your-feature`).
-3. Ensure TypeScript builds cleanly: `npm run build`.
-4. Run all unit and integration tests: `npm test`.
-5. Commit using conventional commit format (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`).
-6. Submit a Pull Request with a clear description and verification evidence.
+## Flujo de Trabajo de Desarrollo
+1. Haz un fork y clona el repositorio.
+2. Crea una rama de características (`git checkout -b feat/your-feature`).
+3. Asegúrate de que TypeScript se construya limpiamente: `npm run build`.
+4. Ejecuta todas las pruebas unitarias y de integración: `npm test`. (2073 tests, 0 dependencias en runtime).
+5. Haz commit usando el formato de commit convencional (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`).
+6. Envía un Pull Request con una descripción clara y evidencia de verificación.

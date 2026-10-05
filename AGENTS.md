@@ -1,21 +1,21 @@
-# Instructions for AI Agents — AI Operating Platform
+# Instrucciones para Agentes de IA — AI Operating Platform
 
-Welcome to the **AI Operating Platform** repository (`johangonzahenri/ai-operating-platform`).
+Bienvenido al repositorio de la **AI Operating Platform** (`johangonzahenri/ai-operating-platform`).
 
-All AI agents and automated coding assistants working in this repository **MUST** strictly follow the canonical operating protocols established in:
+Todos los agentes de IA y asistentes de codificación automatizados que trabajen en este repositorio **DEBEN** seguir estrictamente los protocolos operativos canónicos establecidos en:
 
-1. 📋 **[Master Work Plan (docs/MASTER_WORK_PLAN.md)](docs/MASTER_WORK_PLAN.md)**: Official system for active phase tracking, tasks, checklists, and dynamic traceability.
-2. 🛡️ **[Agent Operating Protocol (docs/AGENT_OPERATING_PROTOCOL.md)](docs/AGENT_OPERATING_PROTOCOL.md)**: Standard behavioral rules, source-of-truth hierarchy, 3-level indexing (`X / X.Y / X.Y.Z`), security guardrails, and Git guidelines.
-3. 🏛️ **[Source of Truth (docs/SOURCE_OF_TRUTH.md)](docs/SOURCE_OF_TRUTH.md)**: Truth hierarchy ($\text{Code} > \text{Tests} > \text{Git} > \text{Docs} > \text{Roadmap} > \text{Excel}$).
-4. 🔌 **[Application Integration Guide (docs/APPLICATION_INTEGRATION_GUIDE.md)](docs/APPLICATION_INTEGRATION_GUIDE.md)**: Architectural invariants governing satellite applications consuming the platform via `@ai-platform/client` and OpenAPI 3.1 REST/SSE.
+1. 📋 **[Plan de Trabajo Maestro (docs/MASTER_WORK_PLAN.md)](docs/MASTER_WORK_PLAN.md)**: Sistema oficial para el seguimiento de fases activas, tareas, listas de verificación y trazabilidad dinámica.
+2. 🛡️ **[Protocolo Operativo del Agente (docs/AGENT_OPERATING_PROTOCOL.md)](docs/AGENT_OPERATING_PROTOCOL.md)**: Reglas de comportamiento estándar, jerarquía de fuente de la verdad, indexación de 3 niveles (`X / X.Y / X.Y.Z`), barandillas de seguridad y pautas de Git.
+3. 🏛️ **[Fuente de la Verdad (docs/SOURCE_OF_TRUTH.md)](docs/SOURCE_OF_TRUTH.md)**: Jerarquía de la verdad ($\text{Code} > \text{Tests} > \text{Git} > \text{Docs} > \text{Roadmap} > \text{Excel}$).
+4. 🔌 **[Guía de Integración de Aplicaciones (docs/APPLICATION_INTEGRATION_GUIDE.md)](docs/APPLICATION_INTEGRATION_GUIDE.md)**: Invariantes arquitectónicas que gobiernan las aplicaciones satélites que consumen la plataforma a través de `@ai-platform/client` y REST/SSE OpenAPI 3.1.
 
 ---
 
-## Mandatory Execution Protocol
+## Protocolo de Ejecución Obligatorio
 
-Before executing any request:
-1. Consult `docs/MASTER_WORK_PLAN.md` to identify the active Phase ($X$) and Task ($X.Y$).
-2. Never mark tasks as `DONE` without runnable code, passing automated tests (`npm test`), and verifiable evidence.
-3. Register unexpected events as `X.Y.Z` adjustments in `docs/MASTER_WORK_PLAN.md`.
-4. Run `npm run check` before staging changes.
-5. Always use explicit git staging (`git add <files>`), never `git commit --amend` or `git push --force`.
+Antes de ejecutar cualquier solicitud:
+1. Consulta `docs/MASTER_WORK_PLAN.md` para identificar la Fase activa ($X$) y la Tarea ($X.Y$).
+2. Nunca marques las tareas como `DONE` sin código ejecutable, pruebas automatizadas que pasen (`npm test`) y evidencia verificable.
+3. Registra eventos inesperados como ajustes `X.Y.Z` en `docs/MASTER_WORK_PLAN.md`.
+4. Ejecuta `npm run check` antes de preparar los cambios.
+5. Usa siempre la preparación explícita de git (`git add <files>`), nunca `git commit --amend` o `git push --force`.

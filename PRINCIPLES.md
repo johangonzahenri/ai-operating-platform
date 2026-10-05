@@ -1,10 +1,10 @@
-# Principles
+# Principios
 
-1. Architecture before implementation.
-2. Explicit contracts before integrations.
-3. Observable execution before autonomous execution.
-4. Modularity before convenience.
-5. Provider independence before vendor lock-in.
-6. Small, verified increments before large generated systems.
+1. Arquitectura antes que implementación.
+2. Contratos explícitos antes que integraciones.
+3. Ejecución observable antes que ejecución autónoma.
+4. Modularidad antes que conveniencia.
+5. Independencia de proveedor antes que bloqueo tecnológico (vendor lock-in).
+6. Incrementos pequeños y verificados antes que grandes sistemas generados.
 
-The domain imports no infrastructure adapter, provider SDK, transport or persistence mechanism.
+El dominio no importa ningún adaptador de infraestructura, SDK de proveedor, transporte o mecanismo de persistencia.

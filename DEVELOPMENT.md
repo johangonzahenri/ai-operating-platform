@@ -1,27 +1,27 @@
-# Developer Guide — AI Operating Platform
+# Guía de Desarrollo — AI Operating Platform
 
-## Prerequisites
+## Requisitos Previos
 - Node.js >= 20.0.0
 - npm >= 9.0.0
 
-## Repository Structure
+## Estructura del Repositorio
 ```text
 ├── src/
-│   ├── domain/               # Pure domain entities, value objects, ports
-│   ├── application/          # Use cases, runtime, orchestrators, adapters
-│   ├── infrastructure/       # SQLite persistence, model gateways, tool registry
-│   ├── platform/             # Platform API v1, HTTP router, Web Console
-│   ├── platform-client/      # Typed TypeScript SDK client
-│   └── interfaces/           # Composition root and wiring
-├── docs/                     # Official manual, ADRs, portfolio, case studies
-├── tests/                    # Unit, contract, durability, and E2E test suites
-└── scripts/                  # Build and documentation helper scripts
+│   ├── domain/               # Entidades de dominio puro, objetos de valor, puertos
+│   ├── application/          # Casos de uso, runtime, orquestadores, adaptadores
+│   ├── infrastructure/       # Persistencia SQLite, pasarelas de modelo, registro de herramientas
+│   ├── platform/             # Platform API v1, enrutador HTTP, Web Console
+│   ├── platform-client/      # SDK cliente tipado en TypeScript
+│   └── interfaces/           # Raíz de composición y cableado
+├── docs/                     # Manual oficial, ADRs, portafolio, casos de estudio
+├── tests/                    # Suites de pruebas unitarias, de contrato, de durabilidad y E2E
+└── scripts/                  # Scripts auxiliares de compilación y documentación
 ```
 
-## Verification Commands
+## Comandos de Verificación
 ```bash
-npm run build   # TypeScript compilation
-npm test        # Full test suite execution
-npm run check   # Build + test verification
-npm start       # Start HTTP server on 127.0.0.1:3000
+npm run build   # Compilación de TypeScript
+npm test        # Ejecución completa de la suite de pruebas (2073 tests)
+npm run check   # Verificación de compilación + pruebas
+npm start       # Iniciar servidor HTTP en 127.0.0.1:3000
 ```
