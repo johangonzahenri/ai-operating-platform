@@ -35,57 +35,77 @@ DEVICE != CORE ENGINE
 
 ## 2. Arquitectura Canónica
 
-```text
-                         AI OPERATING PLATFORM
-                                  │
-        ┌─────────────────────────┼─────────────────────────┐
-        │                         │                         │
-   CORE ENGINE             PLATFORM PRODUCT          APPLICATIONS
-        │                         │                         │
-        │              ┌──────────┼──────────┐              │
-        │              │          │          │              │
-        │         Developer    Control      API              │
-        │         Platform     Plane      Gateway            │
-        │              │          │          │              │
-        └──────────────┼──────────┼──────────┼──────────────┘
-                       │          │          │
-                  Security   Observability  Automation
-                       │          │          │
-                       └──────────┼──────────┘
-                                  │
-                             AI RUNTIME
-                                  │
-                   ┌──────────────┼──────────────┐
-                   │              │              │
-                 Agents         Models          Tools
-                   │              │              │
-                   └──────────────┼──────────────┘
-                                  │
-                            Durable Events
-                                  │
-              ┌───────────────────┼───────────────────┐
-              │                   │                   │
-        Applications         Automations       Business Devices
-              │                   │                   │
-        Tentaciones              n8n              Brother
-        Vehicle Parts                              Printer
+```mermaid
+flowchart TD
+    AOP["🧠 AI OPERATING PLATFORM"]
+
+    AOP --> CORE["⚙️ Motor Central<br/>(Core Engine)"]
+    AOP --> PROD["🧩 Producto Plataforma<br/>(Platform Product)"]
+    AOP --> APPS["📱 Aplicaciones"]
+
+    subgraph PRODUCTO["Producto Plataforma"]
+        DEV["🛠️ Plataforma de Desarrollo"]
+        CTRL["🖥️ Plano de Control"]
+        API["🔌 API Gateway<br/>/api/v1 · OpenAPI 3.1"]
+    end
+    PROD --> DEV & CTRL & API
+
+    subgraph TRANSVERSAL["Capacidades Transversales"]
+        SEC["🛡️ Seguridad<br/>Fail-Closed · RBAC"]
+        OBS["📊 Observabilidad<br/>Logs · Métricas · Trazas"]
+        AUTO["🔁 Automatización"]
+    end
+    CORE --> SEC & OBS & AUTO
+    DEV --> SEC
+    CTRL --> OBS
+    API --> AUTO
+    APPS --> API
+
+    SEC & OBS & AUTO --> RT["🚀 Runtime de IA<br/>(CoreRuntime)"]
+
+    subgraph EJECUCION["Ejecución Gobernada"]
+        AG["🤖 Agentes"]
+        MOD["🧬 Modelos"]
+        TOOL["🧰 Herramientas"]
+    end
+    RT --> AG & MOD & TOOL
+
+    AG & MOD & TOOL --> EV[("🗄️ Eventos Durables<br/>SQLite WAL · Append-Only")]
+
+    subgraph CONSUMIDORES["Consumidores"]
+        C1["🛍️ Aplicaciones<br/>Tentaciones · Repuestos Vehiculares"]
+        C2["⚡ Automatizaciones<br/>n8n"]
+        C3["🖨️ Dispositivos Empresariales<br/>Impresora Brother"]
+    end
+    EV --> C1 & C2 & C3
+
+    classDef root fill:#4f46e5,stroke:#312e81,color:#fff,font-weight:bold
+    classDef core fill:#0f766e,stroke:#134e4a,color:#fff
+    classDef rt fill:#b45309,stroke:#78350f,color:#fff,font-weight:bold
+    classDef store fill:#1e293b,stroke:#64748b,color:#fff
+    class AOP root
+    class CORE,PROD,APPS core
+    class RT rt
+    class EV store
 ```
+
+> **Lectura del diagrama:** una aplicación entra por la API → la plataforma aplica seguridad, observabilidad y automatización → el Runtime ejecuta agentes, modelos y herramientas bajo control → todo queda registrado como eventos durables → los consumidores reciben el resultado.
 
 ---
 
 ## 3. Características Principales
 
-* **Pureza de Dominio & Zero Dependencies:** Motor central sin librerías externas (`npm ls --omit=dev` 100% vacío), asegurando arranques en menos de 50ms y máxima seguridad perimetral.
+* **Pureza de Dominio y Cero Dependencias:** Motor central sin librerías externas (`npm ls --omit=dev` 100% vacío), asegurando arranques en menos de 50ms y máxima seguridad perimetral.
 * **Persistencia Relacional Durable SQLite WAL:** Base de datos nativa Node.js 22 (`node:sqlite`) con transacciones ACID atómicas, modo WAL y control de concurrencia optimista (OCC).
-* **Runtime de Operaciones Autónomas:** Motor continuo de ejecución gobernada basado en triggers programados, reactivos y umbrales con arrendamiento seguro (`RuntimeLease`) y parada de emergencia instantánea.
+* **Runtime de Operaciones Autónomas:** Motor continuo de ejecución gobernada basado en disparadores programados, reactivos y umbrales con arrendamiento seguro (`RuntimeLease`) y parada de emergencia instantánea.
 * **Fronteras de Rehidratación Formal:** Reconstrucción de agregados de dominio (`Task.rehydrate`, `Execution.rehydrate`, `Agent.rehydrate`) eliminando la reflexión por completo.
-* **Gobernanza Fail-Closed (Default-Deny):** Toda invocación a herramientas o modelos requiere autorización positiva; denegación inmediata ante violaciones de política sin invocar el runtime.
-* **Plano de Control Web Bilingüe:** Interfaz Single-Page Application (SPA) construida en HTML5/Vanilla JS con estricto apego a APIs puras del DOM (0 `innerHTML`, 0 `eval`) con alternancia dinámica entre **Español (Latinoamérica)** e **Inglés**.
+* **Gobernanza Fail-Closed (Denegación por Defecto):** Toda invocación a herramientas o modelos requiere autorización positiva; denegación inmediata ante violaciones de política sin invocar el runtime.
+* **Plano de Control Web Bilingüe:** Interfaz de página única (SPA) construida en HTML5/Vanilla JS con estricto apego a APIs puras del DOM (0 `innerHTML`, 0 `eval`) con alternancia dinámica entre **Español (Latinoamérica)** e **Inglés**.
 * **Almacén de Eventos Durables (EventStore):** Registro append-only inmutable de cada decisión y cambio de estado, permitiendo trazabilidad y auditoría forense total.
 
 ---
 
-## 4. Quick Start & Reproducibility (Inicio Rápido y Reproducibilidad)
+## 4. Inicio Rápido y Reproducibilidad
 
 ### Prerrequisitos
 * Node.js >= 18 (recomendado Node.js 22 o superior para `node:sqlite` nativo).
