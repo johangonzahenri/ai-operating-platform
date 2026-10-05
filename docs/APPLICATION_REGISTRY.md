@@ -22,7 +22,7 @@ Las aplicaciones del ecosistema son **entidades de negocio independientes** que 
 | **`PROJ-00-PLATFORM`** | AI Operating Platform | `johangonzahenri/ai-operating-platform` | `.` (Root) | `IMPLEMENTED` | Node.js Nativo / TypeScript | Core Engine & Parent API | SPA Nativa (0 innerHTML) | Node.js REST API | Multi-Provider Gateway | N/A | API Key & Scopes | Zero-Trust, RBAC, PolicyGateway | 1600 PASS (74 suites) | `LIBRO_OFICIAL.md`, `MANUAL_OFICIAL.md` |
 | **`PROJ-01-TENTACIONES`** | Tentaciones AI Commerce | `johangonzahenri/tentaciones-ai-commerce` (Propuesto) | `src/application/platform/` | `PARTIAL` | TypeScript / Node.js | `TentacionesPlatformAdapter` sobre `PlatformClient` | Standalone Web (En diseño) | Motor Local + REST Client | Search, Recommendations, Cart Assist | URN Validation & Fitting Bridge | Webpay Demo Simulation | Tenant Scopes (`tenant-tentaciones`) | 48 PASS | `docs/TENTACIONES_PLATFORM_INTEGRATION.md` |
 | **`PROJ-02-SPAREPARTS`** | Spare Parts Search & Comparison | `johangonzahenri/spare-parts-store` (Propuesto) | `examples/reference-consumer/` / Futuro satélite | `PLANNED` | TypeScript / Web SPA | `PlatformClient` + Multi-Source Connectors | Buscador y Comparador Multi-Tienda | Motor de Compatibilidad & Precios | Parts Discovery & Cross-Reference | N/A | Comparación de Ofertas Externas | Evidence Provenance & Scopes | 16 PASS (Ref App) | `docs/PROJ_02_SPARE_PARTS_PRODUCT_CHARTER.md` |
-| **`PROJ-03-FLEET`** | Fleet Management | `johangonzahenri/fleet-management` (Propuesto) | Por crear | `PLANNED` | TypeScript / Web | Ingestion IoT hacia `PlatformClient` | Mapas & Telemetría (Planificado) | Event Dispatcher & Route Engine | Route Optimization & Pred. Maint. | N/A | N/A | Hardware Spooler Isolation | 0 PASS (Planificado) | `docs/APPLICATION_PORTFOLIO.md` |
+| **`PROJ-03-FLEET`** | Fleet Management | `johangonzahenri/fleet-management` (Propuesto) | Por crear | `PLANNED / FORMALIZED` | TypeScript / Web | Ingestion IoT hacia `PlatformClient` | Mapas & Telemetría (Planificado) | Event Dispatcher & Route Engine | Route Optimization & Pred. Maint. | N/A | N/A | Hardware Spooler Isolation | 0 PASS (Planificado) | `docs/PROJ_03_FLEET_PRODUCT_CHARTER.md` |
 | **`PROJ-04-PORTAL`** | Customer Portal | `johangonzahenri/customer-portal` (Propuesto) | Por crear | `PLANNED` | TypeScript / Web | Webhooks hacia `PlatformClient` | Portal Autoservicio (Planificado) | Ticket Lifecycle & Triage | Helpdesk Triage & Solution Bot | N/A | N/A | Human Oversight & SoD Gating | 0 PASS (Planificado) | `docs/APPLICATION_PORTFOLIO.md` |
 | **`PROJ-05-ANALYTICS`** | Analytics AI | `johangonzahenri/analytics-ai` (Propuesto) | Por crear | `PLANNED` | TypeScript / Web | Harvester sobre `/api/v1/business/*` | Dashboard Gráfico (Planificado) | Metric Aggregator & Reporter | Trend Detection & Exec Briefing | N/A | N/A | Executive RBAC & Masking | 0 PASS (Planificado) | `docs/APPLICATION_PORTFOLIO.md` |
 
@@ -62,11 +62,12 @@ Las aplicaciones del ecosistema son **entidades de negocio independientes** que 
 * **Propósito**: Gestión integral de flotas comerciales, seguimiento de telemetría IoT, mantenimiento predictivo y despacho inteligente de rutas.
 * **Dominio de Negocio**: Logística / Transporte / Gestión de Activos.
 * **Repositorio Propuesto**: `https://github.com/johangonzahenri/fleet-management`
+* **Documentos Canónicos**: [`docs/PROJ_03_FLEET_PRODUCT_CHARTER.md`](./PROJ_03_FLEET_PRODUCT_CHARTER.md) y [`docs/FLEET_TELEMETRY_SPECIFICATION.md`](./FLEET_TELEMETRY_SPECIFICATION.md)
 * **Capacidades de Plataforma Utilizadas**: `fleet.telemetry`, `route.optimization`, `maintenance.predictive`, `dispatch.agent`.
 * **Agentes Potenciales**: `fleet-dispatcher-agent`, `maintenance-planner-agent`, `fuel-efficiency-agent`.
 * **Flujos de Trabajo Potenciales**: Ingesta de telemetría -> Detección de anomalías -> Re-planificación de rutas -> Asignación a choferes.
 * **Integraciones Potenciales**: Dispositivos GPS/OBD-II, APIs de mapas y tráfico en tiempo real.
-* **Estado Actual**: **`PLANNED`** (Ficha arquitectónica definida; sin código fuente).
+* **Estado Actual**: **`PLANNED / FORMALIZED`** (Product Charter, modelo conceptual de dominio, taxonomía de telemetría IoT y arquitectura satélite formalizados en Fase 165; sin implementación de código ejecutable).
 * **MVP Planificado**: Consola de mapa con visualización de vehículos, estado de combustible y despacho de rutas optimizadas.
 * **Dependencias**: `ai-operating-platform` y cliente `@ai-platform/client`.
 

@@ -1673,7 +1673,84 @@ Endurecer y certificar perimétricamente la integración de la pasarela de plata
 
 ---
 
-## 34. Checklist Global Obligatorio de Cierre de Fase
+## 34. FASE 165 — PROJ-03 FLEET MANAGEMENT: Formalización de Product Charter, Arquitectura Satélite, Taxonomía de Telemetría IoT y Planificación Técnica
+
+### Objetivo
+Establecer la base institucional, funcional y arquitectónica para la tercera aplicación del portafolio satélite, `PROJ-03 Fleet Management & Logistics` (`PROJ-03-FLEET`), transformando su estado conceptual en una especificación formal de producto, modelo conceptual de dominio, taxonomía neutral de telemetría IoT, separación estricta de responsabilidades entre plataforma y satélite, agentes autónomos especializados y hoja de ruta técnica preliminar, sin introducir código prematuro en el Core Engine ni dependencias propietarias de hardware o mapas.
+
+### Metadatos
+- **Estado Técnico**: `DONE`
+- **Estado Operativo**: `DONE`
+- **Declaración Canónica**: `PROJ-03 Fleet Management Product Charter, Conceptual Domain Model, Telemetry IoT Specification, Satellite Architecture & Phasing FORMALIZED` / `Application implementation PLANNED for subsequent phases`
+- **Prioridad**: `HIGH`
+- **Dependencias**: Fase 164 (PROJ-01 Tentaciones Hardened Gateway), PlatformClient v1.4.0, EventStreamAdapter
+- **Iniciativas Vinculadas**: `AOP-FLEET-LOGISTICS`, `AOP-QUALITY-GOVERNANCE`
+
+### Tareas
+
+#### 165.1 — Product Charter & Functional Scope Definition
+- **Estado**: `DONE`
+- **Objetivo**: Publicar la Carta Constitutiva canónica `docs/PROJ_03_FLEET_PRODUCT_CHARTER.md` definiendo el problema de negocio, perfiles de usuario (Fleet Manager, Despachador, Jefe de Taller, Conductor), alcance funcional (In Scope / Out of Scope), exclusión de control físico remoto (Drive-by-Wire), actores autónomos y criterios de éxito del MVP.
+- **Evidencia**: `docs/PROJ_03_FLEET_PRODUCT_CHARTER.md`.
+- **Archivos Afectados**: `docs/PROJ_03_FLEET_PRODUCT_CHARTER.md`.
+
+#### 165.2 — Conceptual Domain Model & Entities
+- **Estado**: `DONE`
+- **Objetivo**: Diseñar y documentar el modelo de dominio conceptual para flotas comerciales: agregado `Vehicle` (ciclo de vida operacional, odometría monotónica), `TelemetrySnapshot` (captura puntual inmutable), `RouteSegment` & `RoutePlan` (secuenciación de waypoints con ventanas horarias), `DispatchJob` (órdenes de carga prioritarias) y `Geofence` (geocercas circulares y poligonales), preservando estricta neutralidad sin acoplamiento a base de datos física.
+- **Evidencia**: `docs/PROJ_03_FLEET_PRODUCT_CHARTER.md` (Sección 4), `docs/FLEET_TELEMETRY_SPECIFICATION.md` (Sección 4).
+- **Archivos Afectados**: `docs/PROJ_03_FLEET_PRODUCT_CHARTER.md`, `docs/FLEET_TELEMETRY_SPECIFICATION.md`.
+
+#### 165.3 — Fleet IoT Telemetry Taxonomy & Data Quality Specification
+- **Estado**: `DONE`
+- **Objetivo**: Publicar la especificación técnica de telemetría `docs/FLEET_TELEMETRY_SPECIFICATION.md`, definiendo el envoltorio de transporte `TelemetryEnvelope`, la instantánea `TelemetrySnapshot`, metadatos de origen, coordenadas WGS 84 (`EPSG:4326`), cinemática, diagnósticos SAE J1979 DTCs, unidades estandarizadas y la matriz determinista de calidad (tratamiento fail-closed de tramas obsoletas, duplicadas, fuera de orden, anomalías de reloj y saltos cinemáticos).
+- **Evidencia**: `docs/FLEET_TELEMETRY_SPECIFICATION.md`.
+- **Archivos Afectados**: `docs/FLEET_TELEMETRY_SPECIFICATION.md`.
+
+#### 165.4 — Satellite Architecture & Platform Boundary Isolation
+- **Estado**: `DONE`
+- **Objetivo**: Documentar la arquitectura de capas desacoplada del producto satélite (`PROJ-03` -> `@ai-platform/client` -> `Platform API` -> `Core Engine`), estableciendo la no-contaminación del Core Engine (cero librerías de mapas, GPS, OBD o CAN en la plataforma central) y consumo exclusivo mediante contratos públicos REST y SSE.
+- **Evidencia**: `docs/PROJ_03_FLEET_PRODUCT_CHARTER.md` (Sección 1 y Sección 4).
+- **Archivos Afectados**: `docs/PROJ_03_FLEET_PRODUCT_CHARTER.md`.
+
+#### 165.5 — Autonomous Agents Responsibilities & Governance
+- **Estado**: `DONE`
+- **Objetivo**: Formalizar el rol, inputs, outputs y salvaguardas de los agentes autónomos de flota: `fleet-dispatcher-agent` (optimización de despacho de carga y paradas) y `maintenance-planner-agent` (análisis de tendencias de falla y programación de taller preventivo), integrados con `PolicyGateway`, `TeamResourceBudget` y puentes de supervisión humana (*Human-in-the-Loop* / *Segregation of Duties*).
+- **Evidencia**: `docs/PROJ_03_FLEET_PRODUCT_CHARTER.md` (Sección 6).
+- **Archivos Afectados**: `docs/PROJ_03_FLEET_PRODUCT_CHARTER.md`.
+
+#### 165.6 — Conceptual Event & Telemetry Streaming Model
+- **Estado**: `DONE`
+- **Objetivo**: Catalogar el modelo conceptual de eventos de flota (`fleet.telemetry.ingested`, `fleet.vehicle.status_changed`, `fleet.geofence.entered`, `fleet.geofence.exited`, `fleet.alert.diagnostic_trouble`, `fleet.dispatch.assigned`, `fleet.maintenance.due`) como eventos de nivel aplicación clasificados como `PROPOSED`, sin mutar el enum `EventType` central de la plataforma en esta fase.
+- **Evidencia**: `docs/FLEET_TELEMETRY_SPECIFICATION.md` (Sección 5), `docs/PROJ_03_FLEET_PRODUCT_CHARTER.md` (Sección 1).
+- **Archivos Afectados**: `docs/FLEET_TELEMETRY_SPECIFICATION.md`, `docs/PROJ_03_FLEET_PRODUCT_CHARTER.md`.
+
+#### 165.7 — Multi-Tenant Security & Access Boundaries
+- **Estado**: `DONE`
+- **Objetivo**: Establecer los límites de aislamiento multi-tenant para empresas de transporte, conciliación de `applicationId: "PROJ-03-FLEET"`, y matriz de control de acceso basada en roles (FleetAdmin, Dispatcher, MaintenanceChief, Driver, TelemetryDevice).
+- **Evidencia**: `docs/PROJ_03_FLEET_PRODUCT_CHARTER.md` (Sección 4), `docs/FLEET_TELEMETRY_SPECIFICATION.md` (Sección 3 y Sección 5).
+- **Archivos Afectados**: `docs/PROJ_03_FLEET_PRODUCT_CHARTER.md`, `docs/FLEET_TELEMETRY_SPECIFICATION.md`.
+
+#### 165.8 — Data Governance, Minimization & Retention Tiers
+- **Estado**: `DONE`
+- **Objetivo**: Definir las políticas de gobernanza de datos: propiedad exclusiva del tenant, minimización de datos (exclusión de biométricos en tramas continuas de GPS) y retención por niveles (30 días para datos brutos a 1 Hz; 5 años para odometría y resúmenes de auditoría mecánica).
+- **Evidencia**: `docs/FLEET_TELEMETRY_SPECIFICATION.md` (Sección 1 y Sección 5), `docs/PROJ_03_FLEET_PRODUCT_CHARTER.md` (Sección 8).
+- **Archivos Afectados**: `docs/FLEET_TELEMETRY_SPECIFICATION.md`, `docs/PROJ_03_FLEET_PRODUCT_CHARTER.md`.
+
+#### 165.9 — End-to-End Conceptual Golden Journey
+- **Estado**: `DONE`
+- **Objetivo**: Formalizar el Golden Journey conceptual de extremo a extremo, distinguiendo claramente las capacidades ya implementadas en la plataforma central (SDK, Gateway de tareas, PolicyGateway, EventStream) de las capacidades satélites planificadas para el producto `PROJ-03`.
+- **Evidencia**: `docs/PROJ_03_FLEET_PRODUCT_CHARTER.md` (Sección 1).
+- **Archivos Afectados**: `docs/PROJ_03_FLEET_PRODUCT_CHARTER.md`.
+
+#### 165.10 — Portfolio Synchronization & Technical Phasing Roadmap
+- **Estado**: `DONE`
+- **Objetivo**: Registrar la iniciativa `AOP-FLEET-LOGISTICS` en `docs/ROADMAP_MASTER.md`, actualizar el estado de `PROJ-03` a `PLANNED / FORMALIZED` en `docs/APPLICATION_PORTFOLIO.md` y `docs/APPLICATION_REGISTRY.md`, catalogar los nuevos documentos en `docs/DOCUMENTATION_REGISTRY.md` y `docs/OFFICIAL_DOCUMENTATION_INDEX.md`, y estructurar la proyección técnica preliminar de fases funcionales para `PROJ-03` en `docs/MASTER_WORK_PLAN.md`.
+- **Evidencia**: `docs/MASTER_WORK_PLAN.md`, `docs/ROADMAP_MASTER.md`, `docs/APPLICATION_PORTFOLIO.md`, `docs/APPLICATION_REGISTRY.md`, `docs/DOCUMENTATION_REGISTRY.md`, `docs/OFFICIAL_DOCUMENTATION_INDEX.md`.
+- **Archivos Afectados**: `docs/MASTER_WORK_PLAN.md`, `docs/ROADMAP_MASTER.md`, `docs/APPLICATION_PORTFOLIO.md`, `docs/APPLICATION_REGISTRY.md`, `docs/DOCUMENTATION_REGISTRY.md`, `docs/OFFICIAL_DOCUMENTATION_INDEX.md`.
+
+---
+
+## 35. Checklist Global Obligatorio de Cierre de Fase
 
 Toda fase futura debe satisfacer el siguiente checklist integral antes de ser declarada `DONE`:
 
@@ -1698,9 +1775,9 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 35. Plantillas Oficiales de Registro
+## 36. Plantillas Oficiales de Registro
 
-### 35.1. Plantilla de Fase Futura
+### 36.1. Plantilla de Fase Futura
 
 ```markdown
 ## FASE X — [Título de la Fase]
@@ -1735,7 +1812,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 - X.1.1 — [Título del cambio si surge]
 ```
 
-### 35.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
+### 36.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
 
 ```markdown
 ### X.Y.Z — [Nombre del Cambio Imprevisto]
@@ -1754,7 +1831,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 36. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
+## 37. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
 
 
 Las siguientes líneas de trabajo constituyen el backlog estratégico aprobado. Se mantienen en estado `PLANNED`, `BACKLOG` o `EXPLORATORY` y no deben marcarse como `DONE` hasta contar con código y pruebas completas:

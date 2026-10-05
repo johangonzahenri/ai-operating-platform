@@ -1,10 +1,10 @@
 {
-  "traceId": "trace-verify-ollama-c497c78a",
+  "traceId": "trace-verify-ollama-70ecddec",
   "provider": "ollama",
   "environment": "local",
-  "verifiedAt": "2026-10-05T19:41:58.840Z",
+  "verifiedAt": "2026-10-05T20:04:13.848Z",
   "status": "OPERATIONAL",
-  "latencyMs": 7,
+  "latencyMs": 5,
   "metadata": {
     "endpoint": "http://127.0.0.1:11434",
     "reachable": true

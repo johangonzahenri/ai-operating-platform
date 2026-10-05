@@ -36,9 +36,10 @@ $$\text{Core Engine} \neq \text{Platform Product} \neq \text{Child Applications}
 ### 2.3. Proyecto 03: Fleet Management (`PROJ-03-FLEET`)
 * **Propósito**: Sistema de gestión de flotas vehiculares, telemetría IoT en tiempo real, optimización de rutas de reparto y despacho asistido por agentes.
 * **Dominio de Negocio**: Logística, Transporte, Cadena de Suministro.
-* **Estado Actual**: **`PLANNED`** (Ficha arquitectónica definida; sin código fuente).
+* **Documentos Canónicos**: [`docs/PROJ_03_FLEET_PRODUCT_CHARTER.md`](./PROJ_03_FLEET_PRODUCT_CHARTER.md) y [`docs/FLEET_TELEMETRY_SPECIFICATION.md`](./FLEET_TELEMETRY_SPECIFICATION.md)
+* **Estado Actual**: **`PLANNED / FORMALIZED`** (Product Charter, modelo conceptual de dominio, taxonomía de telemetría IoT y arquitectura satélite formalizados en Fase 165; sin implementación de código ejecutable).
 * **Capacidades Consumidas**: `fleet.telemetry`, `route.optimization`, `maintenance.predictive`, `dispatch.agent`.
-* **Estrategia de Contingencia**: Enrutamiento estático basado en geolocalización tradicional.
+* **Estrategia de Contingencia**: Enrutamiento estático basado en geolocalización tradicional y buffer local de telemetría en dispositivos.
 
 ### 2.4. Proyecto 04: Customer Portal (`PROJ-04-PORTAL`)
 * **Propósito**: Portal de autoservicio y soporte omnicanal para clientes con triaje automático de tickets por severidad, resolución asistida y escalamiento a humanos con Segregación de Funciones (SoD).
