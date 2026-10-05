@@ -25,3 +25,5 @@ export * from "./simulated-browser-render-adapter.js";
 export * from "./satellite-3d-renderer-adapter.js";
 export * from "./tentaciones-vto-scene-bridge.js";
 export * from "./satellite-vto-harness.js";
+export * from "./tentaciones-vto-adapter.js";
+export * from "./tentaciones-vto-certification.js";

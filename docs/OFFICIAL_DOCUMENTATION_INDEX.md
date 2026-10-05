@@ -67,6 +67,7 @@ Este índice proporciona el mapa canónico de navegación para toda la documenta
 | **UX Web y Comparador Lado a Lado** | [SPARE_PARTS_WEB_UX.md](./SPARE_PARTS_WEB_UX.md) | UX Web, filtros reactivos, selector vehicular y comparador lado a lado 0 innerHTML (PROJ-02). |
 | **Integración Satélite Spare Parts & SSE** | [SPARE_PARTS_PLATFORM_INTEGRATION.md](./SPARE_PARTS_PLATFORM_INTEGRATION.md) | Adaptador satélite `@ai-platform/client`, telemetría SSE reactiva y capacidad de plataforma (PROJ-02). |
 | **Arquitectura AR 3D AI & VTO** | [AR_3D_AI_VISION_ARCHITECTURE.md](./AR_3D_AI_VISION_ARCHITECTURE.md) | Arquitectura de visión computacional AR 3D, Virtual Try-On, modelos neuronales y oclusión para Tentaciones. |
+| **Certificación MVP Tentaciones VTO** | [TENTACIONES_VTO_MVP_CERTIFICATION.md](./TENTACIONES_VTO_MVP_CERTIFICATION.md) | Informe oficial de certificación de aplicación de 9 dimensiones y release MVP para Virtual Try-On (PROJ-01). |
 | **Plataforma Multi-Agente & Web AI** | [MULTI_AGENT_PLATFORM.md](./MULTI_AGENT_PLATFORM.md) | Arquitectura multi-agente, taxonomía, tool proficiency, Web AI, evaluación y proveedores externos. |
 | **Casos de Uso de Automatización** | [BUSINESS_AGENT_USE_CASES.md](./BUSINESS_AGENT_USE_CASES.md) | Catálogo canónico de casos de uso de automatización empresarial en 13 áreas operacionales. |
 | **Registro de Aplicaciones** | [APPLICATION_REGISTRY.md](./APPLICATION_REGISTRY.md) | Catálogo oficial de aplicaciones satélites del ecosistema (01 a 05). |

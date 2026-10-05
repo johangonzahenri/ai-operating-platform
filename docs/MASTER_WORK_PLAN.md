@@ -1559,7 +1559,54 @@ Integrar la frontera de ejecución browser (*Browser Runtime*), el adaptador per
 
 ---
 
-## 32. Checklist Global Obligatorio de Cierre de Fase
+## 32. FASE 163 — PROJ-01 TENTACIONES AI COMMERCE: Certificación de Aplicación, Seguridad y Release MVP (PROJ-01-TENTACIONES)
+
+### Objetivo
+Certificar formalmente el subsistema de probador virtual (Virtual Try-On - VTO) de `PROJ-01 Tentaciones AI Commerce` bajo el arnés de 9 dimensiones canónicas, validando el desacoplamiento hexagonal, la pureza de dominio, la integridad de micro-modelos, la no-retención de datos ópticos, el descarte temporal monotónico y la ejecución del Golden Journey multi-fase (Fases 153–162), emitiendo el dictamen de release MVP y habilitando la transición de portafolio con reporte honesto de brechas ambientales (`GAP-ENV-01 / HAL-007`).
+
+### Metadatos
+- **Estado Técnico**: `DONE`
+- **Estado Operativo**: `DONE`
+- **Declaración Canónica**: `PROJ-01 Tentaciones VTO application, security and MVP release certified (9/9 dimensions PASS) + SIMULATED VERIFIED (E2..E4)` / `Physical browser/WebGL2/WebGPU/camera stream runtime ENVIRONMENT PENDING`
+- **Prioridad**: `HIGH`
+- **Dependencias**: Fases 153–162, AUD-FASE-002 (Estabilización)
+- **Iniciativas Vinculadas**: `AOP-TENTACIONES-AR-3D-AI`, `AOP-QUALITY-GOVERNANCE`
+
+### Tareas
+
+#### 163.1 — VTO Application Certification Harness & Contract
+- **Estado**: `DONE`
+- **Objetivo**: Implementar el arnés formal de certificación determinista de 9 dimensiones (`runTentacionesVtoCertification`, `formatTentacionesVtoCertificationReport`) y el manifiesto oficial `TENTACIONES_VTO_APPLICATION_MANIFEST` en `src/application/vto/tentaciones-vto-certification.ts`, validando identidad explícita, pureza de dominio, micro-modelos, protocolo de worker, monotonicidad temporal, desacoplamiento reactivo, aislamiento hexagonal, ciclo de vida de recursos y privacidad por diseño.
+- **Evidencia**: `src/application/vto/tentaciones-vto-certification.ts`, `src/application/vto/index.ts`, `tests/contract/tentaciones-vto-certification.test.ts` (pruebas 1 y 2 PASS).
+- **Archivos Afectados**: `src/application/vto/tentaciones-vto-certification.ts`, `src/application/vto/index.ts`.
+
+#### 163.2 — End-to-End Multi-Phase VTO Pipeline Verification (F153 -> F162 Golden Journey)
+- **Estado**: `DONE`
+- **Objetivo**: Validar el Golden Journey integral que conecta las 10 fases previas del pipeline VTO (Fases 153 a 162), demostrando que una solicitud de probador virtual transiciona fluidamente a través de inferencia, deformación TPS, mapeo espacial, buffer offscreen, renderizador 3D satélite y manipulación de viewport interactivo $O(1)$ sin reinicios de inferencia.
+- **Evidencia**: `tests/contract/tentaciones-vto-certification.test.ts` (prueba 11 PASS: Golden Journey 10-fases verificado).
+- **Archivos Afectados**: `tests/contract/tentaciones-vto-certification.test.ts`.
+
+#### 163.3 — Security, DOM Purity & Multi-Tenant Isolation Audit
+- **Estado**: `DONE`
+- **Objetivo**: Ejecutar auditoría estricta de barreras de seguridad sobre todos los componentes de VTO: verificar $0$ asignaciones a `.innerHTML`, $0$ llamadas a `eval()` o constructores dinámicos `Function()`, denegación por defecto ante inquilinos ausentes o inválidos, particionamiento multi-tenant e inmutabilidad de metadatos.
+- **Evidencia**: `tests/contract/tentaciones-vto-certification.test.ts` (prueba 12 PASS: 0 innerHTML, 0 eval).
+- **Archivos Afectados**: `tests/contract/tentaciones-vto-certification.test.ts`.
+
+#### 163.4 — Release Packaging, Environmental Gaps & Official Certification Document
+- **Estado**: `DONE`
+- **Objetivo**: Emitir el informe técnico oficial de certificación `docs/TENTACIONES_VTO_MVP_CERTIFICATION.md` con taxonomía de evidencia, matriz de las 9 dimensiones evaluadas, detalle de invariantes, diagramas Mermaid y registro honesto de la brecha ambiental `GAP-ENV-01 / HAL-007` (`ENVIRONMENT PENDING`) sin sobre-afirmaciones en CI headless.
+- **Evidencia**: `docs/TENTACIONES_VTO_MVP_CERTIFICATION.md`, `src/application/vto/tentaciones-vto-certification.ts`.
+- **Archivos Afectados**: `docs/TENTACIONES_VTO_MVP_CERTIFICATION.md`, `src/application/vto/tentaciones-vto-certification.ts`.
+
+#### 163.5 — Master Work Plan, Roadmap & Final Repository Quality Gate
+- **Estado**: `DONE`
+- **Objetivo**: Actualizar `docs/MASTER_WORK_PLAN.md` registrando la Fase 163 en estado `DONE`, actualizar la iniciativa `AOP-TENTACIONES-AR-3D-AI` en `docs/ROADMAP_MASTER.md` a estado `DONE` (204 tests PASS), sincronizar índices en `docs/DOCUMENTATION_REGISTRY.md` y `docs/OFFICIAL_DOCUMENTATION_INDEX.md`, y superar todos los scripts de gobernanza.
+- **Evidencia**: `docs/MASTER_WORK_PLAN.md`, `docs/ROADMAP_MASTER.md`, `docs/DOCUMENTATION_REGISTRY.md`, `docs/OFFICIAL_DOCUMENTATION_INDEX.md`.
+- **Archivos Afectados**: `docs/MASTER_WORK_PLAN.md`, `docs/ROADMAP_MASTER.md`, `docs/DOCUMENTATION_REGISTRY.md`, `docs/OFFICIAL_DOCUMENTATION_INDEX.md`.
+
+---
+
+## 33. Checklist Global Obligatorio de Cierre de Fase
 
 Toda fase futura debe satisfacer el siguiente checklist integral antes de ser declarada `DONE`:
 
@@ -1584,9 +1631,9 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 33. Plantillas Oficiales de Registro
+## 34. Plantillas Oficiales de Registro
 
-### 33.1. Plantilla de Fase Futura
+### 34.1. Plantilla de Fase Futura
 
 ```markdown
 ## FASE X — [Título de la Fase]
@@ -1621,7 +1668,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 - X.1.1 — [Título del cambio si surge]
 ```
 
-### 33.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
+### 34.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
 
 ```markdown
 ### X.Y.Z — [Nombre del Cambio Imprevisto]
@@ -1640,7 +1687,8 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 34. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
+## 35. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
+
 
 Las siguientes líneas de trabajo constituyen el backlog estratégico aprobado. Se mantienen en estado `PLANNED`, `BACKLOG` o `EXPLORATORY` y no deben marcarse como `DONE` hasta contar con código y pruebas completas:
 
