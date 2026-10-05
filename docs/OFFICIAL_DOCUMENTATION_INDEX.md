@@ -84,6 +84,9 @@ Este índice proporciona el mapa canónico de navegación para toda la documenta
 | **Criterios de Salida v1.0** | [V1_EXIT_CRITERIA.md](./V1_EXIT_CRITERIA.md) | Criterios de verificación y certificación de producción para el release v1.0. |
 | **Preparación para Release** | [V1_RELEASE_READINESS.md](./V1_RELEASE_READINESS.md) | Matriz de comprobación de calidad, estabilidad y empaquetado para despliegue. |
 | **Auditoría de Hardening Arquitectónico** | [ARCHITECTURAL_HARDENING_AUDIT.md](./ARCHITECTURAL_HARDENING_AUDIT.md) | Auditoría transversal: Multi-Agent Runtime, MCP, HITL, Gobernanza de Tools, Evidencia y Seguridad. |
+| **Registro de Auditorías de Calidad** | [REGISTRO_DE_AUDITORIAS.md](./REGISTRO_DE_AUDITORIAS.md) | Registro histórico central de auditorías formales transversales de la plataforma. |
+| **Auditoría de Fase #001 (AUD-FASE-001)** | [AUDITORIA_FASE_001.md](./AUDITORIA_FASE_001.md) | Informe oficial de auditoría de estabilización transversal para Fases 157–159 (On-Device VTO). |
+| **Auditoría de Fase #002 (AUD-FASE-002)** | [AUDITORIA_FASE_002.md](./AUDITORIA_FASE_002.md) | Informe oficial de auditoría de estabilización transversal para Fases 160–162 (Loop CV, Viewport, Three.js Satélite). |
 | **Registro de Deuda Técnica** | [TECHNICAL_DEBT.md](./TECHNICAL_DEBT.md) | Inventario formal de mejoras arquitectónicas, refactorizaciones y deudas técnicas gestionadas. |
 | **Trazabilidad de Prompts** | [PROMPT_TRACEABILITY.md](./PROMPT_TRACEABILITY.md) | Registro histórico de trazabilidad de fases y prompts de desarrollo. |
 

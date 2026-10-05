@@ -76,16 +76,25 @@ Este registro documenta de forma honesta, verificada y explícita las limitacion
 ---
 
 ### GAP-09 / HAL-005: Ausencia de Bucle Continuo de Procesamiento CV en Tiempo Real y Sincronización Temporal
-* **Severidad:** Resuelta (Fase 160 / AUD-FASE-001)
+* **Severidad:** Resuelta y Cerrada Formalmente (Fase 160 / AUD-FASE-002)
 * **Área:** Computer Vision / Real-Time Processing / VTO
 * **Descripción:** Tras la Fase 159, el pipeline de visión computacional operaba como etapas estáticas discretas sin un bucle continuo que sincronizara automáticamente la llegada de frames con la deformación y composición espacial, dependiendo de avance manual paso a paso y careciendo de descarte determinista de resultados obsoletos fuera de orden.
-* **Resolución Ejecutada:** Implementado `ContinuousProcessingCoordinator` en `src/application/vto/continuous-processing-coordinator.ts`, `TemporalSynchronizer` en `src/domain/vto/temporal-synchronizer.ts`, y `SpatialWarpingCompositor` en `src/domain/vto/spatial-warping-compositor.ts`. Gobernado mediante prioridad de último frame, contrapresión coalescente (`DROP_OLDEST`), cancelación cooperativa vía `AbortSignal` y protección matemática contra resultados obsoletos (`STALE`). 14 tests unitarios y 4 pruebas Golden Journey validadas (18/18 PASS).
+* **Resolución Ejecutada:** Implementado `ContinuousProcessingCoordinator` en `src/application/vto/continuous-processing-coordinator.ts`, `TemporalSynchronizer` en `src/domain/vto/temporal-synchronizer.ts`, y `SpatialWarpingCompositor` en `src/domain/vto/spatial-warping-compositor.ts`. Gobernado mediante prioridad de último frame, contrapresión coalescente (`DROP_OLDEST`), cancelación cooperativa vía `AbortSignal` y protección matemática contra resultados obsoletos (`STALE`). Auditado y formalmente certificado en `tests/e2e/aud-fase-002.test.ts` (control `AUD-02.1`) y `docs/AUDITORIA_FASE_002.md`.
 
 ---
 
 ## 2. Brechas Ambientales de Certificación de Release (Environmental Release Gaps)
 
 Estas brechas representan dependencias de infraestructura y servicios externos que requieren aprovisionamiento en el host físico de producción, sin constituir fallos en el código base:
+
+### GAP-ENV-01 / HAL-007: Silicio de Aceleración Gráfica (WebGL2/WebGPU) y Cámara Óptica en Entorno Headless CI
+* **Clasificación:** `OPEN ENVIRONMENTAL GAP / CODE READY (PENDING PHYSICAL RUNTIME ENVIRONMENT)` (No bloqueante para CI/Node.js; bloqueante para certificación visual en silicio físico final).
+* **Área:** Computer Vision / Hardware Rendering / Browser Runtime
+* **Descripción:** Los contratos neutrales de escena (`RenderSceneDescriptor`), especificaciones de satélite (`SatelliteVtoSceneSpec`), bucle continuo de procesamiento, adaptadores Three.js perimetrales y puentes de aplicación están 100% implementados y validados con dobles tipados deterministas. La aceleración por hardware en silicio GPU real (WebGL2/WebGPU) y la adquisición óptica desde `navigator.mediaDevices.getUserMedia` requieren un navegador real con display y cámara física conectada.
+* **Evidencia Existente:** `tests/e2e/aud-fase-002.test.ts` (control `AUD-02.6`), `src/application/vto/satellite-vto-harness.ts`, `docs/AUDITORIA_FASE_002.md` y `docs/integration-evidence/aud-fase-002-manifest.json`.
+* **Resolución / Mitigación:** Clasificado honestamente como `ENVIRONMENT PENDING` en toda telemetría y reporte; mitigado con shims deterministas de Three.js y proveedor de CPU de referencia sin sobre-afirmación.
+
+---
 
 ### GAP-INF-01: Terminación TLS Perimetral en Host Físico de Producción
 * **Clasificación:** `OPEN ENVIRONMENTAL GAP / CODE READY (PENDING LIVE PROVISIONING)` (No bloqueante para runtime local/aislado; bloqueante para `V1 RELEASE READY` pleno en nube pública).

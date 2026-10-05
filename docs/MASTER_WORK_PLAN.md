@@ -80,6 +80,17 @@ Este documento responde de forma inequívoca en todo momento:
 > **Decisión**: Formalizar el dictamen `AUDITORÍA DE FASE APROBADA CON DEUDA TÉCNICA` en `docs/AUDITORIA_FASE_001.md`, registrar en `docs/REGISTRO_DE_AUDITORIAS.md`, generar manifiesto `docs/integration-evidence/aud-fase-001-manifest.json`, implementar la suite E2E de auditoría `tests/e2e/aud-fase-001.test.ts` (8/8 tests PASS, 2034 tests totales PASS en 196 suites), registrar los hallazgos HAL-003, HAL-004, HAL-005, HAL-006, y certificar que la Fase 160 es `FORMALIZABLE`.  
 > **Evidencia**: `tests/e2e/aud-fase-001.test.ts` (8/8 tests PASS), `docs/AUDITORIA_FASE_001.md`, `docs/integration-evidence/aud-fase-001-manifest.json`, `docs/REGISTRO_DE_AUDITORIAS.md`, 2034 tests totales del sistema PASS en 196 suites.
 
+### Tarea Inesperada 1.1.5 — Auditoría Transversal de Estabilización AUD-FASE-002 (Fases 160–162)
+> **Identificador Canónico**: `1.1.5` (Cross-Cutting Phase Stabilization Audit AUD-FASE-002 / Unexpected Governance Task)  
+> **Fecha**: 2026-10-05  
+> **Estado Técnico**: `DONE` | **Estado Operativo**: `DONE`  
+> **Prioridad**: `HIGH`  
+> **Iniciativas Vinculadas**: `AOP-QUALITY-GOVERNANCE` (`docs/ROADMAP_MASTER.md`), `AOP-TENTACIONES-AR-3D-AI`  
+> **Detectado durante**: Reconciliación técnica, estabilización transversal y gobierno de calidad posterior a la culminación del bloque visual de Fases 160–162 (Loop Continuo CV, Viewport Boundary y Render 3D Three.js Satélite).  
+> **Origen**: Mandato de gobierno canónico programado en `docs/REGISTRO_DE_AUDITORIAS.md`; verificación y cierre formal de la deuda técnica heredada `HAL-005` (bucle continuo automatizado y sincronización temporal); auditoría de pureza hexagonal (Three.js aislado en la periferia satélite, cero librerías gráficas en el Core de dominio, neutralidad absoluta de marca); validación del camino rápido interactivo de viewport en $O(1)$ sin recómputo de visión computacional; certificación de ciclo de vida determinista y liberación de recursos (`DisposalReceipt`); y clasificación honesta del entorno headless CI como `ENVIRONMENT PENDING`.  
+> **Decisión**: Formalizar el dictamen `AUDITORÍA DE FASE APROBADA` en `docs/AUDITORIA_FASE_002.md`, registrar en `docs/REGISTRO_DE_AUDITORIAS.md`, generar manifiesto `docs/integration-evidence/aud-fase-002-manifest.json`, implementar la suite E2E de auditoría `tests/e2e/aud-fase-002.test.ts` (8/8 tests PASS, 2095 tests totales del sistema PASS en 220 suites), cerrar formalmente el hallazgo `HAL-005` como `RESUELTO`, registrar la brecha ambiental `HAL-007` como `MONITOREADO`, y ratificar la política de no implementar aplicaciones adicionales no planificadas ("Hardware Store").  
+> **Evidencia**: `tests/e2e/aud-fase-002.test.ts` (8/8 tests PASS), `docs/AUDITORIA_FASE_002.md`, `docs/integration-evidence/aud-fase-002-manifest.json`, `docs/REGISTRO_DE_AUDITORIAS.md`, `docs/TECHNICAL_DEBT.md`, 2095 tests totales del sistema PASS en 220 suites.
+
 ---
 
 ## 2. Separación Conceptual de Documentos
