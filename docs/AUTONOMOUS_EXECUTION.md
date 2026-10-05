@@ -1,23 +1,16 @@
-# Controlled Autonomous Execution
+# Ejecución Autónoma Controlada
 
-Autonomous execution preserves the existing Core boundaries:
+La ejecución autónoma preserva los límites de Core existentes:
 
-* LLM decides a structured tool call.
-* Core validates the registered schema.
-* Policy authorizes the operation.
-* `RegistryToolGateway` dispatches the tool.
-* The EventPublisher observes the lifecycle.
-* The observation is sent back to the provider-neutral gateway.
+* El LLM decide una llamada de herramienta estructurada.
+* Core valida el esquema registrado.
+* Policy autoriza la operación.
+* `RegistryToolGateway` despacha la herramienta.
+* El EventPublisher observa el ciclo de vida.
+* La observación se envía de vuelta al gateway neutral respecto al proveedor.
 
-No provider can mutate the registry, policy, event store, credentials,
-filesystem, or database. Tool definitions are derived from the agent's
-authorized tool list. The same `traceId`, `taskId`, and `executionId` are
-retained across all turns.
+Ningún proveedor puede mutar el registro, la política, el almacén de eventos (EventStore), las credenciales, el sistema de archivos o la base de datos. Las definiciones de herramientas se derivan de la lista de herramientas autorizadas del agente. El mismo `traceId`, `taskId` y `executionId` se retienen en todos los turnos.
 
-Execution limits are centralized in `execution-limits.ts` and validated as
-finite positive integers: `MAX_TOOL_CALLS`, `MAX_TOOL_ROUNDS`, and
-`MAX_EXECUTION_TIME` (milliseconds). Model, tool, and total execution timeout
-boundaries are separate; completed operations clear their timers.
+Los límites de ejecución están centralizados en `execution-limits.ts` y se validan como enteros positivos finitos: `MAX_TOOL_CALLS`, `MAX_TOOL_ROUNDS` y `MAX_EXECUTION_TIME` (milisegundos). Los límites de tiempo de espera del modelo, de las herramientas y de la ejecución total están separados; las operaciones completadas borran sus temporizadores.
 
-Tentaciones remains an external application. Its adapter calls Platform API;
-product discovery and catalog ownership remain in Tentaciones.
+Tentaciones sigue siendo una aplicación externa. Su adaptador llama a la API de Plataforma (Platform API); el descubrimiento de productos y la propiedad del catálogo permanecen en Tentaciones.

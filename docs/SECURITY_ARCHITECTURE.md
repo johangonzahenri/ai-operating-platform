@@ -1,67 +1,66 @@
-# Security Architecture v0.1 — AI Operating Platform
+# Arquitectura de Seguridad v0.1 — AI Operating Platform
 
-## 1. Executive Summary & Security Goals
+## 1. Resumen Ejecutivo y Metas de Seguridad
 
-The AI Operating Platform manages autonomous and multi-agent workloads executing privileged model calls, data mutations, and tool invocations. The core security goal is:
+La AI Operating Platform gestiona cargas de trabajo autónomas y multi-agente ejecutando llamadas a modelos privilegiadas, mutaciones de datos e invocaciones de herramientas. La meta de seguridad principal es:
 
-> **Never trust an agent, tool, model, request, or external provider merely because it exists inside the platform.**
+> **Nunca confíes en un agente, herramienta, modelo, petición o proveedor externo meramente porque exista dentro de la plataforma.**
 
-Security is not an external wrapper or superficial middleware; it is a **transversal property of the Core Engine**, governed by fail-closed policy enforcement, explicit principal identity, bounded contexts, and immutable audit logs.
+La seguridad no es una envoltura externa o middleware superficial; es una **propiedad transversal del Motor Core**, gobernada por políticas de ejecución fail-closed, identidad explícita del principal, contextos delimitados y logs de auditoría inmutables.
 
-```text
-                EXTERNAL REQUEST
-                       │
-                       ▼
-                SECURITY BOUNDARY
-                       │
-             ┌─────────┴─────────┐
-             ▼                   ▼
-        Authentication      Request Context
-             │                   │
-             └─────────┬─────────┘
-                       ▼
-                 Authorization
-                       │
-                       ▼
-                 PolicyGateway
-                       │
-          ┌────────────┼────────────┐
-          ▼            ▼            ▼
-        Agents        Tools       Models
-          │            │            │
-          └────────────┼────────────┘
-                       ▼
-                 Core Runtime
-                       │
-                       ▼
-                 Persistence
-                       │
-                       ▼
-                 Audit / Events
+```mermaid
+flowchart TD
+    Ext["Petición Externa"]
+    Bound["Límite de Seguridad"]
+    AuthN["Autenticación"]
+    Req["Contexto de Petición"]
+    AuthZ["Autorización"]
+    PG["PolicyGateway"]
+    Agents["Agentes"]
+    Tools["Herramientas"]
+    Models["Modelos"]
+    Core["Runtime Core"]
+    Persist["Persistencia"]
+    Audit["Auditoría / Eventos"]
+
+    Ext --> Bound
+    Bound --> AuthN
+    Bound --> Req
+    AuthN --> AuthZ
+    Req --> AuthZ
+    AuthZ --> PG
+    PG --> Agents
+    PG --> Tools
+    PG --> Models
+    Agents --> Core
+    Tools --> Core
+    Models --> Core
+    Core --> Persist
+    Persist --> Audit
 ```
 
 ---
 
-## 2. Trust Boundaries
+## 2. Límites de Confianza
 
-The platform establishes eight explicit trust boundaries:
+La plataforma establece ocho límites de confianza explícitos:
 
-| Boundary | Origin $\rightarrow$ Destination | Trusted Entity | Untrusted Input / Entity | Validation & Authorization Requirement |
+| Límite | Origen $\rightarrow$ Destino | Entidad Confiable | Entrada / Entidad No Confiable | Requisito de Validación y Autorización |
 |---|---|---|---|---|
-| **Boundary A** | External Client $\rightarrow$ Platform API | Platform API Gateway | External network, client headers, raw payloads | Authentication, rate limiting, request validation, tenant isolation |
-| **Boundary B** | Platform API $\rightarrow$ Core Runtime | Core Engine Runtime | API payload parameters, user input | Parameter bounds validation, SecurityContext propagation |
-| **Boundary C** | Planner $\rightarrow$ Agents | Core Planner | Generated LLM plans, proposed agent targets | Plan schema validation, agent allowlist, role validation, active status check |
-| **Boundary D** | Agent $\rightarrow$ Tool | Dispatcher / PolicyGateway | Agent-generated tool arguments, execution requests | PolicyGateway evaluation, tool permission check, schema validation |
-| **Boundary E** | Agent $\rightarrow$ Model | ModelGateway | Agent prompt/message inputs, external provider responses | Provider allowlist, model authorization, token budget limits |
-| **Boundary F** | Agent $\rightarrow$ Memory | MemoryService / Policy | Agent write/read requests | Scope ownership (`memoryScope`), bounded payload sanitization |
-| **Boundary G** | Core Runtime $\rightarrow$ Persistence | TransactionRunner / SQLite | In-flight mutations | Optimistic concurrency (OCC), schema constraint verification |
-| **Boundary H** | Platform $\rightarrow$ External Provider | Model Adapters | Third-party LLM APIs, external tools | Secret isolation, response sanitization, timeout enforcement |
+| **Límite A** | Cliente Externo $\rightarrow$ API de Plataforma | Platform API Gateway | Red externa, headers del cliente, payloads en bruto | Autenticación, limitación de tasa, validación de petición, aislamiento de tenant |
+| **Límite B** | API de Plataforma $\rightarrow$ Runtime Core | Runtime del Motor Core | Parámetros del payload de API, entrada del usuario | Validación de límites de parámetros, propagación de SecurityContext |
+| **Límite C** | Planner $\rightarrow$ Agentes | Planner Core | Planes generados por LLM, destinos propuestos por el agente | Validación de esquema del plan, lista blanca de agentes, validación de roles, chequeo de estado activo |
+| **Límite D** | Agente $\rightarrow$ Herramienta | Dispatcher / PolicyGateway | Argumentos de herramienta generados por el agente, peticiones de ejecución | Evaluación de PolicyGateway, chequeo de permiso de herramienta, validación de esquema |
+| **Límite E** | Agente $\rightarrow$ Modelo | ModelGateway | Entradas de mensajes/prompts del agente, respuestas del proveedor externo | Lista blanca de proveedores, autorización de modelo, límites de presupuesto de tokens |
+| **Límite F** | Agente $\rightarrow$ Memoria | MemoryService / Policy | Peticiones de lectura/escritura del agente | Propiedad del scope (`memoryScope`), sanitización del payload delimitada |
+| **Límite G** | Runtime Core $\rightarrow$ Persistencia | TransactionRunner / SQLite | Mutaciones en vuelo | Concurrencia optimista (OCC), verificación de restricciones de esquema |
+| **Límite H** | Plataforma $\rightarrow$ Proveedor Externo | Model Adapters | APIs de LLM de terceros, herramientas externas | Aislamiento de secretos, sanitización de respuesta, aplicación de tiempo de espera |
 
 ---
 
-## 3. Principal & Identity Model
+## 3. Principal y Modelo de Identidad
 
-Every operation within the platform executes under an explicit `Principal`:
+Cada operación dentro de la plataforma se ejecuta bajo un `Principal` explícito:
 
 ```typescript
 export type PrincipalType = "HUMAN" | "SERVICE" | "AGENT" | "TOOL" | "SYSTEM";
@@ -77,148 +76,149 @@ export interface Principal {
 }
 ```
 
-### Identity Types:
-1. **HUMAN**: End-user or operator interacting via UI or API.
-2. **SERVICE**: External service or background automation client.
-3. **AGENT**: Autonomous or specialized agent executing within a designated scope.
-4. **TOOL**: Internal or registered executable capability.
-5. **SYSTEM**: Core platform runtime executing maintenance, reconciliation, or bootstrap tasks.
+### Tipos de Identidad:
+1. **HUMAN**: Usuario final u operador interactuando vía UI o API.
+2. **SERVICE**: Servicio externo o cliente de automatización en segundo plano.
+3. **AGENT**: Agente autónomo o especializado ejecutándose dentro de un scope designado.
+4. **TOOL**: Capacidad ejecutable interna o registrada.
+5. **SYSTEM**: Runtime de la plataforma base ejecutando tareas de mantenimiento, reconciliación o arranque.
 
 ---
 
-## 4. Authentication vs Authorization vs Policy
+## 4. Autenticación vs Autorización vs Políticas
 
-The platform strictly decouples identity verification from permission checking and contextual rules:
+La plataforma desacopla estrictamente la verificación de identidad del chequeo de permisos y reglas contextuales:
 
 ```text
-Authentication
-    ↓ "Who are you?" (Verifies credentials, issues SecurityContext)
-Authorization
-    ↓ "What are you allowed to do?" (Checks roles & permissions)
-Policy
-    ↓ "Under which specific conditions?" (Evaluates dynamic context, risk, agent role, source/target bounds)
+Autenticación
+    ↓ "¿Quién eres?" (Verifica credenciales, emite SecurityContext)
+Autorización
+    ↓ "¿Qué tienes permitido hacer?" (Chequea roles y permisos)
+Política
+    ↓ "¿Bajo qué condiciones específicas?" (Evalúa contexto dinámico, riesgo, rol del agente, límites de origen/destino)
 ```
 
-**Fundamental Invariant**: `authenticated !== authorized`. An authenticated principal possesses zero implicit permissions.
+**Invariante Fundamental**: `authenticated !== authorized`. Un principal autenticado posee cero permisos implícitos.
 
 ---
 
-## 5. Security Invariants
+## 5. Invariantes de Seguridad
 
-The platform enforces 15 architectural security invariants:
+La plataforma aplica 15 invariantes arquitectónicos de seguridad:
 
-1. **No Unauthenticated Access**: No unauthenticated principal may access protected platform operations.
-2. **AuthN $\neq$ AuthZ**: Authentication does not imply authorization.
-3. **Explicit Authorization**: Every privileged operation requires explicit authorization.
-4. **No Self-Privilege Escalation**: Agents cannot elevate their own privileges or modify their permissions.
-5. **No Arbitrary Agent Spawning**: Agents cannot arbitrarily spawn or coordinate privileged agents.
-6. **Tool Authorization**: Tools require explicit authorization and capability matching before invocation.
-7. **Model Authorization**: Models and providers require explicit authorization.
-8. **Memory Ownership**: Memory access must respect ownership and designated `memoryScope`.
-9. **Explicit Context Transfer**: Cross-agent context must be explicitly transferred via bounded handoffs.
-10. **Observable Security**: All security decisions (allow and deny) must be observable via Domain Events.
-11. **Fail-Closed**: Security failures and evaluation errors must fail closed (deny access).
-12. **Zero Secret Leakage**: Security events and audit logs must never expose secret material or credentials.
-13. **Bounded Metadata**: Security metadata must not become an uncontrolled data exfiltration channel.
-14. **Pre-Execution Authorization**: Authorization must happen before execution, never after.
-15. **Untrusted Agent Behavior**: Security enforcement must not depend on an agent behaving honestly.
-
----
-
-## 6. Subsystem Security Models
-
-### 6.1 Agent Security
-- Agents are declared in the `AgentRegistry` with fixed capabilities and `memoryScope`.
-- Agents cannot dynamically register tools or expand their allowed models.
-- Step execution in multi-agent coordination requires Policy evaluation before every transition.
-
-### 6.2 Tool Security & Risk Classification
-Tools are classified by risk tier:
-- **LOW**: Read-only, deterministic operations without side effects (e.g., calculator, date parser).
-- **MEDIUM**: Persistent state mutations within platform storage (e.g., memory write, task status update).
-- **HIGH**: External network calls, filesystem operations, code execution, or financial/administrative actions.
-- **CRITICAL**: Destructive system operations, schema modifications, or key rotations requiring explicit human approval.
-
-### 6.3 Model & Provider Security
-- `ModelGateway` routes requests only to registered and authorized providers (`openai`, `anthropic`, `ollama`).
-- Payloads are bounded via `BoundedDataLimits`.
-- API keys are injected via environment/adapters and never exposed to agents or stored in task contexts.
-
-### 6.4 Memory & Context Security
-- `MemoryService` isolates records by `memoryScope` (`agent-${id}` or `tenant-${id}`).
-- Memory is strictly retained state, never an uncontrolled inter-agent communication channel.
-- Cross-agent transfers require explicit, immutable, bounded `AgentHandoff` payloads.
+1. **Sin Acceso No Autenticado**: Ningún principal no autenticado puede acceder a operaciones protegidas de la plataforma.
+2. **AuthN $\neq$ AuthZ**: La autenticación no implica autorización.
+3. **Autorización Explícita**: Toda operación privilegiada requiere autorización explícita.
+4. **Sin Autoescalada de Privilegios**: Los agentes no pueden elevar sus propios privilegios o modificar sus permisos.
+5. **Sin Generación Arbitraria de Agentes**: Los agentes no pueden generar o coordinar agentes privilegiados arbitrariamente.
+6. **Autorización de Herramientas**: Las herramientas requieren autorización explícita y coincidencia de capacidades antes de la invocación.
+7. **Autorización de Modelos**: Los modelos y proveedores requieren autorización explícita.
+8. **Propiedad de la Memoria**: El acceso a la memoria debe respetar la propiedad y el `memoryScope` designado.
+9. **Transferencia de Contexto Explícita**: El contexto entre agentes debe ser transferido explícitamente a través de transiciones de entrega (handoffs) delimitadas.
+10. **Seguridad Observable**: Todas las decisiones de seguridad (permitir y denegar) deben ser observables a través de Eventos de Dominio.
+11. **Fail-Closed**: Las fallas de seguridad y errores de evaluación deben cerrarse por defecto (denegar acceso).
+12. **Cero Fugas de Secretos**: Los eventos de seguridad y logs de auditoría nunca deben exponer material secreto o credenciales.
+13. **Metadatos Delimitados**: Los metadatos de seguridad no deben convertirse en un canal no controlado de exfiltración de datos.
+14. **Autorización Pre-Ejecución**: La autorización debe ocurrir antes de la ejecución, nunca después.
+15. **Comportamiento de Agente No Confiable**: La aplicación de seguridad no debe depender de que un agente se comporte honestamente.
 
 ---
 
-## 7. Secret Management & Sanitization
+## 6. Modelos de Seguridad de Subsistemas
 
-The platform implements automated pattern-based secret redaction in `BoundedDataLimits` (`sanitizeBoundedValue`):
-- Keys matching `/authorization|api[_-]?key|token|secret|password|cookie|credential|header|env|private[_-]?key/i` are automatically redacted to `"[redacted]"`.
-- Sensitive data is sanitized before entering:
-  - Domain Events / EventStore
+### 6.1 Seguridad del Agente
+- Los agentes se declaran en el `AgentRegistry` con capacidades fijas y `memoryScope`.
+- Los agentes no pueden registrar dinámicamente herramientas o expandir sus modelos permitidos.
+- La ejecución de pasos en la coordinación multi-agente requiere la evaluación de Políticas antes de cada transición.
+
+### 6.2 Seguridad de Herramientas y Clasificación de Riesgos
+Las herramientas se clasifican por nivel de riesgo:
+- **LOW**: Operaciones de solo lectura y determinísticas sin efectos secundarios (ej., calculadora, analizador de fechas).
+- **MEDIUM**: Mutaciones de estado persistente dentro del almacenamiento de la plataforma (ej., escritura de memoria, actualización de estado de tareas).
+- **HIGH**: Llamadas a redes externas, operaciones del sistema de archivos, ejecución de código o acciones financieras/administrativas.
+- **CRITICAL**: Operaciones de sistema destructivas, modificaciones de esquema o rotación de claves que requieren aprobación humana explícita.
+
+### 6.3 Seguridad de Modelos y Proveedores
+- `ModelGateway` enruta las peticiones solo a proveedores registrados y autorizados (`openai`, `anthropic`, `ollama`).
+- Los payloads están limitados a través de `BoundedDataLimits`.
+- Las claves de API se inyectan mediante el entorno/adaptadores y nunca se exponen a los agentes o se almacenan en contextos de tareas.
+
+### 6.4 Seguridad de Memoria y Contexto
+- `MemoryService` aísla los registros por `memoryScope` (`agent-${id}` o `tenant-${id}`).
+- La memoria es un estado retenido estrictamente, nunca un canal de comunicación entre agentes sin control.
+- Las transferencias entre agentes requieren payloads explícitos, inmutables y delimitados de `AgentHandoff`.
+
+---
+
+## 7. Gestión y Sanitización de Secretos
+
+La plataforma implementa la redacción automática de secretos basada en patrones en `BoundedDataLimits` (`sanitizeBoundedValue`):
+- Las claves que coinciden con `/authorization|api[_-]?key|token|secret|password|cookie|credential|header|env|private[_-]?key/i` se redactan automáticamente a `"[redacted]"`.
+- Los datos sensibles se sanitizan antes de ingresar a:
+  - Eventos de Dominio / EventStore
   - TaskContext
-  - AgentHandoff payloads
-  - Diagnostic traces
-  - Error messages and failure payloads
+  - Payloads de AgentHandoff
+  - Trazas de diagnóstico
+  - Mensajes de error y payloads de fallos
 
 ---
 
-## 8. Fail-Closed Decision Engine
+## 8. Motor de Decisión Fail-Closed
 
-All security evaluations follow deterministic fail-closed rules:
+Todas las evaluaciones de seguridad siguen reglas determinísticas fail-closed:
 ```text
-Missing Request / Payload       ──► DENY (SECURITY_INVALID_REQUEST)
-Missing SecurityContext         ──► DENY (SECURITY_CONTEXT_MISSING)
-Unauthenticated Principal       ──► DENY (SECURITY_UNAUTHENTICATED)
-Missing Required Permission     ──► DENY (SECURITY_PERMISSION_DENIED)
-Invalid Permission String       ──► DENY (SECURITY_PERMISSION_UNKNOWN)
-Cross-Agent Scope Violation     ──► DENY (SECURITY_CROSS_AGENT_VIOLATION)
-Evaluator Exception / Error     ──► DENY (POLICY_EVALUATION_FAILED)
+Petición / Payload Ausente       ──► DENEGAR (SECURITY_INVALID_REQUEST)
+SecurityContext Ausente          ──► DENEGAR (SECURITY_CONTEXT_MISSING)
+Principal No Autenticado         ──► DENEGAR (SECURITY_UNAUTHENTICATED)
+Permiso Requerido Ausente        ──► DENEGAR (SECURITY_PERMISSION_DENIED)
+Cadena de Permiso Inválida       ──► DENEGAR (SECURITY_PERMISSION_UNKNOWN)
+Violación de Scope Cruzado       ──► DENEGAR (SECURITY_CROSS_AGENT_VIOLATION)
+Excepción / Error de Evaluador   ──► DENEGAR (POLICY_EVALUATION_FAILED)
 ```
 
 ---
 
-## 9. Implementation Status & Roadmap
+## 9. Estado de Implementación y Roadmap
 
-| Capability | Status |
+| Capacidad | Estado |
 |---|---|
-| Domain Security Types & Contracts (`Principal`, `SecurityContext`, `TrustBoundary`) | **IMPLEMENTED** |
-| 15 Security Invariants Formalized | **IMPLEMENTED** |
-| Fail-Closed Authorization Engine (`evaluateFailClosedAuthorization`) | **IMPLEMENTED** |
-| PolicyGateway Centralized Decision Point | **IMPLEMENTED** |
-| Secret Sanitization & Bounded Contexts | **IMPLEMENTED** |
-| Identity & Authentication Service (API Key, Scaffolding Bearer JWT) | **IMPLEMENTED** |
-| Fine-Grained Role-Based Access Control (RBAC) & Authorization Evaluator | **IMPLEMENTED** |
-| Subsystem Security Boundaries (Agent / Tool / Model / Memory / Delegation) | **IMPLEMENTED** |
-| Security Control & Threat Mitigation Verification | **IMPLEMENTED** |
-| Hardware Network Egress Firewall & TEE/TPM Attestation | **FUTURE INFRASTRUCTURE** |
-## 10. Platform API Security Boundary & Production Integration (Phase 14)
+| Contratos y Tipos de Seguridad de Dominio (`Principal`, `SecurityContext`, `TrustBoundary`) | **IMPLEMENTADO** |
+| 15 Invariantes de Seguridad Formalizadas | **IMPLEMENTADO** |
+| Motor de Autorización Fail-Closed (`evaluateFailClosedAuthorization`) | **IMPLEMENTADO** |
+| Punto de Decisión Centralizado de PolicyGateway | **IMPLEMENTADO** |
+| Sanitización de Secretos y Contextos Delimitados | **IMPLEMENTADO** |
+| Servicio de Identidad y Autenticación (API Key, Scaffolding Bearer JWT) | **IMPLEMENTADO** |
+| Control de Acceso Basado en Roles (RBAC) de Grano Fino y Evaluador de Autorización | **IMPLEMENTADO** |
+| Límites de Seguridad de Subsistemas (Agente / Herramienta / Modelo / Memoria / Delegación) | **IMPLEMENTADO** |
+| Verificación de Controles de Seguridad y Mitigación de Amenazas | **IMPLEMENTADO** |
+| Proxy Firewall de Salida de Red en Hardware y Atestación TEE/TPM | **INFRAESTRUCTURA FUTURA** |
 
-The `/api/v1` HTTP surface establishes the production-ready boundary between external applications (e.g. Tentaciones platform adapter, web frontends, integration scripts) and the AI Operating Platform Core.
+## 10. Límite de Seguridad de la API de Plataforma y Producción (Fase 14)
+
+La superficie HTTP `/api/v1` establece el límite listo para producción entre las aplicaciones externas (ej. el adaptador de la plataforma Tentaciones, frontends web, scripts de integración) y el Core de la AI Operating Platform.
 
 ```text
-HTTP Request (Headers: Authorization / X-API-Key / Idempotency-Key)
+Petición HTTP (Headers: Authorization / X-API-Key / Idempotency-Key)
     │
     ▼
-[Boundary A: HTTP Layer]
-  1. Method, URL, Path-Traversal & Content-Type Validation
-  2. AuthenticationService: Resolves verified Principal (API Key / Bearer)
-  3. SecurityContext Construction: Bounds Principal, Roles, and Tenant
+[Límite A: Capa HTTP]
+  1. Validación de Método, URL, Path-Traversal y Content-Type
+  2. AuthenticationService: Resuelve el Principal verificado (API Key / Bearer)
+  3. Construcción de SecurityContext: Limita Principal, Roles y Tenant
     │
     ▼
-[RBAC Authorization Middleware]
-  4. Evaluates required action (public.read, agent.read, task.create, task.read, task.cancel)
-  5. Denies missing or insufficient roles fail-closed
+[Middleware de Autorización RBAC]
+  4. Evalúa la acción requerida (public.read, agent.read, task.create, task.read, task.cancel)
+  5. Deniega por fail-closed roles faltantes o insuficientes
     │
     ▼
-[Boundary B: Core Platform Execution]
-  6. Automatic Identity Binding: Caller identity and tenant derived strictly from SecurityContext
-  7. Tenant Isolation: Multi-tenant filtering on Task queries and mutations
-  8. Sanitized Output: Platform projections hide internal instructions and credentials
+[Límite B: Ejecución de Plataforma Core]
+  6. Vinculación Automática de Identidad: Identidad del llamador y tenant derivados estrictamente del SecurityContext
+  7. Aislamiento de Tenant: Filtrado multi-tenant en consultas y mutaciones de Tareas
+  8. Salida Sanitizada: Proyecciones de plataforma ocultan instrucciones internas y credenciales
 ```
 
-### Key Production Guarantees:
-- **Tenant Isolation**: Tasks and events cannot be accessed across tenant boundaries; unauthenticated or foreign tenant queries return safe `404 Not Found` responses to prevent ID enumeration.
-- **Identity Integrity**: `callerId` and `tenantId` in task payloads are stamped directly by the server from the verified security context; client spoofing in payload JSON is ignored.
-- **Fail-Closed Protection**: Inactive, expired, revoked, or malformed API keys/tokens are rejected with standard `401 Unauthorized` / `403 Forbidden` responses.
+### Garantías Clave de Producción:
+- **Aislamiento de Tenant**: Tareas y eventos no pueden ser accedidos a través de los límites del tenant; consultas no autenticadas o de tenant foráneo devuelven respuestas seguras `404 Not Found` para prevenir la enumeración de IDs.
+- **Integridad de Identidad**: `callerId` y `tenantId` en los payloads de las tareas son sellados directamente por el servidor a partir del contexto de seguridad verificado; el spoofing del cliente en el JSON del payload se ignora.
+- **Protección Fail-Closed**: Claves/tokens de API inactivos, expirados, revocados o malformados se rechazan con respuestas estándar `401 Unauthorized` / `403 Forbidden`.

@@ -1,59 +1,44 @@
-# AI Operating Platform — Platform API Contract (/api/v1)
+# Plataforma Operativa de IA — Contrato de API de Plataforma (/api/v1)
 
-## Overview
+## Visión General
 
-The Platform API (`/api/v1`) provides a decoupled, secure, production-grade HTTP REST interface over the AI Operating Platform Core. It bridges external client platforms, workflow runners, and application adapters (such as Tentaciones) to the underlying execution engine without coupling to platform internals or bypassing security guarantees.
+La API de Plataforma (`/api/v1`) proporciona una interfaz HTTP REST desacoplada, segura y de nivel de producción sobre el Core de la Plataforma Operativa de IA. Conecta plataformas cliente externas, ejecutores de flujo de trabajo y adaptadores de aplicaciones (como Tentaciones) al motor de ejecución subyacente sin acoplarse a los detalles internos de la plataforma o eludir las garantías de seguridad.
 
 ---
 
-## Architecture & Security Boundary
+## Arquitectura y Límite de Seguridad
 
-```text
-                  ┌──────────────────────────────┐
-                  │ External Platforms / Clients │
-                  └──────────────┬───────────────┘
-                                 │ HTTP (Bearer / API Key)
-                                 ▼
-                  ┌──────────────────────────────┐
-                  │      /api/v1 HTTP Router     │
-                  └──────────────┬───────────────┘
-                                 │ Authentication Middleware
-                                 ▼
-                  ┌──────────────────────────────┐
-                  │    AuthenticationService     │
-                  └──────────────┬───────────────┘
-                                 │ Verified Principal
-                                 ▼
-                  ┌──────────────────────────────┐
-                  │       SecurityContext        │
-                  └──────────────┬───────────────┘
-                                 │ Authorization (RBAC)
-                                 ▼
-                  ┌──────────────────────────────┐
-                  │    PlatformService / Core    │
-                  └──────────────┬───────────────┘
-                                 │ Safe DTOs / Projections
-                                 ▼
-                  ┌──────────────────────────────┐
-                  │     Standardized Response    │
-                  └──────────────────────────────┘
+```mermaid
+flowchart TD
+  External["Plataformas Externas / Clientes"]
+  Router["Enrutador HTTP /api/v1"]
+  AuthService["AuthenticationService"]
+  SecContext["SecurityContext"]
+  Core["PlatformService / Core"]
+  Response["Respuesta Estandarizada"]
+
+  External -- "HTTP (Bearer / API Key)" --> Router
+  Router -- "Middleware de Autenticación" --> AuthService
+  AuthService -- "Principal Verificado" --> SecContext
+  SecContext -- "Autorización (RBAC)" --> Core
+  Core -- "DTOs Seguros / Proyecciones" --> Response
 ```
 
-Every incoming request to a protected endpoint must undergo:
-1. **Authentication**: Credentials extracted from `Authorization` header (`Bearer <token>` or `ApiKey <keyId>.<secret>`) or `X-API-Key` header. Validated via `AuthenticationService`.
-2. **Context Establishment**: A verified `SecurityContext` containing `principalId`, `roles`, `tenantId`, `correlationId`, and timestamps is constructed.
-3. **Authorization**: Evaluated via `RbacAuthorizationEvaluator` against required permissions (e.g., `public.read`, `agent.read`, `task.create`, `task.read`, `task.cancel`).
-4. **Tenant Isolation**: Tasks are created with and filtered by the caller's verified `tenantId`. Cross-tenant data access is strictly rejected.
-5. **Caller Identity Binding**: `callerId` is automatically bound from `SecurityContext.principal.id` and cannot be spoofed in task payloads.
-6. **Error Sanitization & Safe DTOs**: Internal stack traces, raw system errors, and sensitive agent parameters (e.g., environment secrets) are redacted before serialization.
+Cada solicitud entrante a un endpoint protegido debe someterse a:
+1. **Autenticación**: Credenciales extraídas del encabezado `Authorization` (`Bearer <token>` o `ApiKey <keyId>.<secret>`) o del encabezado `X-API-Key`. Validadas mediante `AuthenticationService`.
+2. **Establecimiento de Contexto**: Se construye un `SecurityContext` verificado que contiene `principalId`, `roles`, `tenantId`, `correlationId` y marcas de tiempo (timestamps).
+3. **Autorización**: Evaluada a través de `RbacAuthorizationEvaluator` frente a los permisos requeridos (por ejemplo, `public.read`, `agent.read`, `task.create`, `task.read`, `task.cancel`).
+4. **Aislamiento de Inquilino (Tenant Isolation)**: Las tareas se crean con y se filtran por el `tenantId` verificado del llamador. El acceso a datos entre inquilinos se rechaza estrictamente.
+5. **Vinculación de Identidad del Llamador**: `callerId` se vincula automáticamente desde `SecurityContext.principal.id` y no puede ser falsificado en las cargas útiles (payloads) de la tarea.
+6. **Sanitización de Errores y DTOs Seguros**: Los seguimientos de pila (stack traces) internos, errores de sistema en bruto y parámetros de agentes sensibles (por ejemplo, secretos de entorno) se redactan antes de la serialización.
 
 ---
 
-## Response Envelope Standard
+## Estándar de Sobre de Respuesta
 
-All responses from `/api/v1` adhere to a uniform structure:
+Todas las respuestas de `/api/v1` se adhieren a una estructura uniforme:
 
-### Success Response (`200 OK` / `201 Created`)
+### Respuesta Exitosa (`200 OK` / `201 Created`)
 ```json
 {
   "success": true,
@@ -62,10 +47,10 @@ All responses from `/api/v1` adhere to a uniform structure:
 }
 ```
 
-### Error Response (`4xx` / `5xx`)
+### Respuesta de Error (`4xx` / `5xx`)
 ```json
 {
-  "error": "Access denied: missing task.create permission",
+  "error": "Acceso denegado: falta el permiso task.create",
   "status": 403,
   "code": "SECURITY_DEFAULT_DENY",
   "requestId": "req-1726265000000-abc123"
@@ -74,15 +59,15 @@ All responses from `/api/v1` adhere to a uniform structure:
 
 ---
 
-## Endpoint Reference
+## Referencia de Endpoints
 
-### 1. Health Probe (Public)
-- **Method & Path**: `GET /api/v1/health`
-- **Authentication**: None (Public)
-- **Permissions**: None
-- **Description**: Lightweight health, liveness, readiness, and uptime check for load balancers and container orchestrators.
-- **Success Status**: `200 OK`
-- **Response**:
+### 1. Sonda de Salud (Público)
+- **Método y Ruta**: `GET /api/v1/health`
+- **Autenticación**: Ninguna (Público)
+- **Permisos**: Ninguno
+- **Descripción**: Verificación ligera de salud, liveness, readiness y tiempo de actividad para balanceadores de carga y orquestadores de contenedores.
+- **Estado de Éxito**: `200 OK`
+- **Respuesta**:
 ```json
 {
   "status": "HEALTHY",
@@ -96,13 +81,13 @@ All responses from `/api/v1` adhere to a uniform structure:
 
 ---
 
-### 2. Platform Capabilities & Metadata (Protected)
-- **Method & Path**: `GET /api/v1/platform`
-- **Authentication**: Required
-- **Required Permission**: `public.read` / `platform:read`
-- **Description**: Returns non-sensitive platform capabilities, registered model providers, tool names, agent counts, and operational status.
-- **Success Status**: `200 OK`
-- **Response**:
+### 2. Capacidades de Plataforma y Metadatos (Protegido)
+- **Método y Ruta**: `GET /api/v1/platform`
+- **Autenticación**: Requerida
+- **Permiso Requerido**: `public.read` / `platform:read`
+- **Descripción**: Devuelve capacidades de plataforma no sensibles, proveedores de modelos registrados, nombres de herramientas, recuentos de agentes y estado operativo.
+- **Estado de Éxito**: `200 OK`
+- **Respuesta**:
 ```json
 {
   "version": "1.0.0",
@@ -121,19 +106,19 @@ All responses from `/api/v1` adhere to a uniform structure:
 
 ---
 
-### 3. List Safe Agents (Protected)
-- **Method & Path**: `GET /api/v1/agents`
-- **Authentication**: Required
-- **Required Permission**: `agent.read` / `agents:read`
-- **Description**: Returns registered agents with redacted/sanitized metadata. Internal instructions, secrets, and system prompts are omitted.
-- **Success Status**: `200 OK`
-- **Response**:
+### 3. Listar Agentes Seguros (Protegido)
+- **Método y Ruta**: `GET /api/v1/agents`
+- **Autenticación**: Requerida
+- **Permiso Requerido**: `agent.read` / `agents:read`
+- **Descripción**: Devuelve agentes registrados con metadatos redactados/sanitizados. Se omiten las instrucciones internas, los secretos y los prompts del sistema.
+- **Estado de Éxito**: `200 OK`
+- **Respuesta**:
 ```json
 [
   {
     "id": "foundation-agent",
     "name": "Foundation Agent",
-    "description": "Default general-purpose operational agent",
+    "description": "Agente operativo de propósito general predeterminado",
     "status": "ACTIVE",
     "model": "stub-model",
     "tools": ["calculator"]
@@ -143,27 +128,27 @@ All responses from `/api/v1` adhere to a uniform structure:
 
 ---
 
-### 4. Create Task (Protected)
-- **Method & Path**: `POST /api/v1/tasks`
-- **Authentication**: Required
-- **Required Permission**: `task.create` / `tasks:create`
-- **Headers**:
-  - `Idempotency-Key` (Optional): Unique idempotency key. Repeating a request with the same key returns the cached completed task result without re-executing.
-  - If a concurrent request is already in-flight with the same key, HTTP `409 Conflict` (`code: IDEMPOTENCY_CONCURRENT_EXECUTION`) is returned.
-  - If a repeated request provides a payload differing from the initial request, HTTP `409 Conflict` (`code: IDEMPOTENCY_PAYLOAD_MISMATCH`) is returned.
-- **Body**:
+### 4. Crear Tarea (Protegido)
+- **Método y Ruta**: `POST /api/v1/tasks`
+- **Autenticación**: Requerida
+- **Permiso Requerido**: `task.create` / `tasks:create`
+- **Encabezados**:
+  - `Idempotency-Key` (Opcional): Clave de idempotencia única. Repetir una solicitud con la misma clave devuelve el resultado de la tarea completada en caché sin volver a ejecutar.
+  - Si una solicitud concurrente ya está en vuelo con la misma clave, se devuelve HTTP `409 Conflict` (`code: IDEMPOTENCY_CONCURRENT_EXECUTION`).
+  - Si una solicitud repetida proporciona una carga útil que difiere de la solicitud inicial, se devuelve HTTP `409 Conflict` (`code: IDEMPOTENCY_PAYLOAD_MISMATCH`).
+- **Cuerpo (Body)**:
 ```json
 {
   "agentId": "foundation-agent",
   "input": {
-    "message": "Calculate total"
+    "message": "Calcular total"
   },
   "traceId": "trace-uuid-1234"
 }
 ```
-- **Description**: Creates and schedules a new platform execution task. `callerId` is automatically bound from the verified `SecurityContext.principal.id` and `tenantId` is bound from the principal's tenant.
-- **Success Status**: `201 Created` (or `200 OK` if returning existing cached idempotent task)
-- **Response**:
+- **Descripción**: Crea y programa una nueva tarea de ejecución de plataforma. `callerId` se vincula automáticamente desde el `SecurityContext.principal.id` verificado y `tenantId` se vincula desde el inquilino del principal.
+- **Estado de Éxito**: `201 Created` (o `200 OK` si devuelve una tarea idempotente almacenada en caché existente)
+- **Respuesta**:
 ```json
 {
   "task": {
@@ -171,7 +156,7 @@ All responses from `/api/v1` adhere to a uniform structure:
     "agentId": "foundation-agent",
     "status": "COMPLETED",
     "input": {
-      "message": "Calculate total",
+      "message": "Calcular total",
       "metadata": {
         "callerPrincipalId": "service-tentaciones",
         "callerTenantId": "tenant-tentaciones",
@@ -189,42 +174,42 @@ All responses from `/api/v1` adhere to a uniform structure:
 
 ---
 
-### 5. Get Task by ID (Protected)
-- **Method & Path**: `GET /api/v1/tasks/:id`
-- **Authentication**: Required
-- **Required Permission**: `task.read` / `tasks:read`
-- **Description**: Retrieves detailed task state. Rejects cross-tenant access with `404 Not Found` to prevent enumeration attacks.
-- **Success Status**: `200 OK`
+### 5. Obtener Tarea por ID (Protegido)
+- **Método y Ruta**: `GET /api/v1/tasks/:id`
+- **Autenticación**: Requerida
+- **Permiso Requerido**: `task.read` / `tasks:read`
+- **Descripción**: Recupera el estado detallado de la tarea. Rechaza el acceso entre inquilinos con `404 Not Found` para evitar ataques de enumeración.
+- **Estado de Éxito**: `200 OK`
 
 ---
 
-### 6. Cancel Task (Protected)
-- **Method & Path**: `POST /api/v1/tasks/:id/cancel`
-- **Authentication**: Required
-- **Required Permission**: `task.cancel` / `tasks:cancel`
-- **Body**:
+### 6. Cancelar Tarea (Protegido)
+- **Método y Ruta**: `POST /api/v1/tasks/:id/cancel`
+- **Autenticación**: Requerida
+- **Permiso Requerido**: `task.cancel` / `tasks:cancel`
+- **Cuerpo (Body)**:
 ```json
 {
-  "reason": "User cancelled request via dashboard"
+  "reason": "El usuario canceló la solicitud a través del panel"
 }
 ```
-- **Description**: Signals cancellation for an in-flight or pending task. Non-cancellable terminal tasks return `409 Conflict`.
-- **Success Status**: `200 OK`
+- **Descripción**: Señala la cancelación para una tarea en vuelo o pendiente. Las tareas terminales no cancelables devuelven `409 Conflict`.
+- **Estado de Éxito**: `200 OK`
 
 ---
 
-### 7. Get Task Event Timeline (Protected)
-- **Method & Path**: `GET /api/v1/tasks/:id/events`
-- **Authentication**: Required
-- **Required Permission**: `task.read` / `tasks:read`
-- **Description**: Returns durable audit trail events associated with the specified task stream.
-- **Success Status**: `200 OK`
+### 7. Obtener Línea de Tiempo de Eventos de Tarea (Protegido)
+- **Método y Ruta**: `GET /api/v1/tasks/:id/events`
+- **Autenticación**: Requerida
+- **Permiso Requerido**: `task.read` / `tasks:read`
+- **Descripción**: Devuelve eventos de registro de auditoría duraderos asociados con el flujo de tareas especificado.
+- **Estado de Éxito**: `200 OK`
 
 ---
 
-## TypeScript Client SDK (`PlatformClient`)
+## SDK de Cliente TypeScript (`PlatformClient`)
 
-The platform exports an official Node.js / TypeScript client in `src/platform-client`:
+La plataforma exporta un cliente oficial de Node.js / TypeScript en `src/platform-client`:
 
 ```typescript
 import { PlatformClient } from "@platform/client";
@@ -234,28 +219,28 @@ const client = new PlatformClient({
   apiKey: "key_service.secret_xyz123"
 });
 
-// Health check
+// Verificación de salud
 const health = await client.health();
 
-// Get platform capabilities
+// Obtener capacidades de la plataforma
 const meta = await client.platform.get();
 
-// List safe agents
+// Listar agentes seguros
 const agents = await client.agents.list();
 
-// Create and execute task
+// Crear y ejecutar tarea
 const result = await client.tasks.create({
   agentId: "foundation-agent",
-  input: { message: "AI Safety" },
+  input: { message: "Seguridad de IA" },
   idempotencyKey: "uuid-v4-client-key"
 });
 
-// Query task status
+// Consultar estado de la tarea
 const task = await client.tasks.get(result.task.id);
 
-// Cancel task
-await client.tasks.cancel(task.id, "Aborted by client");
+// Cancelar tarea
+await client.tasks.cancel(task.id, "Cancelado por el cliente");
 
-// Read audit event stream
+// Leer flujo de eventos de auditoría
 const events = await client.tasks.events(task.id);
 ```

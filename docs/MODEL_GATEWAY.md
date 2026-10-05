@@ -1,90 +1,93 @@
-# Model Gateway Architecture Reference
+# Referencia de Arquitectura de Model Gateway
 
-## 1. Overview
+## 1. Visión General
 
-The `ModelGateway` is the exclusive point of entry for the AI Operating Platform Core Engine to request model inference. It completely shields domain logic, task execution strategies, and agents from knowing:
-- What provider is handling the request (OpenAI, Anthropic, Ollama, local models).
-- How the provider's HTTP payload or authentication headers are formed.
-- What SDK or network library is used.
-- How internal vendor error codes are structured.
+El `ModelGateway` es el punto de entrada exclusivo para que el Core Engine de la AI Operating Platform solicite inferencia de modelos. Oculta completamente a la lógica de dominio, las estrategias de ejecución de tareas y a los agentes de conocer:
+- Qué proveedor está manejando la petición (OpenAI, Anthropic, Ollama, modelos locales).
+- Cómo se forman los payloads HTTP o headers de autenticación del proveedor.
+- Qué SDK o biblioteca de red se utiliza.
+- Cómo están estructurados los códigos de error internos del proveedor.
 
-```text
-                ┌─────────────────┐
-                │   Core Runtime  │
-                └────────┬────────┘
-                         │
-                         ▼
-                ┌─────────────────┐
-                │   Model Router  │
-                └────────┬────────┘
-                         │
-                         ▼
-                ┌─────────────────┐
-                │  Model Gateway  │
-                └───────┬─────────┘
-                        │
-         ┌──────────────┼──────────────┬──────────────┐
-         ▼              ▼              ▼              ▼
-    OpenAI Adapter Anthropic Adapter Ollama Adapter Stub Adapter
-         │              │              │              │
-         ▼              ▼              ▼              ▼
-       OpenAI        Anthropic       Ollama       Deterministic
+```mermaid
+flowchart TD
+    Core["Runtime Core"]
+    Router["Model Router"]
+    Gateway["Model Gateway"]
+    OA["Adaptador OpenAI"]
+    AA["Adaptador Anthropic"]
+    OllA["Adaptador Ollama"]
+    SA["Adaptador Stub"]
+    O["OpenAI"]
+    A["Anthropic"]
+    Oll["Ollama"]
+    D["Determinístico"]
+
+    Core --> Router
+    Router --> Gateway
+    Gateway --> OA
+    Gateway --> AA
+    Gateway --> OllA
+    Gateway --> SA
+    OA --> O
+    AA --> A
+    OllA --> Oll
+    SA --> D
 ```
 
 ---
 
-## 2. Core Contracts
+## 2. Contratos Core
 
 ### `ModelCapability`
-Explicit capabilities queried prior to execution:
-- `TEXT_GENERATION`: Standard text completion / conversation.
-- `STRUCTURED_OUTPUT`: Reliable JSON object generation conforming to schema.
-- `TOOL_CALLING`: Function calling / tool dispatching.
-- `VISION`: Multimodal image processing.
-- `EMBEDDINGS`: Vector embeddings.
-- `STREAMING`: Incremental token delivery.
+Capacidades explícitas consultadas antes de la ejecución:
+- `TEXT_GENERATION`: Completado de texto estándar / conversación.
+- `STRUCTURED_OUTPUT`: Generación confiable de objetos JSON conforme a un esquema.
+- `TOOL_CALLING`: Llamadas a funciones / despacho de herramientas.
+- `VISION`: Procesamiento de imágenes multimodal.
+- `EMBEDDINGS`: Incrustaciones vectoriales.
+- `STREAMING`: Entrega incremental de tokens.
 
-Pre-execution check:
+Chequeo de pre-ejecución:
 ```typescript
 const isSupported = await gateway.supports(modelId, "STRUCTURED_OUTPUT");
 if (!isSupported) throw new ModelCapabilityUnsupportedError(modelId, "STRUCTURED_OUTPUT");
 ```
 
 ### `ModelRouter`
-Evaluates incoming requests and determines the target model and provider:
-1. Resolves model definition and provider.
-2. Evaluates `SecurityBoundaryEnforcer` against the caller's `SecurityContext`.
-3. Verifies required capabilities.
-4. Generates an authorized fallback chain.
+Evalúa las peticiones entrantes y determina el modelo y proveedor objetivo:
+1. Resuelve la definición del modelo y el proveedor.
+2. Evalúa `SecurityBoundaryEnforcer` contra el `SecurityContext` del llamador.
+3. Verifica las capacidades requeridas.
+4. Genera una cadena de fallback autorizada.
 
 ### `DefaultModelGateway`
-Coordinates execution with:
-- **Request Validation**: Enforces trace ID, non-empty model, valid input, and bounded payload size (1MB limit).
-- **Bounded Retries**: Transient errors (`ModelRateLimitError`, `ModelTimeoutError`, `ModelUnavailableError`) retry with exponential backoff up to `maxRetries`. Authentication and validation errors fail immediately.
-- **Controlled Fallback**: If the primary provider fails due to network/outage, the gateway attempts allowed fallback providers in sequence.
-- **Structured Output Validation**: `generateStructured(request, schema)` parses JSON safely, checks required schema properties, and returns strongly-typed results. Untrusted model responses cannot bypass system boundaries.
+Coordina la ejecución con:
+- **Validación de Petición**: Aplica trace ID, modelo no vacío, entrada válida y tamaño delimitado de payload (límite de 1MB).
+- **Reintentos Delimitados**: Los errores transitorios (`ModelRateLimitError`, `ModelTimeoutError`, `ModelUnavailableError`) se reintentan con retroceso exponencial (exponential backoff) hasta `maxRetries`. Errores de autenticación y validación fallan inmediatamente.
+- **Fallback Controlado**: Si el proveedor principal falla debido a red/caída, la pasarela intenta secuencialmente con los proveedores de respaldo permitidos.
+- **Validación de Salida Estructurada**: `generateStructured(request, schema)` parsea JSON de forma segura, verifica propiedades de esquema requeridas y devuelve resultados fuertemente tipados. Las respuestas del modelo no confiable no pueden evadir los límites del sistema.
 
 ---
 
-## 3. Provider Error Normalization
+## 3. Normalización de Errores de Proveedor
 
-Provider adapters translate vendor-specific HTTP error codes into standardized platform exceptions:
+Los adaptadores de proveedor traducen los códigos de error HTTP específicos del vendedor en excepciones estandarizadas de la plataforma:
 
-| Platform Error | Code | Retry Eligible? | Description |
+| Error de Plataforma | Código | ¿Elegible para Reintento? | Descripción |
 |---|---|:---:|---|
-| `ModelValidationError` | `MODEL_INVALID_REQUEST` | No | Malformed request, missing field, or payload exceeded |
-| `ModelAuthenticationError` | `MODEL_AUTHENTICATION_ERROR` | No | Invalid or missing API credentials |
-| `ModelRateLimitError` | `MODEL_RATE_LIMIT_ERROR` | Yes | HTTP 429 rate limit exceeded |
-| `ModelTimeoutError` | `MODEL_TIMEOUT_ERROR` | Yes | Request exceeded client timeout |
-| `ModelUnavailableError` | `MODEL_UNAVAILABLE` | Yes | Provider unreachable, 503, or connection failure |
-| `ModelStructuredOutputError` | `OUTPUT_INVALID` | No | Model produced invalid JSON or failed schema validation |
-| `ModelCapabilityUnsupportedError` | `CAPABILITY_UNSUPPORTED` | No | Requested capability not offered by selected model |
+| `ModelValidationError` | `MODEL_INVALID_REQUEST` | No | Petición malformada, campo faltante o payload excedido |
+| `ModelAuthenticationError` | `MODEL_AUTHENTICATION_ERROR` | No | Credenciales de API inválidas o faltantes |
+| `ModelRateLimitError` | `MODEL_RATE_LIMIT_ERROR` | Sí | HTTP 429 límite de tasa excedido |
+| `ModelTimeoutError` | `MODEL_TIMEOUT_ERROR` | Sí | La petición excedió el tiempo de espera del cliente |
+| `ModelUnavailableError` | `MODEL_UNAVAILABLE` | Sí | Proveedor inalcanzable, 503 o fallo de conexión |
+| `ModelStructuredOutputError` | `OUTPUT_INVALID` | No | El modelo produjo un JSON inválido o falló la validación del esquema |
+| `ModelCapabilityUnsupportedError` | `CAPABILITY_UNSUPPORTED` | No | Capacidad solicitada no ofrecida por el modelo seleccionado |
 
 ---
 
-## 4. Security & Isolation Invariants
+## 4. Invariantes de Seguridad y Aislamiento
 
-1. **RBAC Enforcement**: Model invocation requires `model.invoke` permission verified via `SecurityBoundaryEnforcer`.
-2. **Model Allowlist**: Principals and agents are restricted to configured model allowlists.
-3. **Zero Secret Leakage**: API keys and auth headers are never logged, persisted to SQLite, or returned in task events.
-4. **Offline Tests**: All unit and integration test suites run strictly offline using deterministic stubs or mocked fetch functions.
+1. **Aplicación de RBAC**: La invocación de modelos requiere el permiso `model.invoke` verificado a través de `SecurityBoundaryEnforcer`.
+2. **Lista Blanca de Modelos**: Principales y agentes están restringidos a las listas blancas de modelos configuradas.
+3. **Cero Fugas de Secretos**: Las claves API y headers de autenticación nunca se registran, ni persisten en SQLite, ni se retornan en eventos de tareas.
+4. **Pruebas Offline**: Todas las suites de pruebas unitarias e integración se ejecutan estrictamente offline usando stubs determinísticos o funciones fetch simuladas (mocked).

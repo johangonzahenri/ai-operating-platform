@@ -1,108 +1,84 @@
-# Multi-Agent Coordination Contract v0.1
+# Contrato de Coordinación Multi-Agente v0.1
 
-## 1. Executive Summary
+## 1. Resumen Ejecutivo
 
-The current platform has multiple registered agents, but one `Task` currently
-selects one `agentId` and one `Execution` is owned by that task. There is no
-agent-to-agent runtime, handoff protocol, aggregation model, or delegation
-authority.
+La plataforma actual tiene múltiples agentes registrados, pero actualmente una `Task` selecciona un `agentId` y una `Execution` es propiedad de esa tarea. No hay tiempo de ejecución (runtime) de agente a agente, protocolo de traspaso (handoff), modelo de agregación o autoridad de delegación.
 
-One bounded, generic candidate is justified for future evaluation:
+Se justifica un candidato limitado y genérico para evaluación futura:
 
 ```text
-Operations diagnostic -> decision -> execution -> verification
+Operaciones de diagnóstico -> decisión -> ejecución -> verificación
 ```
 
-This is a contract and audit only. It does not add a coordinator, endpoints,
-runtime classes, persistence, or new events.
+Este es solo un contrato y una auditoría. No agrega un coordinador, endpoints, clases de tiempo de ejecución, persistencia ni eventos nuevos.
 
-## 2. Current Architecture Findings
+## 2. Hallazgos de la Arquitectura Actual
 
-- `AgentService` validates agent identity, registration, model/tool references,
-  active status, and starts a task.
-- `AgentRegistry` is the source of truth for agent definitions.
-- `CoreRuntime` owns Task and Execution lifecycle, persistence, events, timeout
-  propagation, cancellation, and recovery boundaries.
-- `AgentExecutionStrategy` executes one selected agent and routes tools through
-  Policy and the Dispatcher.
-- `TaskContext` is execution-scoped and bounded.
-- `MemoryService` retains selected information; it is not a communication bus.
-- `ModelRequest.messages` is the canonical conversation history for one model
-  execution.
-- `EventStore` records operational facts and is not a coordination channel.
+- `AgentService` valida la identidad del agente, registro, referencias de modelos/herramientas, estado activo, y comienza una tarea.
+- `AgentRegistry` es la fuente de la verdad para las definiciones de agentes.
+- `CoreRuntime` posee el ciclo de vida de Task y Execution, persistencia, eventos, propagación de tiempos de espera, cancelación y límites de recuperación.
+- `AgentExecutionStrategy` ejecuta un agente seleccionado y enruta herramientas a través de Policy y Dispatcher.
+- `TaskContext` tiene alcance de ejecución y está limitado.
+- `MemoryService` retiene información seleccionada; no es un bus de comunicación.
+- `ModelRequest.messages` es el historial de conversación canónico para una ejecución de modelo.
+- `EventStore` registra hechos operativos y no es un canal de coordinación.
 
-## 3. Candidate Use Cases
+## 3. Casos de Uso Candidatos
 
-| Case | Real specialization | Can one agent do it? | Current fit | Decision |
+| Caso | Especialización real | ¿Puede hacerlo un agente? | Ajuste actual | Decisión |
 |---|---|---|---|---|
-| Research → analysis → execution | evidence collection, reasoning, controlled action | Usually yes for bounded tasks | No research/evidence contract exists | Defer |
-| Planner → specialist → validator | plan construction, domain work, independent validation | Sometimes; validation may need independence | Registry and Policy fit, but no handoff contract | Defer |
-| Commerce intent → product → inventory | domain ownership split | Yes, and Tentaciones owns the domain | Would couple Core to commerce data | Reject for Core |
-| Requirements → architecture → implementation → validation | distinct artifacts and review | Yes for small changes | No code-artifact contract exists | Defer |
-| Diagnostic → decision → execution → verification | observe, decide, act, independently verify | Not reliably when action risk requires independent verification | Reuses existing execution, Policy, tools and events | **Primary candidate** |
+| Investigación → análisis → ejecución | recolección de evidencia, razonamiento, acción controlada | Usualmente sí para tareas limitadas | No existe contrato de investigación/evidencia | Diferir |
+| Planificador → especialista → validador | construcción de planes, trabajo de dominio, validación independiente | A veces; la validación puede requerir independencia | Registro y Policy se ajustan, pero no hay contrato de traspaso | Diferir |
+| Intención de comercio → producto → inventario | división de propiedad de dominio | Sí, y Tentaciones es dueño del dominio | Acoplaría Core a los datos de comercio | Rechazar para Core |
+| Requisitos → arquitectura → implementación → validación | artefactos distintos y revisión | Sí para cambios pequeños | No existe contrato de código-artefacto | Diferir |
+| Diagnóstico → decisión → ejecución → verificación | observar, decidir, actuar, verificar independientemente | No confiablemente cuando el riesgo de la acción requiere verificación independiente | Reutiliza la ejecución existente, Policy, herramientas y eventos | **Candidato principal** |
 
-The primary candidate is not an assertion that every operational task needs
-four agents. It is justified only when an action has a meaningful verification
-requirement or the diagnostic and execution authorities must be separated.
+El candidato principal no es una afirmación de que cada tarea operativa necesite cuatro agentes. Está justificado solo cuando una acción tiene un requisito de verificación significativo o las autoridades de diagnóstico y ejecución deben estar separadas.
 
-## 4. Use Case Comparison
+## 4. Comparación de Casos de Uso
 
-The primary candidate adds real functional separation:
+El candidato principal agrega una separación funcional real:
 
-- Diagnostic Agent produces a bounded finding, not an authorization.
-- Decision Agent converts the finding into a proposed action, not execution.
-- Execution Agent invokes only authorized tools.
-- Verification Agent evaluates the observed result against explicit criteria.
+- El Agente de Diagnóstico produce un hallazgo limitado, no una autorización.
+- El Agente de Decisión convierte el hallazgo en una acción propuesta, no en una ejecución.
+- El Agente de Ejecución invoca solo herramientas autorizadas.
+- El Agente de Verificación evalúa el resultado observado frente a criterios explícitos.
 
-The coordinator, not an LLM, decides whether the chain may continue. For a
-low-risk task, one agent remains preferable because coordination adds latency,
-failure modes, context transfer, and operational cost.
+El coordinador, no un LLM, decide si la cadena puede continuar. Para una tarea de bajo riesgo, un agente sigue siendo preferible porque la coordinación agrega latencia, modos de falla, transferencia de contexto y costo operativo.
 
-## 5. Selected Primary Use Case
+## 5. Caso de Uso Principal Seleccionado
 
-**Operations Diagnostic → Decision → Execution → Verification** is the single
-candidate for a future implementation. It is generic to the platform and does
-not copy Tentaciones domain data.
+**Operaciones de Diagnóstico → Decisión → Ejecución → Verificación** es el único candidato para una implementación futura. Es genérico para la plataforma y no copia los datos de dominio de Tentaciones.
 
-Example scope: inspect a bounded operational observation, propose one
-allow-listed action, execute it through the existing dispatcher, and verify the
-result. The example is intentionally generic; no new operational tool is
-created by this contract.
+Alcance del ejemplo: inspeccionar una observación operativa limitada, proponer una acción permitida, ejecutarla a través del despachador existente y verificar el resultado. El ejemplo es intencionalmente genérico; no se crea ninguna herramienta operativa nueva con este contrato.
 
-## 6. Why Multi-Agent
+## 6. Por qué Multi-Agente
 
-Multi-agent is justified only where separation of authority is required:
+Multi-agente se justifica solo donde se requiere separación de autoridad:
 
-1. Diagnosis must not itself execute a side effect.
-2. Decision must be validated by Core and Policy before execution.
-3. Verification must consume the bounded execution result and can reject a
-   result independently of the executor.
+1. El diagnóstico no debe en sí mismo ejecutar un efecto secundario.
+2. La decisión debe ser validada por Core y Policy antes de la ejecución.
+3. La verificación debe consumir el resultado de ejecución limitado y puede rechazar un resultado independientemente del ejecutor.
 
-This is a control boundary, not a claim that multiple prompts are inherently
-better.
+Este es un límite de control, no una afirmación de que múltiples prompts son inherentemente mejores.
 
-## 7. Why Not Single-Agent
+## 7. Por qué no un Solo Agente
 
-A single agent can perform the sequence for low-risk operations. It is not
-adequate for the primary candidate when the same model both asserts the
-diagnosis, authorizes its own action, executes it, and declares success. That
-combines incompatible responsibilities and weakens independent verification.
-The coordinator must therefore enforce the separation and may collapse the
-flow to one agent only when policy marks the operation as safe.
+Un solo agente puede realizar la secuencia para operaciones de bajo riesgo. No es adecuado para el candidato principal cuando el mismo modelo afirma el diagnóstico, autoriza su propia acción, la ejecuta y declara el éxito. Eso combina responsabilidades incompatibles y debilita la verificación independiente. Por lo tanto, el coordinador debe hacer cumplir la separación y puede colapsar el flujo a un solo agente solo cuando la política marque la operación como segura.
 
-## 8. Conceptual Coordination Model
+## 8. Modelo de Coordinación Conceptual
 
 ```mermaid
 flowchart TD
-  Objective --> Task
+  Objetivo --> Task
   Task --> Coordinator
   Coordinator --> Registry
   Registry --> Diagnostic
-  Diagnostic --> Handoff1[Validated bounded handoff]
+  Diagnostic --> Handoff1[Traspaso limitado validado]
   Handoff1 --> Decision
-  Decision --> Handoff2[Validated bounded handoff]
+  Decision --> Handoff2[Traspaso limitado validado]
   Handoff2 --> Execution
-  Execution --> Handoff3[Validated bounded result]
+  Execution --> Handoff3[Resultado limitado validado]
   Handoff3 --> Verification
   Verification --> Aggregation
   Aggregation --> Result
@@ -111,42 +87,36 @@ flowchart TD
   Coordinator --> EventStore
 ```
 
-The Coordinator is an application/core authority. Registry selects definitions;
-Core validates task and execution state; Policy authorizes each transition and
-tool; Dispatcher executes tools; EventStore observes; the Coordinator performs
-deterministic aggregation.
+El Coordinator (Coordinador) es una autoridad de aplicación/core. Registry selecciona definiciones; Core valida el estado de la tarea y ejecución; Policy autoriza cada transición y herramienta; Dispatcher ejecuta herramientas; EventStore observa; el Coordinator realiza una agregación determinista.
 
-## 9. Coordinator Responsibility
+## 9. Responsabilidad del Coordinador
 
-The future Coordinator would own only coordination state:
+El futuro Coordinator poseería solo estado de coordinación:
 
-- correlation and handoff identifiers;
-- ordered step transitions;
-- agent selection requests;
-- budgets, timeout and cancellation checks;
-- handoff validation;
-- aggregation and terminal status.
+- identificadores de correlación y traspaso;
+- transiciones de pasos ordenadas;
+- solicitudes de selección de agentes;
+- presupuestos, verificación de tiempo de espera y cancelación;
+- validación de traspaso;
+- agregación y estado terminal.
 
-It would not replace `CoreRuntime`, `AgentRegistry`, `PolicyGateway`,
-`Dispatcher`, `TaskContext`, Memory, or EventStore.
+No reemplazaría `CoreRuntime`, `AgentRegistry`, `PolicyGateway`, `Dispatcher`, `TaskContext`, Memoria ni EventStore.
 
-## 10. Agent Selection Contract
+## 10. Contrato de Selección de Agentes
 
-Selection must be explicit and validated:
+La selección debe ser explícita y validada:
 
-1. Coordinator submits a requested `agentId` and required capability.
-2. Registry resolves the definition.
-3. Core rejects unknown or inactive agents.
-4. Policy authorizes the role, scope and operation.
-5. Core starts the child execution through the existing lifecycle.
+1. El Coordinator envía un `agentId` solicitado y la capacidad requerida.
+2. El Registry resuelve la definición.
+3. Core rechaza agentes desconocidos o inactivos.
+4. Policy autoriza el rol, el alcance y la operación.
+5. Core inicia la ejecución secundaria a través del ciclo de vida existente.
 
-The LLM may propose a role or plan, but it cannot select an arbitrary agent or
-start execution directly. Capability remains descriptive; tools remain concrete
-executable resources.
+El LLM puede proponer un rol o plan, pero no puede seleccionar un agente arbitrario o iniciar la ejecución directamente. La capacidad sigue siendo descriptiva; las herramientas siguen siendo recursos ejecutables concretos.
 
-## 11. Agent Handoff Contract
+## 11. Contrato de Traspaso de Agentes (Handoff)
 
-A future handoff is coordination data, not chat:
+Un traspaso futuro es datos de coordinación, no chat:
 
 ```text
 handoffId
@@ -165,151 +135,121 @@ status
 failure
 ```
 
-Initial conservative limits should be configuration, not hard-coded protocol
-assumptions: one bounded object payload, maximum depth 4, maximum 64 object keys,
-maximum 2048 characters per string, a finite handoff count per coordination,
-and no arbitrary binary or infrastructure references. Inputs and outputs must
-use the existing bounded sanitization principles. A handoff is accepted only
-once by its target step; duplicate handoffs are rejected by `handoffId`.
+Los límites conservadores iniciales deben ser configuración, no suposiciones de protocolo codificadas: una carga útil de objeto limitada, profundidad máxima de 4, máximo de 64 claves de objeto, máximo de 2048 caracteres por cadena, un recuento de traspasos finito por coordinación y sin referencias binarias o de infraestructura arbitrarias. Las entradas y salidas deben utilizar los principios de sanitización limitados existentes. Un traspaso es aceptado solo una vez por su paso objetivo; los traspasos duplicados son rechazados por `handoffId`.
 
-## 12. Context Boundaries
+## 12. Límites de Contexto
 
-- **TaskContext:** current bounded execution context for each agent execution,
-  including the objective, current round, selected observations and supplied
-  context.
-- **Memory:** selected retained information, never a handoff bus or complete
-  execution transcript.
-- **EventStore:** durable operational facts about coordination and executions,
-  never data retrieval for agents.
-- **ModelRequest.messages:** canonical conversation history for one model round.
-- **Handoff:** only the explicitly selected, bounded output needed by the next
-  agent.
+- **TaskContext:** contexto de ejecución limitado actual para cada ejecución de agente, incluido el objetivo, la ronda actual, las observaciones seleccionadas y el contexto provisto.
+- **Memoria:** información retenida seleccionada, nunca un bus de traspaso o una transcripción de ejecución completa.
+- **EventStore:** hechos operativos duraderos sobre coordinación y ejecuciones, nunca recuperación de datos para agentes.
+- **ModelRequest.messages:** historial de conversación canónico para una ronda de modelo.
+- **Traspaso:** solo la salida limitada seleccionada explícitamente y necesaria para el próximo agente.
 
-No shared mutable context is introduced and no handoff duplicates the full
-message history.
+No se introduce un contexto mutable compartido y ningún traspaso duplica el historial completo de mensajes.
 
-## 13. Memory Boundary
+## 13. Límite de Memoria
 
-The Coordinator must not use Memory to pass Agent A output to Agent B. If a
-result should survive the coordination, the application may write a selected,
-sanitized record through `MemoryService` after policy authorization. Normal
-handoffs remain ephemeral coordination data.
+El Coordinator no debe usar Memoria para pasar la salida del Agente A al Agente B. Si un resultado debe sobrevivir a la coordinación, la aplicación puede escribir un registro sanitizado seleccionado a través de `MemoryService` después de la autorización de la política. Los traspasos normales siguen siendo datos de coordinación efímeros.
 
-## 14. EventStore Boundary
+## 14. Límite de EventStore
 
-The EventStore records coordination facts such as start, selection, handoff
-acceptance/rejection, child execution status and terminal coordination status.
-It is not queried as a message bus and does not replace TaskContext or the
-handoff payload.
+El EventStore registra hechos de coordinación como inicio, selección, aceptación/rechazo de traspaso, estado de ejecución secundaria y estado terminal de coordinación. No es consultado como un bus de mensajes y no reemplaza TaskContext o la carga útil del traspaso.
 
-## 15. Policy & Security
+## 15. Política y Seguridad
 
-The conceptual flow is:
+El flujo conceptual es:
 
 ```text
-Coordination Request
-→ Core validation
-→ Policy authorization
-→ Registry selection
-→ Child execution
+Solicitud de Coordinación
+→ Validación del Core
+→ Autorización de Policy
+→ Selección del Registry
+→ Ejecución secundaria
 ```
 
-Policy must fail closed for unknown/inactive agents, unauthorized roles or
-tools, invalid scopes, oversized payloads, malformed targets, duplicate
-handoffs, loops, escalation beyond the coordinator, and attempts to access
-another agent's Memory. Agents cannot call agents directly or bypass Dispatcher.
+La política debe cerrar por defecto (fail-closed) para agentes desconocidos/inactivos, roles o herramientas no autorizados, alcances inválidos, cargas útiles de gran tamaño, objetivos mal formados, traspasos duplicados, bucles, escalada más allá del coordinador e intentos de acceder a la Memoria de otro agente. Los agentes no pueden llamar a otros agentes directamente o eludir el Dispatcher.
 
-## 16. Budgets & Limits
+## 16. Presupuestos y Límites
 
-Initial values should be conservative and configurable:
+Los valores iniciales deben ser conservadores y configurables:
 
-- maximum agents per coordination: small finite count;
-- maximum handoffs: no more than the number of planned transitions;
-- maximum rounds and tool calls: reuse existing execution limits;
-- global and per-agent timeout: bounded by the parent execution;
-- maximum handoff payload: reuse bounded-data limits;
-- maximum coordination depth: one coordinator level; no recursive spawning.
+- agentes máximos por coordinación: cuenta finita pequeña;
+- traspasos máximos: no más que el número de transiciones planeadas;
+- rondas máximas y llamadas a herramientas: reutilizar límites de ejecución existentes;
+- tiempo de espera global y por agente: limitado por la ejecución principal;
+- carga útil máxima del traspaso: reutilizar límites de datos limitados;
+- profundidad máxima de coordinación: un nivel de coordinador; sin creación recursiva (spawning).
 
-The purpose is to prevent loops, runaway cost and unbounded context, not to
-promise a universal number before a real workload exists.
+El propósito es prevenir bucles, costos descontrolados y contexto ilimitado, no prometer un número universal antes de que exista una carga de trabajo real.
 
-## 17. Failure & Recovery
+## 17. Falla y Recuperación
 
-- Diagnostic/decision/execution/verification failure terminates or produces an
-  explicitly marked partial result according to coordinator policy.
-- Handoff rejection fails closed; it is not silently retried.
-- Timeout uses existing execution limits and cancellation.
-- Policy denial produces a failed coordination result and observable event.
-- Agent unavailable is a validated selection/execution failure.
-- Restart uses existing durable Task/Execution state and EventStore recovery.
-- Duplicate coordination is rejected by correlation/operation identity.
+- La falla de diagnóstico/decisión/ejecución/verificación termina o produce un resultado parcial explícitamente marcado de acuerdo a la política del coordinador.
+- El rechazo del traspaso falla de forma segura (fails closed); no se reintenta silenciosamente.
+- El tiempo de espera utiliza los límites de ejecución existentes y la cancelación.
+- La denegación de política produce un resultado de coordinación fallido y un evento observable.
+- El agente no disponible es una falla validada de selección/ejecución.
+- El reinicio utiliza el estado duradero de Task/Execution existente y la recuperación de EventStore.
+- La coordinación duplicada se rechaza por correlación/identidad de operación.
 
-No second recovery mechanism or unlimited retry loop is introduced.
+No se introduce un segundo mecanismo de recuperación ni un bucle de reintento ilimitado.
 
-## 18. Observability
+## 18. Observabilidad
 
-Future conceptual facts include:
+Los hechos conceptuales futuros incluyen:
 
 `COORDINATION_STARTED`, `AGENT_SELECTED`, `HANDOFF_REQUESTED`,
 `HANDOFF_ACCEPTED`, `HANDOFF_REJECTED`, `AGENT_EXECUTION_STARTED`,
 `AGENT_EXECUTION_COMPLETED`, `AGENT_EXECUTION_FAILED`,
-`COORDINATION_COMPLETED`, and `COORDINATION_FAILED`.
+`COORDINATION_COMPLETED`, y `COORDINATION_FAILED`.
 
-They should correlate using `taskId`, `executionId`, `correlationId`,
-`agentId`, and `handoffId`, while preserving metadata-only payloads and the
-existing EventStore boundary. No events are implemented in this release.
+Deben correlacionarse utilizando `taskId`, `executionId`, `correlationId`, `agentId` y `handoffId`, preservando las cargas útiles solo de metadatos y el límite existente de EventStore. No se implementan eventos en este lanzamiento.
 
-## 19. Isolation
+## 19. Aislamiento
 
-Every child execution receives an explicit identity, scope and bounded
-TaskContext. Agent A cannot see Agent B's context or Memory unless a
-Coordinator-approved handoff includes selected data and Policy authorizes it.
-There is no shared mutable state, implicit global context, or direct Agent →
-Agent call.
+Cada ejecución secundaria recibe una identidad explícita, alcance y TaskContext limitado. El Agente A no puede ver el contexto o la Memoria del Agente B a menos que un traspaso aprobado por el Coordinator incluya datos seleccionados y Policy lo autorice. No hay estado mutable compartido, contexto global implícito o llamada directa Agente → Agente.
 
-## 20. Aggregation
+## 20. Agregación
 
-Aggregation is deterministic Coordinator logic, not unconstrained LLM judgment:
+La agregación es lógica determinista del Coordinator, no un juicio ilimitado del LLM:
 
-- all required steps succeed: complete;
-- verification rejects: failed or explicitly partial according to policy;
-- missing/duplicate result: failed;
-- conflicting results: unresolved/failed until a deterministic validator rule
-  resolves them;
-- partial success: returned with explicit step statuses and error metadata.
+- todos los pasos requeridos tienen éxito: completo;
+- la verificación rechaza: fallido o explícitamente parcial según la política;
+- resultado faltante/duplicado: fallido;
+- resultados conflictivos: no resuelto/fallido hasta que una regla de validador determinista los resuelva;
+- éxito parcial: devuelto con estados de pasos explícitos y metadatos de error.
 
-The final result must identify which steps succeeded and never present an
-unverified execution as success.
+El resultado final debe identificar qué pasos tuvieron éxito y nunca presentar una ejecución no verificada como exitosa.
 
-## 21. Implementation Status
+## 21. Estado de Implementación
 
-**HARDENED RUNTIME IMPLEMENTED**
+**TIEMPO DE EJECUCIÓN REFORZADO IMPLEMENTADO**
 
-The primary operations use case (`DIAGNOSTIC` -> `DECISION` -> `EXECUTION` -> `VERIFICATION`) is fully implemented and hardened in `src/domain/coordination/coordination.ts` and `src/application/coordination/multi-agent-coordinator.ts`.
+El caso de uso principal de operaciones (`DIAGNOSTIC` -> `DECISION` -> `EXECUTION` -> `VERIFICATION`) está completamente implementado y reforzado en `src/domain/coordination/coordination.ts` y `src/application/coordination/multi-agent-coordinator.ts`.
 
-Key architectural invariants enforced:
-- `MultiAgentCoordinator` is the single coordination authority.
+Invariantes arquitectónicas clave impuestas:
+- `MultiAgentCoordinator` es la única autoridad de coordinación.
 - `maxAgents = 4`, `maxHandoffs = 3`, `maxDepth = 1`.
-- Independent verification semantics: no forced `verified: true`; verdicts evaluated explicitly (`PASS` / `FAIL` / conflict / missing).
-- Runtime budget counters (`agentsExecuted`, `handoffsCreated`, `coordinationDepth`).
-- Context and memory isolation across agent handoffs.
-- Bounded, sanitized `AgentHandoff` payloads.
-- Policy evaluated before each step.
-- Full domain event observability.
+- Semántica de verificación independiente: no hay `verified: true` forzado; los veredictos se evalúan explícitamente (`PASS` / `FAIL` / conflicto / faltante).
+- Contadores de presupuesto en tiempo de ejecución (`agentsExecuted`, `handoffsCreated`, `coordinationDepth`).
+- Aislamiento de contexto y memoria a través de traspasos de agentes.
+- Cargas útiles de `AgentHandoff` limitadas y sanitizadas.
+- La política se evalúa antes de cada paso.
+- Observabilidad completa de eventos de dominio.
 
-**COORDINATION STATE DURABILITY: NOT YET IMPLEMENTED**
-Child tasks and executions are durable and recoverable via SQLite and CoreRuntime. Top-level coordination requests and results remain ephemeral in memory.
+**DURABILIDAD DEL ESTADO DE COORDINACIÓN: AÚN NO IMPLEMENTADO**
+Las tareas secundarias y ejecuciones son duraderas y recuperables a través de SQLite y CoreRuntime. Las solicitudes y resultados de coordinación de nivel superior siguen siendo efímeros en la memoria.
 
-## 22. Files Changed + Validation
+## 22. Archivos Modificados + Validación
 
-Core Implementation Files:
+Archivos de Implementación Core:
 - `src/domain/coordination/coordination.ts`
 - `src/application/coordination/multi-agent-coordinator.ts`
 - `tests/unit/multi-agent-coordinator.test.ts`
 - `docs/MULTI_AGENT_RUNTIME.md`
 - `docs/MULTI_AGENT_COORDINATION_CONTRACT.md`
 
-Validation required:
+Validación requerida:
 - `npm run build`
 - `npm test`
 - `npm run check`

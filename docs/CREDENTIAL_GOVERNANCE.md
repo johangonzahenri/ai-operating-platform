@@ -1,65 +1,58 @@
-# API Credential Governance & Zero-Plaintext Storage (`AOP-AUTH-03`)
+# Gobernanza de Credenciales de API y Almacenamiento Cero-Texto-Plano (`AOP-AUTH-03`)
 
-## 1. Overview & Security Posture
+## 1. Visión General y Postura de Seguridad
 
-The **API Credential Governance Subsystem** manages the complete cryptographic lifecycle of platform credentials.
+El **Subsistema de Gobernanza de Credenciales de API** gestiona el ciclo de vida criptográfico completo de las credenciales de la plataforma.
 
-```text
-                           CREDENTIAL LIFECYCLE STATE MACHINE
-                           
-                                  ┌────────────────┐
-                                  │    CREATED     │
-                                  └───────┬────────┘
-                                          │
-                                          ▼
-                                  ┌────────────────┐
-                   ┌─────────────>│     ACTIVE     │──────────────┐
-                   │              └───────┬────────┘              │
-                   │                      │                       │
-     (Rotate with grace period)    (TTL Exceeded)          (Explicit Revocation /
-                   │                      │                 Compromise Event)
-                   │                      ▼                       │
-                   │              ┌────────────────┐              ▼
-                   └──────────────│    EXPIRED     │      ┌────────────────┐
-                                  └────────────────┘      │    REVOKED     │
-                                                          └────────────────┘
+```mermaid
+stateDiagram-v2
+    direction TB
+    state "CREADO" as Created
+    state "ACTIVO" as Active
+    state "EXPIRADO" as Expired
+    state "REVOCADO" as Revoked
+
+    Created --> Active
+    Active --> Active : (Rotar con período de gracia)
+    Active --> Expired : (TTL Excedido)
+    Active --> Revoked : (Revocación Explícita / Evento de Compromiso)
 ```
 
 ---
 
-## 2. Zero-Plaintext Storage Model
+## 2. Modelo de Almacenamiento Cero-Texto-Plano
 
-To prevent secret leakage via database dumps, logs, or debugging outputs, raw API keys are never stored on disk:
+Para prevenir fugas de secretos a través de volcados de base de datos, logs o salidas de depuración, las claves de API en bruto nunca se almacenan en disco:
 
-1. **Key Generation**:
+1. **Generación de Claves**:
    - `credentialId`: `cred_<16_hex_entropy>`
    - `secretEntropy`: `crypto.randomBytes(32).toString('hex')` (256 bits)
    - `rawKey`: `aop_live_<credentialId>_<secretEntropy>`
    - `keyPrefix`: `aop_live_<credentialId_first_8>`
-   - `keyHash`: `SHA-256(rawKey)` (hex encoded)
-2. **One-Time Presentation**:
-   - The `rawKey` is returned in the response payload strictly once at initial creation or rotation.
-3. **Storage**:
-   - The durable persistence engine (SQLite WAL) stores strictly: `id`, `principalId`, `principalType`, `tenantId`, `applicationId`, `name`, `keyPrefix`, `keyHash`, `status`, `scopes`, `createdAt`, `expiresAt`, `revokedAt`, `lastUsedAt`, `version`.
-4. **Verification**:
-   - Verification extracts the ID/hash from the inbound request and performs timing-safe hash comparison via `crypto.timingSafeEqual()`.
+   - `keyHash`: `SHA-256(rawKey)` (codificado en hex)
+2. **Presentación de Uso Único**:
+   - La `rawKey` se devuelve en el payload de respuesta estrictamente una vez en la creación inicial o rotación.
+3. **Almacenamiento**:
+   - El motor de persistencia durable (SQLite WAL) almacena estrictamente: `id`, `principalId`, `principalType`, `tenantId`, `applicationId`, `name`, `keyPrefix`, `keyHash`, `status`, `scopes`, `createdAt`, `expiresAt`, `revokedAt`, `lastUsedAt`, `version`.
+4. **Verificación**:
+   - La verificación extrae el ID/hash de la petición entrante y realiza una comparación de hash segura contra tiempos a través de `crypto.timingSafeEqual()`.
 
 ---
 
-## 3. Rotation Strategies & Zero-Downtime Migration
+## 3. Estrategias de Rotación y Migración Sin Tiempo de Inactividad
 
-The platform supports seamless credential rotation:
+La plataforma soporta rotación de credenciales sin interrupciones:
 
-- **Immediate Revocation (`gracePeriodMs: 0`)**: Instantly revokes the old credential and activates the new one. Recommended for suspected key compromise.
-- **Grace Period Migration (`gracePeriodMs > 0`)**: Retains the old key in an active grace state for a defined duration (e.g. 1 hour, 24 hours, 7 days) while activating the new key immediately. Allows distributed consumers to roll keys without service downtime.
+- **Revocación Inmediata (`gracePeriodMs: 0`)**: Revoca instantáneamente la clave antigua y activa la nueva. Recomendado para sospechas de compromiso de claves.
+- **Migración con Período de Gracia (`gracePeriodMs > 0`)**: Retiene la clave antigua en un estado de gracia activo por una duración definida (ej. 1 hora, 24 horas, 7 días) mientras activa la nueva clave inmediatamente. Permite a los consumidores distribuidos rotar claves sin tiempo de inactividad del servicio.
 
 ---
 
-## 4. Audit Trail & Domain Events
+## 4. Registro de Auditoría y Eventos de Dominio
 
-Every credential lifecycle event publishes durable domain events to SQLite WAL:
+Todo evento del ciclo de vida de credenciales publica eventos de dominio durables a SQLite WAL:
 
-| Event Type | Aggregate | Payload |
+| Tipo de Evento | Agregado | Payload |
 | :--- | :--- | :--- |
 | `auth.credential.created` | `credentialId` | `principalId`, `tenantId`, `applicationId`, `keyPrefix`, `scopes`, `expiresAt` |
 | `auth.credential.used` | `credentialId` | `principalId`, `tenantId`, `applicationId`, `requestId` |
@@ -69,10 +62,10 @@ Every credential lifecycle event publishes durable domain events to SQLite WAL:
 
 ---
 
-## 5. Web Control Plane Governance Console
+## 5. Consola de Gobernanza del Web Control Plane
 
-Operators can view, create, rotate, and revoke credentials directly in the **Web Control Plane** under **Security Center** (`#tab-security`):
-- Real-time display of key status, last usage, and scopes.
-- Safe modal for one-time key copying.
-- Instant revocation with confirmation modals.
-- Strict DOM safety: zero `innerHTML` across all rendering pipelines.
+Los operadores pueden ver, crear, rotar y revocar credenciales directamente en el **Web Control Plane** bajo **Security Center** (`#tab-security`):
+- Visualización en tiempo real del estado de la clave, último uso y scopes.
+- Modal seguro para copiado de clave de uso único.
+- Revocación instantánea con modales de confirmación.
+- Seguridad estricta del DOM: cero `innerHTML` en todos los flujos de renderizado.

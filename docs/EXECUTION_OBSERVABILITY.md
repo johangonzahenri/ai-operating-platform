@@ -1,49 +1,28 @@
-# Execution Observability Projection
+# Proyección de Observabilidad de Ejecución
 
-Execution observability is a read-only projection at the existing Platform API
-boundary. The Core execution state and audited lifecycle events remain the
-single source of truth; the projection does not execute tools, authorize
-requests, or create a second repository/event store.
+La observabilidad de ejecución es una proyección de solo lectura en el límite de la API de Plataforma (Platform API) existente. El estado de ejecución de Core y los eventos del ciclo de vida auditados siguen siendo la única fuente de la verdad; la proyección no ejecuta herramientas, no autoriza solicitudes ni crea un segundo repositorio/almacén de eventos (EventStore).
 
-## Source and contract
+## Origen y contrato
 
-`PlatformService` projects execution metadata and the execution audit timeline
-into the existing `ExecutionDTO` returned by:
+`PlatformService` proyecta los metadatos de ejecución y la línea de tiempo de auditoría de ejecución en el `ExecutionDTO` existente devuelto por:
 
 - `GET /api/platform/v1/executions/:executionId`
 - `GET /api/platform/v1/executions/:executionId/events`
 
-Optional fields include provider, model, current round/tool, counts, errors,
-current activity, duration, final result, and correlated tool-call
-observations. Older executions remain valid because all new fields are
-optional.
+Los campos opcionales incluyen proveedor, modelo, ronda/herramienta actual, conteos, errores, actividad actual, duración, resultado final y observaciones de llamadas a herramientas correlacionadas. Las ejecuciones más antiguas siguen siendo válidas porque todos los campos nuevos son opcionales.
 
-## Tool lifecycle
+## Ciclo de vida de la herramienta
 
-The runtime already emits requested, authorized, rejected, result-returned,
-model-failed, and final-response events. The projection correlates each call by
-`toolCallId`, keeps `toolName` and round, derives duration from event
-timestamps, and reports `REQUESTED`, `AUTHORIZED`, `REJECTED`, `COMPLETED`, or
-`FAILED`. Tool arguments and results pass through bounded recursive redaction
-for credential-like keys before entering the DTO.
+El tiempo de ejecución (runtime) ya emite eventos de solicitud, autorización, rechazo, resultado devuelto, falla de modelo y respuesta final. La proyección correlaciona cada llamada por `toolCallId`, mantiene `toolName` y la ronda, deriva la duración a partir de las marcas de tiempo (timestamps) de los eventos y reporta `REQUESTED`, `AUTHORIZED`, `REJECTED`, `COMPLETED` o `FAILED`. Los argumentos y resultados de las herramientas pasan por una redacción recursiva limitada para las claves de tipo credencial antes de entrar en el DTO.
 
-## Current activity and duration
+## Actividad actual y duración
 
-Activity is derived from the latest real model/tool/execution event, with
-`Unknown` when no safe inference is possible. Duration is
-`completedAt - startedAt`, or `now - startedAt` for a running execution. No
-visual timer is used as a source of truth.
+La actividad se deriva del último evento real del modelo/herramienta/ejecución, con `Unknown` cuando no es posible una inferencia segura. La duración es `completedAt - startedAt`, o `now - startedAt` para una ejecución en curso. No se utiliza ningún temporizador visual como fuente de la verdad.
 
-## Console and security
+## Consola y seguridad
 
-The Operational Intelligence Console consumes these fields through the
-existing platform endpoints. It renders absent values as `Not reported` and
-uses safe DOM text APIs. Provider keys, authorization headers, cookies,
-environment values, and internal credentials are not exposed to the browser.
+La Consola de Inteligencia Operativa (Operational Intelligence Console) consume estos campos a través de los endpoints de la plataforma existentes. Renderiza los valores ausentes como `Not reported` (No reportado) y utiliza APIs de texto DOM seguras. Las claves de proveedor, encabezados de autorización, cookies, valores de entorno y credenciales internas no se exponen al navegador.
 
-## Validation and limits
+## Validación y límites
 
-Deterministic tests cover provider/model absence, lifecycle status, call
-correlation, duration, final result, redaction, console contract, and
-backward compatibility. Streaming, historical migration of old executions,
-and a live provider smoke test are outside this milestone.
+Las pruebas deterministas cubren la ausencia de proveedor/modelo, el estado del ciclo de vida, la correlación de llamadas, la duración, el resultado final, la redacción, el contrato de la consola y la compatibilidad con versiones anteriores. El streaming, la migración histórica de ejecuciones antiguas y una prueba de humo (smoke test) de proveedor en vivo están fuera de este hito.

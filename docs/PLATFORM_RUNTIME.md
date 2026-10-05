@@ -1,136 +1,116 @@
-﻿# AI Operating Platform — Production Runtime & Platform Integration
+# Plataforma Operativa de IA — Tiempo de Ejecución de Producción e Integración de Plataforma
 
-## 1. Executive Summary & Runtime Architecture
+## 1. Resumen Ejecutivo y Arquitectura del Tiempo de Ejecución
 
-The **AI Operating Platform Runtime** is a deterministic, fail-closed execution environment that bridges incoming client requests (such as Tentaciones E-Commerce) to autonomous agents, model gateways, and tools while strictly enforcing architectural boundaries:
+El **Tiempo de Ejecución de la Plataforma Operativa de IA** (AI Operating Platform Runtime) es un entorno de ejecución determinista y de fallo seguro que conecta las solicitudes entrantes de clientes (como Tentaciones E-Commerce) a agentes autónomos, gateways de modelos y herramientas, al tiempo que hace cumplir estrictamente los límites arquitectónicos:
 
-```text
-               EXTERNAL APPLICATIONS (e.g. Tentaciones)
-                                  │
-                                  ▼
-                 ┌────────────────────────────────┐
-                 │       PlatformClient SDK       │
-                 └────────────────┬───────────────┘
-                                  │ HTTP / TLS (Idempotency-Key, Auth)
-                                  ▼
-                 ┌────────────────────────────────┐
-                 │      /api/v1 HTTP Router       │
-                 └────────────────┬───────────────┘
-                                  │
-                   ┌──────────────┴──────────────┐
-                   ▼                             ▼
-         AuthenticationService         RbacAuthorizationEvaluator
-         (API Key / OIDC Adapter)      (Strict Role & Tenant Bounds)
-                   │                             │
-                   └──────────────┬──────────────┘
-                                  ▼
-                 ┌────────────────────────────────┐
-                 │        PlatformService         │
-                 │  (Idempotency & Orchestration) │
-                 └────────────────┬───────────────┘
-                                  │
-                                  ▼
-                 ┌────────────────────────────────┐
-                 │          Core Runtime          │
-                 │   (Task Execution Lifecycle)   │
-                 └───────┬────────────────┬───────┘
-                         │                │
-                         ▼                ▼
-                    Persistence       EventStore
-                 (SQLite Durable)   (Durable Audit)
+```mermaid
+flowchart TD
+  ExternalApps["APLICACIONES EXTERNAS (ej. Tentaciones)"]
+  PlatformClient["SDK PlatformClient"]
+  Router["Enrutador HTTP /api/v1"]
+  Auth["AuthenticationService\n(API Key / Adaptador OIDC)"]
+  Rbac["RbacAuthorizationEvaluator\n(Límites Estrictos de Rol e Inquilino)"]
+  PlatformService["PlatformService\n(Idempotencia y Orquestación)"]
+  CoreRuntime["Core Runtime\n(Ciclo de Vida de Ejecución de Tareas)"]
+  Persistence["Persistencia\n(SQLite Duradero)"]
+  EventStore["EventStore\n(Auditoría Duradera)"]
+
+  ExternalApps --> PlatformClient
+  PlatformClient -- "HTTP / TLS (Idempotency-Key, Auth)" --> Router
+  Router --> Auth
+  Router --> Rbac
+  Auth --> PlatformService
+  Rbac --> PlatformService
+  PlatformService --> CoreRuntime
+  CoreRuntime --> Persistence
+  CoreRuntime --> EventStore
 ```
 
-### Architectural Axiom:
-`CORE ENGINE ≠ PLATFORM PRODUCT ≠ APPLICATIONS`
-- External applications (like Tentaciones) **never** import or invoke the Core Engine or domain internals directly.
-- The HTTP Router **never** calls the `CoreRuntime` directly; all interactions proceed through `PlatformService` and authenticated use cases.
-- Domain entities have **zero** dependencies on HTTP, network, or framework-specific modules.
+### Axioma Arquitectónico:
+`CORE ENGINE ≠ PLATFORM PRODUCT ≠ APLICACIONES`
+- Las aplicaciones externas (como Tentaciones) **nunca** importan ni invocan el Core Engine o los aspectos internos del dominio directamente.
+- El enrutador HTTP **nunca** llama al `CoreRuntime` directamente; todas las interacciones proceden a través de `PlatformService` y casos de uso autenticados.
+- Las entidades de dominio tienen **cero** dependencias de HTTP, red o módulos específicos del framework.
 
 ---
 
-## 2. Task Execution Lifecycle
+## 2. Ciclo de Vida de Ejecución de Tareas
 
-Every task transitions through an immutable, deterministic state machine:
+Cada tarea transita por una máquina de estados determinista e inmutable:
 
-```text
-    ┌───────────┐
-    │  CREATED  │
-    └─────┬─────┘
-          │ (Queued for execution)
-          ▼
-    ┌───────────┐
-    │  QUEUED   │
-    └─────┬─────┘
-          │ (Runtime begins execution)
-          ▼
-    ┌───────────┐
-    │  RUNNING  │ ──► (Cancellation requested) ──► CANCELLED [Terminal]
-    └─────┬─────┘
-          │
-          ├──► (Execution succeeded) ──────────► COMPLETED [Terminal]
-          │
-          └──► (Execution failed / crashed) ───► FAILED    [Terminal]
+```mermaid
+stateDiagram-v2
+  [*] --> CREATED
+  CREATED --> QUEUED : (En cola para ejecución)
+  QUEUED --> RUNNING : (El runtime comienza la ejecución)
+  RUNNING --> CANCELLED : (Cancelación solicitada)
+  RUNNING --> COMPLETED : (Ejecución exitosa)
+  RUNNING --> FAILED : (Ejecución fallida / bloqueada)
+  CANCELLED --> [*]
+  COMPLETED --> [*]
+  FAILED --> [*]
 ```
 
-### Invariants:
-1. **Terminal Immutability**: Tasks in `COMPLETED`, `FAILED`, or `CANCELLED` can never transition to `RUNNING` or any other state. Any attempt throws `InvalidTaskTransitionError` (HTTP 409 Conflict).
-2. **Crash Reconciliation**: Upon startup, `RestartRecoveryService` reconciles in-flight tasks in `RUNNING` to `FAILED` with code `CRASH_RECOVERY`, and tasks in `QUEUED`/`CREATED` to `CANCELLED`.
+### Invariantes:
+1. **Inmutabilidad Terminal**: Las tareas en `COMPLETED`, `FAILED` o `CANCELLED` nunca pueden transitar a `RUNNING` o a cualquier otro estado. Cualquier intento lanza un `InvalidTaskTransitionError` (HTTP 409 Conflict).
+2. **Reconciliación de Fallos (Crash)**: Al iniciarse, `RestartRecoveryService` reconcilia las tareas en vuelo en `RUNNING` a `FAILED` con el código `CRASH_RECOVERY`, y las tareas en `QUEUED`/`CREATED` a `CANCELLED`.
 
 ---
 
-## 3. Idempotency Management
+## 3. Gestión de Idempotencia
 
-The platform implements strict idempotency via `IdempotencyStore`:
-- **Key Scope**: `(tenantId, principalId, idempotencyKey)` ensures cross-tenant isolation and prevents key collisions between distinct tenants or callers.
-- **Payload Matching**: Computes a canonical SHA-256 hash of `{ agentId, input }`.
-  - **Identical Retry**: Returns the cached response with identical status code and payload without re-executing.
-  - **Payload Mismatch**: Rejects with `409 Conflict` (`IDEMPOTENCY_PAYLOAD_MISMATCH`).
-  - **Concurrent In-Flight**: Rejects with `409 Conflict` (`IDEMPOTENCY_CONCURRENT_EXECUTION`).
-
----
-
-## 4. Task Ownership & Caller Identity Integrity
-
-Caller identity is established exclusively via the authenticated `SecurityContext`:
-- `body.callerId`, `query.callerId`, and `header.callerId` are **strictly ignored and overwritten** with `SecurityContext.principal.id` and `SecurityContext.tenantId`.
-- **Tenant Isolation**: Tasks are associated with `callerTenantId`. Any attempt by Tenant B to query (`GET /tasks/:id`) or cancel (`POST /tasks/:id/cancel`) a task belonging to Tenant A returns `404 Not Found` to prevent ID enumeration.
+La plataforma implementa idempotencia estricta a través de `IdempotencyStore`:
+- **Alcance de Clave**: `(tenantId, principalId, idempotencyKey)` asegura el aislamiento entre inquilinos y previene colisiones de claves entre inquilinos o llamadores distintos.
+- **Coincidencia de Carga Útil**: Calcula un hash SHA-256 canónico de `{ agentId, input }`.
+  - **Reintento Idéntico**: Devuelve la respuesta en caché con un código de estado y carga útil idénticos sin volver a ejecutar.
+  - **Fallo de Coincidencia de Carga Útil**: Rechaza con `409 Conflict` (`IDEMPOTENCY_PAYLOAD_MISMATCH`).
+  - **Ejecución Concurrente en Vuelo**: Rechaza con `409 Conflict` (`IDEMPOTENCY_CONCURRENT_EXECUTION`).
 
 ---
 
-## 5. Cancellation Semantics
+## 4. Propiedad de Tareas e Integridad de Identidad del Llamador
 
-- **Cancellation Requested vs Runtime Halt**:
-  - `POST /api/v1/tasks/:id/cancel` sets the persistent task state to `CANCELLED` and emits a durable `task.cancelled` event containing the caller identity, tenant, and reason.
-  - Tasks that have already reached `COMPLETED` or `FAILED` cannot be cancelled and return `409 Conflict`.
-  - In-flight execution loops inspect task cancellation flags before advancing between operation steps.
+La identidad del llamador se establece exclusivamente a través del `SecurityContext` autenticado:
+- `body.callerId`, `query.callerId` y `header.callerId` son **estrictamente ignorados y sobrescritos** con `SecurityContext.principal.id` y `SecurityContext.tenantId`.
+- **Aislamiento de Inquilino**: Las tareas están asociadas con `callerTenantId`. Cualquier intento por parte del Inquilino B de consultar (`GET /tasks/:id`) o cancelar (`POST /tasks/:id/cancel`) una tarea perteneciente al Inquilino A devuelve `404 Not Found` para evitar la enumeración de ID.
 
 ---
 
-## 6. Service Principal Model
+## 5. Semántica de Cancelación
 
-External applications (like Tentaciones) authenticate as a `SERVICE` principal:
-- `SERVICE ≠ SYSTEM`: A service principal receives only explicit operational permissions:
+- **Cancelación Solicitada vs Detención de Tiempo de Ejecución**:
+  - `POST /api/v1/tasks/:id/cancel` establece el estado de la tarea persistente en `CANCELLED` y emite un evento duradero `task.cancelled` que contiene la identidad del llamador, el inquilino y el motivo.
+  - Las tareas que ya han alcanzado `COMPLETED` o `FAILED` no pueden cancelarse y devuelven `409 Conflict`.
+  - Los bucles de ejecución en vuelo inspeccionan las banderas de cancelación de tareas antes de avanzar entre pasos de operación.
+
+---
+
+## 6. Modelo Principal de Servicio
+
+Las aplicaciones externas (como Tentaciones) se autentican como un principal `SERVICE`:
+- `SERVICE ≠ SYSTEM`: Un principal de servicio recibe solo permisos operativos explícitos:
   - `task.create`
   - `task.read`
   - `task.cancel`
   - `task.execute`
   - `agent.read`
   - `public.read`
-- Service principals **cannot** access administrative endpoints, grant roles, override tenants, or escalate privileges to `SYSTEM`.
+- Los principales de servicio **no pueden** acceder a endpoints administrativos, otorgar roles, anular inquilinos o escalar privilegios a `SYSTEM`.
 
 ---
 
-## 7. Authentication Adapter & OIDC Roadmap
+## 7. Adaptador de Autenticación y Hoja de Ruta OIDC
 
-- **Bearer Token Adapter**: `BearerTokenAuthenticationProvider` delegates to an injected `BearerTokenVerifier`.
-- **Development Scaffolding**: `DevScaffoldTokenVerifier` is explicitly delimited for dev/test environments.
-- **Production Fail-Closed**: In production environments, unconfigured token verifiers return `UNTRUSTED_BEARER_PROVIDER`, requiring an enterprise OIDC/JWKS adapter without mutating the RBAC or core authorization engine.
+- **Adaptador Bearer Token**: `BearerTokenAuthenticationProvider` delega a un `BearerTokenVerifier` inyectado.
+- **Estructura de Desarrollo**: `DevScaffoldTokenVerifier` está explícitamente delimitado para entornos de desarrollo/pruebas.
+- **Fallo Seguro en Producción**: En entornos de producción, los verificadores de tokens no configurados devuelven `UNTRUSTED_BEARER_PROVIDER`, requiriendo un adaptador OIDC/JWKS empresarial sin mutar el motor de autorización core o RBAC.
 
 ---
 
-## 8. Health & Readiness Probes
+## 8. Sondas de Salud y Preparación (Health & Readiness Probes)
 
-`GET /api/v1/health` provides separated health semantics:
-- **Liveness (`UP`)**: Confirms the HTTP process is responsive.
-- **Readiness (`READY` | `NOT_READY`)**: Verifies that SQLite durable persistence (WAL mode) and the Durable EventStore are operational and ready to accept transactions.
-- **Zero Leakage**: Internal file paths, environment secrets, and connection credentials are never exposed in health payloads.
+`GET /api/v1/health` proporciona semánticas de salud separadas:
+- **Actividad / Liveness (`UP`)**: Confirma que el proceso HTTP responde.
+- **Preparación / Readiness (`READY` | `NOT_READY`)**: Verifica que la persistencia duradera de SQLite (modo WAL) y el EventStore duradero estén operativos y listos para aceptar transacciones.
+- **Cero Fugas**: Las rutas de archivos internos, los secretos de entorno y las credenciales de conexión nunca se exponen en las cargas útiles de salud.

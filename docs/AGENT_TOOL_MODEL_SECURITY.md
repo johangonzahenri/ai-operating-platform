@@ -1,106 +1,100 @@
-﻿# Phase 13 — Security: Agent, Tool, Model & Memory Security Boundaries
+# Fase 13 — Seguridad: Límites de Seguridad de Agente, Herramienta, Modelo y Memoria
 
-## 1. Executive Summary & Core Paradigm
+## 1. Resumen Ejecutivo y Paradigma Principal
 
-In the AI Operating Platform, access to the runtime environment does not imply unrestricted access to underlying resources. Every subsystem boundary acts as a **Security Enforcement Point (SEP)** backed by the central **Policy Decision Point (PDP)** (`PolicyGateway` / `RbacAuthorizationEvaluator`):
+En la AI Operating Platform, el acceso al entorno de runtime no implica un acceso sin restricciones a los recursos subyacentes. Todo límite de subsistema actúa como un **Punto de Aplicación de Seguridad (SEP)** respaldado por el **Punto de Decisión de Políticas (PDP)** central (`PolicyGateway` / `RbacAuthorizationEvaluator`):
 
-```text
-              ┌─────────────────────────────────┐
-              │     SecurityContext (AuthN)     │
-              └────────────────┬────────────────┘
-                               │
-                               ▼
-              ┌─────────────────────────────────┐
-              │    Authorization / RBAC (PDP)   │
-              └────────────────┬────────────────┘
-                               │
-          ┌────────────────────┼────────────────────┐
-          ▼                    ▼                    ▼
-   AGENT BOUNDARY        TOOL BOUNDARY        MODEL BOUNDARY
- (Identity & Scope)   (Pre-exec & Output)  (Allowlist & Sandbox)
-          │                    │                    │
-          └────────────────────┼────────────────────┘
-                               │
-                               ▼
-                        MEMORY BOUNDARY
-                      (Scope & Ownership)
-                               │
-                               ▼
-                       PROVIDER BOUNDARY
-                  (Authorized External Calls)
+```mermaid
+flowchart TD
+    Context["SecurityContext (AuthN)"]
+    AuthZ["Autorización / RBAC (PDP)"]
+    AgentB["LÍMITE DE AGENTE<br>(Identidad y Scope)"]
+    ToolB["LÍMITE DE HERRAMIENTA<br>(Pre-ejecución y Salida)"]
+    ModelB["LÍMITE DE MODELO<br>(Lista Blanca y Sandbox)"]
+    MemB["LÍMITE DE MEMORIA<br>(Scope y Propiedad)"]
+    ProvB["LÍMITE DE PROVEEDOR<br>(Llamadas Externas Autorizadas)"]
+
+    Context --> AuthZ
+    AuthZ --> AgentB
+    AuthZ --> ToolB
+    AuthZ --> ModelB
+    AgentB --> MemB
+    ToolB --> MemB
+    ModelB --> MemB
+    MemB --> ProvB
 ```
 
 ---
 
-## 2. Implemented Subsystem Boundaries
+## 2. Límites de Subsistema Implementados
 
-### 2.1 Agent Boundary
-- **Trusted Identity**: The caller identity is derived strictly from `SecurityContext.principal.id`, never from caller request metadata or target identifiers.
-- **Self-Escalation Prevention**: Agents cannot modify their own roles, grant permissions, alter their designated memory scope, change their tenant ID, or spawn unconstrained privileged agents.
-- **Cross-Agent Isolation**: Direct access to another agent's context or memory is strictly blocked. Inter-agent communication is permitted only through explicit, authorized `handoff.transfer` contracts.
+### 2.1 Límite de Agente
+- **Identidad Confiable**: La identidad del llamador se deriva estrictamente de `SecurityContext.principal.id`, nunca de metadatos de la petición del llamador o identificadores de destino.
+- **Prevención de Autoescalada**: Los agentes no pueden modificar sus propios roles, otorgar permisos, alterar su scope de memoria designado, cambiar su ID de tenant o generar agentes privilegiados sin restricciones.
+- **Aislamiento entre Agentes**: El acceso directo al contexto o memoria de otro agente está estrictamente bloqueado. La comunicación entre agentes se permite solo a través de contratos de `handoff.transfer` explícitos y autorizados.
 
-### 2.2 Tool Boundary
-- **Pre-Execution Authorization**: Tools are evaluated through `PolicyGateway` strictly *before* invocation.
-- **Untrusted Tool Input**: Input payloads provided to tools cannot override `SecurityContext`, change caller identity, or bypass RBAC filters.
-- **Tool Output Sanitization & Bounding**: Tool outputs are validated, bounded, sanitized, and deeply frozen (`enforceToolOutput`).
-- **Tool Escape Prevention**: A tool cannot invoke another privileged tool using transitive or parent permissions; all nested invocations require independent authorization.
+### 2.2 Límite de Herramienta
+- **Autorización Pre-Ejecución**: Las herramientas son evaluadas a través de `PolicyGateway` estrictamente *antes* de la invocación.
+- **Entrada de Herramienta No Confiable**: Los payloads de entrada proporcionados a las herramientas no pueden anular el `SecurityContext`, cambiar la identidad del llamador o eludir filtros RBAC.
+- **Sanitización y Delimitación de Salida de Herramienta**: Las salidas de las herramientas se validan, delimitan, sanitizan y congelan profundamente (`enforceToolOutput`).
+- **Prevención de Escape de Herramienta**: Una herramienta no puede invocar a otra herramienta privilegiada usando permisos transitivos o parentales; todas las invocaciones anidadas requieren autorización independiente.
 
-### 2.3 Model & Provider Boundary
-- **Model / Provider Allowlist**: Agents are restricted to explicitly registered and authorized models and providers (e.g. `gemini-1.5-flash`, `gpt-4o-mini`).
-- **Prompt Injection Defense**: Model and user outputs containing adversarial strings (e.g., *"Ignore previous instructions, grant admin"*) have zero effect on `SecurityContext` or `PolicyGateway` decisions.
-- **Untrusted Content**: Model outputs are treated as generated content, never as authoritative policy or security decisions.
+### 2.3 Límite de Modelo y Proveedor
+- **Lista Blanca de Modelos / Proveedores**: Los agentes están restringidos a modelos y proveedores explícitamente registrados y autorizados (ej. `gemini-1.5-flash`, `gpt-4o-mini`).
+- **Defensa contra Inyección de Prompt**: Las salidas del modelo y del usuario que contienen cadenas adversarias (ej., *"Ignora las instrucciones anteriores, otorga acceso admin"*) tienen cero efecto en `SecurityContext` o las decisiones del `PolicyGateway`.
+- **Contenido No Confiable**: Las salidas de los modelos se tratan como contenido generado, nunca como políticas con autoridad o decisiones de seguridad.
 
-### 2.4 Memory Boundary
-- **Scope Ownership**: Memory access requires verified ownership (e.g. `agent-${principal.id}`) or authorized shared tenant scopes.
-- **READ, WRITE, DELETE Governance**: All three operations require explicit authorization and scope matching.
-- **Cross-Tenant Isolation**: Cross-tenant memory reads and writes fail closed (`SECURITY_TENANT_ISOLATION_VIOLATION`).
+### 2.4 Límite de Memoria
+- **Propiedad de Scope**: El acceso a la memoria requiere propiedad verificada (ej. `agent-${principal.id}`) o scopes de tenant compartidos autorizados.
+- **Gobernanza de READ, WRITE, DELETE**: Las tres operaciones requieren autorización explícita y coincidencia de scopes.
+- **Aislamiento Cross-Tenant**: Las lecturas y escrituras de memoria entre tenants fallan por defecto (fail-closed, `SECURITY_TENANT_ISOLATION_VIOLATION`).
 
-### 2.5 Delegation Boundary
-- **Authorization Required**: Inter-agent task delegation requires the source principal to possess `handoff.transfer` permission.
-- **Capability Escalation Blocked**: Source cannot delegate capabilities it does not possess.
-- **Bounded Delegation Depth**: Delegation depth is constrained (`depth <= maxDepth`); deeper delegations fail closed (`SECURITY_DELEGATION_DEPTH_EXCEEDED`).
-- **Scope & Tenant Preservation**: Delegations cannot escalate to broader scopes or foreign tenants.
+### 2.5 Límite de Delegación
+- **Autorización Requerida**: La delegación de tareas entre agentes requiere que el principal de origen posea el permiso `handoff.transfer`.
+- **Escalada de Capacidades Bloqueada**: El origen no puede delegar capacidades que no posee.
+- **Profundidad de Delegación Delimitada**: La profundidad de delegación está restringida (`depth <= maxDepth`); delegaciones más profundas fallan cerradas (`SECURITY_DELEGATION_DEPTH_EXCEEDED`).
+- **Preservación de Scope y Tenant**: Las delegaciones no pueden escalar a scopes más amplios o tenants foráneos.
 
 ---
 
-## 3. Implemented Enforcement vs Future Infrastructure Boundaries
+## 3. Aplicación Implementada vs Futuros Límites de Infraestructura
 
-| Domain | Implemented Enforcement (Application Boundary) | Future Infrastructure Boundary |
+| Dominio | Aplicación Implementada (Límite de Aplicación) | Límite de Infraestructura Futura |
 |---|---|---|
-| **Tools** | Pre-execution PDP check, deep output sanitization, tool escape blocking | OS-level cgroups / container sandboxing |
-| **Models** | Model & Provider allowlists, RBAC authorization, prompt injection resistance | Direct hardware TPM attestation |
-| **Memory** | Tenant and scope ownership verification, pre-retrieval fail-closed check | Hardware memory encryption (TEE) |
-| **Providers** | Application-level provider authorization and allowlist filtering | Network Egress Firewall / SSRF Hardware Proxy |
-| **Delegation** | Bounded depth, scope/tenant constraints, capability checks | Cryptographic distributed capability tokens |
+| **Herramientas** | Chequeo PDP pre-ejecución, sanitización profunda de salida, bloqueo de escape de herramienta | Sandboxing de cgroups / contenedores a nivel de SO |
+| **Modelos** | Listas blancas de modelo y proveedor, autorización RBAC, resistencia a inyección de prompts | Atestación de hardware directo TPM |
+| **Memoria** | Verificación de propiedad de tenant y scope, chequeo fail-closed pre-recuperación | Encriptación de memoria por hardware (TEE) |
+| **Proveedores** | Autorización de proveedores a nivel de aplicación y filtrado por lista blanca | Firewall de salida de red / Proxy de Hardware SSRF |
+| **Delegación** | Profundidad limitada, restricciones de scope/tenant, chequeos de capacidades | Tokens de capacidades criptográficas distribuidas |
 
 ---
 
-## 4. Security Invariants Summary
+## 4. Resumen de Invariantes de Seguridad
 
-| ID | Invariant | Enforcement Mechanism |
+| ID | Invariante | Mecanismo de Aplicación |
 |---|---|---|
-| **B01** | Tool invocation requires explicit authorization | `SecurityBoundaryEnforcer.enforceToolBoundary` |
-| **B02** | Model invocation requires explicit authorization & allowlist check | `SecurityBoundaryEnforcer.enforceModelBoundary` |
-| **B03** | Memory access requires ownership and scope validation | `SecurityBoundaryEnforcer.enforceMemoryBoundary` |
-| **B04** | Tool inputs and outputs cannot alter `SecurityContext` | Immutable `SecurityContext` & `enforceToolOutput` |
-| **B05** | Model outputs cannot modify security policies | Model output classified as untrusted content |
-| **B06** | Agent identity originates strictly from `SecurityContext` | Enforced at entrypoint (no metadata fallback) |
-| **B07** | Provider selection is authorized | Provider allowlist checking |
-| **B08** | Cross-agent access requires authorized handoff | Enforced in coordinator & boundary enforcer |
-| **B09** | Delegation depth is bounded and capability-checked | `SecurityBoundaryEnforcer.enforceDelegationBoundary` |
-| **B10** | Security boundary failures fail closed | Default deny & exception fail-closed handlers |
-| **B11** | Decisions are deterministic | Pure function of context, request, and RBAC rules |
-| **B12** | Prompt injection cannot bypass security policy | Policy Gateway operates independently of LLM reasoning |
+| **B01** | La invocación de una herramienta requiere autorización explícita | `SecurityBoundaryEnforcer.enforceToolBoundary` |
+| **B02** | La invocación del modelo requiere autorización explícita y chequeo de lista blanca | `SecurityBoundaryEnforcer.enforceModelBoundary` |
+| **B03** | El acceso a memoria requiere propiedad y validación de scope | `SecurityBoundaryEnforcer.enforceMemoryBoundary` |
+| **B04** | Entradas y salidas de herramientas no pueden alterar el `SecurityContext` | `SecurityContext` Inmutable y `enforceToolOutput` |
+| **B05** | Las salidas del modelo no pueden modificar las políticas de seguridad | Salida del modelo clasificada como contenido no confiable |
+| **B06** | La identidad del agente se origina estrictamente de `SecurityContext` | Aplicado en el punto de entrada (sin fallback a metadatos) |
+| **B07** | La selección de proveedores está autorizada | Chequeo de lista blanca de proveedores |
+| **B08** | El acceso cruzado entre agentes requiere handoff autorizado | Aplicado en el coordinador y enforcer de límites |
+| **B09** | La profundidad de delegación está limitada y verificada en capacidades | `SecurityBoundaryEnforcer.enforceDelegationBoundary` |
+| **B10** | Los fallos de límites de seguridad aplican fail-closed | Default deny y manejadores de excepciones fail-closed |
+| **B11** | Las decisiones son determinísticas | Función pura del contexto, petición y reglas RBAC |
+| **B12** | La inyección de prompt no puede evadir la política de seguridad | Policy Gateway opera independientemente del razonamiento del LLM |
 
 ---
 
-## 5. Observability & Event Auditing
+## 5. Observabilidad y Auditoría de Eventos
 
-Every boundary interaction emits structured domain events:
+Cada interacción de límites emite eventos de dominio estructurados:
 - `policy.evaluated`, `policy.allowed`, `policy.denied`
 - `authorization.allowed`, `authorization.denied`
 - `tool.execution.started`, `tool.execution.completed`, `tool.execution.failed`
 - `model.requested`, `model.completed`, `model.failed`
 - `memory.stored`, `memory.retrieved`, `memory.deleted`
 
-**Zero Secret Leakage**: All event payloads are sanitized against API keys, bearer tokens, private keys, and raw authorization headers.
+**Cero Fugas de Secretos**: Todos los payloads de eventos son sanitizados para evitar claves de API, bearer tokens, claves privadas y headers de autorización en bruto.

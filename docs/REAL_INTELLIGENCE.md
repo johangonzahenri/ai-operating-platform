@@ -1,15 +1,7 @@
-# Real Intelligence
+# Inteligencia Real
 
-The platform can run the same Core lifecycle with a real model without
-changing the Planner, Coordinator, Agent Runtime, or application adapters.
-The default remains the deterministic stub so existing unit, integration, and
-cross-project tests do not require Internet access or API keys.
+La plataforma puede ejecutar el mismo ciclo de vida de Core con un modelo real sin cambiar el Planner, Coordinator, Agent Runtime o adaptadores de aplicación. El valor predeterminado sigue siendo el stub determinista para que las pruebas unitarias, de integración y entre proyectos existentes no requieran acceso a Internet o claves de API.
 
-When `MODEL_PROVIDER` is not `stub`, the composition root wires
-`LLMPlanner -> ModelGateway -> ProviderFactory -> selected provider`. Plans
-remain structured and fail closed: the existing validator and policy gateway
-run after model generation and before execution.
+Cuando `MODEL_PROVIDER` no es `stub`, la raíz de composición conecta `LLMPlanner -> ModelGateway -> ProviderFactory -> proveedor seleccionado`. Los planes siguen siendo estructurados y fallan de forma segura (fail closed): el validador y el gateway de política existentes se ejecutan después de la generación del modelo y antes de la ejecución.
 
-Tentaciones continues to call only the Platform API. It receives structured
-discovery results and never receives model credentials or provider-specific
-configuration. Product ownership remains local to Tentaciones.
+Tentaciones continúa llamando solo a la API de Plataforma (Platform API). Recibe resultados de descubrimiento estructurados y nunca recibe credenciales de modelo o configuración específica del proveedor. La propiedad del producto permanece local en Tentaciones.

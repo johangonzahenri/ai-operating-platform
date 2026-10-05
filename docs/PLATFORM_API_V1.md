@@ -1,30 +1,22 @@
-# Platform API v1
+# API de Plataforma v1
 
-The public HTTP boundary is available under `/api/v1` (and the compatible
-`/api/platform/v1` prefix). Applications should exchange JSON only and must
-not import Core Engine classes.
+El límite público HTTP está disponible bajo `/api/v1` (y el prefijo compatible `/api/platform/v1`). Las aplicaciones deben intercambiar solo JSON y no deben importar las clases del Core Engine.
 
-## Product flow
+## Flujo de producto
 
-1. `POST /tasks` with `agentId`, `input`, and an optional `traceId`.
-2. Read the returned `task.id` and `execution.id`.
-3. `GET /tasks/:taskId` and `GET /executions/:executionId`.
-4. Read `GET /executions/:executionId/events` (the API also exposes
-   `/timeline` for the operational UI).
-5. Use `status`, `output`, and `error` to interpret the terminal result.
+1. `POST /tasks` con `agentId`, `input` y un `traceId` opcional.
+2. Leer el `task.id` y `execution.id` devueltos.
+3. `GET /tasks/:taskId` y `GET /executions/:executionId`.
+4. Leer `GET /executions/:executionId/events` (la API también expone `/timeline` para la interfaz de usuario operativa).
+5. Usar `status`, `output` y `error` para interpretar el resultado terminal.
 
-Task submission currently starts the execution as part of the existing engine
-contract. `POST /tasks/:taskId/execute` is an idempotent product-layer
-compatibility route that returns the correlated execution.
+El envío de tareas actualmente inicia la ejecución como parte del contrato del motor existente. `POST /tasks/:taskId/execute` es una ruta de compatibilidad de la capa de producto idempotente que devuelve la ejecución correlacionada.
 
-## Correlation
+## Correlación
 
-`task.id`, `execution.id`, and `traceId` are stable public identifiers.
-Durable event responses preserve `traceId`, `executionId`/`aggregateId`, and
-causation metadata. Every response includes `X-Request-Id`; callers may send
-their own value with the same header.
+`task.id`, `execution.id` y `traceId` son identificadores públicos estables. Las respuestas de eventos duraderos preservan `traceId`, `executionId`/`aggregateId` y metadatos de causalidad. Cada respuesta incluye `X-Request-Id`; los llamadores pueden enviar su propio valor con el mismo encabezado.
 
-## Example
+## Ejemplo
 
 ```json
 {
@@ -34,7 +26,7 @@ their own value with the same header.
     "agentId": "foundation-agent",
     "status": "COMPLETED",
     "createdAt": "2026-09-11T20:00:00.000Z",
-    "input": { "prompt": "Analyze these products" },
+    "input": { "prompt": "Analizar estos productos" },
     "output": { "text": "..." }
   },
   "execution": {

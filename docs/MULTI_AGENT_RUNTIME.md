@@ -1,99 +1,99 @@
-# Multi-Agent Coordination Runtime v0.1
+# Tiempo de Ejecución de Coordinación Multi-Agente v0.1
 
-## 1. Overview
+## 1. Visión General
 
-The platform provides a bounded, deterministic coordination application service for the canonical operations diagnostic use case:
-
-```text
-Diagnostic Agent -> Decision Agent -> Execution Agent -> Verification Agent
-```
-
-`MultiAgentCoordinator` is the single authority that coordinates and sequences agents. Agents never invoke one another directly, spawn child agents, or create recursive coordinator instances. Each step is executed through the existing `Runtime` (`CoreRuntime`), which remains the sole owner of each child `Task` and `Execution` lifecycle.
-
-## 2. Hardened Architecture & Flow
+La plataforma proporciona un servicio de aplicación de coordinación limitado y determinista para el caso de uso canónico de diagnóstico de operaciones:
 
 ```text
-Coordination Request
-    ↓
-Coordinator Validates (Agents, Roles, Budgets, Depth)
-    ↓
-For each step:
-  - Check Timeout & Cancellation
-  - Agent Lookup (Active status)
-  - Policy Authorization (`coordination.execute`)
-  - Publish `coordination.agent.selected`
-  - Create child Task & Execute through CoreRuntime
-  - Publish `coordination.agent.completed` / `failed`
-  - If Step is VERIFICATION:
-      - Evaluate independent verification verdict (PASS / FAIL)
-  - If next step exists:
-      - Validate Target Agent & Handoff Budget
-      - Create Bounded, Sanitized `AgentHandoff`
-      - Publish `coordination.handoff.requested` / `accepted` (or `rejected`)
-    ↓
-Deterministic Aggregation
-    ↓
-Publish `coordination.completed` / `coordination.failed`
+Agente de Diagnóstico -> Agente de Decisión -> Agente de Ejecución -> Agente de Verificación
 ```
 
-## 3. Strict Verification Semantics
+`MultiAgentCoordinator` es la única autoridad que coordina y secuencia a los agentes. Los agentes nunca se invocan directamente entre sí, no generan agentes secundarios ni crean instancias recursivas de coordinadores. Cada paso se ejecuta a través del `Runtime` existente (`CoreRuntime`), que sigue siendo el único propietario de cada ciclo de vida de `Task` y `Execution` secundario.
 
-The coordinator **never** forces or fabricates `verified: true` from mere execution completion.
-The Verification Agent must return an explicit verdict structure:
+## 2. Arquitectura y Flujo Reforzados
+
+```text
+Solicitud de Coordinación
+    ↓
+Coordinador Valida (Agentes, Roles, Presupuestos, Profundidad)
+    ↓
+Para cada paso:
+  - Verificar Tiempo de Espera y Cancelación
+  - Búsqueda de Agente (Estado activo)
+  - Autorización de Política (`coordination.execute`)
+  - Publicar `coordination.agent.selected`
+  - Crear Tarea secundaria y Ejecutar a través de CoreRuntime
+  - Publicar `coordination.agent.completed` / `failed`
+  - Si el paso es VERIFICATION (VERIFICACIÓN):
+      - Evaluar el veredicto de verificación independiente (PASS / FAIL)
+  - Si existe el siguiente paso:
+      - Validar Agente Objetivo y Presupuesto de Traspaso (Handoff)
+      - Crear `AgentHandoff` Limitado y Sanitizado
+      - Publicar `coordination.handoff.requested` / `accepted` (o `rejected`)
+    ↓
+Agregación Determinista
+    ↓
+Publicar `coordination.completed` / `coordination.failed`
+```
+
+## 3. Semántica Estricta de Verificación
+
+El coordinador **nunca** fuerza o fabrica `verified: true` a partir de la simple finalización de la ejecución.
+El Agente de Verificación debe devolver una estructura de veredicto explícita:
 
 ```json
 {
   "status": "PASS",
   "verified": true,
-  "reason": "All health checks and metrics within normal parameters",
+  "reason": "Todos los chequeos de salud y métricas dentro de parámetros normales",
   "evidence": { "latencyMs": 12, "errorRate": 0 }
 }
 ```
 
-Verdict Evaluation Rules:
-- `PASS` / `verified: true` (without conflict) -> Evaluates to PASS -> Coordination completes with `COMPLETED`.
-- `FAIL` / `verified: false` -> Evaluates to FAIL -> Coordination completes with `FAILED` (`VERIFICATION_FAILED`).
-- Missing verdict -> Fails closed with `VERIFICATION_MISSING`.
-- Malformed output -> Fails closed with `VERIFICATION_MALFORMED`.
-- Conflicting verdict (e.g. `status: "PASS"` + `verified: false`) -> Fails closed with `VERIFICATION_CONFLICT`.
-- Ambiguous verdict -> Fails closed with `VERIFICATION_AMBIGUOUS`.
+Reglas de Evaluación de Veredicto:
+- `PASS` / `verified: true` (sin conflicto) -> Evalúa a PASS -> La coordinación finaliza con `COMPLETED`.
+- `FAIL` / `verified: false` -> Evalúa a FAIL -> La coordinación finaliza con `FAILED` (`VERIFICATION_FAILED`).
+- Veredicto faltante -> Falla seguro (Fails closed) con `VERIFICATION_MISSING`.
+- Salida malformada -> Falla seguro con `VERIFICATION_MALFORMED`.
+- Veredicto conflictivo (ej. `status: "PASS"` + `verified: false`) -> Falla seguro con `VERIFICATION_CONFLICT`.
+- Veredicto ambiguo -> Falla seguro con `VERIFICATION_AMBIGUOUS`.
 
-## 4. Hardened Bounds & Limits
+## 4. Límites y Restricciones Reforzados
 
-| Parameter | Limit | Enforcement |
+| Parámetro | Límite | Cumplimiento |
 |---|---|---|
-| `maxAgents` | 4 | Enforced at `CoordinationRequest.create` & runtime counter `agentsExecuted` |
-| `maxHandoffs` | 3 | Enforced at `CoordinationRequest.create` & runtime counter `handoffsCreated` |
-| `maxDepth` | 1 | Enforced at `CoordinationRequest.create` (depth < 1) & runtime check |
-| `data.maxStringLength` | 2048 chars | Truncated with `[truncated]` |
-| `data.maxDepth` | 4 levels | Truncated with `[truncated]` |
-| `data.maxObjectKeys` | 64 keys | Truncated |
-| Sensitive fields | Automatic | Redacted with `[redacted]` |
+| `maxAgents` | 4 | Aplicado en `CoordinationRequest.create` y contador de ejecución `agentsExecuted` |
+| `maxHandoffs` | 3 | Aplicado en `CoordinationRequest.create` y contador de ejecución `handoffsCreated` |
+| `maxDepth` | 1 | Aplicado en `CoordinationRequest.create` (profundidad < 1) y verificación de ejecución |
+| `data.maxStringLength` | 2048 caracteres | Truncado con `[truncated]` |
+| `data.maxDepth` | 4 niveles | Truncado con `[truncated]` |
+| `data.maxObjectKeys` | 64 claves | Truncado |
+| Campos sensibles | Automático | Redactado con `[redacted]` |
 
-## 5. Implementation Status Matrix
+## 5. Matriz de Estado de Implementación
 
-### IMPLEMENTED
-- Canonical 4-agent sequential workflow (`DIAGNOSTIC` -> `DECISION` -> `EXECUTION` -> `VERIFICATION`)
-- Hardened `MultiAgentCoordinator` with runtime budget counters (`agentsExecuted`, `handoffsCreated`, `coordinationDepth`)
-- Strict verification semantics with independent verdict evaluation and conflict detection
-- Fail-closed agent validation (unknown, inactive, duplicate, invalid roles)
-- Policy evaluation before each step with fail-closed denial (`POLICY_DENIED`)
-- Bounded, sanitized, immutable `AgentHandoff` payloads
-- Cross-agent context and memory isolation
-- Comprehensive domain event publishing (`coordination.started`, `agent.selected`, `handoff.requested`, `handoff.accepted`, `handoff.rejected`, `agent.completed`, `agent.failed`, `completed`, `failed`)
-- Request-level timeout and cancellation enforcement
-- Deterministic aggregation logic
-- 40 unit tests covering the complete test matrix
+### IMPLEMENTADO
+- Flujo de trabajo secuencial canónico de 4 agentes (`DIAGNOSTIC` -> `DECISION` -> `EXECUTION` -> `VERIFICATION`)
+- `MultiAgentCoordinator` reforzado con contadores de presupuesto en tiempo de ejecución (`agentsExecuted`, `handoffsCreated`, `coordinationDepth`)
+- Semántica estricta de verificación con evaluación independiente de veredicto y detección de conflictos
+- Validación de agentes con fallo seguro (fail-closed) (desconocido, inactivo, duplicado, roles inválidos)
+- Evaluación de política antes de cada paso con denegación de cierre seguro (`POLICY_DENIED`)
+- Cargas útiles de `AgentHandoff` limitadas, sanitizadas e inmutables
+- Aislamiento de contexto y memoria entre agentes
+- Publicación exhaustiva de eventos de dominio (`coordination.started`, `agent.selected`, `handoff.requested`, `handoff.accepted`, `handoff.rejected`, `agent.completed`, `agent.failed`, `completed`, `failed`)
+- Aplicación de tiempo de espera y cancelación a nivel de solicitud
+- Lógica de agregación determinista
+- 40 pruebas unitarias que cubren la matriz de pruebas completa
 
-### NOT IMPLEMENTED / LIMITATIONS
-- **COORDINATION STATE DURABILITY: NOT YET IMPLEMENTED**
-  - Child `Task` and `Execution` entities are durable and recoverable via SQLite and CoreRuntime.
-  - Top-level `CoordinationRequest` and `CoordinationResult` state is in-memory and ephemeral.
-- **AUTOMATIC RECOVERY FOR COORDINATION SESSIONS: NOT YET IMPLEMENTED**
-  - If the host process crashes mid-coordination, individual child tasks reconcile via `RestartRecoveryService`, but the top-level coordination does not automatically resume.
-- **DISTRIBUTED MULTI-HOST COORDINATION: NOT YET IMPLEMENTED** (Runs in-process via CoreRuntime)
+### NO IMPLEMENTADO / LIMITACIONES
+- **DURABILIDAD DEL ESTADO DE COORDINACIÓN: AÚN NO IMPLEMENTADO**
+  - Las entidades secundarias `Task` y `Execution` son duraderas y recuperables a través de SQLite y CoreRuntime.
+  - El estado de `CoordinationRequest` y `CoordinationResult` de nivel superior está en memoria y es efímero.
+- **RECUPERACIÓN AUTOMÁTICA PARA SESIONES DE COORDINACIÓN: AÚN NO IMPLEMENTADO**
+  - Si el proceso anfitrión falla a mitad de la coordinación, las tareas secundarias individuales se reconcilian a través de `RestartRecoveryService`, pero la coordinación de nivel superior no se reanuda automáticamente.
+- **COORDINACIÓN MULTI-HOST DISTRIBUIDA: AÚN NO IMPLEMENTADO** (Se ejecuta en proceso a través de CoreRuntime)
 
-### FUTURE
-- Durable Coordination Request/Session repository
-- Policy-driven dynamic agent routing
-- Parallel branch coordination (once authorized by architectural review)
+### FUTURO
+- Repositorio duradero de Solicitudes/Sesiones de Coordinación
+- Enrutamiento dinámico de agentes impulsado por políticas
+- Coordinación de ramas en paralelo (una vez autorizada por la revisión de arquitectura)

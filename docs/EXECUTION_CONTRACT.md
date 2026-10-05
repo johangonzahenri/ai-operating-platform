@@ -1,7 +1,6 @@
-# Execution Contract
+# Contrato de Ejecución
 
-The product layer represents an execution independently from internal domain
-objects:
+La capa de producto representa una ejecución independientemente de los objetos de dominio internos:
 
 ```json
 {
@@ -16,7 +15,4 @@ objects:
 }
 ```
 
-The allowed terminal statuses are `COMPLETED`, `FAILED`, and `CANCELLED`;
-`CREATED` and `RUNNING` represent non-terminal work. The pure mapping
-functions in `src/platform/product/execution-contract.ts` prevent consumers
-from depending on repository or EventStore implementations.
+Los estados terminales permitidos son `COMPLETED`, `FAILED` y `CANCELLED`; `CREATED` y `RUNNING` representan trabajo no terminal. Las funciones de mapeo puro en `src/platform/product/execution-contract.ts` evitan que los consumidores dependan de implementaciones de repositorios o `EventStore`.

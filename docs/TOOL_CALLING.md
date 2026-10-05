@@ -1,7 +1,7 @@
-# Real Tool Calling
+# Llamada a Herramientas Real
 
-Tool calling is provider-neutral. A model may propose a `ModelToolCall`, but
-the model never receives a registry handle and never executes code.
+La llamada a herramientas (Tool calling) es neutral al proveedor. Un modelo puede proponer una `ModelToolCall`, pero
+el modelo nunca recibe un manejador (handle) del registro y nunca ejecuta código.
 
 ```mermaid
 sequenceDiagram
@@ -11,33 +11,32 @@ sequenceDiagram
   participant R as ToolRegistry
   participant P as Policy
   participant D as Dispatcher
-  participant T as Tool
-  L->>G: tool call
+  participant T as Herramienta
+  L->>G: llamada a herramienta
   G->>C: ModelToolCall
-  C->>R: validate definition and arguments
-  C->>P: authorize
-  C->>D: execute through ToolGateway
-  D->>T: execute
-  T-->>C: observation
+  C->>R: validar definición y argumentos
+  C->>P: autorizar
+  C->>D: ejecutar a través de ToolGateway
+  D->>T: ejecutar
+  T-->>C: observación
   C-->>G: ModelToolResult
-  G-->>L: next turn
+  G-->>L: siguiente turno
 ```
 
-The existing `RegistryToolGateway` remains the dispatcher and performs
-definition, required-field, and primitive-type validation. `AgentExecutionStrategy`
-adds the bounded multi-turn loop around it. Tool calls are accepted only when
-the agent allow-list and `PolicyGateway` authorize them.
+El actual `RegistryToolGateway` permanece como el despachador (dispatcher) y realiza
+la validación de definición, campos requeridos y tipos primitivos. `AgentExecutionStrategy`
+añade el ciclo multi-turno delimitado alrededor de él. Las llamadas a herramientas se aceptan solo cuando
+la lista blanca (allow-list) del agente y el `PolicyGateway` las autorizan.
 
-Each call emits requested, authorized/rejected, result, and final-response
-events with the existing trace, task, and execution references. Unknown tools,
-policy denials, tool failures, and malformed arguments fail through the normal
-execution lifecycle rather than executing directly.
+Cada llamada emite eventos de solicitada, autorizada/rechazada, resultado y respuesta-final
+con las referencias existentes de traza, tarea y ejecución. Herramientas desconocidas,
+denegaciones por políticas, fallos de herramientas y argumentos malformados fallan a través del ciclo de vida normal de ejecución en lugar de ejecutarse directamente.
 
-The loop has hard limits of 16 calls and 8 rounds. These bounds are deliberate
-safe defaults and prevent an unbounded model/provider loop.
+El ciclo tiene límites estrictos de 16 llamadas y 8 rondas. Estos límites son defaults
+deliberadamente seguros y previenen un ciclo infinito modelo/proveedor.
 
-The neutral conversation history is translated at the provider boundary:
-OpenAI uses an assistant message with `tool_calls` followed by `tool` messages;
-Anthropic uses assistant `tool_use` blocks followed by user `tool_result`
-blocks; Ollama uses `/api/chat` messages and its function tool format. Core
-code does not contain any of those provider-specific names.
+El historial neutral de conversación se traduce en la frontera del proveedor:
+OpenAI usa un mensaje de asistente con `tool_calls` seguido por mensajes `tool`;
+Anthropic usa bloques de asistente `tool_use` seguidos por bloques de usuario `tool_result`;
+Ollama usa mensajes `/api/chat` y su formato de herramienta de funciones. El código del
+Core no contiene ninguno de esos nombres específicos de proveedor.

@@ -1,19 +1,14 @@
-# Multi-Agent Architecture v0.1
+# Arquitectura Multi-Agente v0.1
 
-## Current model
+## Modelo actual
 
-An `Agent` is a registered, versioned execution definition. Its identity is
-validated by `AgentService` and stored through the existing `AgentRegistry`.
-The definition currently owns its model, instructions, tools, status and
-optional memory scope. A capability is not currently a separate runtime
-contract; the existing `capabilities` field is descriptive, while tools remain
-the executable allow-list.
+Un `Agent` es una definición de ejecución registrada y versionada. Su identidad es validada por `AgentService` y almacenada a través del `AgentRegistry` existente. Actualmente, la definición posee su modelo, instrucciones, herramientas, estado y un alcance de memoria opcional. Una capacidad no es actualmente un contrato de tiempo de ejecución separado; el campo `capabilities` existente es descriptivo, mientras que las herramientas siguen siendo la lista de permitidos ejecutable.
 
-The current execution relationship is:
+La relación de ejecución actual es:
 
 ```mermaid
 flowchart TD
-  User --> Task
+  Usuario --> Task
   Task --> AgentService
   AgentService --> AgentRegistry
   AgentService --> CoreRuntime
@@ -25,70 +20,48 @@ flowchart TD
   CoreRuntime --> EventStore
 ```
 
-One task currently names one `agentId`, and one `Execution` is owned by that
-task. Multiple agents may exist in the registry and may execute separate tasks,
-but the platform does not yet model multiple agent executions under one task,
-agent-to-agent messages, aggregation, delegation, or agent spawning.
+Actualmente, una tarea nombra un `agentId`, y una `Execution` es propiedad de esa tarea. Múltiples agentes pueden existir en el registro y pueden ejecutar tareas separadas, pero la plataforma aún no modela múltiples ejecuciones de agentes bajo una sola tarea, mensajes de agente a agente, agregación, delegación o creación de agentes.
 
-## Contract decision
+## Decisión de contrato
 
-The smallest justified v0.1 contract is the existing set of boundaries:
+El contrato v0.1 más pequeño justificado es el conjunto existente de límites:
 
-- `Agent`: validated identity and execution configuration;
-- `AgentRegistry`: explicit register, lookup, list, update and delete;
-- `AgentService`: validates selection and starts an agent execution;
-- `CoreRuntime`: sole owner of task/execution lifecycle;
-- `PolicyGateway`: authorizes model and tool operations;
-- `AgentExecutionStrategy`: executes one selected agent;
-- `EventStore`: records operational facts.
+- `Agent`: identidad validada y configuración de ejecución;
+- `AgentRegistry`: registro explícito, búsqueda, lista, actualización y eliminación;
+- `AgentService`: valida la selección e inicia una ejecución de agente;
+- `CoreRuntime`: propietario exclusivo del ciclo de vida de la tarea/ejecución;
+- `PolicyGateway`: autoriza las operaciones del modelo y de las herramientas;
+- `AgentExecutionStrategy`: ejecuta un agente seleccionado;
+- `EventStore`: registra hechos operativos.
 
-No new `AgentIdentity`, `AgentMessage`, coordination graph, or second
-orchestrator is introduced yet.
+Aún no se introduce un nuevo `AgentIdentity`, `AgentMessage`, gráfico de coordinación o un segundo orquestador.
 
-## Selection and security
+## Selección y seguridad
 
-The caller selects an agent through `AgentService`. The registry validates
-identity and existence; inactive agents cannot execute. A planner may produce
-plans and actions, but it cannot select an arbitrary agent or bypass
-`AgentService`, `CoreRuntime`, `PolicyGateway`, or the tool dispatcher.
+El llamador selecciona un agente a través de `AgentService`. El registro valida la identidad y la existencia; los agentes inactivos no pueden ejecutarse. Un planificador puede producir planes y acciones, pero no puede seleccionar un agente arbitrario ni omitir `AgentService`, `CoreRuntime`, `PolicyGateway` o el despachador de herramientas.
 
-An agent cannot directly invoke another agent. Cross-agent memory access is
-not a coordination mechanism and remains governed by the existing Memory
-boundary. Agent tools remain distinct from capabilities: capabilities describe
-what an agent can do, while tools are concrete executable resources checked by
-policy and dispatched through the tool layer.
+Un agente no puede invocar directamente a otro agente. El acceso a la memoria entre agentes no es un mecanismo de coordinación y sigue regido por el límite de Memoria existente. Las herramientas del agente siguen siendo distintas de las capacidades: las capacidades describen lo que un agente puede hacer, mientras que las herramientas son recursos ejecutables concretos verificados por la política y despachados a través de la capa de herramientas.
 
-## Coordination boundary for a future release
+## Límite de coordinación para un lanzamiento futuro
 
-If a real use case requires multiple agents, coordination should be owned by a
-single existing orchestration/application boundary and produce bounded child
-task/execution requests. It must define:
+Si un caso de uso real requiere múltiples agentes, la coordinación debe ser propiedad de un único límite de orquestación/aplicación existente y producir solicitudes de tarea/ejecución secundarias limitadas. Debe definir:
 
-- a coordinator-owned correlation identifier;
-- validated agent selection through the registry;
-- bounded, sanitized output handoff;
-- explicit aggregation;
-- per-agent and total budgets/timeouts;
-- fail-closed policy checks;
-- lifecycle/events through `CoreRuntime` and `EventStore`.
+- un identificador de correlación propiedad del coordinador;
+- selección validada de agentes a través del registro;
+- traspaso (handoff) de salida limitado y sanitizado;
+- agregación explícita;
+- presupuestos/tiempos de espera por agente y totales;
+- verificaciones de políticas de cierre seguro (fail-closed);
+- ciclo de vida/eventos a través de `CoreRuntime` y `EventStore`.
 
-Coordination data is not conversation history, Memory, or an event bus.
-`ModelRequest.messages` remains the canonical history for each model
-execution, and `TaskContext` remains execution-scoped and bounded.
+Los datos de coordinación no son historial de conversación, Memoria o un bus de eventos. `ModelRequest.messages` sigue siendo el historial canónico para cada ejecución del modelo, y `TaskContext` permanece limitado y con alcance de ejecución.
 
-## Failure model
+## Modelo de fallas
 
-Existing task/execution failure, timeout, cancellation, policy denial,
-durable events and restart recovery remain the only failure mechanisms. A
-future coordinator must not duplicate recovery or create autonomous,
-unbounded retries. Until that contract is required by a concrete use case,
-multi-agent execution is intentionally not exposed.
+La falla de tarea/ejecución existente, el tiempo de espera, la cancelación, la denegación de política, los eventos duraderos y la recuperación de reinicio siguen siendo los únicos mecanismos de falla. Un futuro coordinador no debe duplicar la recuperación ni crear reintentos autónomos e ilimitados. Hasta que ese contrato sea requerido por un caso de uso concreto, la ejecución multi-agente está intencionalmente no expuesta.
 
-## Decision
+## Decisión
 
-**NO IMPLEMENTATION REQUIRED**
+**NO SE REQUIERE IMPLEMENTACIÓN**
 
-The current platform has a sound single-agent execution contract and a
-deterministic registry. It does not yet have a justified multi-agent use case
-or coordination contract, so adding one now would be speculative
-architecture.
+La plataforma actual tiene un contrato de ejecución de un solo agente sólido y un registro determinista. Aún no tiene un caso de uso multi-agente justificado o un contrato de coordinación, por lo que agregar uno ahora sería una arquitectura especulativa.

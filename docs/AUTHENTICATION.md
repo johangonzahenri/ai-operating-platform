@@ -1,86 +1,73 @@
-# Enterprise API Authentication Architecture (`AOP-AUTH-01`)
+# Arquitectura de Autenticación de API Empresarial (`AOP-AUTH-01`)
 
-## 1. Overview & Architectural Principles
+## 1. Visión General y Principios Arquitectónicos
 
-The **AI Operating Platform (AOP)** implements enterprise-grade, zero-trust API authentication for all external consumers, services, operators, and autonomous subsystems.
+La **AI Operating Platform (AOP)** implementa autenticación de API de confianza cero y de nivel empresarial para todos los consumidores externos, servicios, operadores y subsistemas autónomos.
 
-```text
-                                  AUTHENTICATION PIPELINE
-                                  
-  External Client                                                  Platform API Gateway
-┌───────────────────────┐                                       ┌─────────────────────────┐
-│ Authorization: Bearer │                                       │ 1. Header Validation    │
-│ aop_live_cred1_...    │ ─── (1) HTTP Request ────────────────>│   - Check format        │
-└───────────────────────┘                                       │   - Redact from logs    │
-                                                                │ 2. Contradiction Check  │
-                                                                │ 3. Timing-Safe Hash     │
-                                                                │ 4. Expiration & Status  │
-                                                                │ 5. Tenant Match Check   │
-                                                                │ 6. Principal Binding    │
-                                                                └────────────┬────────────┘
-                                                                             │
-                                                                 (2) Populated SecurityContext
-                                                                             │
-                                                                             ▼
-                                                                ┌─────────────────────────┐
-                                                                │  Fail-Closed Execution  │
-                                                                └─────────────────────────┘
+```mermaid
+flowchart TD
+    Client["Cliente Externo<br>Authorization: Bearer aop_live_cred1_..."]
+    Gateway["Platform API Gateway<br>1. Validación de Header<br>   - Revisar formato<br>   - Ocultar de los logs<br>2. Chequeo de Contradicción<br>3. Hash Seguro contra Tiempos<br>4. Expiración y Estado<br>5. Chequeo de Coincidencia de Tenant<br>6. Vinculación de Principal"]
+    Context["Ejecución Fail-Closed"]
+
+    Client -->|1 Petición HTTP| Gateway
+    Gateway -->|2 SecurityContext Poblado| Context
 ```
 
-### Core Invariants
-1. **$Authentication \neq Authorization$**: Establishing cryptographic proof of caller identity does not grant authority to perform operations or access arbitrary resources.
-2. **$Identity \neq Authority$**: Identity verifies who is calling (`Principal`, `tenantId`, `applicationId`); authority governs what capabilities are granted (`scopes`, `RBAC`).
-3. **$Autonomy \neq Authority$**: Autonomous agents and triggers operate strictly within bounded capability envelopes.
-4. **Zero Plaintext Storage**: Raw API keys (`aop_live_<credId>_<secret>`) are generated cryptographically and presented strictly once to the client. Only timing-safe SHA-256 hashes (`keyHash`) and safe display prefixes (`keyPrefix`) are persisted.
-5. **Fail-Closed Boundary**: Any unauthenticated, expired, revoked, malformed, or cross-tenant request to protected endpoints is rejected immediately.
+### Invariantes Principales
+1. **$Authentication \neq Authorization$**: Establecer la prueba criptográfica de la identidad del llamador no otorga autoridad para realizar operaciones o acceder a recursos arbitrarios.
+2. **$Identity \neq Authority$**: La identidad verifica quién llama (`Principal`, `tenantId`, `applicationId`); la autoridad gobierna qué capacidades se otorgan (`scopes`, `RBAC`).
+3. **$Autonomy \neq Authority$**: Los agentes autónomos y los disparadores operan estrictamente dentro de límites de capacidad delimitados.
+4. **Cero Almacenamiento en Texto Plano**: Las claves de API en bruto (`aop_live_<credId>_<secret>`) se generan criptográficamente y se presentan estrictamente una vez al cliente. Solo se persisten hashes SHA-256 seguros contra tiempos (`keyHash`) y prefijos seguros para visualización (`keyPrefix`).
+5. **Límite Fail-Closed**: Cualquier petición no autenticada, expirada, revocada, malformada o de tenant cruzado a endpoints protegidos es rechazada de inmediato.
 
 ---
 
-## 2. Supported Authentication Schemes
+## 2. Esquemas de Autenticación Soportados
 
-The platform natively supports the following header schemes over HTTP loopback (127.0.0.1:3000):
+La plataforma soporta nativamente los siguientes esquemas de encabezados sobre el loopback HTTP (127.0.0.1:3000):
 
-| Header Scheme | Format | Description |
+| Esquema de Header | Formato | Descripción |
 | :--- | :--- | :--- |
-| `Authorization: Bearer <API_KEY>` | `Bearer aop_live_<credId>_<secret>` | Standard OAuth2/OIDC Bearer format for service-to-service calls |
-| `X-API-Key: <API_KEY>` | `aop_live_<credId>_<secret>` | Direct API key header for SDK clients and automated consumers |
-| `X-Agent-Token: <TOKEN>` | JWT / HMAC Signed Token | Internal token exchange for subagent dispatch and worker nodes |
+| `Authorization: Bearer <API_KEY>` | `Bearer aop_live_<credId>_<secret>` | Formato estándar Bearer OAuth2/OIDC para llamadas de servicio a servicio |
+| `X-API-Key: <API_KEY>` | `aop_live_<credId>_<secret>` | Header directo de clave de API para clientes SDK y consumidores automatizados |
+| `X-Agent-Token: <TOKEN>` | Token Firmado JWT / HMAC | Intercambio de tokens interno para despacho de subagentes y nodos de trabajo |
 
-### Contradictory Header Rejection
-If a request supplies multiple contradictory authentication headers (e.g., `Authorization: Bearer keyA` and `X-API-Key: keyB` pointing to conflicting credentials), the gateway rejects the request with `400 BAD_REQUEST` (`CONTRADICTORY_AUTH_HEADERS`) to prevent ambiguous identity delegation.
+### Rechazo de Headers Contradictorios
+Si una petición proporciona múltiples headers de autenticación contradictorios (ej. `Authorization: Bearer keyA` y `X-API-Key: keyB` apuntando a credenciales conflictivas), el gateway rechaza la petición con `400 BAD_REQUEST` (`CONTRADICTORY_AUTH_HEADERS`) para prevenir la delegación de identidad ambigua.
 
 ---
 
-## 3. Public vs. Protected Endpoints Whitelist
+## 3. Lista Blanca de Endpoints Públicos vs. Protegidos
 
-### Public Routes (No Authentication Required)
+### Rutas Públicas (No Requieren Autenticación)
 - `GET /api/v1/health`, `GET /health`
 - `GET /api/v1/health/live`, `GET /health/live`, `GET /liveness`
 - `GET /api/v1/health/ready`, `GET /health/ready`, `GET /readiness`
 - `GET /api/v1/status`, `GET /status`
 - `GET /api/v1/diagnostics`
-- Static Web Control Plane assets (`/`, `/index.html`, `/app.js`, `/styles.css`, `/i18n/*`)
+- Activos estáticos del Web Control Plane (`/`, `/index.html`, `/app.js`, `/styles.css`, `/i18n/*`)
 
-### Protected Routes (Strict Authentication & Capability Verification)
-All `/api/v1/*` business and control plane endpoints require authenticated credentials:
-- Tasks (`/api/v1/tasks`, `/api/v1/tasks/:id/execute`, `/api/v1/tasks/:id/cancel`)
-- Executions (`/api/v1/executions/*`)
-- Autonomous Operations (`/api/v1/operations/*`, `/api/v1/autonomous/*`)
-- Devices & Hardware Printing (`/api/v1/devices/*`, `/api/v1/printing/*`)
-- Organization & Virtual Teams (`/api/v1/organizations/*`, `/api/v1/teams/*`)
-- Workflows & Solutions (`/api/v1/workflows/*`, `/api/v1/solutions/*`)
-- Credential Governance (`/api/v1/credentials/*`)
-- Events & Audit Streams (`/api/v1/events/*`, `/api/v1/audit/*`)
+### Rutas Protegidas (Autenticación Estricta y Verificación de Capacidades)
+Todos los endpoints de negocio y del plano de control en `/api/v1/*` requieren credenciales autenticadas:
+- Tareas (`/api/v1/tasks`, `/api/v1/tasks/:id/execute`, `/api/v1/tasks/:id/cancel`)
+- Ejecuciones (`/api/v1/executions/*`)
+- Operaciones Autónomas (`/api/v1/operations/*`, `/api/v1/autonomous/*`)
+- Dispositivos e Impresión de Hardware (`/api/v1/devices/*`, `/api/v1/printing/*`)
+- Organización y Equipos Virtuales (`/api/v1/organizations/*`, `/api/v1/teams/*`)
+- Flujos de Trabajo y Soluciones (`/api/v1/workflows/*`, `/api/v1/solutions/*`)
+- Gobernanza de Credenciales (`/api/v1/credentials/*`)
+- Eventos y Flujos de Auditoría (`/api/v1/events/*`, `/api/v1/audit/*`)
 
 ---
 
-## 4. Tenant & Application Reconciliation
+## 4. Reconciliación de Tenant y Aplicación
 
-External callers often provide contextual routing headers (`X-Tenant-Id`, `X-Application-Id`).
-The platform gateway strictly reconciles these headers against the verified `SecurityContext`:
+Los llamadores externos a menudo proporcionan headers de enrutamiento contextuales (`X-Tenant-Id`, `X-Application-Id`).
+El gateway de la plataforma reconcilia estrictamente estos headers contra el `SecurityContext` verificado:
 
-- If `X-Tenant-Id` differs from the authenticated `credential.tenantId`, the gateway returns `403 FORBIDDEN` (`TENANT_MISMATCH`).
-- If `X-Application-Id` differs from the authenticated `credential.applicationId`, the gateway returns `403 FORBIDDEN` (`APPLICATION_MISMATCH`).
+- Si `X-Tenant-Id` difiere del `credential.tenantId` autenticado, el gateway devuelve `403 FORBIDDEN` (`TENANT_MISMATCH`).
+- Si `X-Application-Id` difiere del `credential.applicationId` autenticado, el gateway devuelve `403 FORBIDDEN` (`APPLICATION_MISMATCH`).
 
 ```json
 {
@@ -95,9 +82,9 @@ The platform gateway strictly reconciles these headers against the verified `Sec
 
 ---
 
-## 5. Security Context & Principal Model
+## 5. Contexto de Seguridad y Modelo de Principal
 
-Upon successful authentication, the gateway instantiates an immutable `SecurityContext`:
+Tras una autenticación exitosa, el gateway instancia un `SecurityContext` inmutable:
 
 ```typescript
 export interface SecurityContext {
@@ -115,4 +102,4 @@ export interface SecurityContext {
 }
 ```
 
-This context is propagated downstream across all use cases, audit loggers, and policy evaluators.
+Este contexto se propaga hacia abajo a través de todos los casos de uso, registradores de auditoría y evaluadores de políticas.

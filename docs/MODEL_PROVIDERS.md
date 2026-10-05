@@ -1,54 +1,54 @@
-# Model Providers Configuration & Adapters Reference
+# Configuración de Proveedores de Modelos y Referencia de Adaptadores
 
-## 1. Environment Configuration
+## 1. Configuración de Entorno
 
-All model providers are configured via environment variables or explicitly passed configuration objects. No API keys or tokens are hardcoded.
+Todos los proveedores de modelos se configuran mediante variables de entorno o a través de objetos de configuración explícitamente proporcionados. No se harcodean claves de API ni tokens.
 
-| Variable | Provider | Default | Description |
+| Variable | Proveedor | Por Defecto | Descripción |
 |---|---|---|---|
-| `MODEL_PROVIDER` | All | `stub` | Default provider (`stub`, `openai`, `anthropic`, `ollama`) |
-| `MODEL_NAME` | All | Provider default | Default model identifier |
-| `MODEL_REQUEST_TIMEOUT_MS` | All | `30000` | Client request timeout in milliseconds |
-| `MODEL_MAX_RETRIES` | All | `2` | Maximum retry attempts on transient failures |
-| `OPENAI_API_KEY` | OpenAI | `undefined` | OpenAI bearer API key |
-| `OPENAI_MODEL` | OpenAI | `gpt-4o-mini` | Default OpenAI model |
-| `OPENAI_BASE_URL` | OpenAI | `https://api.openai.com/v1` | Base API endpoint |
-| `ANTHROPIC_API_KEY` | Anthropic | `undefined` | Anthropic `x-api-key` |
-| `ANTHROPIC_MODEL` | Anthropic | `claude-3-5-haiku-latest` | Default Anthropic model |
-| `ANTHROPIC_BASE_URL` | Anthropic | `https://api.anthropic.com` | Base API endpoint |
-| `OLLAMA_BASE_URL` | Ollama | `http://127.0.0.1:11434` | Local Ollama HTTP daemon endpoint |
-| `OLLAMA_MODEL` | Ollama | `llama3` | Default Ollama model |
+| `MODEL_PROVIDER` | Todos | `stub` | Proveedor por defecto (`stub`, `openai`, `anthropic`, `ollama`) |
+| `MODEL_NAME` | Todos | Por defecto del proveedor | Identificador del modelo por defecto |
+| `MODEL_REQUEST_TIMEOUT_MS` | Todos | `30000` | Tiempo de espera de petición del cliente en milisegundos |
+| `MODEL_MAX_RETRIES` | Todos | `2` | Máximo de intentos de reintento en fallos transitorios |
+| `OPENAI_API_KEY` | OpenAI | `undefined` | Clave API bearer de OpenAI |
+| `OPENAI_MODEL` | OpenAI | `gpt-4o-mini` | Modelo OpenAI por defecto |
+| `OPENAI_BASE_URL` | OpenAI | `https://api.openai.com/v1` | Endpoint base de la API |
+| `ANTHROPIC_API_KEY` | Anthropic | `undefined` | `x-api-key` de Anthropic |
+| `ANTHROPIC_MODEL` | Anthropic | `claude-3-5-haiku-latest` | Modelo Anthropic por defecto |
+| `ANTHROPIC_BASE_URL` | Anthropic | `https://api.anthropic.com` | Endpoint base de la API |
+| `OLLAMA_BASE_URL` | Ollama | `http://127.0.0.1:11434` | Endpoint del demonio HTTP local de Ollama |
+| `OLLAMA_MODEL` | Ollama | `llama3` | Modelo Ollama por defecto |
 
 ---
 
-## 2. Adapter Implementations
+## 2. Implementaciones de Adaptadores
 
-### OpenAI Adapter (`OpenAIModelGateway`)
-- **Protocol**: REST `POST /v1/chat/completions`
-- **Supported Capabilities**: `TEXT_GENERATION`, `STRUCTURED_OUTPUT`, `TOOL_CALLING`, `VISION`, `STREAMING`
-- **Authentication**: `Authorization: Bearer <OPENAI_API_KEY>`
-- **Fail-Closed**: If `OPENAI_API_KEY` is absent in production, throws `ModelAuthenticationError` before network contact.
+### Adaptador de OpenAI (`OpenAIModelGateway`)
+- **Protocolo**: REST `POST /v1/chat/completions`
+- **Capacidades Soportadas**: `TEXT_GENERATION`, `STRUCTURED_OUTPUT`, `TOOL_CALLING`, `VISION`, `STREAMING`
+- **Autenticación**: `Authorization: Bearer <OPENAI_API_KEY>`
+- **Fail-Closed**: Si `OPENAI_API_KEY` está ausente en producción, arroja `ModelAuthenticationError` antes del contacto de red.
 
-### Anthropic Adapter (`AnthropicModelGateway`)
-- **Protocol**: REST `POST /v1/messages`
-- **Supported Capabilities**: `TEXT_GENERATION`, `STRUCTURED_OUTPUT`, `TOOL_CALLING`, `STREAMING`
-- **Authentication**: `x-api-key: <ANTHROPIC_API_KEY>`
-- **System Instructions**: Automatically mapped to the top-level `system` property of Anthropic messages.
+### Adaptador de Anthropic (`AnthropicModelGateway`)
+- **Protocolo**: REST `POST /v1/messages`
+- **Capacidades Soportadas**: `TEXT_GENERATION`, `STRUCTURED_OUTPUT`, `TOOL_CALLING`, `STREAMING`
+- **Autenticación**: `x-api-key: <ANTHROPIC_API_KEY>`
+- **Instrucciones del Sistema**: Mapeadas automáticamente a la propiedad `system` de nivel superior de los mensajes de Anthropic.
 
-### Ollama Adapter (`OllamaModelGateway`)
-- **Protocol**: REST `POST /api/chat`
-- **Supported Capabilities**: `TEXT_GENERATION`, `STRUCTURED_OUTPUT`, `TOOL_CALLING`
-- **Local Resilience**: Gracefully maps connection errors (`ECONNREFUSED`) to `ModelUnavailableError` to trigger fallback without crashing the process.
+### Adaptador de Ollama (`OllamaModelGateway`)
+- **Protocolo**: REST `POST /api/chat`
+- **Capacidades Soportadas**: `TEXT_GENERATION`, `STRUCTURED_OUTPUT`, `TOOL_CALLING`
+- **Resiliencia Local**: Mapea con gracia los errores de conexión (`ECONNREFUSED`) a `ModelUnavailableError` para activar el fallback sin crashear el proceso.
 
-### Deterministic Stub Adapter (`StubModelGateway`)
-- **Role**: Primary adapter for unit, integration, and CI test suites.
-- **Characteristics**: 0 network overhead, zero cost, deterministic response payloads, simulates product discovery intents for Tentaciones.
+### Adaptador Stub Determinístico (`StubModelGateway`)
+- **Rol**: Adaptador primario para suites de pruebas unitarias, de integración y CI.
+- **Características**: Cero sobrecarga de red, cero costo, payloads de respuesta determinísticos, simula intenciones de descubrimiento de producto para Tentaciones.
 
 ---
 
-## 3. Registering New Adapters
+## 3. Registro de Nuevos Adaptadores
 
-Any new provider can be added by implementing `ModelProviderAdapter` without modifying domain or application logic:
+Cualquier nuevo proveedor puede ser añadido implementando `ModelProviderAdapter` sin modificar el dominio o la lógica de la aplicación:
 
 ```typescript
 import { ModelProviderAdapter } from "./application/ports/model-provider-port.js";
@@ -57,20 +57,20 @@ export class CustomProviderAdapter implements ModelProviderAdapter {
   readonly providerId = "custom";
   
   async generate(request: ModelRequest): Promise<ModelResponse> {
-    // Custom protocol translation
+    // Traducción de protocolo personalizada
   }
   
   async listSupportedModels(): Promise<readonly ModelDefinition[]> {
-    // Return available models
+    // Retornar modelos disponibles
   }
   
   async supports(modelId: string, capability: ModelCapability): Promise<boolean> {
-    // Return capability support
+    // Retornar soporte de capacidad
   }
 }
 ```
 
-Register in `ProviderFactory`:
+Registrar en `ProviderFactory`:
 ```typescript
 providerFactory.registerAdapter(new CustomProviderAdapter());
 ```

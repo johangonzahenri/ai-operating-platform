@@ -1,91 +1,91 @@
-# AI Operating Platform — Platform Product & Web Console Architecture
+# Plataforma Operativa de IA — Producto de Plataforma y Arquitectura de Consola Web
 
-## 1. Architectural Principle & Separation of Concerns
+## 1. Principio Arquitectónico y Separación de Preocupaciones
 
-The AI Operating Platform enforces strict structural decoupling across all three major tiers:
+La Plataforma Operativa de IA impone un desacoplamiento estructural estricto en las tres capas principales:
 
 ```text
-CORE ENGINE ≠ PLATFORM PRODUCT ≠ APPLICATIONS
+CORE ENGINE ≠ PLATFORM PRODUCT ≠ APLICACIONES
 ```
 
-The Web Platform (Product Console) is a **consumer** of the public Platform API (`/api/v1`) via `PlatformClient`. It contains zero direct imports from the Domain, Application Runtime, Persistence, or Infrastructure layers.
+La Plataforma Web (Consola de Producto) es un **consumidor** de la API de Plataforma pública (`/api/v1`) a través de `PlatformClient`. Contiene cero importaciones directas de las capas de Dominio, Tiempo de Ejecución de Aplicación, Persistencia o Infraestructura.
 
 ```mermaid
 flowchart TD
-    subgraph Web_Tier["Web Platform Tier (Client)"]
-        UI["Web UI Shell (Vanilla JS / Native CSS)"] --> App["Web Application Controller (app.js)"]
-        App --> Client["PlatformClient SDK (api-client.js)"]
+    subgraph Web_Tier["Capa de Plataforma Web (Cliente)"]
+        UI["Shell de UI Web (Vanilla JS / CSS Nativo)"] --> App["Controlador de Aplicación Web (app.js)"]
+        App --> Client["SDK PlatformClient (api-client.js)"]
     end
 
-    subgraph API_Tier["Platform API Tier"]
-        Client -->|"HTTP / REST (/api/v1)"| HTTP["HTTP Router & Middleware"]
-        HTTP --> Auth["Authentication & RBAC Enforcer"]
-        Auth --> Service["PlatformService (Application Service Layer)"]
+    subgraph API_Tier["Capa de API de Plataforma"]
+        Client -->|"HTTP / REST (/api/v1)"| HTTP["Enrutador HTTP y Middleware"]
+        HTTP --> Auth["Autenticación y Aplicador de RBAC"]
+        Auth --> Service["PlatformService (Capa de Servicio de Aplicación)"]
     end
 
-    subgraph Core_Tier["Core Engine Tier"]
-        Service --> Core["Core Runtime / Autonomous Orchestrator"]
-        Core --> Model["Model Gateway & Router"]
-        Core --> Tool["Tool Registry & Invocation Runtime"]
-        Core --> Storage["SQLite Durable Storage & EventStore"]
+    subgraph Core_Tier["Capa de Core Engine"]
+        Service --> Core["Core Runtime / Orquestador Autónomo"]
+        Core --> Model["Model Gateway y Enrutador"]
+        Core --> Tool["Tool Registry y Tiempo de Ejecución de Invocación"]
+        Core --> Storage["Almacenamiento Duradero SQLite y EventStore"]
     end
 ```
 
 ---
 
-## 2. Information Architecture & Navigation
+## 2. Arquitectura de la Información y Navegación
 
-The Web Platform shell provides an enterprise navigation model organized into four functional domains:
+El shell de la Plataforma Web proporciona un modelo de navegación empresarial organizado en cuatro dominios funcionales:
 
-### Control & Observability
-- **Platform Operations (`/`)**: Real-time telemetry, objective input, live execution monitoring, and durable event stream.
-- **Dashboard (`/dashboard`)**: Aggregated system status, active task counts, agent workload, and capability summaries.
+### Control y Observabilidad
+- **Operaciones de Plataforma (`/`)**: Telemetría en tiempo real, entrada de objetivos, monitoreo de ejecución en vivo y flujo de eventos duraderos.
+- **Panel de Control (`/dashboard`)**: Estado del sistema agregado, recuentos de tareas activas, carga de trabajo de agentes y resúmenes de capacidades.
 
-### Autonomous Engine
-- **Agents (`/agents`)**: Registered agent definitions, capabilities, memory scopes, and activation state.
-- **Operations (`/operations`)**: Autonomous multi-step operations, budget consumption, and plan progression.
-- **Executions (`/executions`, `/executions/:id`)**: Detailed execution telemetry, round progression, tool calls, and model outputs.
+### Motor Autónomo
+- **Agentes (`/agents`)**: Definiciones de agentes registrados, capacidades, alcances de memoria y estado de activación.
+- **Operaciones (`/operations`)**: Operaciones autónomas de múltiples pasos, consumo de presupuesto y progresión del plan.
+- **Ejecuciones (`/executions`, `/executions/:id`)**: Telemetría de ejecución detallada, progresión de rondas, llamadas a herramientas y salidas de modelos.
 
-### Runtime & Capabilities
-- **Models (`/models`)**: Connected inference providers, available models, capabilities, and health status.
-- **Tools (`/tools`)**: Versioned tool catalog, input/output schemas, risk levels, and approval requirements.
-- **Playground (`/playground`)**: Controlled testbed for evaluating sequential workflows and deterministic tool calling.
+### Tiempo de Ejecución y Capacidades
+- **Modelos (`/models`)**: Proveedores de inferencia conectados, modelos disponibles, capacidades y estado de salud.
+- **Herramientas (`/tools`)**: Catálogo de herramientas versionado, esquemas de entrada/salida, niveles de riesgo y requisitos de aprobación.
+- **Playground (`/playground`)**: Entorno de prueba controlado para evaluar flujos de trabajo secuenciales y llamadas a herramientas deterministas.
 
-### Governance & Ecosystem
-- **Blueprints (`/blueprints`)**: Interactive architectural maps and system design specifications.
-- **Governance (`/governance`)**: RBAC roles, tenant isolation policies, and audit observation trails.
-- **Applications (`/applications`)**: Ecosystem landing page for domain applications (e.g., Tentaciones AI Commerce).
-- **Settings (`/settings`)**: Connection endpoints, auth token configuration, and diagnostic tools.
-
----
-
-## 3. Design System Foundation
-
-- **Default Theme**: Clean Executive Light Theme (`--bg-primary: #f8fafc`, `--text-primary: #0f172a`).
-- **Alternative Theme**: Executive Dark Theme (`[data-theme="dark"]`, `--bg-primary: #08090d`).
-- **Native CSS Variables**: 100% native CSS geometry, spacing, borders, elevation, and status accents without heavyweight third-party CSS dependencies.
-- **Typography**: High-legibility system sans-serif font stack paired with JetBrains Mono for code, payloads, and event logs.
+### Gobernanza y Ecosistema
+- **Blueprints (`/blueprints`)**: Mapas arquitectónicos interactivos y especificaciones de diseño del sistema.
+- **Gobernanza (`/governance`)**: Roles RBAC, políticas de aislamiento de inquilinos y pistas de observación de auditoría.
+- **Aplicaciones (`/applications`)**: Página de inicio del ecosistema para aplicaciones de dominio (por ejemplo, Tentaciones AI Commerce).
+- **Configuración (`/settings`)**: Endpoints de conexión, configuración de tokens de autenticación y herramientas de diagnóstico.
 
 ---
 
-## 4. Frontend Security & Data Escaping
+## 3. Base del Sistema de Diseño
 
-1. **Strict DOM Construction**: Dynamic elements are constructed using `document.createElement` and `textContent`. Untrusted data from API, model outputs, or tool payloads are never injected via `innerHTML`.
-2. **Zero Inlined Secrets**: API keys, credentials, and tokens are never bundled in client assets.
-3. **Authorization-Aware UI**: Controls are conditionally displayed based on caller capabilities, while backend API middleware remains the sole authoritative security enforcement gate.
-4. **Error Normalization**: HTTP error responses (400, 401, 403, 404, 409, 500) are mapped to user-friendly status banners without leaking backend stack traces.
-
----
-
-## 5. Applications Boundary (Tentaciones Integration)
-
-Domain-specific business logic (such as Tentaciones E-Commerce catalog, cart, and fitting room) resides in the Applications tier. The Platform Web Console only provides management and observability over platform-level entities (Tasks, Agents, Tools, Health), maintaining complete architectural isolation.
+- **Tema Predeterminado**: Tema Claro Ejecutivo Limpio (`--bg-primary: #f8fafc`, `--text-primary: #0f172a`).
+- **Tema Alternativo**: Tema Oscuro Ejecutivo (`[data-theme="dark"]`, `--bg-primary: #08090d`).
+- **Variables CSS Nativas**: 100% geometría CSS nativa, espaciado, bordes, elevación y acentos de estado sin dependencias CSS de terceros pesadas.
+- **Tipografía**: Pila de fuentes sans-serif del sistema de alta legibilidad combinada con JetBrains Mono para código, cargas útiles y registros de eventos.
 
 ---
 
-## 6. Management Consoles & Control Center Reference
+## 4. Seguridad Frontend y Escape de Datos
 
-For deep technical specifications, capability matrices, and schema inspectors of specific consoles:
-- **Platform Control Center**: See [`docs/PLATFORM_CONTROL_CENTER.md`](PLATFORM_CONTROL_CENTER.md) for full documentation of the unified control center, models console, external applications catalog, and interactive visual blueprint.
-- **Visual Master Map**: See [`docs/VISUAL_MASTER_MAP.md`](VISUAL_MASTER_MAP.md) for the complete 7-tier architecture map, subsystem build status table, and blueprint infographics.
-- **Agent & Tool Management Console**: See [`docs/AGENT_TOOL_CONSOLE.md`](AGENT_TOOL_CONSOLE.md) for full documentation of agent lifecycle management, authorized capability matrices, risk level models, execution modes, human approval gates, and safe read-only JSON schema inspectors.
+1. **Construcción Estricta del DOM**: Los elementos dinámicos se construyen utilizando `document.createElement` y `textContent`. Los datos no confiables de la API, las salidas del modelo o las cargas útiles de las herramientas nunca se inyectan a través de `innerHTML`.
+2. **Cero Secretos en Línea**: Las claves de API, las credenciales y los tokens nunca se empaquetan en los activos del cliente.
+3. **Interfaz de Usuario Consciente de la Autorización**: Los controles se muestran condicionalmente en función de las capacidades del llamador, mientras que el middleware de la API de backend sigue siendo la única puerta de cumplimiento de seguridad autoritativa.
+4. **Normalización de Errores**: Las respuestas de error HTTP (400, 401, 403, 404, 409, 500) se asignan a banners de estado fáciles de usar sin filtrar los seguimientos de pila (stack traces) del backend.
+
+---
+
+## 5. Límite de Aplicaciones (Integración con Tentaciones)
+
+La lógica empresarial específica del dominio (como el catálogo, el carrito y el probador virtual de Tentaciones E-Commerce) reside en la capa de Aplicaciones. La Consola Web de la Plataforma solo proporciona gestión y observabilidad sobre las entidades a nivel de plataforma (Tareas, Agentes, Herramientas, Salud), manteniendo un aislamiento arquitectónico completo.
+
+---
+
+## 6. Consolas de Gestión y Referencia del Centro de Control
+
+Para especificaciones técnicas profundas, matrices de capacidades e inspectores de esquemas de consolas específicas:
+- **Centro de Control de Plataforma**: Consulte [`docs/PLATFORM_CONTROL_CENTER.md`](PLATFORM_CONTROL_CENTER.md) para obtener la documentación completa del centro de control unificado, la consola de modelos, el catálogo de aplicaciones externas y el blueprint visual interactivo.
+- **Mapa Maestro Visual**: Consulte [`docs/VISUAL_MASTER_MAP.md`](VISUAL_MASTER_MAP.md) para ver el mapa de arquitectura completo de 7 capas, la tabla de estado de compilación de subsistemas y las infografías de blueprints.
+- **Consola de Gestión de Agentes y Herramientas**: Consulte [`docs/AGENT_TOOL_CONSOLE.md`](AGENT_TOOL_CONSOLE.md) para obtener la documentación completa de la gestión del ciclo de vida del agente, las matrices de capacidades autorizadas, los modelos de nivel de riesgo, los modos de ejecución, las puertas de aprobación humana y los inspectores de esquemas JSON seguros de solo lectura.

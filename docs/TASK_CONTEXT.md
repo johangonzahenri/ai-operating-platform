@@ -1,25 +1,15 @@
-# Task Context
+# Contexto de Tarea (Task Context)
 
-The Task Context layer is an execution-scoped, provider-neutral snapshot used to
-give planners and model rounds the bounded context they need for one task.
+La capa del Contexto de Tarea (Task Context) es una instantánea (snapshot) de alcance de ejecución y neutral respecto al proveedor, utilizada para dar a los planificadores y rondas del modelo el contexto limitado que necesitan para una tarea.
 
-It is not persistent memory, an event store, or a replacement for operational
-execution state. It is built in memory and contains only:
+No es memoria persistente, un almacén de eventos (event store) o un reemplazo del estado de ejecución operativa. Se construye en memoria y contiene solo:
 
-- task and execution correlation identifiers;
-- objective and safe task metadata;
-- current execution round and tool;
-- bounded model messages and tool observations;
-- supplied context and execution summaries.
+- identificadores de correlación de tareas y ejecuciones;
+- metadatos seguros de la tarea y objetivo;
+- ronda y herramienta de ejecución actual;
+- mensajes de modelo y observaciones de herramientas limitadas;
+- contexto provisto y resúmenes de ejecución.
 
-`TaskContext` applies configurable limits for message and observation counts,
-string length, object depth, and object keys. Sensitive keys are redacted
-recursively before the snapshot is passed to a planner or model gateway.
-Messages and observations are retained from the most recent entries when a
-limit is exceeded, and the snapshot exposes a `truncated` flag plus counts.
+El `TaskContext` aplica límites configurables para el recuento de mensajes y observaciones, la longitud de las cadenas, la profundidad de los objetos y las claves de los objetos. Las claves sensibles se redactan recursivamente antes de pasar la instantánea a un planificador o gateway de modelo. Los mensajes y las observaciones se retienen de las entradas más recientes cuando se excede un límite, y la instantánea expone una bandera `truncated` más recuentos.
 
-The context is provider-neutral. Provider adapters continue to serialize
-`ModelMessage` and model requests independently; no provider-specific format is
-stored in `TaskContext`. Agent model rounds keep `ModelRequest.messages` as the
-canonical message history and pass a context snapshot without duplicating those
-messages; planners can request the complete bounded snapshot.
+El contexto es neutral al proveedor. Los adaptadores de proveedores continúan serializando `ModelMessage` y las solicitudes de modelo de manera independiente; ningún formato específico del proveedor se almacena en `TaskContext`. Las rondas del modelo de agente mantienen `ModelRequest.messages` como el historial de mensajes canónico y pasan una instantánea de contexto sin duplicar esos mensajes; los planificadores pueden solicitar la instantánea limitada completa.

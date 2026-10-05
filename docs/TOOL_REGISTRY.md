@@ -1,75 +1,73 @@
-﻿# Dynamic Tool Registry & Tool Invocation Runtime
+# Registro de Herramientas Dinámico y Runtime de Invocación de Herramientas
 
-## 1. Overview & Architectural Principle
+## 1. Visión General y Principio Arquitectónico
 
-In the AI Operating Platform, the relationship between AI models and execution is governed by the core invariant:
+En la AI Operating Platform, la relación entre los modelos de IA y la ejecución está gobernada por la invariante fundamental:
 
-\\\	ext
-The Model PROPOSES ──► The Validator VERIFIES ──► The Policy AUTHORIZES ──► The Runtime EXECUTES
-\\\
+> **El Modelo PROPONE ──► El Validador VERIFICA ──► La Política AUTORIZA ──► El Runtime EJECUTA**
 
-Models never execute tools directly. Tool execution is handled by the deterministic, boundary-enforced \ToolInvocationRuntime\ operating over an isolated, versioned \ToolRegistry\.
+Los modelos nunca ejecutan herramientas directamente. La ejecución de herramientas es manejada por el `ToolInvocationRuntime` determinístico y delimitado, operando sobre un `ToolRegistry` versionado y aislado.
 
-\\\mermaid
+```mermaid
 flowchart TD
-    LLM["LLM / Planner (Proposes Step)"] -->|"PlanStep"| PEE["PlanExecutionEngine (DAG Scheduler)"]
+    LLM["LLM / Planner (Propone Paso)"] -->|"PlanStep"| PEE["PlanExecutionEngine (Programador DAG)"]
     PEE -->|"SecureToolInvocationRequest"| TIR["ToolInvocationRuntime"]
-    TIR -->|"1. Resolve Tool & Version"| TR["ToolRegistry (Dynamic / Versioned)"]
-    TIR -->|"2. Pre-execution Security Check"| SBE["SecurityBoundaryEnforcer (RBAC & Tenant)"]
-    TIR -->|"3. Policy Check"| PG["PolicyGateway (Preflight Validation)"]
-    TIR -->|"4. Human Approval Hook"| HA{"Critical Risk / Approval Required?"}
-    HA -->|"No Approval Token"| REJ["Reject (ToolApprovalRequiredError)"]
-    HA -->|"Verified Token"| VAL["5. Input Schema & Prototype Check"]
-    VAL -->|"6. Timed Execution & Cancellation"| EXEC["Tool Execution Handler (Sandboxed)"]
-    EXEC -->|"7. Output Schema & Sanitization"| SAN["Enforce Bounded Data & Redact Secrets"]
+    TIR -->|"1. Resolver Herramienta y Versión"| TR["ToolRegistry (Dinámico / Versionado)"]
+    TIR -->|"2. Chequeo de Seguridad Pre-ejecución"| SBE["SecurityBoundaryEnforcer (RBAC y Tenant)"]
+    TIR -->|"3. Chequeo de Políticas"| PG["PolicyGateway (Validación Previa)"]
+    TIR -->|"4. Hook de Aprobación Humana"| HA{"¿Riesgo Crítico / Requiere Aprobación?"}
+    HA -->|"Sin Token de Aprobación"| REJ["Rechazar (ToolApprovalRequiredError)"]
+    HA -->|"Token Verificado"| VAL["5. Chequeo de Esquema de Entrada y Prototipo"]
+    VAL -->|"6. Ejecución Temporizada y Cancelación"| EXEC["Manejador de Ejecución de Herramienta (Sandbox)"]
+    EXEC -->|"7. Esquema de Salida y Sanitización"| SAN["Aplicar Datos Delimitados y Ocultar Secretos"]
     SAN -->|"8. ToolExecutionResult"| PEE
-    SAN -->|"Audit Event"| ES["Durable EventStore"]
-\\\
+    SAN -->|"Evento de Auditoría"| ES["EventStore Durable"]
+```
 
 ---
 
-## 2. Dynamic Tool Registry (\ToolRegistry\)
+## 2. Registro Dinámico de Herramientas (`ToolRegistry`)
 
-The \InMemoryToolRegistry\ provides dynamic, versioned registration and safe discovery of platform tools.
+El `InMemoryToolRegistry` proporciona registro dinámico versionado y descubrimiento seguro de herramientas de plataforma.
 
-### Key Capabilities:
-- **Semantic Versioning**: Supports multiple versions per \	oolId\ (e.g., \calculator@1.0.0\, \calculator@2.0.0\). Querying without a version resolves to the latest registered version.
-- **Duplicate Protection**: Re-registering the same \(toolId, version)\ tuple throws \ToolAlreadyExistsError\.
-- **Dynamic Unregistration**: \unregister(toolId, version?)\ removes specific versions or all versions of a tool.
-- **Safe Public Discovery**: \discoverSafeDefinitions(securityContext)\ strips all sensitive metadata (\piKey\, \endpoint\, \secrets\, \credentials\) and filters definitions based on caller permissions and tenant isolation.
-- **Schema Validation**: Validates inputs against JSON schema definitions and rejects extra or mismatched fields fail-closed.
-
----
-
-## 3. Tool Invocation Runtime (\ToolInvocationRuntime\)
-
-Every tool invocation executes through an 8-stage secure pipeline:
-
-1. **Resolution**: Looks up the tool in \ToolRegistry\ by \	oolId\ and optional \ersion\. Throws \ToolNotFoundError\ or \ToolVersionNotFoundError\ if missing.
-2. **Authorization**: Evaluates caller identity strictly from \SecurityContext\ via \SecurityBoundaryEnforcer.enforceToolBoundary\ (or fallback RBAC).
-3. **Policy Gateway Preflight**: Runs policy evaluation against tenant constraints, operation limits, and risk levels.
-4. **Human-in-the-Loop Approval**: Tools with \iskLevel: "CRITICAL"\ or \equiresApproval: true\ require a valid, non-empty \pprovalToken\. Missing tokens trigger \ToolApprovalRequiredError\ and emit \	ool.approval_required\.
-5. **Input Validation & Security Guard**:
-   - Deep-checks inputs against prototype pollution (\__proto__\, \constructor\, \prototype\).
-   - Rejects unpermitted schema properties and type mismatches.
-   - Enforces \MAX_TOOL_INPUT_SIZE\ (64KB).
-6. **Bounded Execution & Cancellation**:
-   - Enforces per-tool execution timeouts (default 30s, max 300s).
-   - Listens to \CancellationToken\ before invocation and during execution.
-7. **Output Validation & Sanitization**:
-   - Validates outputs against declared \outputSchema\.
-   - Truncates oversized payloads (\MAX_TOOL_OUTPUT_SIZE = 1MB\).
-   - Deep freezes output and recursively redacts credentials and tokens.
-8. **Audit Trail**: Emits structured domain events (\	ool.invocation.requested\, \	ool.authorized\, \	ool.rejected\, \	ool.execution.timed_out\, \	ool.execution.cancelled\).
+### Capacidades Clave:
+- **Versionado Semántico**: Soporta múltiples versiones por `toolId` (ej., `calculator@1.0.0`, `calculator@2.0.0`). Consultar sin una versión resuelve a la última versión registrada.
+- **Protección contra Duplicados**: Registrar de nuevo la misma tupla `(toolId, version)` arroja un error `ToolAlreadyExistsError`.
+- **Desregistro Dinámico**: `unregister(toolId, version?)` elimina versiones específicas o todas las versiones de una herramienta.
+- **Descubrimiento Público Seguro**: `discoverSafeDefinitions(securityContext)` elimina todos los metadatos sensibles (`apiKey`, `endpoint`, `secrets`, `credentials`) y filtra las definiciones basadas en permisos del llamador y aislamiento de tenant.
+- **Validación de Esquema**: Valida las entradas contra definiciones de esquema JSON y rechaza campos extra o que no coinciden en modo fail-closed.
 
 ---
 
-## 4. Plan Execution Engine (\PlanExecutionEngine\)
+## 3. Runtime de Invocación de Herramientas (`ToolInvocationRuntime`)
 
-The \PlanExecutionEngine\ takes a DAG-validated \Plan\ and coordinates sequential and concurrent step execution.
+Toda invocación de herramienta se ejecuta a través de un pipeline seguro de 8 etapas:
 
-### Execution Guarantees:
-- **Topological Traversal**: Steps run only after all declared \dependencies\ have completed successfully (\COMPLETED\).
-- **Output Dependency Propagation**: Step inputs can reference prior outputs via standard expressions (e.g. \_dep_step1.value\), which are automatically resolved from predecessor outputs.
-- **Failure Cascading**: When a step fails with \llowPartialBranchFailure: false\, subsequent dependent steps are marked \SKIPPED\ and the execution transitions to \FAILED\.
-- **Cancellation Propagation**: When a \CancellationToken\ is cancelled, running steps are aborted and pending steps are marked \CANCELLED\.
+1. **Resolución**: Busca la herramienta en el `ToolRegistry` por `toolId` y `version` (opcional). Lanza `ToolNotFoundError` o `ToolVersionNotFoundError` si falta.
+2. **Autorización**: Evalúa la identidad del llamador estrictamente desde `SecurityContext` a través de `SecurityBoundaryEnforcer.enforceToolBoundary` (o fallback a RBAC).
+3. **Pre-vuelo de Policy Gateway**: Ejecuta la evaluación de política contra restricciones de tenant, límites de operación y niveles de riesgo.
+4. **Aprobación Humana (Human-in-the-Loop)**: Las herramientas con `riskLevel: "CRITICAL"` o `requiresApproval: true` requieren un `approvalToken` válido y no vacío. Tokens ausentes desencadenan `ToolApprovalRequiredError` y emiten `tool.approval_required`.
+5. **Validación de Entrada y Guardia de Seguridad**:
+   - Inspecciona a profundidad las entradas contra polución de prototipos (`__proto__`, `constructor`, `prototype`).
+   - Rechaza propiedades de esquema no permitidas y desajustes de tipos.
+   - Impone `MAX_TOOL_INPUT_SIZE` (64KB).
+6. **Ejecución Delimitada y Cancelación**:
+   - Impone tiempos de espera de ejecución por herramienta (por defecto 30s, máximo 300s).
+   - Escucha el `CancellationToken` antes de la invocación y durante la ejecución.
+7. **Validación de Salida y Sanitización**:
+   - Valida las salidas contra su `outputSchema` declarado.
+   - Trunca payloads excesivamente grandes (`MAX_TOOL_OUTPUT_SIZE = 1MB`).
+   - Congela profundamente (deep freeze) la salida y redacta recursivamente credenciales y tokens.
+8. **Rastro de Auditoría**: Emite eventos de dominio estructurados (`tool.invocation.requested`, `tool.authorized`, `tool.rejected`, `tool.execution.timed_out`, `tool.execution.cancelled`).
+
+---
+
+## 4. Motor de Ejecución de Plan (`PlanExecutionEngine`)
+
+El `PlanExecutionEngine` toma un `Plan` validado como DAG y coordina la ejecución secuencial y concurrente de los pasos.
+
+### Garantías de Ejecución:
+- **Recorrido Topológico**: Los pasos se ejecutan solo después de que todas las `dependencies` declaradas hayan finalizado con éxito (`COMPLETED`).
+- **Propagación de Dependencia de Salida**: Las entradas de los pasos pueden referenciar salidas previas usando expresiones estándar (ej. `_dep_step1.value`), las cuales se resuelven automáticamente a partir de los resultados de los predecesores.
+- **Cascada de Fallos**: Cuando un paso falla y tiene `allowPartialBranchFailure: false`, los pasos dependientes subsiguientes se marcan como `SKIPPED` y la ejecución hace transición a `FAILED`.
+- **Propagación de Cancelación**: Cuando un `CancellationToken` se cancela, los pasos en curso se abortan y los pasos pendientes se marcan como `CANCELLED`.

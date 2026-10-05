@@ -1,33 +1,17 @@
-# Memory Contract v0.1
+# Contrato de Memoria v0.1
 
-Memory stores selected information that is intentionally retained beyond one
-execution. It is separate from `TaskContext`, `ModelRequest.messages`,
-execution observations, and the EventStore.
+La memoria almacena información seleccionada que es retenida intencionalmente más allá de una ejecución. Está separada del `TaskContext`, `ModelRequest.messages`, observaciones de ejecución y el EventStore.
 
-The current contract is:
+El contrato actual es:
 
-- `MemoryGateway.store(item)` for writes;
-- `MemoryGateway.retrieve(scope, key)` for exact reads;
-- `MemoryGateway.retrieveMany({ scope, key?, limit })` for bounded reads;
-- `MemoryGateway.delete(scope, key)` for deletion.
+- `MemoryGateway.store(item)` para escrituras;
+- `MemoryGateway.retrieve(scope, key)` para lecturas exactas;
+- `MemoryGateway.retrieveMany({ scope, key?, limit })` para lecturas limitadas;
+- `MemoryGateway.delete(scope, key)` para eliminación.
 
-The in-memory adapter supports deterministic retrieval ordered by most recent
-`updatedAt`, then key, and never returns more than the requested limit (maximum
-100). Values and metadata are recursively bounded and redact sensitive keys
-before storage. Memory events expose identifiers and scope/key metadata, not raw
-values.
+El adaptador en memoria (in-memory adapter) admite la recuperación determinista ordenada por el `updatedAt` más reciente, luego por clave, y nunca devuelve más del límite solicitado (máximo 100). Los valores y metadatos están limitados recursivamente y redactan claves sensibles antes del almacenamiento. Los eventos de memoria exponen identificadores y metadatos de alcance/clave (scope/key), no los valores en bruto (raw values).
 
-The current runtime uses agent-scoped memory only. Memory remains in-memory;
-there is no SQLite Memory table, semantic retrieval, vector store, or second
-EventStore. `MemoryService` is the application boundary for runtime writes,
-reads, and deletes. Runtime access requires an agent identity; the composition
-policy permits the agent-declared scope, while callers can inject stricter
-policies for ownership rules. Direct gateway injection remains supported for
-existing adapter tests.
+El tiempo de ejecución actual utiliza solo memoria con alcance de agente. La memoria permanece en memoria; no hay tabla de memoria de SQLite, recuperación semántica, vector store o un segundo EventStore. `MemoryService` es el límite de aplicación para escrituras, lecturas y eliminaciones en tiempo de ejecución. El acceso en tiempo de ejecución requiere una identidad de agente; la política de composición permite el alcance declarado por el agente, mientras que los llamadores pueden inyectar políticas más estrictas para las reglas de propiedad. La inyección directa en el gateway sigue siendo compatible para las pruebas de adaptadores existentes.
 
-`store` is an upsert by `scope + key`: updates preserve the existing `id` and
-`createdAt`, and advance `updatedAt`. Deletion removes the item immediately from
-the gateway; the deletion event remains only as operational audit metadata.
-When an agent execution retrieves memory, the selected bounded value is placed
-in `TaskContext.suppliedContext`. It is not added as a parallel model input and
-does not duplicate `ModelRequest.messages`.
+`store` es un upsert por `scope + key`: las actualizaciones conservan el `id` y `createdAt` existentes, y avanzan `updatedAt`. La eliminación remueve el elemento inmediatamente del gateway; el evento de eliminación permanece solo como metadato de auditoría operativa.
+Cuando una ejecución de agente recupera memoria, el valor limitado seleccionado se coloca en `TaskContext.suppliedContext`. No se agrega como una entrada paralela del modelo y no duplica `ModelRequest.messages`.
