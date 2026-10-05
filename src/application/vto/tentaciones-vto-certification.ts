@@ -246,16 +246,18 @@ export async function runTentacionesVtoCertification(
           domainPurityViolations.push(`${file}: forbidden import from 'three' in domain layer`);
         }
 
+        // Strip comments to inspect executable code rather than documentation/invariants
+        const codeWithoutComments = code
+          .replace(/\/\*\*[\s\S]*?\*\//g, "")
+          .replace(/\/\/.*/g, "");
+
         // Rule B: Zero browser DOM global references in domain code
-        if (/\b(window|document|HTMLCanvasElement|HTMLVideoElement|navigator)\b/.test(code)) {
+        if (/\b(window|document|HTMLCanvasElement|HTMLVideoElement|navigator)\b/.test(codeWithoutComments)) {
           domainPurityViolations.push(`${file}: forbidden browser DOM reference in domain layer`);
         }
 
         // Rule C: Zero 'tentaciones' brand strings in pure domain contracts (must be neutral)
-        const codeWithoutHeaderComments = code
-          .replace(/\/\*\*[\s\S]*?\*\//g, "")
-          .replace(/\/\/.*/g, "");
-        if (/tentaciones/i.test(codeWithoutHeaderComments)) {
+        if (/tentaciones/i.test(codeWithoutComments)) {
           domainPurityViolations.push(`${file}: forbidden brand coupling 'tentaciones' inside domain logic`);
         }
       }

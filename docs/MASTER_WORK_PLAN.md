@@ -1606,7 +1606,74 @@ Certificar formalmente el subsistema de probador virtual (Virtual Try-On - VTO) 
 
 ---
 
-## 33. Checklist Global Obligatorio de Cierre de Fase
+## 33. FASE 164 — PROJ-01 TENTACIONES AI COMMERCE: Post-Release Certification Evidence Hardening & Platform Integration Gateway
+
+### Objetivo
+Endurecer y certificar perimétricamente la integración de la pasarela de plataforma (Platform Integration Gateway) para el subsistema de probador virtual (Virtual Try-On - VTO) de `PROJ-01 Tentaciones AI Commerce` (`POST /api/v1/vto/tryon`), verificando mediante evidencia de ejecución en vivo (E5) el cumplimiento estricto de autenticación (401), aislamiento multi-inquilino (403 `TENANT_MISMATCH`), reconciliación de aplicación (403 `APPLICATION_MISMATCH`), autorización granular de capacidades y scopes (`vto.tryon`, `vto.*`, `ar.fitting_room`), paridad estricta del contrato OpenAPI 3.1, telemetría reactiva en tiempo real mediante Server-Sent Events (SSE) y correlación de trazas con aislamiento seguro de errores sin fugas de memoria ni trazas internas.
+
+### Metadatos
+- **Estado Técnico**: `DONE`
+- **Estado Operativo**: `DONE`
+- **Declaración Canónica**: `PROJ-01 Tentaciones VTO Platform Integration Gateway, security enforcement, OpenAPI 3.1 contract, SSE telemetry & end-to-end evidence hardening CERTIFIED (E5)` / `Physical browser/WebGL2/WebGPU/camera stream runtime ENVIRONMENT PENDING (GAP-ENV-01 / HAL-007)`
+- **Prioridad**: `HIGH`
+- **Dependencias**: Fase 163 (PROJ-01 Tentaciones AI Commerce: Certificación de Aplicación, Seguridad y Release MVP)
+- **Iniciativas Vinculadas**: `AOP-TENTACIONES-AR-3D-AI`, `AOP-QUALITY-GOVERNANCE`
+
+### Tareas
+
+#### 164.1 — Hardened Gateway Authentication & Route Verification
+- **Estado**: `DONE`
+- **Objetivo**: Integrar la ruta canónica `POST /api/v1/vto/tryon` en el enrutador HTTP nativo `src/platform/api/http-router.ts` bajo control estricto de seguridad perimétrica (`enforceSecurity: true`), demostrando denegación por defecto (HTTP 401 `NO_CREDENTIALS_PROVIDED` / `INVALID_TOKEN`) ante solicitudes anónimas o con tokens inválidos.
+- **Evidencia**: `src/platform/api/http-router.ts`, `tests/unit/tentaciones-vto-gateway-hardening.test.ts` (pruebas 1 y 2 PASS).
+- **Archivos Afectados**: `src/platform/api/http-router.ts`, `tests/unit/tentaciones-vto-gateway-hardening.test.ts`.
+
+#### 164.2 — Multi-Tenant Isolation & Application Reconciliation
+- **Estado**: `DONE`
+- **Objetivo**: Implementar y validar los controles de segregación multi-inquilino y concordancia de aplicación satélite: rechazo fail-closed (HTTP 403 `TENANT_MISMATCH`) si el inquilino autenticado difiere del inquilino solicitado en el payload (`tenantId`), y rechazo (HTTP 403 `APPLICATION_MISMATCH`) si el cliente intenta operar fuera de su ámbito de aplicación (`PROJ-01-TENTACIONES`).
+- **Evidencia**: `src/platform/api/http-router.ts`, `tests/unit/tentaciones-vto-gateway-hardening.test.ts` (pruebas 3, 4 y 5 PASS).
+- **Archivos Afectados**: `src/platform/api/http-router.ts`, `tests/unit/tentaciones-vto-gateway-hardening.test.ts`.
+
+##### Cambios surgidos durante 164.2:
+- **164.2.1 — Multi-Tenant Header vs Body Reconciliation Gate**:
+  - *Tipo*: `CHANGE`
+  - *Fecha*: 2026-10-05
+  - *Detectado durante*: Implementación de `POST /api/v1/vto/tryon` en `src/platform/api/http-router.ts`.
+  - *Origen*: Necesidad de prevenir bypasses de aislamiento multi-tenant cuando un cliente autenticado para el tenant A suministra un `tenantId` correspondiente al tenant B dentro del cuerpo JSON.
+  - *Decisión*: Reconciliar explícitamente `x-tenant-id` de cabecera contra `body.tenantId`, emitiendo HTTP 403 `TENANT_MISMATCH` de forma fail-closed ante cualquier discrepancia.
+  - *Impacto*: Blindaje del aislamiento estricto multi-tenant a nivel de pasarela perimétrica HTTP.
+  - *Estado*: `DONE`
+
+#### 164.3 — Granular Capability & Scope Enforcement
+- **Estado**: `DONE`
+- **Objetivo**: Implementar y certificar la autorización granular por scopes para el probador virtual: permitir la ejecución con tokens autorizados con scopes `vto.tryon`, `vto.*` o la capability de plataforma `ar.fitting_room`, y denegar con HTTP 403 `INSUFFICIENT_SCOPE` ante credenciales válidas pero carentes de los permisos requeridos.
+- **Evidencia**: `src/infrastructure/security/in-memory-role-repository.ts`, `src/domain/application/application-contract.ts`, `src/platform/api/http-router.ts`, `tests/unit/tentaciones-vto-gateway-hardening.test.ts` (pruebas 6, 7, 8 y 9 PASS).
+- **Archivos Afectados**: `src/infrastructure/security/in-memory-role-repository.ts`, `src/domain/application/application-contract.ts`, `src/platform/api/http-router.ts`, `tests/unit/tentaciones-vto-gateway-hardening.test.ts`.
+
+#### 164.4 — Server-Sent Events (SSE) Telemetry & Observability
+- **Estado**: `DONE`
+- **Objetivo**: Integrar la emisión de eventos de telemetría reactiva en el ciclo de vida del probador virtual (`vto.tryon.started`, `vto.tryon.completed`, `vto.tryon.failed`), asegurar la propagación determinista del contexto de traza W3C (`traceId`, `x-trace-id`, `requestId`), garantizar aislamiento seguro de errores sin fugas de estructuras internas ni trazas de pila, y verificar idempotencia mediante `idempotencyKey`.
+- **Evidencia**: `src/domain/events/events.ts`, `src/platform/api/http-router.ts`, `tests/unit/tentaciones-vto-gateway-hardening.test.ts` (pruebas 10, 11, 12, 13 y 14 PASS).
+- **Archivos Afectados**: `src/domain/events/events.ts`, `src/platform/api/http-router.ts`, `tests/unit/tentaciones-vto-gateway-hardening.test.ts`.
+
+##### Cambios surgidos durante 164.4:
+- **164.4.1 — Deterministic Trace Extraction & Error Redaction Boundary**:
+  - *Tipo*: `CHANGE`
+  - *Fecha*: 2026-10-05
+  - *Detectado durante*: Verificación de observabilidad SSE y correlación W3C.
+  - *Origen*: Los eventos SSE y respuestas de error del pipeline VTO requieren correlación determinista sin filtrar trazas de pila internas ni estructuras de base de datos.
+  - *Decisión*: Extraer y propagar `traceId` desde `x-trace-id` y correlation headers en la respuesta y los eventos `vto.tryon.*`, y aplicar formateo seguro de errores (`sendError`) garantizando 0 leaks y 0 stack traces.
+  - *Impacto*: Observabilidad determinista y seguridad perimétrica contra fugas de información interna.
+  - *Estado*: `DONE`
+
+#### 164.5 — OpenAPI 3.1 Contract Parity & Master Verification Suite
+- **Estado**: `DONE`
+- **Objetivo**: Formalizar el contrato OpenAPI 3.1 para la ruta `/vto/tryon` en `docs/openapi.yaml`, validar esquemas canónicos de request/response (`VirtualTryOnApiRequest`, `VirtualTryOnApiResponse`), actualizar la prueba de contrato `tests/contract/openapi-contract.test.ts`, documentar la integración en `docs/TENTACIONES_PLATFORM_INTEGRATION.md`, y construir la suite de verificación completa `tests/unit/tentaciones-vto-gateway-hardening.test.ts` (17/17 tests PASS).
+- **Evidencia**: `docs/openapi.yaml`, `tests/contract/openapi-contract.test.ts` (5/5 PASS), `docs/TENTACIONES_PLATFORM_INTEGRATION.md`, `tests/unit/tentaciones-vto-gateway-hardening.test.ts` (17/17 PASS, 2130 tests totales del sistema PASS en 234 suites).
+- **Archivos Afectados**: `docs/openapi.yaml`, `tests/contract/openapi-contract.test.ts`, `docs/TENTACIONES_PLATFORM_INTEGRATION.md`, `tests/unit/tentaciones-vto-gateway-hardening.test.ts`, `docs/MASTER_WORK_PLAN.md`, `docs/ROADMAP_MASTER.md`.
+
+---
+
+## 34. Checklist Global Obligatorio de Cierre de Fase
 
 Toda fase futura debe satisfacer el siguiente checklist integral antes de ser declarada `DONE`:
 
@@ -1631,9 +1698,9 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 34. Plantillas Oficiales de Registro
+## 35. Plantillas Oficiales de Registro
 
-### 34.1. Plantilla de Fase Futura
+### 35.1. Plantilla de Fase Futura
 
 ```markdown
 ## FASE X — [Título de la Fase]
@@ -1668,7 +1735,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 - X.1.1 — [Título del cambio si surge]
 ```
 
-### 34.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
+### 35.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
 
 ```markdown
 ### X.Y.Z — [Nombre del Cambio Imprevisto]
@@ -1687,7 +1754,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 35. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
+## 36. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
 
 
 Las siguientes líneas de trabajo constituyen el backlog estratégico aprobado. Se mantienen en estado `PLANNED`, `BACKLOG` o `EXPLORATORY` y no deben marcarse como `DONE` hasta contar con código y pruebas completas:

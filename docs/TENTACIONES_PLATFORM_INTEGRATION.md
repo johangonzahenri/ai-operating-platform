@@ -72,6 +72,7 @@ $$\text{CORE ENGINE} \neq \text{PLATFORM PRODUCT} \neq \text{APPLICATIONS}$$
    - `product.compare`
    - `cart.assistance`
    - `ar.fitting_room`
+   - `vto.tryon`
    - `orchestrate`
    - `tasks.create`
    - `tasks.read`
@@ -126,7 +127,64 @@ const result = await adapter.discoverProducts("Quiero zapatillas negras para cor
 
 ---
 
-## 5. Resilience & Fallback Matrix
+## 5. Virtual Try-On (VTO) & Spatial Commerce Endpoint (`POST /api/v1/vto/tryon`)
+
+The platform exposes a native, secured HTTP endpoint for virtual fitting room try-on requests:
+
+### Request Signature
+
+```http
+POST /api/v1/vto/tryon HTTP/1.1
+Host: 127.0.0.1:3000
+Content-Type: application/json
+X-API-Key: key-tentaciones.<secret>
+X-Tenant-Id: tenant-tentaciones
+X-Application-Id: tentaciones-commerce
+X-Trace-Id: trace-vto-12345
+
+{
+  "garment": {
+    "productId": "garment-blazer-001",
+    "category": "UPPER_BODY",
+    "name": "Blazer Ejecutivo Negro",
+    "brand": "Tentaciones",
+    "size": "M",
+    "primaryAsset": {
+      "referenceId": "asset-garment-001",
+      "sourceType": "URL",
+      "uriOrHandle": "https://assets.tentaciones.com/garments/blazer-001.png",
+      "mimeType": "image/png"
+    }
+  },
+  "bodyProfile": {
+    "profileId": "profile-customer-001",
+    "profileType": "KNOWN_PRESET",
+    "presetName": "Standard-F",
+    "genderPresentation": "FEMININE"
+  },
+  "privacyPolicy": {
+    "retentionMode": "EPHEMERAL_SESSION",
+    "ttlSeconds": 300,
+    "zeroRetentionEnforced": true
+  }
+}
+```
+
+### Security & Capability Enforcement
+- **Authentication**: Strict API Key / Bearer token validation (`enforceSecurity: true`). Missing or invalid credential returns `401 UNAUTHORIZED`.
+- **Tenant Isolation**: Caller tenant (`X-Tenant-Id`) must match authenticated credential. Body `tenantId` mismatch returns `403 TENANT_MISMATCH`.
+- **Application Isolation**: Caller application (`X-Application-Id`) must match registered identity. Mismatch returns `403 APPLICATION_MISMATCH`.
+- **Scope / Capability**: Requires `vto.tryon`, `vto.*`, or canonical `ar.fitting_room`. Lacking scope returns `403 INSUFFICIENT_SCOPE`.
+
+### SSE Telemetry & Lifecycle Events
+During try-on execution, the platform emits lifecycle events on `/api/v1/events/stream`:
+1. `vto.tryon.started`: Emitted immediately after validation and request queuing.
+2. `vto.tryon.completed`: Emitted on successful inference with provider metadata and artifact details.
+3. `vto.tryon.failed`: Emitted on failure or timeout.
+
+---
+
+## 6. Resilience & Fallback Matrix
 
 When the platform is unavailable or rejects the request, Tentaciones degrades gracefully to local commerce logic:
 
@@ -140,7 +198,7 @@ When the platform is unavailable or rejects the request, Tentaciones degrades gr
 
 ---
 
-## 6. Local Development & Verification
+## 7. Local Development & Verification
 
 ### 1. Start Platform API
 

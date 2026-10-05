@@ -181,6 +181,8 @@ import {
   EvidenceResourceNotFoundError,
 } from "../../domain/governance/evidence-export-errors.js";
 import { SparePartsFacade } from "../../application/spareparts/spare-parts-facade.js";
+import { VirtualTryOnService } from "../../application/vto/virtual-tryon-service.js";
+import type { VirtualTryOnRequest } from "../../domain/vto/virtual-tryon.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -225,6 +227,7 @@ export interface HttpServerOptions {
   readonly oidcJwksUri?: string | undefined;
   readonly oidcAllowedAlgorithms?: readonly string[] | undefined;
   readonly sparePartsFacade?: SparePartsFacade | undefined;
+  readonly virtualTryOnService?: VirtualTryOnService | undefined;
   readonly mcpServer?: import("../mcp/platform-mcp-server.js").PlatformMcpServer | undefined;
 }
 
@@ -233,6 +236,7 @@ export function createHttpServer(
   options?: HttpServerOptions
 ): http.Server {
   const defaultSparePartsFacade = options?.sparePartsFacade ?? new SparePartsFacade();
+  const defaultVirtualTryOnService = options?.virtualTryOnService ?? new VirtualTryOnService();
   const credService = options?.apiCredentialService ?? service.getApiCredentialService();
   const authService =
     options?.authService ??
@@ -547,6 +551,8 @@ export function createHttpServer(
             if (perm === "task.create" && action === "tasks.create") return true;
             if (perm === "spareparts.search" && (action === "spareparts.search" || action === "tool.invoke")) return true;
             if (perm === "spareparts:read" && (action === "spareparts.search" || action === "tool.invoke")) return true;
+            if ((perm === "vto.tryon" || perm === "ar.fitting_room") && (action === "vto.tryon" || action === "ar.fitting_room" || action === "tool.invoke")) return true;
+            if (perm === "vto:read" && (action === "vto.tryon" || action === "tool.invoke")) return true;
             return false;
           };
 
@@ -7502,6 +7508,165 @@ export function createHttpServer(
             }
             console.error("[HTTP 500] Spare parts search error:", err);
             sendError(500, err?.message || "Internal error during spare parts search", "INTERNAL_SERVER_ERROR");
+            return;
+          }
+        }
+
+        // POST /vto/tryon (PROJ-01 Phase 164)
+        if (subPath === "/vto/tryon" && req.method === "POST") {
+          const authCheck = await authenticateAndAuthorize("vto.tryon", "API", "vto", undefined, false);
+          if (!authCheck.ok) {
+            sendError(authCheck.status, authCheck.message, authCheck.code);
+            return;
+          }
+          const bodyResult = await readJsonBody();
+          if (!bodyResult.ok) {
+            sendError(bodyResult.status, bodyResult.error, bodyResult.code);
+            return;
+          }
+
+          const callerTenant = authCheck.context?.tenantId ?? reqCtx.tenantId ?? "tenant-tentaciones";
+          const rawBody = (bodyResult.body ?? {}) as any;
+
+          // Enforce tenant isolation against payload tenantId if specified
+          if (rawBody.tenantId && rawBody.tenantId !== callerTenant) {
+            sendError(403, `Tenant mismatch: Caller tenant '${callerTenant}' does not match body tenantId '${rawBody.tenantId}'`, "TENANT_MISMATCH");
+            return;
+          }
+
+          // Enforce application isolation against payload applicationId if specified
+          const callerAppId = (authCheck.context?.metadata?.applicationId as string) ?? authCheck.context?.principal?.metadata?.applicationId;
+          if (callerAppId && rawBody.applicationId && rawBody.applicationId !== callerAppId) {
+            sendError(403, `Application mismatch: Caller application '${callerAppId}' does not match body applicationId '${rawBody.applicationId}'`, "APPLICATION_MISMATCH");
+            return;
+          }
+
+          // Validate required VTO fields: garment and bodyProfile
+          if (!rawBody.garment || !rawBody.garment.productId || !rawBody.garment.category) {
+            sendError(400, "Validation failed: garment with productId and category is required", "INVALID_REQUEST");
+            return;
+          }
+          if (!rawBody.bodyProfile || !rawBody.bodyProfile.profileId || !rawBody.bodyProfile.profileType) {
+            sendError(400, "Validation failed: bodyProfile with profileId and profileType is required", "INVALID_REQUEST");
+            return;
+          }
+
+          const clientTraceId = (req.headers["x-trace-id"] as string) || reqCtx.correlationId || rawBody.metadata?.traceId || rawBody.traceId || `trace-vto-${crypto.randomUUID()}`;
+          const requestId = rawBody.requestId || (req.headers["x-request-id"] as string) || reqCtx.requestId || `req-vto-${crypto.randomUUID()}`;
+          const idempotencyKey = rawBody.idempotencyKey || (rawBody.requestId ? `idemp-${rawBody.requestId}` : `idemp-vto-${rawBody.garment.productId}-${rawBody.bodyProfile.profileId}-${clientTraceId}`);
+
+          const vtoRequest: VirtualTryOnRequest = {
+            requestId,
+            tenantId: callerTenant,
+            applicationId: rawBody.applicationId || callerAppId || "tentaciones-commerce",
+            idempotencyKey,
+            garment: rawBody.garment,
+            bodyProfile: rawBody.bodyProfile,
+            userImage: rawBody.userImage,
+            pose: rawBody.pose,
+            preferredTier: rawBody.preferredTier,
+            privacyPolicy: {
+              retentionMode: rawBody.privacyPolicy?.retentionMode ?? "EPHEMERAL_SESSION",
+              ttlSeconds: rawBody.privacyPolicy?.ttlSeconds ?? 300,
+              allowCloudFallback: rawBody.privacyPolicy?.allowCloudFallback ?? false,
+              zeroRetentionEnforced: rawBody.privacyPolicy?.zeroRetentionEnforced ?? true,
+              anonymizeMetadata: rawBody.privacyPolicy?.anonymizeMetadata ?? true,
+            },
+            metadata: {
+              traceId: clientTraceId,
+              submittedVia: "PlatformHttpGateway",
+              ...(rawBody.metadata ?? {}),
+            },
+          };
+
+          const eventStream = service.getEventStream();
+
+          // 1. Emit telemetry event: vto.tryon.started
+          if (eventStream) {
+            try {
+              eventStream.publishEvent({
+                id: crypto.randomUUID(),
+                type: "vto.tryon.started",
+                occurredAt: new Date(),
+                traceId: clientTraceId,
+                aggregateId: "tentaciones-commerce",
+                payload: {
+                  applicationId: vtoRequest.applicationId,
+                  tenantId: callerTenant,
+                  traceId: clientTraceId,
+                  requestId: vtoRequest.requestId,
+                  productId: vtoRequest.garment.productId,
+                  profileId: vtoRequest.bodyProfile.profileId,
+                },
+              });
+            } catch {
+              // Non-blocking telemetry
+            }
+          }
+
+          try {
+            const result = await defaultVirtualTryOnService.submitTryOn(vtoRequest);
+
+            // 2. Emit telemetry event: vto.tryon.completed or vto.tryon.failed
+            if (eventStream) {
+              try {
+                eventStream.publishEvent({
+                  id: crypto.randomUUID(),
+                  type: result.status === "SUCCESS" ? "vto.tryon.completed" : "vto.tryon.failed",
+                  occurredAt: new Date(),
+                  traceId: clientTraceId,
+                  aggregateId: "tentaciones-commerce",
+                  payload: {
+                    applicationId: vtoRequest.applicationId,
+                    tenantId: callerTenant,
+                    traceId: clientTraceId,
+                    requestId: vtoRequest.requestId,
+                    jobId: result.jobId,
+                    status: result.status,
+                    providerId: result.inferenceMetadata.providerId,
+                    executionTier: result.inferenceMetadata.executionTier,
+                  },
+                });
+              } catch {
+                // Non-blocking telemetry
+              }
+            }
+
+            sendJson(200, {
+              status: result.status,
+              jobId: result.jobId,
+              requestId: result.requestId,
+              compositeArtifact: result.primaryArtifact,
+              primaryArtifact: result.primaryArtifact,
+              auxiliaryArtifacts: result.auxiliaryArtifacts,
+              fitAssessment: result.fitAssessment,
+              inferenceMetadata: result.inferenceMetadata,
+              completedAt: result.completedAt,
+              error: result.error,
+            });
+            return;
+          } catch (err: any) {
+            if (eventStream) {
+              try {
+                eventStream.publishEvent({
+                  id: crypto.randomUUID(),
+                  type: "vto.tryon.failed",
+                  occurredAt: new Date(),
+                  traceId: clientTraceId,
+                  aggregateId: "tentaciones-commerce",
+                  payload: {
+                    applicationId: vtoRequest.applicationId,
+                    tenantId: callerTenant,
+                    traceId: clientTraceId,
+                    requestId: vtoRequest.requestId,
+                    error: err?.message || "Internal error during virtual try-on",
+                  },
+                });
+              } catch {
+                // Non-blocking telemetry
+              }
+            }
+            sendError(500, err?.message || "Internal error during virtual try-on execution", "INTERNAL_SERVER_ERROR");
             return;
           }
         }

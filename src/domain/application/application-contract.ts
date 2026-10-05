@@ -86,7 +86,16 @@ export const PLATFORM_CAPABILITY_CATALOG: readonly PlatformCapabilityDefinition[
     description: "Interactive virtual try-on, dimensional analysis, and 3D asset spatial projection.",
     riskTier: "MEDIUM",
     requiredPlan: "PRO",
-    endpoints: ["POST /api/v1/tasks", "GET /api/v1/tools"],
+    endpoints: ["POST /api/v1/tasks", "GET /api/v1/tools", "POST /api/v1/vto/tryon"],
+  },
+  {
+    id: "vto.tryon",
+    name: "Virtual Try-On Neural Inference & Spatial Composition",
+    category: "AR_3D",
+    description: "On-device and satellite neural virtual try-on garment warping and spatial preview generation.",
+    riskTier: "MEDIUM",
+    requiredPlan: "PRO",
+    endpoints: ["POST /api/v1/vto/tryon"],
   },
   {
     id: "automation.execute",

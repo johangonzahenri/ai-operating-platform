@@ -159,7 +159,10 @@ describe("Phase 163 — PROJ-01 Tentaciones AI Commerce: MVP Application Certifi
 
       for (const file of files) {
         const code = fs.readFileSync(path.join(domainVtoDir, file), "utf8");
-        const hasDomGlobal = /\b(window|document|HTMLCanvasElement|HTMLVideoElement|navigator)\b/.test(code);
+        const codeWithoutComments = code
+          .replace(/\/\*\*[\s\S]*?\*\//g, "")
+          .replace(/\/\/.*/g, "");
+        const hasDomGlobal = /\b(window|document|HTMLCanvasElement|HTMLVideoElement|navigator)\b/.test(codeWithoutComments);
         assert.equal(hasDomGlobal, false, `File ${file} has forbidden browser DOM reference`);
       }
     });

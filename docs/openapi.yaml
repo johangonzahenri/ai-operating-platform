@@ -1719,6 +1719,36 @@ paths:
         '403':
           $ref: '#/components/responses/ForbiddenError'
 
+  /vto/tryon:
+    post:
+      tags: [Virtual Try-On & AR 3D]
+      summary: On-device and satellite neural Virtual Try-On inference and spatial composition
+      operationId: submitVirtualTryOn
+      security:
+        - apiKeyAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VirtualTryOnApiRequest'
+      responses:
+        '200':
+          description: Virtual try-on execution result with generated composite artifacts and fit assessment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VirtualTryOnApiResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
   /devices/{id}/print-jobs:
     get:
       tags: [Devices & Hardware]
@@ -1763,6 +1793,191 @@ paths:
 
 components:
   schemas:
+    VirtualTryOnApiRequest:
+      type: object
+      required: [garment, bodyProfile]
+      properties:
+        requestId:
+          type: string
+        tenantId:
+          type: string
+        applicationId:
+          type: string
+        idempotencyKey:
+          type: string
+        garment:
+          $ref: '#/components/schemas/GarmentApiReference'
+        bodyProfile:
+          $ref: '#/components/schemas/BodyProfileApiReference'
+        userImage:
+          $ref: '#/components/schemas/ImageAssetApiReference'
+        pose:
+          $ref: '#/components/schemas/PoseApiReference'
+        preferredTier:
+          type: string
+          enum: [TIER_1_ON_DEVICE_NEURAL, TIER_2_ON_DEVICE_STANDARD, TIER_3_ASYNC_WORKER, TIER_4_CLOUD_NEURAL]
+        privacyPolicy:
+          $ref: '#/components/schemas/VirtualTryOnPrivacyPolicyApi'
+        metadata:
+          type: object
+
+    GarmentApiReference:
+      type: object
+      required: [productId, category]
+      properties:
+        productId:
+          type: string
+        variantId:
+          type: string
+        sku:
+          type: string
+        name:
+          type: string
+        brand:
+          type: string
+        category:
+          type: string
+          enum: [UPPER_BODY, LOWER_BODY, FULL_BODY, FOOTWEAR, ACCESSORY, EYEWEAR, JEWELRY]
+        size:
+          type: string
+        color:
+          type: string
+        primaryAsset:
+          $ref: '#/components/schemas/ImageAssetApiReference'
+        attributes:
+          type: object
+
+    BodyProfileApiReference:
+      type: object
+      required: [profileId, profileType]
+      properties:
+        profileId:
+          type: string
+        profileType:
+          type: string
+          enum: [ANONYMOUS_ESTIMATE, KNOWN_PRESET, USER_CALIBRATED, PARAMETRIC_MEASUREMENTS]
+        presetName:
+          type: string
+        genderPresentation:
+          type: string
+          enum: [FEMININE, MASCULINE, NEUTRAL]
+
+    ImageAssetApiReference:
+      type: object
+      required: [referenceId, sourceType, uriOrHandle, mimeType]
+      properties:
+        referenceId:
+          type: string
+        sourceType:
+          type: string
+          enum: [URL, ARTIFACT_REF, EPHEMERAL_BUFFER_REF, DATA_URI]
+        uriOrHandle:
+          type: string
+        mimeType:
+          type: string
+          enum: [image/jpeg, image/png, image/webp, image/avif]
+        widthPx:
+          type: integer
+        heightPx:
+          type: integer
+
+    PoseApiReference:
+      type: object
+      required: [poseType]
+      properties:
+        poseType:
+          type: string
+          enum: [FRONTAL_STAND, SIDE_PROFILE, SEATED, WALKING, CUSTOM]
+        landmarksCount:
+          type: integer
+        confidenceScore:
+          type: number
+
+    VirtualTryOnPrivacyPolicyApi:
+      type: object
+      properties:
+        retentionMode:
+          type: string
+          enum: [EPHEMERAL_SESSION, CACHE_TEMPORARY, PERSISTENT_CONSENT]
+        ttlSeconds:
+          type: integer
+        allowCloudFallback:
+          type: boolean
+        zeroRetentionEnforced:
+          type: boolean
+        anonymizeMetadata:
+          type: boolean
+
+    VirtualTryOnApiResponse:
+      type: object
+      required: [status, jobId, requestId, completedAt]
+      properties:
+        status:
+          type: string
+          enum: [SUCCESS, FAILED, TIMED_OUT, CANCELLED]
+        jobId:
+          type: string
+        requestId:
+          type: string
+        compositeArtifact:
+          $ref: '#/components/schemas/VirtualTryOnArtifactApi'
+        auxiliaryArtifacts:
+          type: array
+          items:
+            $ref: '#/components/schemas/VirtualTryOnArtifactApi'
+        fitAssessment:
+          type: object
+          properties:
+            recommendedSize:
+              type: string
+            fitScore:
+              type: number
+            confidence:
+              type: number
+        inferenceMetadata:
+          type: object
+          properties:
+            providerId:
+              type: string
+            executionTier:
+              type: string
+            durationMs:
+              type: number
+            hardwareUsed:
+              type: string
+        completedAt:
+          type: string
+          format: date-time
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+
+    VirtualTryOnArtifactApi:
+      type: object
+      required: [artifactId, kind, uriOrHandle, mimeType, createdAt]
+      properties:
+        artifactId:
+          type: string
+        kind:
+          type: string
+        uriOrHandle:
+          type: string
+        mimeType:
+          type: string
+        widthPx:
+          type: integer
+        heightPx:
+          type: integer
+        byteSize:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
     SparePartsSearchRequest:
       type: object
       required: [query]

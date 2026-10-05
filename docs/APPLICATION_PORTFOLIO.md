@@ -21,15 +21,15 @@ $$\text{Core Engine} \neq \text{Platform Product} \neq \text{Child Applications}
 ### 2.1. Proyecto 01: Tentaciones AI Commerce (`PROJ-01-TENTACIONES`)
 * **Propósito**: E-Commerce inteligente para retail de moda femenina y deportiva con probador virtual 3D/AR, búsqueda en lenguaje natural y asistencia de carrito.
 * **Dominio de Negocio**: Retail, Fashion, E-Commerce.
-* **Estado Actual**: **`PARTIAL / LIVE ADAPTER`** (Lógica de negocio, adaptador de plataforma, probador AR y simulación Webpay Demo implementados en `src/application/platform/` con 48 tests pasando).
-* **Capacidades Consumidas**: `product.discovery`, `product.recommendation`, `product.compare`, `cart.assistance`, `ar.fitting_room`.
+* **Estado Actual**: **`MVP CERTIFIED / GATEWAY HARDENED`** (Pipeline completo VTO AR 3D, inferencia on-device WebGPU/WGSL, WebWorker asíncrono, loop continuo, compositing WarpField2D, renderizador Three.js satélite, arnés de certificación formal de 9 puntos en Fase 163 con brecha ambiental `GAP-ENV-01 / HAL-007` monitoreada, y pasarela HTTP perimétrica endurecida en Fase 164 con autenticación, aislamiento multi-tenant, OpenAPI 3.1 y telemetría SSE; 221 tests VTO pasando).
+* **Capacidades Consumidas**: `product.discovery`, `product.recommendation`, `product.compare`, `cart.assistance`, `ar.fitting_room`, `vto.tryon`.
 * **Estrategia de Contingencia**: Conmutación automática a `LOCAL_FALLBACK` o `TRADITIONAL_COMMERCE` ante desconexión de la plataforma.
 
 ### 2.2. Proyecto 02: Spare Parts Search & Comparison (`PROJ-02-SPAREPARTS`)
 * **Propósito**: Buscador y comparador inteligente de repuestos automotrices multi-tienda con verificación determinista de compatibilidad, cálculo de reputación de vendedores y costo total (inspirado en SoloTodo).
 * **Dominio de Negocio**: Automotriz, Búsqueda y Comparación, Repuestos.
 * **Documento Canónico**: [`docs/PROJ_02_SPARE_PARTS_PRODUCT_CHARTER.md`](./PROJ_02_SPARE_PARTS_PRODUCT_CHARTER.md)
-* **Estado Actual**: **`PLANNED / SATELLITE PRODUCT`** (Planificado formalmente en Fases 141-149; arnés de referencia previa validado).
+* **Estado Actual**: **`MVP CERTIFIED / SATELLITE PRODUCT`** (Fases 142-152 completadas con 113 tests pasando, certificación formal de 9 puntos y compuerta independiente de evidencia).
 * **Capacidades Consumidas**: `product.discovery`, `parts.compatibility`, `product.compare`, `report.generate`, `automation.execute`.
 * **Estrategia de Contingencia**: Búsqueda estructurada directa y degradación a catálogos locales en caché ante desconexión de red.
 
