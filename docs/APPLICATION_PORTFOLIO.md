@@ -36,8 +36,8 @@ $$\text{Core Engine} \neq \text{Platform Product} \neq \text{Child Applications}
 ### 2.3. Proyecto 03: Fleet Management (`PROJ-03-FLEET`)
 * **Propósito**: Sistema de gestión de flotas vehiculares, telemetría IoT en tiempo real, optimización de rutas de reparto y despacho asistido por agentes.
 * **Dominio de Negocio**: Logística, Transporte, Cadena de Suministro.
-* **Documentos Canónicos**: [`docs/PROJ_03_FLEET_PRODUCT_CHARTER.md`](./PROJ_03_FLEET_PRODUCT_CHARTER.md), [`docs/FLEET_TELEMETRY_SPECIFICATION.md`](./FLEET_TELEMETRY_SPECIFICATION.md) y [`docs/PROJ_03_FLEET_DOMAIN_MODEL.md`](./PROJ_03_FLEET_DOMAIN_MODEL.md)
-* **Estado Actual**: **`DOMAIN FOUNDATION IMPLEMENTED`** (Formalizado previamente como **`PLANNED / FORMALIZED`** en Fase 165; fundación de dominio satélite, máquina de estados del vehículo, validaciones cinemáticas y eventos de aplicación implementados en `src/satellite/fleet-management/domain/` en Fase 166 con 10 tests pasando; integración satélite en progreso).
+* **Documentos Canónicos**: [`docs/PROJ_03_FLEET_PRODUCT_CHARTER.md`](./PROJ_03_FLEET_PRODUCT_CHARTER.md), [`docs/FLEET_TELEMETRY_SPECIFICATION.md`](./FLEET_TELEMETRY_SPECIFICATION.md), [`docs/PROJ_03_FLEET_DOMAIN_MODEL.md`](./PROJ_03_FLEET_DOMAIN_MODEL.md) y [`docs/PROJ_03_FLEET_PERSISTENCE_ARCHITECTURE.md`](./PROJ_03_FLEET_PERSISTENCE_ARCHITECTURE.md)
+* **Estado Actual**: **`DOMAIN FOUNDATION IMPLEMENTED`** (Formalizado previamente como **`PLANNED / FORMALIZED`** en Fase 165; fundación de dominio satélite, máquina de estados del vehículo, validaciones cinemáticas y eventos de aplicación implementados en `src/satellite/fleet-management/domain/` en Fase 166 con 10 tests pasando; persistencia satélite dedicada formalizada en Fase 167; implementación de persistencia planificada para Fase 168).
 * **Capacidades Consumidas**: `fleet.telemetry`, `route.optimization`, `maintenance.predictive`, `dispatch.agent`.
 * **Estrategia de Contingencia**: Enrutamiento estático basado en geolocalización tradicional y buffer local de telemetría en dispositivos.
 

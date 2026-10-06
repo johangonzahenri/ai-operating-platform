@@ -1808,7 +1808,60 @@ Resolver el Gate Arquitectónico (GATE 166.0) determinando el límite de aislami
 
 ---
 
-## 36. Checklist Global Obligatorio de Cierre de Fase
+## 36. FASE 167 — PROJ-03 FLEET MANAGEMENT: Formalización de Persistencia Satélite Dedicada y Contratos de Repositorio Aislados
+
+### Objetivo
+Formalizar la arquitectura de persistencia satélite dedicada, los contratos de repositorio desacoplados (`VehicleRepository`, `TelemetryHistoryRepository`), el diseño del esquema relacional (SQLite DDL conceptual), la gobernanza transaccional de concurrencia optimista (OCC) y la retención multinivel de telemetría IoT, garantizando aislamiento físico y lógico absoluto respecto a la persistencia de la plataforma central (`PROJ-03 DATA ≠ PLATFORM CORE DATA`), sin introducir código prematuro en SQLite, servicios de ingesta ni endpoints en esta fase.
+
+### Metadatos
+- **Estado Técnico**: `PLANNED`
+- **Estado Operativo**: `READY`
+- **Declaración Canónica**: `PROJ-03 Fleet Management Persistence Boundary & Repository Port Contracts FORMALIZED` / `Implementation PLANNED for subsequent execution`
+- **Prioridad**: `HIGH`
+- **Dependencias**: Fase 166 (Dominio Satélite Puro & Boundary Transicional ADR 0052)
+- **Iniciativas Vinculadas**: `AOP-FLEET-LOGISTICS`, `AOP-QUALITY-GOVERNANCE`
+
+### Tareas
+
+#### 167.1 — Fleet Persistence Boundary & Storage Isolation Specification
+- **Estado**: `READY`
+- **Objetivo**: Formalizar el límite de persistencia satélite exclusiva, estableciendo que los datos vehiculares y de telemetría residen en almacenamiento satélite dedicado (`data/fleet-management.db` en local, `:memory:` en tests) y jamás en la base central `data/platform.db`, garantizando aislamiento de rendimiento y tolerancia a fallos.
+- **Evidencia**: `docs/PROJ_03_FLEET_PERSISTENCE_ARCHITECTURE.md` (Sección 1 y Sección 2), [ADR 0052](./decisions/0052-transitional-satellite-boundary-and-repository-isolation.md).
+- **Archivos Afectados**: `docs/PROJ_03_FLEET_PERSISTENCE_ARCHITECTURE.md`.
+
+#### 167.2 — VehicleRepository & TelemetryHistoryRepository Port Contracts
+- **Estado**: `READY`
+- **Objetivo**: Especificar contractualmente los puertos de repositorio mínimos e indispensables: `VehicleRepository` (ciclo de vida y OCC de `Vehicle`) y `TelemetryHistoryRepository` (serie temporal append-only de `TelemetrySnapshot`), restringiendo explícitamente repositorios adicionales (rutas, geocercas, mantenimiento) para fases posteriores.
+- **Evidencia**: `docs/PROJ_03_FLEET_PERSISTENCE_ARCHITECTURE.md` (Sección 4).
+- **Archivos Afectados**: `docs/PROJ_03_FLEET_PERSISTENCE_ARCHITECTURE.md`.
+
+#### 167.3 — Satellite SQLite DDL & Relational Schema Design
+- **Estado**: `READY`
+- **Objetivo**: Diseñar la estructura relacional DDL conceptual para la base de datos de flota: `fleet_schema_metadata`, `fleet_vehicles`, `fleet_telemetry_history` (serie temporal 1 Hz) y `fleet_telemetry_daily_summary` (agregaciones para Tier 2), con claves compuestas `(tenant_id, ...)` e índices optimizados para series temporales.
+- **Evidencia**: `docs/PROJ_03_FLEET_PERSISTENCE_ARCHITECTURE.md` (Sección 5).
+- **Archivos Afectados**: `docs/PROJ_03_FLEET_PERSISTENCE_ARCHITECTURE.md`.
+
+#### 167.4 — Concurrency, OCC & Idempotency Specification
+- **Estado**: `READY`
+- **Objetivo**: Definir el modelo de concurrencia y transaccionalidad para la ingesta de telemetría de alta frecuencia (1 Hz) y el procesamiento de ráfagas *store-and-forward*, aplicando pragmas SQLite (`WAL`, `foreign_keys`, `busy_timeout`), control de concurrencia optimista (`version`) y deduplicación idempotente.
+- **Evidencia**: `docs/PROJ_03_FLEET_PERSISTENCE_ARCHITECTURE.md` (Sección 6 y Sección 8).
+- **Archivos Afectados**: `docs/PROJ_03_FLEET_PERSISTENCE_ARCHITECTURE.md`.
+
+#### 167.5 — Data Retention, Tiering & Archival Governance
+- **Estado**: `READY`
+- **Objetivo**: Establecer las políticas de ciclo de vida de los datos: Tier 1 (datos brutos retenidos por 30 días con contrato de poda `pruneOlderThan`) y Tier 2 (resúmenes acumulados retenidos por 5 años para auditoría mecánica y cumplimiento regulatorio).
+- **Evidencia**: `docs/PROJ_03_FLEET_PERSISTENCE_ARCHITECTURE.md` (Sección 9).
+- **Archivos Afectados**: `docs/PROJ_03_FLEET_PERSISTENCE_ARCHITECTURE.md`.
+
+#### 167.6 — Verification Gate, MWP Alignment & Documentation Consistency
+- **Estado**: `READY`
+- **Objetivo**: Registrar la formalización de la Fase 167 en `docs/MASTER_WORK_PLAN.md`, actualizar `docs/ROADMAP_MASTER.md` y `docs/APPLICATION_PORTFOLIO.md`, catalogar los documentos en los registros oficiales y verificar la consistencia documental mediante `scripts/docs-check.mjs`.
+- **Evidencia**: `docs/MASTER_WORK_PLAN.md`, `docs/ROADMAP_MASTER.md`, `docs/APPLICATION_PORTFOLIO.md`, `docs/DOCUMENTATION_REGISTRY.md`, `docs/OFFICIAL_DOCUMENTATION_INDEX.md`.
+- **Archivos Afectados**: `docs/MASTER_WORK_PLAN.md`, `docs/ROADMAP_MASTER.md`, `docs/APPLICATION_PORTFOLIO.md`, `docs/DOCUMENTATION_REGISTRY.md`, `docs/OFFICIAL_DOCUMENTATION_INDEX.md`.
+
+---
+
+## 37. Checklist Global Obligatorio de Cierre de Fase
 
 Toda fase futura debe satisfacer el siguiente checklist integral antes de ser declarada `DONE`:
 
@@ -1833,9 +1886,9 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 37. Plantillas Oficiales de Registro
+## 38. Plantillas Oficiales de Registro
 
-### 37.1. Plantilla de Fase Futura
+### 38.1. Plantilla de Fase Futura
 
 ```markdown
 ## FASE X — [Título de la Fase]
@@ -1870,7 +1923,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 - X.1.1 — [Título del cambio si surge]
 ```
 
-### 37.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
+### 38.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
 
 ```markdown
 ### X.Y.Z — [Nombre del Cambio Imprevisto]
@@ -1889,7 +1942,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 38. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
+## 39. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
 
 
 Las siguientes líneas de trabajo constituyen el backlog estratégico aprobado. Se mantienen en estado `PLANNED`, `BACKLOG` o `EXPLORATORY` y no deben marcarse como `DONE` hasta contar con código y pruebas completas:
