@@ -67,7 +67,7 @@ Las aplicaciones del ecosistema son **entidades de negocio independientes** que 
 * **Agentes Potenciales**: `fleet-dispatcher-agent`, `maintenance-planner-agent`, `fuel-efficiency-agent`.
 * **Flujos de Trabajo Potenciales**: Ingesta de telemetría -> Detección de anomalías -> Re-planificación de rutas -> Asignación a choferes.
 * **Integraciones Potenciales**: Dispositivos GPS/OBD-II, APIs de mapas y tráfico en tiempo real.
-* **Estado Actual**: **`DOMAIN FOUNDATION IMPLEMENTED`** (Product Charter y taxonomía IoT en Fase 165; modelo de dominio satélite, máquina de estados, validaciones cinemáticas y eventos de aplicación implementados en `src/satellite/fleet-management/domain/` en Fase 166 con 10 tests de dominio pasando).
+* **Estado Actual**: **`PERSISTENCE FOUNDATION IMPLEMENTED`** (Product Charter y taxonomía IoT en Fase 165; modelo de dominio satélite implementado en Fase 166 con 10 tests; persistencia SQLite & InMemory implementada en Fase 168 con 14 tests; 24 tests de integración/dominio pasando; persistencia aislada en `data/fleet-management.db` con `FLEET_SCHEMA_VERSION = 1`).
 * **MVP Planificado**: Consola de mapa con visualización de vehículos, estado de combustible y despacho de rutas optimizadas.
 * **Dependencias**: `ai-operating-platform` y cliente `@ai-platform/client`.
 

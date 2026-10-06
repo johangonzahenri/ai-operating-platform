@@ -6,7 +6,7 @@
 
 **Documento:** AI Operating Platform — Libro Oficial de Arquitectura
 **Versión del Documento:** 4.1 (Hardening Arquitectónico, Virtual Try-On y Documentación es-419)
-**Estado del Repositorio:** v1.4.0 Baseline (2148 tests PASS, 0 FAIL — 100% determinismo)
+**Estado del Repositorio:** v1.4.0 Baseline (2162 tests PASS, 0 FAIL — 100% determinismo)
 **Estado Documental:** Oficial / Sincronizado con Fuente de Verdad
 **Fecha de Verificación:** Septiembre de 2026
 **Fuente de Verdad Técnica:** Código fuente (`src/`) + Tests automatizados (`tests/`) + ADRs (`docs/decisions/`)

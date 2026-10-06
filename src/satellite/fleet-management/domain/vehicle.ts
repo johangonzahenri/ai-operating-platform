@@ -43,6 +43,27 @@ export interface CreateVehicleParams {
   readonly assignedDeviceId?: DeviceId;
   readonly initialOdometerKm?: number;
   readonly createdAt?: number;
+  readonly version?: number;
+}
+
+export interface RehydrateVehicleParams {
+  readonly vehicleId: VehicleId;
+  readonly tenantId: TenantId;
+  readonly fleetId: FleetId;
+  readonly vin: string;
+  readonly licensePlate: string;
+  readonly make: string;
+  readonly model: string;
+  readonly year: number;
+  readonly operationalStatus: VehicleOperationalStatus;
+  readonly assignedDeviceId?: DeviceId;
+  readonly assignedRoutePlanId?: RoutePlanId;
+  readonly currentTelemetry?: TelemetrySnapshot;
+  readonly odometerKm: number;
+  readonly createdAt: number;
+  readonly updatedAt: number;
+  readonly version: number;
+  readonly statusHistory?: readonly StateTransitionRecord[];
 }
 
 export class Vehicle {
@@ -62,6 +83,7 @@ export class Vehicle {
   private _currentTelemetry?: TelemetrySnapshot;
   private _odometerKm: number;
   private _updatedAt: number;
+  private _version: number;
   private readonly _statusHistory: StateTransitionRecord[] = [];
 
   private constructor(params: CreateVehicleParams) {
@@ -78,6 +100,7 @@ export class Vehicle {
     this._operationalStatus = params.initialStatus || 'PARKED';
     this._assignedDeviceId = params.assignedDeviceId;
     this._odometerKm = params.initialOdometerKm || 0;
+    this._version = params.version !== undefined ? params.version : 1;
   }
 
   public static create(params: CreateVehicleParams): Vehicle {
@@ -106,9 +129,45 @@ export class Vehicle {
     return new Vehicle(params);
   }
 
+  /**
+   * Rehidrata un agregado Vehicle íntegro desde la capa de persistencia duradera.
+   */
+  public static rehydrate(params: RehydrateVehicleParams): Vehicle {
+    const vehicle = new Vehicle({
+      vehicleId: params.vehicleId,
+      tenantId: params.tenantId,
+      fleetId: params.fleetId,
+      vin: params.vin,
+      licensePlate: params.licensePlate,
+      make: params.make,
+      model: params.model,
+      year: params.year,
+      initialStatus: params.operationalStatus,
+      assignedDeviceId: params.assignedDeviceId,
+      initialOdometerKm: params.odometerKm,
+      createdAt: params.createdAt,
+      version: params.version
+    });
+    vehicle._updatedAt = params.updatedAt;
+    vehicle._assignedRoutePlanId = params.assignedRoutePlanId;
+    vehicle._currentTelemetry = params.currentTelemetry;
+    if (params.statusHistory && params.statusHistory.length > 0) {
+      vehicle._statusHistory.push(...params.statusHistory);
+    }
+    return vehicle;
+  }
+
   // --- Getters ---
   public get operationalStatus(): VehicleOperationalStatus {
     return this._operationalStatus;
+  }
+
+  public get version(): number {
+    return this._version;
+  }
+
+  public incrementVersion(): void {
+    this._version += 1;
   }
 
   public get assignedDeviceId(): DeviceId | undefined {
@@ -160,6 +219,25 @@ export class Vehicle {
     }
     this._assignedRoutePlanId = routePlanId;
     this._updatedAt = Date.now();
+  }
+
+  /**
+   * Ejecuta una transición explícita de estado operacional gobernada por la máquina de estados.
+   */
+  public transitionTo(
+    nextStatus: VehicleOperationalStatus,
+    reason: string = 'Transición operacional de flota',
+    timestamp: number = Date.now()
+  ): void {
+    const transitionRecord = VehicleStateMachine.transition(
+      this._operationalStatus,
+      nextStatus,
+      reason,
+      timestamp
+    );
+    this._operationalStatus = transitionRecord.toStatus;
+    this._statusHistory.push(transitionRecord);
+    this._updatedAt = timestamp;
   }
 
   /**

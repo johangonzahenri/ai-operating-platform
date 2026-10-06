@@ -1861,7 +1861,60 @@ Formalizar la arquitectura de persistencia satélite dedicada, los contratos de 
 
 ---
 
-## 37. Checklist Global Obligatorio de Cierre de Fase
+## 37. FASE 168 — PROJ-03 FLEET MANAGEMENT: Implementación de Persistencia Satélite (SQLite & InMemory Repositories)
+
+### Objetivo
+Implementar de forma completa, verificable y aislada la capa de persistencia satélite para `PROJ-03 Fleet Management & Logistics`, materializando los adaptadores de persistencia SQLite (`SqliteVehicleRepository`, `SqliteTelemetryHistoryRepository`) e In-Memory (`InMemoryVehicleRepository`, `InMemoryTelemetryHistoryRepository`), el gestor de conexiones con pragmas dedicados (`FleetSqliteDatabase`), el esquema relacional con ciclo de vida independiente (`FLEET_SCHEMA_VERSION = 1`) y mapeadores explícitos bidireccionales, garantizando aislamiento multi-tenant estricto fail-closed, control de concurrencia optimista (OCC), idempotencia en ingesta telemática y pureza arquitectónica absoluta (0 importaciones de `src/domain` o `src/infrastructure` del Core Engine, y 0 tablas en `data/platform.db`).
+
+### Metadatos
+- **Estado Técnico**: `DONE`
+- **Estado Operativo**: `DONE`
+- **Declaración Canónica**: `PROJ-03 Fleet Management Satellite Persistence IMPLEMENTED + 100% VERIFIED`
+- **Prioridad**: `HIGH`
+- **Dependencias**: Fase 166 (Dominio Satélite Puro), Fase 167 (Formalización de Persistencia Satélite)
+- **Iniciativas Vinculadas**: `AOP-FLEET-LOGISTICS`, `AOP-QUALITY-GOVERNANCE`
+
+### Tareas
+
+#### 168.1 — Materialización de Puertos de Repositorio en Dominio
+- **Estado**: `DONE`
+- **Objetivo**: Crear formalmente en `src/satellite/fleet-management/domain/repository-ports.ts` las interfaces de puerto `VehicleRepository`, `TelemetryHistoryRepository`, filtros `VehicleFilter`, opciones `QueryTelemetryOptions` y metadatos `TelemetryAuditMetadata`.
+- **Evidencia**: `src/satellite/fleet-management/domain/repository-ports.ts`, re-exportado en `src/satellite/fleet-management/domain/index.ts`.
+- **Archivos Afectados**: `src/satellite/fleet-management/domain/repository-ports.ts`, `src/satellite/fleet-management/domain/index.ts`.
+
+#### 168.2 — Gestor de Base de Datos SQLite Satélite y DDL de Esquema Dedicado
+- **Estado**: `DONE`
+- **Objetivo**: Implementar `FleetSqliteDatabase` con soporte para base de datos dedicada (`data/fleet-management.db`, `:memory:` en tests), pragmas de durabilidad y concurrencia (`WAL`, `foreign_keys`, `busy_timeout = 5000`), transacciones atómicas e inicializador `initializeFleetSchema` con `fleet_schema_metadata`, `fleet_vehicles` y `fleet_telemetry_history` (`FLEET_SCHEMA_VERSION = 1`).
+- **Evidencia**: `src/satellite/fleet-management/infrastructure/persistence/sqlite/fleet-sqlite-database.ts`, `src/satellite/fleet-management/infrastructure/persistence/sqlite/fleet-sqlite-schema.ts`.
+- **Archivos Afectados**: `src/satellite/fleet-management/infrastructure/persistence/sqlite/fleet-sqlite-database.ts`, `src/satellite/fleet-management/infrastructure/persistence/sqlite/fleet-sqlite-schema.ts`.
+
+#### 168.3 — Mapeadores Bidireccionales y Jerarquía de Errores Tipados
+- **Estado**: `DONE`
+- **Objetivo**: Implementar mapeadores relacionales explícitos bidireccionales `mapRowToVehicle`, `mapVehicleToRow`, `mapRowToTelemetrySnapshot`, `mapTelemetrySnapshotToRow` en `fleet-mapper.ts`, y jerarquía de errores tipados `FleetPersistenceError`, `FleetOptimisticConcurrencyError`, `FleetDuplicateVehicleError`, `FleetSecurityViolationError`, `FleetDatabaseLockedError`.
+- **Evidencia**: `src/satellite/fleet-management/infrastructure/persistence/sqlite/fleet-mapper.ts`, `src/satellite/fleet-management/infrastructure/persistence/sqlite/fleet-sqlite-errors.ts`.
+- **Archivos Afectados**: `src/satellite/fleet-management/infrastructure/persistence/sqlite/fleet-mapper.ts`, `src/satellite/fleet-management/infrastructure/persistence/sqlite/fleet-sqlite-errors.ts`.
+
+#### 168.4 — Adaptadores SQLite de Vehículo y Telemetría
+- **Estado**: `DONE`
+- **Objetivo**: Implementar `SqliteVehicleRepository` (CRUD, validación fail-closed de tenant, OCC estricto en updates y colisión de VIN/patente) y `SqliteTelemetryHistoryRepository` (append inmutable, deduplicación idempotente, transacciones en lote `appendBatch`, consultas temporales por rango y poda `pruneOlderThan`).
+- **Evidencia**: `src/satellite/fleet-management/infrastructure/persistence/sqlite/sqlite-vehicle-repository.ts`, `src/satellite/fleet-management/infrastructure/persistence/sqlite/sqlite-telemetry-repository.ts`.
+- **Archivos Afectados**: `src/satellite/fleet-management/infrastructure/persistence/sqlite/sqlite-vehicle-repository.ts`, `src/satellite/fleet-management/infrastructure/persistence/sqlite/sqlite-telemetry-repository.ts`.
+
+#### 168.5 — Adaptadores en Memoria (In-Memory Repositories)
+- **Estado**: `DONE`
+- **Objetivo**: Implementar `InMemoryVehicleRepository` e `InMemoryTelemetryHistoryRepository` garantizando paridad exacta de contratos, aislamiento multi-tenant, OCC determinista, deduplicación de tramas telemáticas y mutaciones aisladas mediante rehidratación inmutable.
+- **Evidencia**: `src/satellite/fleet-management/infrastructure/persistence/in-memory/in-memory-vehicle-repository.ts`, `src/satellite/fleet-management/infrastructure/persistence/in-memory/in-memory-telemetry-repository.ts`.
+- **Archivos Afectados**: `src/satellite/fleet-management/infrastructure/persistence/in-memory/in-memory-vehicle-repository.ts`, `src/satellite/fleet-management/infrastructure/persistence/in-memory/in-memory-telemetry-repository.ts`.
+
+#### 168.6 — Suite Integral de Integración y Verificación de Barreras Arquitectónicas
+- **Estado**: `DONE`
+- **Objetivo**: Construir suite exhaustiva `tests/integration/fleet-persistence.test.ts` con 14 pruebas de integración automatizadas (CRUD, OCC, aislamiento multi-tenant, idempotencia, lotes, poda, paridad en memoria, verificación AST de cero importaciones desde Core Engine `src/domain` y `src/infrastructure`).
+- **Evidencia**: `tests/integration/fleet-persistence.test.ts` (14/14 tests PASS, 2162 tests totales del sistema PASS en 248 suites).
+- **Archivos Afectados**: `tests/integration/fleet-persistence.test.ts`, `src/satellite/fleet-management/domain/vehicle.ts`.
+
+---
+
+## 38. Checklist Global Obligatorio de Cierre de Fase
 
 Toda fase futura debe satisfacer el siguiente checklist integral antes de ser declarada `DONE`:
 
@@ -1886,9 +1939,9 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 38. Plantillas Oficiales de Registro
+## 39. Plantillas Oficiales de Registro
 
-### 38.1. Plantilla de Fase Futura
+### 39.1. Plantilla de Fase Futura
 
 ```markdown
 ## FASE X — [Título de la Fase]
@@ -1923,7 +1976,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 - X.1.1 — [Título del cambio si surge]
 ```
 
-### 38.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
+### 39.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
 
 ```markdown
 ### X.Y.Z — [Nombre del Cambio Imprevisto]
@@ -1942,7 +1995,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 39. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
+## 40. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
 
 
 Las siguientes líneas de trabajo constituyen el backlog estratégico aprobado. Se mantienen en estado `PLANNED`, `BACKLOG` o `EXPLORATORY` y no deben marcarse como `DONE` hasta contar con código y pruebas completas:

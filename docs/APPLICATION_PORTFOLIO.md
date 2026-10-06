@@ -37,7 +37,7 @@ $$\text{Core Engine} \neq \text{Platform Product} \neq \text{Child Applications}
 * **Propósito**: Sistema de gestión de flotas vehiculares, telemetría IoT en tiempo real, optimización de rutas de reparto y despacho asistido por agentes.
 * **Dominio de Negocio**: Logística, Transporte, Cadena de Suministro.
 * **Documentos Canónicos**: [`docs/PROJ_03_FLEET_PRODUCT_CHARTER.md`](./PROJ_03_FLEET_PRODUCT_CHARTER.md), [`docs/FLEET_TELEMETRY_SPECIFICATION.md`](./FLEET_TELEMETRY_SPECIFICATION.md), [`docs/PROJ_03_FLEET_DOMAIN_MODEL.md`](./PROJ_03_FLEET_DOMAIN_MODEL.md) y [`docs/PROJ_03_FLEET_PERSISTENCE_ARCHITECTURE.md`](./PROJ_03_FLEET_PERSISTENCE_ARCHITECTURE.md)
-* **Estado Actual**: **`DOMAIN FOUNDATION IMPLEMENTED`** (Formalizado previamente como **`PLANNED / FORMALIZED`** en Fase 165; fundación de dominio satélite, máquina de estados del vehículo, validaciones cinemáticas y eventos de aplicación implementados en `src/satellite/fleet-management/domain/` en Fase 166 con 10 tests pasando; persistencia satélite dedicada formalizada en Fase 167; implementación de persistencia planificada para Fase 168).
+* **Estado Actual**: **`PERSISTENCE FOUNDATION IMPLEMENTED`** (Formalizado previamente como **`PLANNED / FORMALIZED`** en Fase 165; fundación de dominio satélite implementada en Fase 166 con 10 tests; persistencia satélite dedicada SQLite & InMemory implementada en Fase 168 con 14 tests pasando; total acumulado satélite: 24 tests; siguiente: Fase 169 Ingesta de Telemetría).
 * **Capacidades Consumidas**: `fleet.telemetry`, `route.optimization`, `maintenance.predictive`, `dispatch.agent`.
 * **Estrategia de Contingencia**: Enrutamiento estático basado en geolocalización tradicional y buffer local de telemetría en dispositivos.
 

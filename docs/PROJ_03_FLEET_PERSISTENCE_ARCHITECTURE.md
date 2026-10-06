@@ -2,11 +2,11 @@
 
 > **Documento Canónico de Arquitectura de Persistencia Satélite**  
 > **Proyecto:** `PROJ-03-FLEET` (*Fleet Management & Logistics*)  
-> **Fase del MWP:** Fase 167 (`PLANNED / FORMALIZED`)  
+> **Fase del MWP:** Fase 168 (`IMPLEMENTED / VERIFIED`)  
 > **Línea Base del Sistema:** v1.4.0 Baseline  
 > **Fecha de Formalización:** 2026-10-06  
 > **Alineación Arquitectónica:** [ADR 0052: Transitional Satellite Boundary & Repository Isolation](./decisions/0052-transitional-satellite-boundary-and-repository-isolation.md)  
-> **Estado:** `CANONICAL SPECIFICATION / CONTRACT DESIGN` (Sin implementación ejecutable en esta fase)
+> **Estado:** `CANONICAL SPECIFICATION & IMPLEMENTATION COMPLETE` (Implementación SQLite & InMemory completada en Fase 168)
 
 ---
 
@@ -305,11 +305,12 @@ flowchart TD
 
 ---
 
-## 12. Criterios de Aceptación para la Implementación (Fase 168)
+## 12. Criterios de Aceptación y Estado de Implementación (Fase 168)
 
-Cuando se ejecute la fase de implementación (F168), los entregables deberán cumplir contractualmente con:
+Los entregables contractuales han sido completados y verificados en Fase 168:
 1. `SqliteVehicleRepository` y `SqliteTelemetryHistoryRepository` implementados en `src/satellite/fleet-management/infrastructure/persistence/sqlite/`.
-2. Cero importaciones desde `src/domain/` o `src/infrastructure/persistence/sqlite/` de la plataforma.
-3. Archivo de base de datos configurable (por defecto `data/fleet-management.db`, con soporte para `:memory:`).
-4. Migración inicial `V1_FLEET_DDL` determinista y ejecutable.
-5. 100% de pruebas unitarias y de integración pasando sin dependencias externas.
+2. Adaptadores equivalentes `InMemoryVehicleRepository` y `InMemoryTelemetryHistoryRepository` implementados en `src/satellite/fleet-management/infrastructure/persistence/in-memory/`.
+3. Cero importaciones desde `src/domain/` o `src/infrastructure/persistence/sqlite/` de la plataforma (verificado con test AST de pureza de límites).
+4. Archivo de base de datos configurable (por defecto `data/fleet-management.db`, con soporte para `:memory:`).
+5. Migración inicial `V1_FLEET_DDL` determinista y ejecutable con `FLEET_SCHEMA_VERSION = 1`.
+6. 100% de pruebas unitarias y de integración pasando en `tests/integration/fleet-persistence.test.ts` (14 pruebas verificadas).

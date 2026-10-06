@@ -11,3 +11,4 @@ export * from './geofence.js';
 export * from './route-plan.js';
 export * from './events.js';
 export * from './vehicle.js';
+export * from './repository-ports.js';
