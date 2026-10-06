@@ -21,7 +21,7 @@
 ## Comandos de Verificación
 ```bash
 npm run build   # Compilación de TypeScript
-npm test        # Ejecución completa de la suite de pruebas (2138 tests)
+npm test        # Ejecución completa de la suite de pruebas (2148 tests)
 npm run check   # Verificación de compilación + pruebas
 npm start       # Iniciar servidor HTTP en 127.0.0.1:3000
 ```

@@ -14,6 +14,6 @@ Todas las contribuciones deben mantener estrictamente las invariantes centrales 
 1. Haz un fork y clona el repositorio.
 2. Crea una rama de características (`git checkout -b feat/your-feature`).
 3. Asegúrate de que TypeScript se construya limpiamente: `npm run build`.
-4. Ejecuta todas las pruebas unitarias y de integración: `npm test`. (2138 tests, 0 dependencias en runtime).
+4. Ejecuta todas las pruebas unitarias y de integración: `npm test`. (2148 tests, 0 dependencias en runtime).
 5. Haz commit usando el formato de commit convencional (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`).
 6. Envía un Pull Request con una descripción clara y evidencia de verificación.

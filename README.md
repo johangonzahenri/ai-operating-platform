@@ -5,7 +5,7 @@
 > *"Infraestructura operacional de IA sobre la cual se construyen, gobiernan y observan aplicaciones, automatizaciones y dispositivos empresariales."*
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
-[![Test Suite](https://img.shields.io/badge/tests-2138%20passing-success.svg)]()
+[![Test Suite](https://img.shields.io/badge/tests-2148%20passing-success.svg)]()
 [![Production Dependencies](https://img.shields.io/badge/npm%20dependencies-0%20runtime-blue.svg)]()
 [![Documentation](https://img.shields.io/badge/manual-oficial%20es--419-indigo.svg)](docs/MANUAL_OFICIAL.md)
 [![Libro Oficial](https://img.shields.io/badge/libro-oficial%20v2.0-blueviolet.svg)](LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md)
@@ -123,7 +123,7 @@ npm install
 # 3. Compilar TypeScript en modo estricto
 npm run build
 
-# 4. Ejecutar la suite completa de 2138 pruebas automatizadas
+# 4. Ejecutar la suite completa de 2148 pruebas automatizadas
 npm test
 
 # 5. Ejecutar la verificación integral de build, pruebas y consistencia documental
@@ -151,7 +151,7 @@ El repositorio cuenta con documentación exhaustiva para desarrolladores, arquit
 * 🏛️ **[Nomenclatura Oficial & Mapa Conceptual](docs/PROJECT_NOMENCLATURE.md)** — Definición canónica del ecosistema y glosario.
 * 🗺️ **[Mapa del Repositorio](docs/REPOSITORY_MAP.md)** — Estructura física y desglose de capas en `src/`.
 * 💾 **[Arquitectura de Persistencia SQLite WAL](docs/PERSISTENCE_ARCHITECTURE.md)** — Persistencia duradera, OCC y recuperación ante caídas.
-* 🧪 **[Arquitectura de Pruebas Automatizadas (2138 Tests)](docs/TEST_ARCHITECTURE.md)** — Catálogo de 242 suites y 2138 tests.
+* 🧪 **[Arquitectura de Pruebas Automatizadas (2148 Tests)](docs/TEST_ARCHITECTURE.md)** — Catálogo de 243 suites y 2148 tests.
 * 📜 **[Catálogo de Scripts](docs/SCRIPTS_CATALOG.md)** — Manual de utilidades operacionales y scripts de soporte.
 * 📕 **[Manual Oficial del Desarrollador (es-419)](docs/MANUAL_OFICIAL.md)** — Guía completa paso a paso para extender la plataforma.
 * 🏛️ **[Registro de Decisiones Arquitectónicas (ADRs)](docs/DECISIONS.md)** — Registro inmutable de 61 ADRs.
@@ -163,7 +163,7 @@ El repositorio cuenta con documentación exhaustiva para desarrolladores, arquit
 * 🖨️ **[Registro de Dispositivos Empresariales](docs/DEVICE_REGISTRY.md)**
 * 🛡️ **[Registro de Seguridad & RBAC](docs/SECURITY_REGISTRY.md)**
 * 🔑 **[Gobernanza de Credenciales API & Autenticación](docs/CREDENTIAL_GOVERNANCE.md)**
-* 🧪 **[Registro Oficial de Pruebas Automatizadas (2138 Tests)](docs/TEST_REGISTRY.md)**
+* 🧪 **[Registro Oficial de Pruebas Automatizadas (2148 Tests)](docs/TEST_REGISTRY.md)**
 * ⚡ **[Runtime de Operaciones Autónomas](docs/AUTONOMOUS_OPERATIONS.md)**
 * 🛡️ **[Gobernanza Continua de Operaciones Autónomas](docs/AUTONOMOUS_GOVERNANCE.md)**
 * 📊 **[Observabilidad de Operaciones Autónomas](docs/AUTONOMOUS_OBSERVABILITY.md)**

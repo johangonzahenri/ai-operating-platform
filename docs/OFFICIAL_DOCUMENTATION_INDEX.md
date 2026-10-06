@@ -70,6 +70,7 @@ Este índice proporciona el mapa canónico de navegación para toda la documenta
 | **Certificación MVP Tentaciones VTO** | [TENTACIONES_VTO_MVP_CERTIFICATION.md](./TENTACIONES_VTO_MVP_CERTIFICATION.md) | Informe oficial de certificación de aplicación de 9 dimensiones y release MVP para Virtual Try-On (PROJ-01). |
 | **Charter PROJ-03 Fleet Management** | [PROJ_03_FLEET_PRODUCT_CHARTER.md](./PROJ_03_FLEET_PRODUCT_CHARTER.md) | Carta constitutiva y especificación de producto para Fleet Management & Logistics (PROJ-03). |
 | **Especificación de Telemetría IoT Flotas** | [FLEET_TELEMETRY_SPECIFICATION.md](./FLEET_TELEMETRY_SPECIFICATION.md) | Taxonomía de telemetría IoT, contratos conceptuales de datos y gobierno de calidad (PROJ-03). |
+| **Modelo de Dominio Satélite Flotas** | [PROJ_03_FLEET_DOMAIN_MODEL.md](./PROJ_03_FLEET_DOMAIN_MODEL.md) | Especificación del modelo de dominio satélite, máquina de estados, validación cinemática y eventos (PROJ-03). |
 | **Plataforma Multi-Agente & Web AI** | [MULTI_AGENT_PLATFORM.md](./MULTI_AGENT_PLATFORM.md) | Arquitectura multi-agente, taxonomía, tool proficiency, Web AI, evaluación y proveedores externos. |
 | **Casos de Uso de Automatización** | [BUSINESS_AGENT_USE_CASES.md](./BUSINESS_AGENT_USE_CASES.md) | Catálogo canónico de casos de uso de automatización empresarial en 13 áreas operacionales. |
 | **Registro de Aplicaciones** | [APPLICATION_REGISTRY.md](./APPLICATION_REGISTRY.md) | Catálogo oficial de aplicaciones satélites del ecosistema (01 a 05). |

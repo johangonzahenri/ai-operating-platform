@@ -1761,7 +1761,54 @@ Establecer la base institucional, funcional y arquitectónica para la tercera ap
 
 ---
 
-## 35. Checklist Global Obligatorio de Cierre de Fase
+## 35. FASE 166 — PROJ-03 FLEET MANAGEMENT: Gate Arquitectónico y Fundación de Dominio Satélite
+
+### Objetivo
+Resolver el Gate Arquitectónico (GATE 166.0) determinando el límite de aislamiento para `PROJ-03 Fleet Management & Logistics` (`PROJ-03-FLEET`) y construir la fundación de dominio satélite desacoplada (`Vehicle`, `TelemetrySnapshot`, `RoutePlan`, `Geofence`), la máquina de estados determinista del vehículo, el motor de validaciones cinemáticas y la definición de eventos de aplicación locales, garantizando cero contaminación del Core Engine (`src/domain/`), cero dependencias de hardware o proveedores externos y estricto aislamiento multi-inquilino.
+
+### Metadatos
+- **Estado Técnico**: `DONE`
+- **Estado Operativo**: `DONE`
+- **Declaración Canónica**: `PROJ-03 Fleet Management Domain Foundation & Satellite Architecture Boundary IMPLEMENTED` / `Application implementation IN_PROGRESS`
+- **Prioridad**: `HIGH`
+- **Dependencias**: Fase 165 (PROJ-03 Product Charter & Telemetry Specification), PlatformClient v1.4.0
+- **Iniciativas Vinculadas**: `AOP-FLEET-LOGISTICS`, `AOP-QUALITY-GOVERNANCE`
+
+### Tareas
+
+#### 166.1 — Vehicle Domain Model & Immutability
+- **Estado**: `DONE`
+- **Objetivo**: Implementar el agregado raíz `Vehicle` y el value object inmutable `TelemetrySnapshot` en `src/satellite/fleet-management/domain/`, garantizando identidades estables, validación fail-closed de coordenadas WGS 84, y odometría monotónica.
+- **Evidencia**: `src/satellite/fleet-management/domain/vehicle.ts`, `src/satellite/fleet-management/domain/telemetry-snapshot.ts`, `tests/unit/fleet-domain-foundation.test.ts`.
+- **Archivos Afectados**: `src/satellite/fleet-management/domain/vehicle.ts`, `src/satellite/fleet-management/domain/telemetry-snapshot.ts`, `src/satellite/fleet-management/domain/types.ts`.
+
+#### 166.2 — Deterministic Vehicle State Machine
+- **Estado**: `DONE`
+- **Objetivo**: Implementar el motor `VehicleStateMachine` con matriz determinista de transiciones (`PARKED`, `IDLING`, `MOVING`, `ALERT`, `OFFLINE`), evaluación a partir de métricas cinemáticas/DTCs y rechazo fail-closed de transiciones prohibidas.
+- **Evidencia**: `src/satellite/fleet-management/domain/vehicle-state-machine.ts`, `tests/unit/fleet-domain-foundation.test.ts`.
+- **Archivos Afectados**: `src/satellite/fleet-management/domain/vehicle-state-machine.ts`.
+
+#### 166.3 — Kinematic Validation & Temporal Semantics
+- **Estado**: `DONE`
+- **Objetivo**: Implementar `KinematicValidator` con cálculo de distancia ortodrómica Haversine, gating de velocidad plausible (umbral $\le 200\text{ km/h}$), detección de saltos irreales de coordenadas (anti-spoofing) y tratamiento determinista de tramas en orden, duplicadas y fuera de orden.
+- **Evidencia**: `src/satellite/fleet-management/domain/kinematic-validator.ts`, `tests/unit/fleet-domain-foundation.test.ts`.
+- **Archivos Afectados**: `src/satellite/fleet-management/domain/kinematic-validator.ts`.
+
+#### 166.4 — Local Application Domain Events & Boundaries
+- **Estado**: `DONE`
+- **Objetivo**: Formalizar el catálogo de eventos de dominio de la aplicación satélite (`fleet.telemetry.ingested`, `fleet.vehicle.status_changed`, `fleet.geofence.entered`, `fleet.geofence.exited`, `fleet.alert.diagnostic_trouble`), preservando su localización satélite sin modificar `src/domain/events/events.ts` de la plataforma central.
+- **Evidencia**: `src/satellite/fleet-management/domain/events.ts`, `tests/unit/fleet-domain-foundation.test.ts`.
+- **Archivos Afectados**: `src/satellite/fleet-management/domain/events.ts`.
+
+#### 166.5 — Spatial Geofencing, Route Planning & Pure Domain Verification
+- **Estado**: `DONE`
+- **Objetivo**: Implementar entidades espaciales `Geofence` (circular y poligonal con algoritmo Ray-Casting) y `RoutePlan` (secuenciación ordenada de waypoints), junto con la suite integral de 10 pruebas automatizadas puras en memoria y verificación de barrera arquitectónica (cero imports de `src/domain` y `src/infrastructure`).
+- **Evidencia**: `src/satellite/fleet-management/domain/geofence.ts`, `src/satellite/fleet-management/domain/route-plan.ts`, `tests/unit/fleet-domain-foundation.test.ts` (10/10 tests PASS, 2148 tests totales del sistema PASS en 243 suites).
+- **Archivos Afectados**: `src/satellite/fleet-management/domain/geofence.ts`, `src/satellite/fleet-management/domain/route-plan.ts`, `tests/unit/fleet-domain-foundation.test.ts`.
+
+---
+
+## 36. Checklist Global Obligatorio de Cierre de Fase
 
 Toda fase futura debe satisfacer el siguiente checklist integral antes de ser declarada `DONE`:
 
@@ -1786,9 +1833,9 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 36. Plantillas Oficiales de Registro
+## 37. Plantillas Oficiales de Registro
 
-### 36.1. Plantilla de Fase Futura
+### 37.1. Plantilla de Fase Futura
 
 ```markdown
 ## FASE X — [Título de la Fase]
@@ -1823,7 +1870,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 - X.1.1 — [Título del cambio si surge]
 ```
 
-### 36.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
+### 37.2. Plantilla de Cambio / Ajuste Impredecible (`X.Y.Z`)
 
 ```markdown
 ### X.Y.Z — [Nombre del Cambio Imprevisto]
@@ -1842,7 +1889,7 @@ Toda fase futura debe satisfacer el siguiente checklist integral antes de ser de
 
 ---
 
-## 37. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
+## 38. Planificación Futura y Candidatos Post-v1.4 (Horizontes Estratégicos)
 
 
 Las siguientes líneas de trabajo constituyen el backlog estratégico aprobado. Se mantienen en estado `PLANNED`, `BACKLOG` o `EXPLORATORY` y no deben marcarse como `DONE` hasta contar con código y pruebas completas:
