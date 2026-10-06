@@ -90,6 +90,7 @@ Este índice proporciona el mapa canónico de navegación para toda la documenta
 | **Registro de Auditorías de Calidad** | [REGISTRO_DE_AUDITORIAS.md](./REGISTRO_DE_AUDITORIAS.md) | Registro histórico central de auditorías formales transversales de la plataforma. |
 | **Auditoría de Fase #001 (AUD-FASE-001)** | [AUDITORIA_FASE_001.md](./AUDITORIA_FASE_001.md) | Informe oficial de auditoría de estabilización transversal para Fases 157–159 (On-Device VTO). |
 | **Auditoría de Fase #002 (AUD-FASE-002)** | [AUDITORIA_FASE_002.md](./AUDITORIA_FASE_002.md) | Informe oficial de auditoría de estabilización transversal para Fases 160–162 (Loop CV, Viewport, Three.js Satélite). |
+| **Auditoría de Fase #003 (AUD-FASE-003)** | [AUDITORIA_FASE_003.md](./AUDITORIA_FASE_003.md) | Informe oficial de auditoría de estabilización transversal para Fases 163–165 (Certificación MVP VTO, Gateway y Flotas). |
 | **Registro de Deuda Técnica** | [TECHNICAL_DEBT.md](./TECHNICAL_DEBT.md) | Inventario formal de mejoras arquitectónicas, refactorizaciones y deudas técnicas gestionadas. |
 | **Trazabilidad de Prompts** | [PROMPT_TRACEABILITY.md](./PROMPT_TRACEABILITY.md) | Registro histórico de trazabilidad de fases y prompts de desarrollo. |
 

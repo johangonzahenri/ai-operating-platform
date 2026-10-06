@@ -91,6 +91,17 @@ Este documento responde de forma inequívoca en todo momento:
 > **Decisión**: Formalizar el dictamen `AUDITORÍA DE FASE APROBADA` en `docs/AUDITORIA_FASE_002.md`, registrar en `docs/REGISTRO_DE_AUDITORIAS.md`, generar manifiesto `docs/integration-evidence/aud-fase-002-manifest.json`, implementar la suite E2E de auditoría `tests/e2e/aud-fase-002.test.ts` (8/8 tests PASS, 2095 tests totales del sistema PASS en 220 suites), cerrar formalmente el hallazgo `HAL-005` como `RESUELTO`, registrar la brecha ambiental `HAL-007` como `MONITOREADO`, y ratificar la política de no implementar aplicaciones adicionales no planificadas ("Hardware Store").  
 > **Evidencia**: `tests/e2e/aud-fase-002.test.ts` (8/8 tests PASS), `docs/AUDITORIA_FASE_002.md`, `docs/integration-evidence/aud-fase-002-manifest.json`, `docs/REGISTRO_DE_AUDITORIAS.md`, `docs/TECHNICAL_DEBT.md`, 2095 tests totales del sistema PASS en 220 suites.
 
+### Tarea Inesperada 1.1.6 — Auditoría Transversal de Estabilización AUD-FASE-003 (Fases 163–165)
+> **Identificador Canónico**: `1.1.6` (Cross-Cutting Phase Stabilization Audit AUD-FASE-003 / Unexpected Governance Task)  
+> **Fecha**: 2026-10-06  
+> **Estado Técnico**: `DONE` | **Estado Operativo**: `DONE`  
+> **Prioridad**: `HIGH`  
+> **Iniciativas Vinculadas**: `AOP-QUALITY-GOVERNANCE` (`docs/ROADMAP_MASTER.md`), `AOP-TENTACIONES-AR-3D-AI`, `AOP-FLEET-LOGISTICS`  
+> **Detectado durante**: Reconciliación técnica, estabilización transversal y gobierno de calidad posterior a la culminación del ciclo compuesto por las Fases 163, 164 y 165 (Certificación MVP VTO, Pasarela HTTP de Plataforma y Formalización de Flotas PROJ-03).  
+> **Origen**: Mandato de gobierno canónico programado en `docs/REGISTRO_DE_AUDITORIAS.md` (cadencia cada 3-4 fases funcionales); auditoría del dictamen `MVP CERTIFIED WITH OPEN ENVIRONMENTAL GAPS` de Tentaciones VTO (F163) sin sobre-afirmaciones en hardware físico; verificación perimétrica del Gateway HTTP (F164: autenticación, autorización fail-closed, aislamiento multi-tenant, OpenAPI 3.1 y telemetría SSE); ratificación de la pureza de Core Engine ante la formalización de `PROJ-03 Fleet Management` (F165: 0 modelos, 0 tablas, 0 endpoints de flotas en el Core); resolución de la discrepancia de conteo de pruebas documentadas (2130 vs 2073 -> 2138 tests PASS con arnés E2E); y diferenciación estricta de telemetría SSE (publicación vs conexión viva dedicada).  
+> **Decisión**: Formalizar el dictamen `AUDITORÍA DE FASE APROBADA CON DEUDA TÉCNICA` en `docs/AUDITORIA_FASE_003.md`, registrar en `docs/REGISTRO_DE_AUDITORIAS.md`, generar manifiesto `docs/integration-evidence/aud-fase-003-manifest.json`, implementar la suite E2E de auditoría `tests/e2e/aud-fase-003.test.ts` (8/8 tests PASS, 2138 tests totales del sistema PASS en 242 suites), cerrar formalmente el hallazgo `HAL-008` como `RESUELTO`, registrar la deuda menor `HAL-009` como `DOCUMENTADO`, mantener abierta `GAP-ENV-01 / HAL-007` como `ENVIRONMENT PENDING`, ratificar que Hardware Store permanece `OUT OF SCOPE`, y determinar que la Fase 166 (PROJ-03 Dominio Satélite de Flotas) es la siguiente unidad canónica formalizable.  
+> **Evidencia**: `tests/e2e/aud-fase-003.test.ts` (8/8 tests PASS), `docs/AUDITORIA_FASE_003.md`, `docs/integration-evidence/aud-fase-003-manifest.json`, `docs/REGISTRO_DE_AUDITORIAS.md`, `docs/TECHNICAL_DEBT.md`, 2138 tests totales del sistema PASS en 242 suites.
+
 ---
 
 ## 2. Separación Conceptual de Documentos

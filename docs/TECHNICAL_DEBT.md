@@ -83,6 +83,22 @@ Este registro documenta de forma honesta, verificada y explícita las limitacion
 
 ---
 
+### GAP-10 / HAL-008: Discrepancia del Conteo Canónico de Pruebas Documentadas (2130 vs 2073)
+* **Severidad:** Resuelta y Cerrada Formalmente (AUD-FASE-003)
+* **Área:** Gobernanza de Calidad / Documentación / Verificación Automatizada
+* **Descripción:** Tras el hito de internacionalización de la Fase 161, la constante estática `CANONICAL_TEST_COUNT` en `scripts/docs-check.mjs` permaneció congelada en 2073, al igual que los documentos espejo (`README.md`, `LIBRO_OFICIAL`, `docs/TEST_REGISTRY.md`). Las 57 pruebas incorporadas entre las Fases 162 a 164 no fueron reflejadas en la constante, creando una divergencia artificial entre el resultado real del ejecutor `node --test` y los chequeos sintácticos de documentación.
+* **Resolución Ejecutada:** Identificada y corregida en `AUD-FASE-003`. Con la incorporación del arnés E2E `tests/e2e/aud-fase-003.test.ts` (8 pruebas), el conteo real exacto ascendió a 2138 pruebas automatizadas aprobadas al 100% en 242 suites. Se actualizó `CANONICAL_TEST_COUNT = '2138'` en `scripts/docs-check.mjs` y se sincronizó toda la documentación canónica, logrando 100% de consistencia.
+
+---
+
+### GAP-11 / HAL-009: Ambigüedad en la Clasificación de Evidencia de Telemetría SSE para VTO
+* **Severidad:** Documentada / Deuda Técnica Menor (AUD-FASE-003)
+* **Área:** Observabilidad / Server-Sent Events / VTO Gateway
+* **Descripción:** La invocación de `POST /api/v1/vto/tryon` emite eventos reactivos de ciclo de vida (`vto.tryon.started`, `vto.tryon.completed`, `vto.tryon.failed`) al adaptador de eventos en memoria (`EventStreamAdapter`), verificado bajo nivel E5. No obstante, la conexión viva del cliente HTTP SSE (`GET /api/v1/events/stream`), la recuperación histórica con `Last-Event-ID` y el buffer de replay para eventos VTO se apoyan en la infraestructura transversal de la plataforma (Fase 137), careciendo de una suite E2E con un cliente HTTP SSE concurrente escuchando exclusivamente el canal VTO.
+* **Resolución / Mitigación:** Reclasificado honestamente en `docs/AUDITORIA_FASE_003.md` y `docs/integration-evidence/aud-fase-003-manifest.json` como *Verificado en Publicación / Parcialmente Verificado en Conexión HTTP VTO Dedicada*. Programado refuerzo con cliente SSE concurrente en hito posterior de integración satélite.
+
+---
+
 ## 2. Brechas Ambientales de Certificación de Release (Environmental Release Gaps)
 
 Estas brechas representan dependencias de infraestructura y servicios externos que requieren aprovisionamiento en el host físico de producción, sin constituir fallos en el código base:
