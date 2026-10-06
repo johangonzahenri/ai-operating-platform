@@ -310,6 +310,59 @@ try {
 }
 
 // -------------------------------------------------------------
+// 8. Canonical Application Portfolio & Anti-Drift Verification
+// -------------------------------------------------------------
+console.log('\n8. Checking canonical application portfolio identities...');
+
+const CANONICAL_APPS = [
+  { id: 'PROJ-01', name: 'Tentaciones AI Commerce' },
+  { id: 'PROJ-02', name: 'Spare Parts' },
+  { id: 'PROJ-03', name: 'Fleet Management' },
+  { id: 'PROJ-04', name: 'Customer Portal' },
+  { id: 'PROJ-05', name: 'Analytics AI' }
+];
+
+const FORBIDDEN_DRIFT_NAMES = [
+  'Customer Support Agent Desk',
+  'Document Intelligence Hub',
+  'HR & Talent Intelligence'
+];
+
+try {
+  const appPortfolio = fs.readFileSync(path.join(ROOT_DIR, 'docs/APPLICATION_PORTFOLIO.md'), 'utf8');
+  const appRegistry = fs.readFileSync(path.join(ROOT_DIR, 'docs/APPLICATION_REGISTRY.md'), 'utf8');
+
+  for (const app of CANONICAL_APPS) {
+    if (!appPortfolio.includes(app.id) || !appPortfolio.includes(app.name)) {
+      error(`docs/APPLICATION_PORTFOLIO.md does not contain canonical app: ${app.id} (${app.name})`);
+    }
+    if (!appRegistry.includes(app.id) || !appRegistry.includes(app.name)) {
+      error(`docs/APPLICATION_REGISTRY.md does not contain canonical app: ${app.id} (${app.name})`);
+    }
+  }
+
+  // Scan documentation files for drifted names
+  const docsDir = path.join(ROOT_DIR, 'docs');
+  const mdFilesToCheck = fs.readdirSync(docsDir).filter(f => f.endsWith('.md')).map(f => path.join(docsDir, f));
+  mdFilesToCheck.push(path.join(ROOT_DIR, 'README.md'));
+  mdFilesToCheck.push(path.join(ROOT_DIR, 'LIBRO_OFICIAL_AI_OPERATING_PLATFORM.md'));
+
+  for (const f of mdFilesToCheck) {
+    const content = fs.readFileSync(f, 'utf8');
+    for (const driftName of FORBIDDEN_DRIFT_NAMES) {
+      if (content.includes(driftName)) {
+        error(`Forbidden portfolio drift detected in ${path.relative(ROOT_DIR, f)}: "${driftName}"`);
+      }
+    }
+  }
+
+  console.log('   ✓ All 5 canonical applications verified in portfolio & registry.');
+  console.log('   ✓ Zero forbidden portfolio identity drift detected across documentation.');
+} catch (err) {
+  error(`Failed checking application portfolio integrity: ${err.message}`);
+}
+
+// -------------------------------------------------------------
 // Summary & Exit Code
 // -------------------------------------------------------------
 console.log('\n============================================================');
