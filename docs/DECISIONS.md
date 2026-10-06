@@ -74,6 +74,7 @@ Este documento consolida el índice oficial de los Registros de Decisiones Arqui
 | **ADR 0049** | OpenAPI Formal Specification | `0049-openapi-formal-spec.md` | APROBADO | Especificación formal OpenAPI / Swagger para todos los contratos de endpoints de la plataforma. |
 | **ADR 0050** | Governance & Compliance Evidence Export | `0050-governance-and-compliance-evidence-export.md` | APROBADO | Exportación de paquetes de evidencia gobernados para auditoría y compliance, sellados criptográficamente con SHA-256 en 9 alcances, con redacción de secretos y cero mutación de estado. |
 | **ADR 0051** | Official MCP TypeScript SDK v2 Integration | `0051-official-enterprise-mcp-server-adapter.md` | APROBADO | Integración del SDK oficial `@modelcontextprotocol/server` (v2.1.0) en la capa perimetral de plataforma (src/platform/mcp/) con cero dependencias en Core/Domain y soporte dual 2026-07-28 / 2024-11-05. |
+| **ADR 0052** | Transitional Satellite Boundary & Repository Isolation | `0052-transitional-satellite-boundary-and-repository-isolation.md` | APROBADO | Frontera satélite transicional (`src/satellite/`), aislamiento de persistencia y horizonte de repositorio autónomo para aplicaciones del portafolio. |
 
 
 ---
